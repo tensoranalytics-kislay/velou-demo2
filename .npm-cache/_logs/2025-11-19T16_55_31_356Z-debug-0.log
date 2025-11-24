@@ -1,0 +1,572 @@
+0 verbose cli /opt/homebrew/Cellar/node@20/20.19.0_1/bin/node /opt/homebrew/opt/node@20/bin/npm
+1 info using npm@10.8.2
+2 info using node@v20.19.0
+3 silly config load:file:/opt/homebrew/Cellar/node@20/20.19.0_1/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/k1zzle/Desktop/velou-shopping-assistant/.npmrc
+5 silly config load:file:/Users/k1zzle/.npmrc
+6 silly config load:file:/opt/homebrew/etc/npmrc
+7 verbose title npm install tsx@4.19.1
+8 verbose argv "install" "--save-dev" "tsx@4.19.1"
+9 verbose logfile logs-max:10 dir:/Users/k1zzle/Desktop/velou-shopping-assistant/.npm-cache/_logs/2025-11-19T16_55_31_356Z-
+10 verbose logfile /Users/k1zzle/Desktop/velou-shopping-assistant/.npm-cache/_logs/2025-11-19T16_55_31_356Z-debug-0.log
+11 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+12 silly logfile done cleaning log files
+13 silly idealTree buildDeps
+14 silly fetch manifest @prisma/client@^5.19.1
+15 silly packumentCache full:https://registry.npmjs.org/@prisma%2fclient cache-miss
+16 verbose shrinkwrap failed to load node_modules/.package-lock.json out of date, updated: node_modules
+17 http fetch GET 200 https://registry.npmjs.org/@prisma%2fclient 199ms (cache revalidated)
+18 silly packumentCache full:https://registry.npmjs.org/@prisma%2fclient set size:65135455 disposed:false
+19 silly fetch manifest prisma@^5.19.1
+20 silly packumentCache full:https://registry.npmjs.org/prisma cache-miss
+21 http fetch GET 200 https://registry.npmjs.org/prisma 81ms (cache revalidated)
+22 silly packumentCache full:https://registry.npmjs.org/prisma set size:41458536 disposed:false
+23 silly fetch manifest tsx@4.19.1
+24 silly packumentCache full:https://registry.npmjs.org/tsx cache-miss
+25 http fetch GET 200 https://registry.npmjs.org/tsx 32ms (cache revalidated)
+26 silly packumentCache full:https://registry.npmjs.org/tsx set size:287318 disposed:false
+27 silly placeDep ROOT @prisma/client@5.22.0 REPLACE for: velou-shopping-assistant@0.1.0 want: ^5.19.1
+28 silly placeDep ROOT tsx@4.19.1 OK for: velou-shopping-assistant@0.1.0 want: 4.19.1
+29 silly fetch manifest esbuild@~0.23.0
+30 silly packumentCache full:https://registry.npmjs.org/esbuild cache-miss
+31 http fetch GET 200 https://registry.npmjs.org/esbuild 28ms (cache revalidated)
+32 silly packumentCache full:https://registry.npmjs.org/esbuild set size:1234639 disposed:false
+33 silly placeDep ROOT esbuild@0.23.1 OK for: tsx@4.19.1 want: ~0.23.0
+34 silly fetch manifest @esbuild/aix-ppc64@0.23.1
+35 silly packumentCache full:https://registry.npmjs.org/@esbuild%2faix-ppc64 cache-miss
+36 silly fetch manifest @esbuild/linux-arm@0.23.1
+37 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm cache-miss
+38 silly fetch manifest @esbuild/linux-x64@0.23.1
+39 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-x64 cache-miss
+40 silly fetch manifest @esbuild/sunos-x64@0.23.1
+41 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fsunos-x64 cache-miss
+42 silly fetch manifest @esbuild/win32-x64@0.23.1
+43 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-x64 cache-miss
+44 silly fetch manifest @esbuild/darwin-x64@0.23.1
+45 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-x64 cache-miss
+46 silly fetch manifest @esbuild/linux-ia32@0.23.1
+47 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ia32 cache-miss
+48 http fetch GET 200 https://registry.npmjs.org/@esbuild%2faix-ppc64 111ms (cache revalidated)
+49 silly packumentCache full:https://registry.npmjs.org/@esbuild%2faix-ppc64 set size:51056 disposed:false
+50 silly fetch manifest @esbuild/netbsd-x64@0.23.1
+51 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fnetbsd-x64 cache-miss
+52 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-x64 114ms (cache revalidated)
+53 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-x64 set size:182307 disposed:false
+54 silly fetch manifest @esbuild/win32-ia32@0.23.1
+55 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-ia32 cache-miss
+56 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fwin32-x64 114ms (cache revalidated)
+57 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-x64 set size:182530 disposed:false
+58 silly fetch manifest @esbuild/android-arm@0.23.1
+59 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm cache-miss
+60 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fdarwin-x64 123ms (cache revalidated)
+61 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-x64 set size:182962 disposed:false
+62 silly fetch manifest @esbuild/android-x64@0.23.1
+63 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-x64 cache-miss
+64 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-arm 135ms (cache revalidated)
+65 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm set size:181984 disposed:false
+66 silly fetch manifest @esbuild/freebsd-x64@0.23.1
+67 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-x64 cache-miss
+68 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-ia32 136ms (cache revalidated)
+69 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ia32 set size:182913 disposed:false
+70 silly fetch manifest @esbuild/linux-arm64@0.23.1
+71 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm64 cache-miss
+72 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fsunos-x64 138ms (cache revalidated)
+73 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fsunos-x64 set size:182527 disposed:false
+74 silly fetch manifest @esbuild/linux-ppc64@0.23.1
+75 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ppc64 cache-miss
+76 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fnetbsd-x64 67ms (cache revalidated)
+77 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fnetbsd-x64 set size:180836 disposed:false
+78 silly fetch manifest @esbuild/linux-s390x@0.23.1
+79 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-s390x cache-miss
+80 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fwin32-ia32 69ms (cache revalidated)
+81 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-ia32 set size:183125 disposed:false
+82 silly fetch manifest @esbuild/openbsd-x64@0.23.1
+83 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenbsd-x64 cache-miss
+84 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fandroid-arm 62ms (cache revalidated)
+85 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm set size:208555 disposed:false
+86 silly fetch manifest @esbuild/win32-arm64@0.23.1
+87 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-arm64 cache-miss
+88 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fandroid-x64 57ms (cache revalidated)
+89 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-x64 set size:182358 disposed:false
+90 silly fetch manifest @esbuild/darwin-arm64@0.23.1
+91 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-arm64 cache-miss
+92 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-ppc64 55ms (cache revalidated)
+93 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-ppc64 set size:185846 disposed:false
+94 silly fetch manifest @esbuild/android-arm64@0.23.1
+95 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm64 cache-miss
+96 http fetch GET 200 https://registry.npmjs.org/@esbuild%2ffreebsd-x64 62ms (cache revalidated)
+97 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-x64 set size:183768 disposed:false
+98 silly fetch manifest @esbuild/freebsd-arm64@0.23.1
+99 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 cache-miss
+100 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-arm64 66ms (cache revalidated)
+101 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-arm64 set size:183952 disposed:false
+102 silly fetch manifest @esbuild/linux-loong64@0.23.1
+103 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-loong64 cache-miss
+104 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fopenbsd-x64 33ms (cache revalidated)
+105 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenbsd-x64 set size:183771 disposed:false
+106 silly fetch manifest @esbuild/linux-riscv64@0.23.1
+107 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-riscv64 cache-miss
+108 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-s390x 48ms (cache revalidated)
+109 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-s390x set size:185358 disposed:false
+110 silly fetch manifest @esbuild/openbsd-arm64@0.23.1
+111 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenbsd-arm64 cache-miss
+112 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fwin32-arm64 43ms (cache revalidated)
+113 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fwin32-arm64 set size:184167 disposed:false
+114 silly fetch manifest @esbuild/linux-mips64el@0.23.1
+115 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-mips64el cache-miss
+116 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fandroid-arm64 40ms (cache revalidated)
+117 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fandroid-arm64 set size:187235 disposed:false
+118 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fdarwin-arm64 55ms (cache revalidated)
+119 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fdarwin-arm64 set size:184580 disposed:false
+120 http fetch GET 200 https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 58ms (cache revalidated)
+121 silly packumentCache full:https://registry.npmjs.org/@esbuild%2ffreebsd-arm64 set size:185403 disposed:false
+122 http fetch GET 200 https://registry.npmjs.org/@esbuild%2fopenbsd-arm64 38ms (cache revalidated)
+123 silly packumentCache full:https://registry.npmjs.org/@esbuild%2fopenbsd-arm64 set size:32662 disposed:false
+124 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-loong64 63ms (cache revalidated)
+125 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-loong64 set size:238725 disposed:false
+126 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-mips64el 42ms (cache revalidated)
+127 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-mips64el set size:187453 disposed:false
+128 http fetch GET 200 https://registry.npmjs.org/@esbuild%2flinux-riscv64 75ms (cache revalidated)
+129 silly packumentCache full:https://registry.npmjs.org/@esbuild%2flinux-riscv64 set size:185523 disposed:false
+130 silly placeDep ROOT @esbuild/aix-ppc64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+131 silly placeDep ROOT @esbuild/android-arm@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+132 silly placeDep ROOT @esbuild/android-arm64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+133 silly placeDep ROOT @esbuild/android-x64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+134 silly placeDep ROOT @esbuild/darwin-arm64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+135 silly placeDep ROOT @esbuild/darwin-x64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+136 silly placeDep ROOT @esbuild/freebsd-arm64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+137 silly placeDep ROOT @esbuild/freebsd-x64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+138 silly placeDep ROOT @esbuild/linux-arm@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+139 silly placeDep ROOT @esbuild/linux-arm64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+140 silly placeDep ROOT @esbuild/linux-ia32@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+141 silly placeDep ROOT @esbuild/linux-loong64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+142 silly placeDep ROOT @esbuild/linux-mips64el@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+143 silly placeDep ROOT @esbuild/linux-ppc64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+144 silly placeDep ROOT @esbuild/linux-riscv64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+145 silly placeDep ROOT @esbuild/linux-s390x@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+146 silly placeDep ROOT @esbuild/linux-x64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+147 silly placeDep ROOT @esbuild/netbsd-x64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+148 silly placeDep ROOT @esbuild/openbsd-arm64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+149 silly placeDep ROOT @esbuild/openbsd-x64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+150 silly placeDep ROOT @esbuild/sunos-x64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+151 silly placeDep ROOT @esbuild/win32-arm64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+152 silly placeDep ROOT @esbuild/win32-ia32@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+153 silly placeDep ROOT @esbuild/win32-x64@0.23.1 OK for: esbuild@0.23.1 want: 0.23.1
+154 silly reify mark retired [
+154 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-darwin-x64'
+154 silly reify ]
+155 silly reify mark retired [
+155 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-linux-arm-gnueabihf'
+155 silly reify ]
+156 silly reify mark retired [
+156 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-freebsd-x64'
+156 silly reify ]
+157 silly reify mark retired [
+157 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-linux-arm64-gnu'
+157 silly reify ]
+158 silly reify mark retired [
+158 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-linux-arm64-musl'
+158 silly reify ]
+159 silly reify mark retired [
+159 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-linux-x64-gnu'
+159 silly reify ]
+160 silly reify mark retired [
+160 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-linux-x64-musl'
+160 silly reify ]
+161 silly reify mark retired [
+161 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-win32-arm64-msvc'
+161 silly reify ]
+162 silly reify mark retired [
+162 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-win32-x64-msvc'
+162 silly reify ]
+163 silly reify mark retired [
+163 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-android-arm64'
+163 silly reify ]
+164 silly reify mark retired [
+164 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/aix-ppc64'
+164 silly reify ]
+165 silly reify mark retired [
+165 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/android-arm64'
+165 silly reify ]
+166 silly reify mark retired [
+166 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/android-x64'
+166 silly reify ]
+167 silly reify mark retired [
+167 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/darwin-x64'
+167 silly reify ]
+168 silly reify mark retired [
+168 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/freebsd-arm64'
+168 silly reify ]
+169 silly reify mark retired [
+169 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/freebsd-x64'
+169 silly reify ]
+170 silly reify mark retired [
+170 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-arm'
+170 silly reify ]
+171 silly reify mark retired [
+171 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-ia32'
+171 silly reify ]
+172 silly reify mark retired [
+172 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-arm64'
+172 silly reify ]
+173 silly reify mark retired [
+173 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-mips64el'
+173 silly reify ]
+174 silly reify mark retired [
+174 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-ppc64'
+174 silly reify ]
+175 silly reify mark retired [
+175 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-riscv64'
+175 silly reify ]
+176 silly reify mark retired [
+176 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-s390x'
+176 silly reify ]
+177 silly reify mark retired [
+177 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-loong64'
+177 silly reify ]
+178 silly reify mark retired [
+178 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-x64'
+178 silly reify ]
+179 silly reify mark retired [
+179 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/netbsd-arm64'
+179 silly reify ]
+180 silly reify mark retired [
+180 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/netbsd-x64'
+180 silly reify ]
+181 silly reify mark retired [
+181 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/android-arm'
+181 silly reify ]
+182 silly reify mark retired [
+182 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/openbsd-x64'
+182 silly reify ]
+183 silly reify mark retired [
+183 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/openbsd-arm64'
+183 silly reify ]
+184 silly reify mark retired [
+184 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/openharmony-arm64'
+184 silly reify ]
+185 silly reify mark retired [
+185 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/win32-arm64'
+185 silly reify ]
+186 silly reify mark retired [
+186 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/win32-ia32'
+186 silly reify ]
+187 silly reify mark retired [
+187 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/win32-x64'
+187 silly reify ]
+188 silly reify mark retired [
+188 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/sunos-x64'
+188 silly reify ]
+189 silly reify mark retired [
+189 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-darwin-x64'
+189 silly reify ]
+190 silly reify mark retired [
+190 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-darwin-x64'
+190 silly reify ]
+191 silly reify mark retired [
+191 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linux-arm'
+191 silly reify ]
+192 silly reify mark retired [
+192 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linux-arm64'
+192 silly reify ]
+193 silly reify mark retired [
+193 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linux-ppc64'
+193 silly reify ]
+194 silly reify mark retired [
+194 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linux-s390x'
+194 silly reify ]
+195 silly reify mark retired [
+195 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linuxmusl-arm64'
+195 silly reify ]
+196 silly reify mark retired [
+196 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linux-riscv64'
+196 silly reify ]
+197 silly reify mark retired [
+197 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linux-x64'
+197 silly reify ]
+198 silly reify mark retired [
+198 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linuxmusl-x64'
+198 silly reify ]
+199 silly reify mark retired [
+199 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linux-arm'
+199 silly reify ]
+200 silly reify mark retired [
+200 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linux-arm64'
+200 silly reify ]
+201 silly reify mark retired [
+201 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linux-ppc64'
+201 silly reify ]
+202 silly reify mark retired [
+202 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linux-s390x'
+202 silly reify ]
+203 silly reify mark retired [
+203 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linux-riscv64'
+203 silly reify ]
+204 silly reify mark retired [
+204 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linuxmusl-x64'
+204 silly reify ]
+205 silly reify mark retired [
+205 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linuxmusl-arm64'
+205 silly reify ]
+206 silly reify mark retired [
+206 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linux-x64'
+206 silly reify ]
+207 silly reify mark retired [
+207 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-win32-ia32'
+207 silly reify ]
+208 silly reify mark retired [
+208 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-win32-arm64'
+208 silly reify ]
+209 silly reify mark retired [
+209 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-wasm32'
+209 silly reify ]
+210 silly reify mark retired [
+210 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-win32-x64'
+210 silly reify ]
+211 silly reify mark retired [
+211 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/swc-darwin-x64'
+211 silly reify ]
+212 silly reify mark retired [
+212 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/swc-linux-arm64-gnu'
+212 silly reify ]
+213 silly reify mark retired [
+213 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/swc-linux-arm64-musl'
+213 silly reify ]
+214 silly reify mark retired [
+214 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/swc-linux-x64-gnu'
+214 silly reify ]
+215 silly reify mark retired [
+215 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/swc-linux-x64-musl'
+215 silly reify ]
+216 silly reify mark retired [
+216 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/swc-win32-arm64-msvc'
+216 silly reify ]
+217 silly reify mark retired [
+217 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/swc-win32-x64-msvc'
+217 silly reify ]
+218 silly reify mark retired [
+218 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-darwin-x64'
+218 silly reify ]
+219 silly reify mark retired [
+219 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-freebsd-x64'
+219 silly reify ]
+220 silly reify mark retired [
+220 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-linux-arm-gnueabihf'
+220 silly reify ]
+221 silly reify mark retired [
+221 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-linux-arm64-gnu'
+221 silly reify ]
+222 silly reify mark retired [
+222 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-linux-arm64-musl'
+222 silly reify ]
+223 silly reify mark retired [
+223 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-wasm32-wasi'
+223 silly reify ]
+224 silly reify mark retired [
+224 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-linux-x64-musl'
+224 silly reify ]
+225 silly reify mark retired [
+225 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-linux-x64-gnu'
+225 silly reify ]
+226 silly reify mark retired [
+226 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-win32-arm64-msvc'
+226 silly reify ]
+227 silly reify mark retired [
+227 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-win32-x64-msvc'
+227 silly reify ]
+228 silly reify mark retired [
+228 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-android-arm64'
+228 silly reify ]
+229 silly reify mark retired [
+229 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-android-arm-eabi'
+229 silly reify ]
+230 silly reify mark retired [
+230 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-android-arm64'
+230 silly reify ]
+231 silly reify mark retired [
+231 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-darwin-x64'
+231 silly reify ]
+232 silly reify mark retired [
+232 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-freebsd-x64'
+232 silly reify ]
+233 silly reify mark retired [
+233 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-arm-gnueabihf'
+233 silly reify ]
+234 silly reify mark retired [
+234 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-arm-musleabihf'
+234 silly reify ]
+235 silly reify mark retired [
+235 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-arm64-gnu'
+235 silly reify ]
+236 silly reify mark retired [
+236 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-arm64-musl'
+236 silly reify ]
+237 silly reify mark retired [
+237 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-ppc64-gnu'
+237 silly reify ]
+238 silly reify mark retired [
+238 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-riscv64-gnu'
+238 silly reify ]
+239 silly reify mark retired [
+239 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-riscv64-musl'
+239 silly reify ]
+240 silly reify mark retired [
+240 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-s390x-gnu'
+240 silly reify ]
+241 silly reify mark retired [
+241 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-x64-gnu'
+241 silly reify ]
+242 silly reify mark retired [
+242 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-x64-musl'
+242 silly reify ]
+243 silly reify mark retired [
+243 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-wasm32-wasi'
+243 silly reify ]
+244 silly reify mark retired [
+244 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-win32-arm64-msvc'
+244 silly reify ]
+245 silly reify mark retired [
+245 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-win32-ia32-msvc'
+245 silly reify ]
+246 silly reify mark retired [
+246 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-win32-x64-msvc'
+246 silly reify ]
+247 silly reify mark retired [
+247 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/esbuild',
+247 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.bin/esbuild'
+247 silly reify ]
+248 silly reify mark retired [
+248 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/tsx',
+248 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.bin/tsx'
+248 silly reify ]
+249 silly reify mark retired [
+249 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/darwin-arm64'
+249 silly reify ]
+250 silly reify mark retired [
+250 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@prisma/client'
+250 silly reify ]
+251 silly reify moves {
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-darwin-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.lightningcss-darwin-x64-8sXJ96jz',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-linux-arm-gnueabihf': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.lightningcss-linux-arm-gnueabihf-rBHd02Hy',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-freebsd-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.lightningcss-freebsd-x64-OjEQ5KCT',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-linux-arm64-gnu': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.lightningcss-linux-arm64-gnu-phbjNHOz',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-linux-arm64-musl': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.lightningcss-linux-arm64-musl-WawF0SVn',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-linux-x64-gnu': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.lightningcss-linux-x64-gnu-VblUh7mM',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-linux-x64-musl': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.lightningcss-linux-x64-musl-zOPgxAVc',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-win32-arm64-msvc': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.lightningcss-win32-arm64-msvc-0kfJXgG7',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-win32-x64-msvc': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.lightningcss-win32-x64-msvc-DGXskQgR',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/lightningcss-android-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.lightningcss-android-arm64-knCZ36mQ',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/aix-ppc64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.aix-ppc64-C9PzGNxN',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/android-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.android-arm64-KifrgpaD',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/android-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.android-x64-gCuBxiz1',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/darwin-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.darwin-x64-O0RaErla',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/freebsd-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.freebsd-arm64-l6x7b6JO',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/freebsd-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.freebsd-x64-pHjhbTWZ',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-arm': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.linux-arm-Vf6lAukN',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-ia32': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.linux-ia32-VWb0oe54',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.linux-arm64-9vsm4EaT',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-mips64el': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.linux-mips64el-iLEyZIjb',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-ppc64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.linux-ppc64-SeMcqRVi',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-riscv64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.linux-riscv64-lq3bvQS5',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-s390x': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.linux-s390x-vD41OkVH',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-loong64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.linux-loong64-GLsAZToI',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/linux-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.linux-x64-OEIPIX6m',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/netbsd-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.netbsd-arm64-RZ7V68Ld',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/netbsd-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.netbsd-x64-Ha3jmox4',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/android-arm': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.android-arm-20WVvD1B',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/openbsd-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.openbsd-x64-ESv5DqpD',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/openbsd-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.openbsd-arm64-7gW82IMc',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/openharmony-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.openharmony-arm64-BJQbVxxh',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/win32-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.win32-arm64-sPvIcFjz',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/win32-ia32': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.win32-ia32-1iq0UBcB',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/win32-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.win32-x64-Zx3l6ljQ',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/sunos-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.sunos-x64-ASEkx42z',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-darwin-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-darwin-x64-0pBBZwZd',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-darwin-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-libvips-darwin-x64-oA77Ltk4',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linux-arm': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-libvips-linux-arm-LIDynIxL',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linux-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-libvips-linux-arm64-5zGu5XUW',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linux-ppc64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-libvips-linux-ppc64-WeHQnavU',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linux-s390x': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-libvips-linux-s390x-TO9sThzV',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linuxmusl-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-libvips-linuxmusl-arm64-FtVppeRU',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linux-riscv64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-libvips-linux-riscv64-LI3Pumz1',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linux-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-libvips-linux-x64-F4s9YXYk',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-libvips-linuxmusl-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-libvips-linuxmusl-x64-B1F9PAki',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linux-arm': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-linux-arm-Wlqt2yZZ',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linux-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-linux-arm64-sazczwhl',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linux-ppc64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-linux-ppc64-9TZ1kwnz',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linux-s390x': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-linux-s390x-JbGSkPRC',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linux-riscv64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-linux-riscv64-cAMbYCHp',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linuxmusl-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-linuxmusl-x64-EMDyLYZ9',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linuxmusl-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-linuxmusl-arm64-8vcRr1LA',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-linux-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-linux-x64-ffBoLRhU',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-win32-ia32': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-win32-ia32-AvvHWAqE',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-win32-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-win32-arm64-PQJorTEw',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-wasm32': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-wasm32-FxrWANcy',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/sharp-win32-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@img/.sharp-win32-x64-pR5UkJLz',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/swc-darwin-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/.swc-darwin-x64-Jm3KVJqz',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/swc-linux-arm64-gnu': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/.swc-linux-arm64-gnu-WO0N1qCl',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/swc-linux-arm64-musl': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/.swc-linux-arm64-musl-BJYC5gZk',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/swc-linux-x64-gnu': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/.swc-linux-x64-gnu-sJPyyAxg',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/swc-linux-x64-musl': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/.swc-linux-x64-musl-GYDX20S8',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/swc-win32-arm64-msvc': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/.swc-win32-arm64-msvc-mDkTGiw1',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/swc-win32-x64-msvc': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@next/.swc-win32-x64-msvc-imQCtceT',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-darwin-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/.oxide-darwin-x64-eAnO52Q8',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-freebsd-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/.oxide-freebsd-x64-S9HcCcfr',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-linux-arm-gnueabihf': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/.oxide-linux-arm-gnueabihf-cvUWsRGh',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-linux-arm64-gnu': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/.oxide-linux-arm64-gnu-gc5WJeFC',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-linux-arm64-musl': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/.oxide-linux-arm64-musl-JrCtuFvD',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-wasm32-wasi': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/.oxide-wasm32-wasi-nh7GmPZC',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-linux-x64-musl': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/.oxide-linux-x64-musl-vJSZOiQi',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-linux-x64-gnu': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/.oxide-linux-x64-gnu-MCO5Zi15',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-win32-arm64-msvc': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/.oxide-win32-arm64-msvc-d6mQIZwa',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-win32-x64-msvc': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/.oxide-win32-x64-msvc-Q79xxqVT',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/oxide-android-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@tailwindcss/.oxide-android-arm64-3RPI9Ze1',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-android-arm-eabi': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-android-arm-eabi-IlpUY6FW',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-android-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-android-arm64-GGuSBFyo',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-darwin-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-darwin-x64-53lmbOVe',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-freebsd-x64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-freebsd-x64-lNMqZ1vC',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-arm-gnueabihf': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-linux-arm-gnueabihf-3VLxdQxV',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-arm-musleabihf': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-linux-arm-musleabihf-IunGMhIX',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-arm64-gnu': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-linux-arm64-gnu-QzalZouX',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-arm64-musl': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-linux-arm64-musl-Gntmmb6h',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-ppc64-gnu': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-linux-ppc64-gnu-Q3y9MsZr',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-riscv64-gnu': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-linux-riscv64-gnu-940tu2HF',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-riscv64-musl': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-linux-riscv64-musl-4atB9iEh',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-s390x-gnu': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-linux-s390x-gnu-zQjEdFFq',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-x64-gnu': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-linux-x64-gnu-xU11KC6i',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-linux-x64-musl': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-linux-x64-musl-c3fItb9v',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-wasm32-wasi': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-wasm32-wasi-w0gKH70X',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-win32-arm64-msvc': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-win32-arm64-msvc-i4PvUndP',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-win32-ia32-msvc': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-win32-ia32-msvc-1nmXjkmp',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/resolver-binding-win32-x64-msvc': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@unrs/.resolver-binding-win32-x64-msvc-vgqj9jae',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/esbuild': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.esbuild-iJNfZ0Vn',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.bin/esbuild': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.bin/.esbuild-w7jXsDrV',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/tsx': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.tsx-nw58Msay',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.bin/tsx': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.bin/.tsx-NShhvtQt',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/darwin-arm64': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@esbuild/.darwin-arm64-PxpfDRnh',
+251 silly reify   '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@prisma/client': '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/@prisma/.client-W9sssZi1'
+251 silly reify }
+252 verbose stack Error: ENOTEMPTY: directory not empty, rename '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/esbuild' -> '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.esbuild-iJNfZ0Vn'
+252 verbose stack     at async Object.rename (node:internal/fs/promises:782:10)
+252 verbose stack     at async moveFile (/opt/homebrew/Cellar/node@20/20.19.0_1/lib/node_modules/npm/node_modules/@npmcli/fs/lib/move-file.js:30:5)
+252 verbose stack     at async Promise.allSettled (index 93)
+252 verbose stack     at async [reifyPackages] (/opt/homebrew/Cellar/node@20/20.19.0_1/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:325:11)
+252 verbose stack     at async Arborist.reify (/opt/homebrew/Cellar/node@20/20.19.0_1/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:142:5)
+252 verbose stack     at async Install.exec (/opt/homebrew/Cellar/node@20/20.19.0_1/lib/node_modules/npm/lib/commands/install.js:150:5)
+252 verbose stack     at async Npm.exec (/opt/homebrew/Cellar/node@20/20.19.0_1/lib/node_modules/npm/lib/npm.js:207:9)
+252 verbose stack     at async module.exports (/opt/homebrew/Cellar/node@20/20.19.0_1/lib/node_modules/npm/lib/cli/entry.js:74:5)
+253 error code ENOTEMPTY
+254 error syscall rename
+255 error path /Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/esbuild
+256 error dest /Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.esbuild-iJNfZ0Vn
+257 error errno -66
+258 error ENOTEMPTY: directory not empty, rename '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/esbuild' -> '/Users/k1zzle/Desktop/velou-shopping-assistant/node_modules/.esbuild-iJNfZ0Vn'
+259 silly unfinished npm timer reify 1763571331535
+260 silly unfinished npm timer reify:retireShallow 1763571332673
+261 verbose cwd /Users/k1zzle/Desktop/velou-shopping-assistant
+262 verbose os Darwin 24.5.0
+263 verbose node v20.19.0
+264 verbose npm  v10.8.2
+265 verbose exit -66
+266 verbose code -66
+267 error A complete log of this run can be found in: /Users/k1zzle/Desktop/velou-shopping-assistant/.npm-cache/_logs/2025-11-19T16_55_31_356Z-debug-0.log

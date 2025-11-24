@@ -1,0 +1,180 @@
+
+---
+
+## 2️⃣ `.cursorrules` File
+
+Put this at the root of the repo as `.cursorrules`.
+
+```md
+# Velou Shopping Assistant – Cursor Rules
+
+## 1. General Principles
+
+- This project is a **single-merchant demo** for a **fashion/apparel** ecommerce site.
+- Do **not** add features beyond the described scope (no multi-tenant, no order tracking, no extra channels).
+- All new code must:
+  - Be written in **TypeScript**.
+  - Be modular and small, with clear responsibilities.
+  - Prefer pure functions over large classes where possible.
+  - Include at least minimal tests (unit or integration) for core logic.
+- Do **not** hardcode secrets (API keys, DB credentials). Use `process.env` and typed config helpers.
+
+## 2. Tech Stack & Dependencies
+
+- Framework: **Next.js (App Router)**.
+- Styling: **Tailwind CSS** only (no additional global CSS frameworks).
+- ORM: **Prisma** for PostgreSQL access.
+- LLM Providers: **Perplexity** and **OpenAI** via a single adapter.
+- UI Components:
+  - Use simple custom React components styled with Tailwind.
+  - You may use headless libraries (e.g., Radix primitives) if needed, but avoid heavy UI kits.
+
+## 3. Project Structure
+
+Prefer the following structure:
+
+- `src/app/`
+  - `page.tsx` – Single-page placeholder site + chat assistant.
+  - `admin/` – Admin routes (BrandConfig, MerchRules, LLMConfig, Metrics).
+  - `api/`
+    - `assistant/route.ts` – POST /api/assistant (main assistant endpoint).
+    - `metrics/product-click/route.ts` – POST /api/metrics/product-click.
+    - `health/route.ts` – GET /api/health.
+
+- `src/lib/`
+  - `db.ts` – Prisma client.
+  - `config.ts` – Typed access to env vars and brand config.
+  - `search/`
+    - `index.ts` – `searchProducts(constraints)` with merchandising rules.
+    - `types.ts` – `SearchConstraints`, etc.
+  - `llm/`
+    - `provider.ts` – provider-agnostic `callLLM`.
+    - `prompts.ts` – all prompt templates.
+    - `orchestrator.ts` – `handleAssistantQuery()` with full pipeline.
+  - `telemetry/`
+    - `logger.ts` – centralized logging (console is OK for demo).
+    - `metrics.ts` – helper for ConversationEvent + clicks.
+
+- `src/components/`
+  - `Chat/` – chat UI components (message list, input, header).
+  - `ProductCarousel/` – product carousel and card components.
+  - `Admin/` – small admin UI components.
+
+- `scripts/`
+  - `generateMockCatalog.ts` – mock apparel catalog generator.
+
+- `prisma/`
+  - `schema.prisma` – data model.
+
+## 4. UX & Styling Rules
+
+- The main UI should feel **modern and premium**, inspired by ChatGPT, Grok, and Gemini:
+  - Use gradients, subtle shadows, rounded corners.
+  - Clean typography, good spacing, and consistent vertical rhythm.
+- Chat panel:
+  - Use distinct background for assistant vs user messages.
+  - Include a visible typing/loading indicator while waiting for responses.
+- Product cards:
+  - Always include:
+    - product image.
+    - title.
+    - price.
+    - attribute tags (chips) – top 3–5 attributes (fabric, fit, occasion, color).
+    - a one-line “Chosen because…” reason.
+    - “View product” CTA button.
+  - Cards should be arranged in a responsive carousel or grid:
+    - horizontal scroll on small screens.
+    - multi-column grid on large screens.
+
+## 5. Assistant and LLM Rules
+
+- All calls to external LLMs **must** go through `src/lib/llm/provider.ts`.
+- The orchestrator (`src/lib/llm/orchestrator.ts`) is the **only** place where:
+  - user messages are interpreted into intents/constraints.
+  - search results and product data are combined with LLM outputs.
+
+- Intent + constraints step:
+  - Use a **JSON-only** LLM response pattern.
+  - Map natural language into `SearchConstraints` and `intent` types only.
+  - Do not generate user-facing text in this step.
+
+- Final response step:
+  - Must only reference attributes present in the product JSON passed to the model.
+  - Must generate:
+    - `replyText` (2–4 sentences).
+    - reasons per product, starting with “Chosen because…”.
+  - Must **not**:
+    - invent discounts or promotions.
+    - claim shipping/return policies.
+    - invent stock data.
+
+- LLM Provider selection:
+  - Implement environment-driven provider selection:
+    - `LLM_PROVIDER=perplexity` → use Perplexity API if keys are configured.
+    - `LLM_PROVIDER=openai` → use OpenAI API.
+    - `LLM_PROVIDER=mock` → return deterministic mocked responses (for tests/dev).
+  - Merchants may optionally provide their own key; respect this when set.
+
+## 6. Search & Catalog Rules
+
+- Do not query Prisma directly from API routes.  
+  Always go through `src/lib/search/index.ts` or specialized functions in `src/lib/db.ts`.
+
+- `searchProducts(constraints)` must:
+  - Apply stock filters by default (hide out-of-stock) when Merchant rules require it.
+  - Support filters on:
+    - category, subcategory
+    - price range
+    - size, color
+    - fabric, fit, season, occasion, use-cases
+  - Apply MerchRule configs:
+    - `exclude_category` → products in these categories are removed from results.
+    - `boost_category` → products in boosted categories are sorted higher (e.g., via a score calculation).
+
+- Use SQL-friendly filtering (where possible) for performance; keep post-filtering minimal.
+
+## 7. Mock Catalog Data
+
+- The mock catalog generator should:
+  - Use pre-defined lists of apparel-related attributes (categories, fabrics, fits, etc.).
+  - Generate coherent combinations (e.g., linen + summer + beach wedding; wool + winter + office).
+  - Avoid calling LLMs to generate the mock data by default (to keep it free).
+- Ensure that:
+  - There are enough products to demonstrate meaningful search and filtering (e.g., 200–500 products).
+  - Attributes are diverse enough to respond to:
+    - weather (humid, cold, warm).
+    - events (beach wedding, office, formal, casual).
+    - price segments.
+    - sizes.
+
+## 8. Admin & Metrics
+
+- Admin routes under `/admin` should:
+  - Load and update **BrandConfig** and **MerchRule** records.
+  - Use simple forms with real-time validation where reasonable.
+- Metrics:
+  - On each answer from the assistant, record a `ConversationEvent`.
+  - When the user clicks “View product” on a card, call the metrics API to mark `clickedProductId`.
+  - Use aggregated queries (e.g., last 7/30 days) for the admin dashboard; no heavy analytics or third-party tools for this demo.
+
+## 9. Testing
+
+- At minimum, include tests for:
+  - `searchProducts()` filtering & merchandising rules.
+  - LLM JSON parsing (intent + constraints) using mocked provider responses.
+  - `handleAssistantQuery()` end-to-end with mocked LLM and search, for:
+    - discovery query.
+    - refinement query.
+    - PDP-style suitability query.
+- Use **Vitest** or **Jest** consistently across the project; do not mix frameworks.
+
+## 10. Non-functional Rules
+
+- Aim for **under 4 seconds** end-to-end response time for typical queries, assuming external LLM latency.
+- If LLM or assistant API fails:
+  - Return a user-visible message:
+    - “Our assistant is temporarily unavailable. Please try again or use the filters and search.”
+  - Do not break page rendering.
+- Logging:
+  - Use a single `logger` helper for logging; avoid `console.log` scattered throughout the code (except in the logger implementation and scripts).
+

@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id             String      @id
+  title          String
+  description    String
+  imageUrl       String
+  priceCents     Int
+  currency       String
+  category       String
+  subcategory    String?
+  brand          String?
+  attributes     Json
+  stockStatus    StockStatus @default(in_stock)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  productUrl     String
+  salePriceCents Int?
+
+  @@index([category])
+  @@index([stockStatus])
+}
+
+model BrandConfig {
+  id                    Int      @id @default(1)
+  brandName             String
+  primaryColor          String
+  accentColor           String
+  voiceInstructions     String
+  toneFormal            Int
+  tonePlayful           Int
+  useMerchantKey        Boolean  @default(false)
+  merchantOpenAIKey     String?
+  merchantPerplexityKey String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model MerchRule {
+  id        Int           @id @default(autoincrement())
+  ruleType  MerchRuleType
+  value     String
+  weight    Int           @default(0)
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model ConversationEvent {
+  id                    String   @id @default(cuid())
+  sessionId             String
+  pageType              PageType
+  productContextId      String?
+  userQuery             String   @db.VarChar(256)
+  productIds            String[]
+  hadExactMatch         Boolean  @default(false)
+  clickedProductId      String?
+  createdAt             DateTime @default(now())
+  assistantReplySnippet String?  @db.VarChar(256)
+  clicked               Boolean  @default(false)
+
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+enum StockStatus {
+  in_stock
+  out_of_stock
+  low_stock
+}
+
+enum MerchRuleType {
+  boost_category
+  exclude_category
+  hide_out_of_stock
+}
+
+enum PageType {
+  HOME
+  PLP
+  PDP
+}

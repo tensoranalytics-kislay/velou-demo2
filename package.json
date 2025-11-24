@@ -1,26 +1,45 @@
 {
-  "name": "velou-shopping-assistant-temp",
+  "name": "velou-shopping-assistant",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postinstall": "prisma generate",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "migrate:deploy": "prisma migrate deploy",
+    "seed:catalog": "tsx scripts/importCatalogFromCsv.ts",
+    "seed:mock-catalog": "tsx scripts/generateMockCatalog.ts"
   },
   "dependencies": {
+    "@prisma/client": "5.19.1",
+    "csv-parse": "^6.1.0",
     "next": "16.0.3",
     "react": "19.2.0",
     "react-dom": "19.2.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/ui": "^4.0.13",
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
+    "jsdom": "^27.2.0",
+    "prisma": "5.19.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "^4.19.1",
+    "typescript": "^5",
+    "vitest": "^4.0.13"
   }
 }

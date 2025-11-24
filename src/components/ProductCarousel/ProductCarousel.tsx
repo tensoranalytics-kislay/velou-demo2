@@ -1,0 +1,299 @@
+'use client';
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { ProductCard } from '@/lib/llm/orchestrator';
+
+type ProductCarouselProps = {
+  products: ProductCard[];
+  onProductClick?: (productId: string) => Promise<void> | void;
+};
+
+const formatAttributes = (attributes: string[]) => {
+  const filtered = attributes.filter(Boolean);
+  const maxVisible = 4;
+  if (filtered.length <= maxVisible) {
+    return { visible: filtered, remaining: 0 };
+  }
+  return { visible: filtered.slice(0, maxVisible), remaining: filtered.length - maxVisible };
+};
+
+const truncateTitle = (title: string, maxWords = 8) => {
+  const words = title.split(/\s+/);
+  if (words.length <= maxWords) return title;
+  return `${words.slice(0, maxWords).join(' ')}...`;
+};
+
+const formatCurrency = (value: number, currency: string) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value / 100);
+
+const FALLBACK_CARD_WIDTH = 170;
+
+// Helper to extract single word from attribute value for keyword tags
+const getSingleWord = (attr: string): string => {
+  const value = attr.split(':')[1]?.trim() || attr;
+  // Split by spaces/commas and take first meaningful word
+  const words = value.split(/[\s,]+/).filter(Boolean);
+  return words[0] || value;
+};
+
+// Generate a deterministic rating between 1 and 5 based on product ID
+const getRating = (productId: string): number => {
+  // Use product ID to generate a consistent rating
+  let hash = 0;
+  for (let i = 0; i < productId.length; i++) {
+    hash = productId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  // Map to 1-5 range, with slight bias toward higher ratings (3-5)
+  const normalized = Math.abs(hash) % 100;
+  if (normalized < 10) return 1;
+  if (normalized < 25) return 2;
+  if (normalized < 50) return 3;
+  if (normalized < 80) return 4;
+  return 5;
+};
+
+export default function ProductCarousel({ products, onProductClick }: ProductCarouselProps) {
+  const [clickedProductId, setClickedProductId] = useState<string | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const inStockProducts = useMemo(
+    () => products.filter((product) => product.stockStatus !== 'out_of_stock'),
+    [products],
+  );
+
+  const updateScrollState = useCallback(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const tolerance = 4;
+    setCanScrollLeft(container.scrollLeft > tolerance);
+    setCanScrollRight(container.scrollLeft + container.clientWidth < container.scrollWidth - tolerance);
+  }, []);
+
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    updateScrollState();
+    const handleScroll = () => updateScrollState();
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll);
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, [updateScrollState]);
+
+  useEffect(() => {
+    updateScrollState();
+  }, [inStockProducts.length, updateScrollState]);
+
+  const scrollByCard = useCallback(
+    (direction: 'left' | 'right') => {
+      const container = scrollRef.current;
+      if (!container) return;
+
+      const firstCard = container.querySelector('article');
+      const cardWidth = firstCard ? firstCard.getBoundingClientRect().width : FALLBACK_CARD_WIDTH;
+
+      const computed = window.getComputedStyle(container);
+      const gap =
+        parseFloat(computed.columnGap || computed.gap || '0') || parseFloat(computed.rowGap || '0') || 12;
+
+      const delta = (cardWidth + gap) * (direction === 'left' ? -1 : 1);
+      container.scrollBy({ left: delta, behavior: 'smooth' });
+    },
+    [],
+  );
+
+
+  if (inStockProducts.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4">
+      <div className="relative overflow-visible">
+        <div
+          ref={scrollRef}
+          className="flex gap-3 overflow-x-auto overflow-y-visible pb-2 snap-x snap-mandatory scroll-smooth md:gap-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        >
+        {inStockProducts.map((product) => {
+          const { visible: visibleAttributes, remaining } = formatAttributes(product.keyAttributes);
+          const hasSale =
+            typeof product.salePriceCents === 'number' &&
+            product.salePriceCents > 0 &&
+            product.salePriceCents < product.priceCents;
+          
+          // Extract color attribute to combine with queryChips
+          const colorAttribute = visibleAttributes.find(attr => attr.toLowerCase().startsWith('color:'));
+          const otherAttributes = visibleAttributes.filter(attr => !attr.toLowerCase().startsWith('color:'));
+          
+          return (
+            <article
+              key={product.id}
+                className="group relative flex w-[40vw] max-w-[40vw] flex-shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-[#D61F2B]/20 bg-[#FEEEED] p-2 text-slate-900 transition hover:border-[#D61F2B]/40 sm:w-[28vw] sm:max-w-[28vw] md:w-[170px] md:max-w-[170px] lg:w-[180px] lg:max-w-[180px]"
+            >
+                <div className="relative mb-2 w-full rounded-xl border border-white/60 bg-[#fff7f6] p-1.5">
+                  <div className="relative h-[140px] w-full rounded-xl bg-white/70 sm:h-[150px] md:h-[160px]">
+                    <img
+                      src={product.imageUrl}
+                      alt={product.title}
+                      className="h-full w-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${product.id}/400/600`;
+                      }}
+                    />
+                    {/* Rating pill overlay */}
+                    <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 rounded-full bg-white/90 backdrop-blur-sm px-1.5 py-0.5 shadow-sm">
+                      <span className="text-[10px] font-semibold text-slate-700">{getRating(product.id).toFixed(1)}</span>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-2.5 w-2.5 text-amber-500 fill-amber-500"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-1 flex-col">
+                <div className="space-y-0.5">
+                    <h3 className="text-xs font-semibold text-slate-900 line-clamp-2 break-words leading-tight">
+                    {product.title}
+                  </h3>
+                  <div className="flex items-baseline gap-1.5">
+                    {hasSale ? (
+                      <>
+                        <span className="text-[10px] text-slate-500 line-through">
+                          {formatCurrency(product.priceCents, product.currency)}
+                        </span>
+                        <span className="text-xs font-semibold text-[#D61F2B]">
+                          {formatCurrency(product.salePriceCents!, product.currency)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-xs font-semibold text-[#D61F2B]">
+                        {formatCurrency(product.priceCents, product.currency)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Combined queryChips and color attribute */}
+                {(product.queryChips && product.queryChips.length > 0) || colorAttribute ? (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {/* Query chips */}
+                    {product.queryChips
+                      ?.filter((chip) => chip.label.trim().length > 2)
+                      .slice(0, 5)
+                      .map((chip, idx) => (
+                        <div key={`${product.id}-chip-${idx}`} className="relative">
+                          <span className="peer inline-flex rounded-full border border-[#D61F2B]/30 bg-[#D61F2B]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#D61F2B] max-w-full truncate">
+                            {chip.label}
+                          </span>
+                          <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-[min(80vw,200px)] -translate-x-1/2 rounded-lg bg-neutral-900/90 px-3 py-2 text-left text-xs text-white opacity-0 shadow-lg transition peer-hover:opacity-100 peer-focus-visible:opacity-100">
+                            {chip.why}
+                          </span>
+                        </div>
+                      ))}
+                    {/* Color attribute */}
+                    {colorAttribute && (
+                      <span className="rounded-full border border-[#D61F2B]/20 bg-white/70 px-1.5 py-0.5 text-[10px] text-slate-700 max-w-full truncate">
+                        {getSingleWord(colorAttribute)}
+                      </span>
+                    )}
+                  </div>
+                ) : null}
+
+                {/* Other attributes (non-color) */}
+                {otherAttributes.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {otherAttributes.map((attribute) => (
+                      <span
+                        key={attribute}
+                        className="rounded-full border border-[#D61F2B]/20 bg-white/70 px-1.5 py-0.5 text-[10px] text-slate-700 max-w-full truncate"
+                      >
+                        {getSingleWord(attribute)}
+                      </span>
+                    ))}
+                    {remaining > 0 && (
+                      <span className="rounded-full border border-[#D61F2B]/20 bg-white/70 px-1.5 py-0.5 text-[10px] text-slate-500">
+                        +{remaining} more
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                  <p className="mt-2 text-[10px] leading-snug text-slate-700 break-words">{product.reason}</p>
+
+                  <div className="mt-auto pt-2">
+                  <button
+                    type="button"
+                    disabled={clickedProductId === product.id}
+                    onClick={async () => {
+                      setClickedProductId(product.id);
+                      await onProductClick?.(product.id);
+                      window.open(product.productUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                      className="w-full h-7 rounded-lg bg-[#D61F2B] px-2 py-1 text-xs font-semibold text-[#FEEEED] transition hover:bg-[#b91822] disabled:opacity-50 truncate cursor-pointer"
+                  >
+                    {clickedProductId === product.id ? '✓ Clicked' : 'View product'}
+                  </button>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+        </div>
+
+        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-1 pr-3 z-30">
+          <button
+            type="button"
+            aria-label="Scroll left"
+            onClick={() => scrollByCard('left')}
+            disabled={!canScrollLeft}
+            className="pointer-events-auto hidden rounded-full bg-white/90 p-2 text-[#D61F2B] shadow-lg transition hover:bg-white disabled:opacity-40 sm:block cursor-pointer"
+          >
+            <span className="sr-only">Scroll left</span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        </div>
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pl-3 pr-1 z-30">
+          <button
+            type="button"
+            aria-label="Scroll right"
+            onClick={() => scrollByCard('right')}
+            disabled={!canScrollRight}
+            className="pointer-events-auto hidden rounded-full bg-white/90 p-2 text-[#D61F2B] shadow-lg transition hover:bg-white disabled:opacity-40 sm:block cursor-pointer"
+          >
+            <span className="sr-only">Scroll right</span>
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+        {/* Left edge gradient overlay - appears when scrolled right, fades at left edge */}
+        <div
+          className={`pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-white to-transparent z-10 transition-opacity duration-300 ${
+            canScrollLeft ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+        {/* Right edge gradient overlay - fades when scrolled to right edge */}
+        <div
+          className={`pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-white to-transparent z-10 transition-opacity duration-300 ${
+            canScrollRight ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+      </div>
+    </div>
+  );
+}
+
