@@ -2,21 +2,19 @@ import { prisma } from '@/lib/db';
 import AppearanceForm from './AppearanceForm';
 
 async function getBrandConfig() {
-  let config = await prisma.brandConfig.findUnique({ where: { id: 1 } });
-  if (!config) {
-    config = await prisma.brandConfig.create({
-      data: {
-        id: 1,
-        brandName: 'Velou Atelier',
-        primaryColor: '#3b82f6',
-        accentColor: '#8b5cf6',
-        voiceInstructions: 'Be helpful and warm.',
-        toneFormal: 5,
-        tonePlayful: 5,
-      },
-    });
-  }
-  return config;
+  return prisma.brandConfig.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      id: 1,
+      brandName: 'Velou Atelier',
+      primaryColor: '#3b82f6',
+      accentColor: '#8b5cf6',
+      voiceInstructions: 'Be helpful and warm.',
+      toneFormal: 5,
+      tonePlayful: 5,
+    },
+  });
 }
 
 export default async function AppearancePage() {
