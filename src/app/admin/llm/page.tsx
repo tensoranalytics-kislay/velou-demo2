@@ -2,6 +2,9 @@ import { env } from '@/lib/config';
 import { prisma } from '@/lib/db';
 import LLMConfigDisplay from './LLMConfigDisplay';
 
+// Force dynamic rendering to avoid build-time database queries
+export const dynamic = 'force-dynamic';
+
 async function getBrandConfig() {
   return prisma.brandConfig.upsert({
     where: { id: 1 },

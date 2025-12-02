@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/db';
 import AppearanceForm from './AppearanceForm';
 
+// Force dynamic rendering to avoid build-time database queries
+export const dynamic = 'force-dynamic';
+
 async function getBrandConfig() {
   return prisma.brandConfig.upsert({
     where: { id: 1 },
