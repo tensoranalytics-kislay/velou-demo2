@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
+import type { Product } from '@prisma/client';
 
 const FALLBACK_IMAGE = 'https://picsum.photos/seed/luckybrand/600/800';
 
@@ -7,7 +8,7 @@ const formatCurrency = (value: number, currency: string) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value / 100);
 
 export default async function ProductGrid() {
-  let products = [];
+  let products: Product[] = [];
   let brandName = 'our store';
   
   // Fetch brand name from database
