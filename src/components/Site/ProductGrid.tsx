@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
+import type { Product } from '@prisma/client';
 
 const FALLBACK_IMAGE = 'https://picsum.photos/seed/luckybrand/600/800';
 
@@ -8,7 +9,7 @@ const formatCurrency = (value: number, currency: string) =>
 
 export default async function ProductGrid() {
   // Handle case where DATABASE_URL might not be available during build
-  let products = [];
+  let products: Product[] = [];
   try {
     products = await prisma.product.findMany({
       where: {
