@@ -7,17 +7,26 @@ const formatCurrency = (value: number, currency: string) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value / 100);
 
 export default async function ProductGrid() {
-  const products = await prisma.product.findMany({
-    where: {
-      stockStatus: {
-        not: 'out_of_stock',
+  // Handle case where DATABASE_URL might not be available during build
+  let products = [];
+  try {
+    products = await prisma.product.findMany({
+      where: {
+        stockStatus: {
+          not: 'out_of_stock',
+        },
       },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    take: 12,
-  });
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 12,
+    });
+  } catch (error) {
+    // During build or if database is unavailable, return empty array
+    // This allows the page to render without crashing
+    console.warn('ProductGrid: Could not fetch products', error instanceof Error ? error.message : String(error));
+    products = [];
+  }
 
   return (
     <section className="mx-auto max-w-7xl px-4 pb-24 pt-12 md:px-8">
