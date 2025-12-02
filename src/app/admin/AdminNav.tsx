@@ -7,6 +7,7 @@ const navItems = [
   { href: '/admin/brand-voice', label: 'Brand Voice' },
   { href: '/admin/appearance', label: 'Appearance' },
   { href: '/admin/merch-rules', label: 'Merch Rules' },
+  { href: '/admin/catalog', label: 'Catalog Upload' },
   { href: '/admin/llm', label: 'LLM Config' },
   { href: '/admin/metrics', label: 'Metrics' },
 ];

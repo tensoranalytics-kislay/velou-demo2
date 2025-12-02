@@ -16,6 +16,8 @@ export async function POST(request: Request) {
         value: body.value,
         weight: body.weight,
         isActive: body.isActive,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       },
     });
 

@@ -1,11 +1,12 @@
 import { prisma } from '../../db';
 import { env } from '../../config';
 import { callLLM, type LlmMessage } from '../provider';
-import { FINAL_RESPONSE_PROMPT } from '../prompts';
+import { FINAL_RESPONSE_PROMPT, buildFinalResponsePrompt } from '../prompts';
 import { logger } from '../../telemetry/logger';
 import type { SearchConstraints, SearchResultItem } from '../../search/types';
 import type { AssistantIntent } from './intent';
 import { formatMoney } from './cards';
+import type { DatasetContext } from '../../catalog/datasetInspector';
 
 async function getBrandVoiceContext(): Promise<string> {
   try {
@@ -80,6 +81,7 @@ export async function maybeEnhanceReplyWithLlm(params: {
   constraints: SearchConstraints;
   products: SearchResultItem[];
   wasRelaxed?: boolean;
+  datasetContext?: DatasetContext | null;
 }): Promise<string> {
   if (env.llmProvider === 'mock') {
     return params.baseReply;
@@ -109,9 +111,8 @@ export async function maybeEnhanceReplyWithLlm(params: {
     
     const generalSummary = `Found ${params.products.length} items in ${categoryList}. Styles include ${styleList}.${priceInfo ? ` ${priceInfo}.` : ''}`;
 
-    const systemPrompt = brandContext
-      ? `${FINAL_RESPONSE_PROMPT}\n\n${brandContext}`
-      : FINAL_RESPONSE_PROMPT;
+    const basePrompt = buildFinalResponsePrompt(params.datasetContext);
+    const systemPrompt = brandContext ? `${basePrompt}\n\n${brandContext}` : basePrompt;
 
     const relaxedNote = params.wasRelaxed
       ? '\n\nNote: These are the closest matches available, as no products matched all the requested attributes exactly.'

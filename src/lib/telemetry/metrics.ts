@@ -24,6 +24,7 @@ export async function recordConversationEvent(payload: ConversationEventPayload)
 
     await prisma.conversationEvent.create({
       data: {
+        id: crypto.randomUUID(),
         sessionId: payload.sessionId,
         pageType: payload.pageType,
         userQuery: truncatedQuery,

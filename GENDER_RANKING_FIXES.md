@@ -162,3 +162,4 @@ deduplicateProductCards { before: 8, after: 6, removed: 2 }
 
 3. **Dedup Backfill**: If dedup removes too many cards, could backfill from next-best candidates, but current approach (fetch 3-5x take) usually provides enough unique candidates.
 
+

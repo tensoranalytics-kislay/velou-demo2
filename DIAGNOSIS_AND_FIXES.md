@@ -175,3 +175,4 @@ CREATE INDEX IF NOT EXISTS product_search_vector_gin ON "Product" USING GIN(sear
 - Build passes with no TypeScript errors
 - All diagnosis items addressed except optional `search_vector` migration
 
+

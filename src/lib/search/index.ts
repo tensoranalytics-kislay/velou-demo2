@@ -3,6 +3,7 @@ import { prisma } from '../db';
 import { logger } from '../telemetry/logger';
 import {
   canonicalizeCategory,
+  detectCategoryProfile,
   getExpandedLeafCategories,
   getParentGpcTerms,
   getSynonymTerms,
@@ -54,6 +55,32 @@ const arrayIncludes = (haystack: string[] | undefined, needles: string[] | undef
   if (!haystack?.length) return false;
   const hay = haystack.map((entry) => entry.toLowerCase());
   return needles.every((needle) => hay.includes(needle.toLowerCase()));
+};
+
+/**
+ * Extract searchable text from product attributes (for text search)
+ * Includes product_highlights, bullet_highlights, and product_details values
+ */
+const extractSearchableTextFromAttributes = (attributes: ProductAttributes): string => {
+  const parts: string[] = [];
+  
+  // product_highlights (string)
+  if (attributes.productHighlights) {
+    parts.push(attributes.productHighlights);
+  }
+  
+  // bullet_highlights (array)
+  if (attributes.bulletHighlights && Array.isArray(attributes.bulletHighlights)) {
+    parts.push(...attributes.bulletHighlights);
+  }
+  
+  // product_details (object) - extract values
+  const productDetails = attributes.product_details as Record<string, string> | undefined;
+  if (productDetails && typeof productDetails === 'object') {
+    parts.push(...Object.values(productDetails));
+  }
+  
+  return parts.join(' ');
 };
 
 const valueMatches = (value: string | undefined, needles: string[] | undefined) => {
@@ -146,56 +173,142 @@ const buildMerchContext = async (): Promise<MerchContext> => {
   return { excludedCategories, boostByCategory, hideOutOfStock };
 };
 
-const matchesAttributeFilters = (
-  attributes: ProductAttributes,
+type CategoryOrCondition = Array<{ category?: string; googleCategory?: string; productType?: string }>;
+
+// NOTE: Canonical helper for interpreting SearchConstraints facet intent. Only explicit, user-facing facets count as hard filters.
+export type AttributeConstraintMeta = {
+  hasHardAttributeConstraints: boolean;
+  hasCategoryBridge: boolean;
+  hardFacetFields: string[];
+  ignoredDerivedFacetFields: string[];
+};
+
+type FacetDescriptor = {
+  key: keyof SearchConstraints;
+  derived: boolean;
+};
+
+const USER_FACET_DESCRIPTORS: FacetDescriptor[] = [
+  { key: 'colors', derived: false },
+  { key: 'fabrics', derived: false },
+  { key: 'materials', derived: false },
+  { key: 'sizes', derived: false },
+  { key: 'seasons', derived: false },
+  { key: 'occasions', derived: false },
+  { key: 'useCases', derived: false },
+  { key: 'customLabels4', derived: false },
+  { key: 'conditions', derived: false },
+  { key: 'ageGroups', derived: false },
+  { key: 'genders', derived: false },
+  { key: 'brands', derived: false },
+  // Classification-style bridges that may be auto-derived from category mapping
+  { key: 'productTypes', derived: true },
+  { key: 'googleCategories', derived: true },
+  // Generic descriptive fields that LLMs may infer opportunistically
+  { key: 'styleTags', derived: true },
+  { key: 'benefits', derived: true },
+  { key: 'claims', derived: true },
+  { key: 'compatibility', derived: true },
+];
+
+export const deriveAttributeConstraintMeta = (
   constraints: SearchConstraints,
-  categoryOr?: Array<{ category?: string; googleCategory?: string; productType?: string }>,
-  colorOntology?: string[],
-) => {
-  // B) Check canonical category matching in JSON attributes if categoryOr provided
-  if (categoryOr && categoryOr.length > 0) {
-    let matchesCategory = false;
-    for (const orCondition of categoryOr) {
-      // Check googleProductCategory match
-      if (orCondition.googleCategory && attributes.googleProductCategory) {
-        const gpc = String(attributes.googleProductCategory).toLowerCase();
-        if (gpc.includes(orCondition.googleCategory.toLowerCase())) {
-          matchesCategory = true;
-          break;
-        }
-      }
-      // Check productType match
-      if (orCondition.productType && attributes.productType) {
-        const pt = String(attributes.productType).toLowerCase();
-        if (pt.includes(orCondition.productType.toLowerCase())) {
-          matchesCategory = true;
-          break;
-        }
-      }
+  categoryOr?: CategoryOrCondition,
+): AttributeConstraintMeta => {
+  const hardFacetFields: string[] = [];
+  const ignoredDerivedFacetFields: string[] = [];
+
+  for (const descriptor of USER_FACET_DESCRIPTORS) {
+    const rawValue = constraints[descriptor.key];
+    const isActive = Array.isArray(rawValue)
+      ? rawValue.length > 0
+      : rawValue !== undefined && rawValue !== null && rawValue !== '';
+    if (!isActive) continue;
+    if (descriptor.derived) {
+      ignoredDerivedFacetFields.push(descriptor.key as string);
+    } else if (!hardFacetFields.includes(descriptor.key as string)) {
+      hardFacetFields.push(descriptor.key as string);
     }
-    if (!matchesCategory) return false;
   }
 
-  // E) Strict color matching - colors must be from catalog ontology
-  if (!colorMatches(attributes.color, constraints.colors, colorOntology)) return false;
-  
-  // E) Substring matching for materials/fabrics (e.g., "cotton" matches "75% Cotton 21% Polyester")
-  if (!materialMatches(attributes.fabric, constraints.fabrics)) return false;
-  if (!materialMatches(attributes.material, constraints.materials)) return false;
-  
-  if (constraints.fit && normalize(attributes.fit) !== normalize(constraints.fit)) return false;
-  if (!valueMatches(attributes.season, constraints.seasons)) return false;
-  if (!valueMatches(attributes.occasion, constraints.occasions)) return false;
-  if (!arrayIncludes(attributes.sizes, constraints.sizes)) return false;
-  if (!arrayIncludes(attributes.useCases, constraints.useCases)) return false;
-  if (!valueMatches(attributes.productType, constraints.productTypes)) return false;
-  if (!valueMatches(attributes.googleProductCategory, constraints.googleCategories))
+  if (constraints.fit) hardFacetFields.push('fit');
+  if (constraints.sensoryProfile) hardFacetFields.push('sensoryProfile');
+
+  return {
+    hasHardAttributeConstraints: hardFacetFields.length > 0,
+    hasCategoryBridge: Array.isArray(categoryOr) && categoryOr.length > 0,
+    hardFacetFields,
+    ignoredDerivedFacetFields,
+  };
+};
+
+// NOTE: matchesAttributeFilters is data-agnostic. It only enforces user-requested facet filters.
+//       Category bridging via JSON categories/product types is best-effort and never used to exclude on its own.
+export const matchesAttributeFilters = (
+  attributes: ProductAttributes | null | undefined,
+  constraints: SearchConstraints,
+  categoryOr?: CategoryOrCondition,
+  colorOntology?: string[],
+  meta?: AttributeConstraintMeta,
+) => {
+  const metaInfo = meta ?? deriveAttributeConstraintMeta(constraints, categoryOr);
+  if (!metaInfo.hasHardAttributeConstraints) {
+    return true;
+  }
+
+  const attrs = attributes ?? undefined;
+  if (!attrs) {
     return false;
-  if (!valueMatches(attributes.customLabel4, constraints.customLabels4)) return false;
-  if (!valueMatches(attributes.condition, constraints.conditions)) return false;
-  if (!valueMatches(attributes.ageGroup, constraints.ageGroups)) return false;
-  if (!valueMatches(attributes.gender, constraints.genders)) return false;
-  if (!valueMatches(attributes.brand, constraints.brands)) return false;
+  }
+
+  if (constraints.colors?.length) {
+    if (!colorMatches(attrs.color, constraints.colors, colorOntology)) return false;
+  }
+
+  if (constraints.fabrics?.length) {
+    if (!materialMatches(attrs.fabric, constraints.fabrics)) return false;
+  }
+
+  if (constraints.materials?.length) {
+    const materialMatchesString = materialMatches(attrs.material, constraints.materials);
+    const materialMatchesArray =
+      attrs.materials?.some((value) => materialMatches(value, constraints.materials)) ?? false;
+    if (!materialMatchesString && !materialMatchesArray) return false;
+  }
+
+  if (constraints.fit && normalize(attrs.fit) !== normalize(constraints.fit)) return false;
+  if (constraints.seasons?.length && !valueMatches(attrs.season, constraints.seasons)) return false;
+  if (constraints.occasions?.length && !valueMatches(attrs.occasion, constraints.occasions))
+    return false;
+  if (constraints.sizes?.length && !arrayIncludes(attrs.sizes, constraints.sizes)) return false;
+  if (constraints.useCases?.length && !arrayIncludes(attrs.useCases, constraints.useCases))
+    return false;
+
+  if (
+    constraints.sensoryProfile &&
+    !materialMatches(attrs.sensoryProfile, [constraints.sensoryProfile])
+  )
+    return false;
+
+  if (constraints.productTypes?.length && !valueMatches(attrs.productType, constraints.productTypes))
+    return false;
+  if (
+    constraints.googleCategories?.length &&
+    !valueMatches(attrs.googleProductCategory, constraints.googleCategories)
+  )
+    return false;
+  if (
+    constraints.customLabels4?.length &&
+    !valueMatches(attrs.customLabel4, constraints.customLabels4)
+  )
+    return false;
+  if (constraints.conditions?.length && !valueMatches(attrs.condition, constraints.conditions))
+    return false;
+  if (constraints.ageGroups?.length && !valueMatches(attrs.ageGroup, constraints.ageGroups))
+    return false;
+  if (constraints.genders?.length && !valueMatches(attrs.gender, constraints.genders)) return false;
+  if (constraints.brands?.length && !valueMatches(attrs.brand, constraints.brands)) return false;
+
   return true;
 };
 
@@ -250,6 +363,9 @@ async function buildBroadWhereFilters(
     genders: constraints.genders?.length ? constraints.genders : undefined,
   };
 
+  const ontology = await getCatalogOntology();
+  const categoryProfile = detectCategoryProfile(ontology);
+
   // B) Tolerant category matching: canonicalize user intent
   // Fix A & C: Support multi-category and canonical → DB mapping
   if (constraints.category || userMessage) {
@@ -258,9 +374,8 @@ async function buildBroadWhereFilters(
     // Parse category (handle comma-separated strings for outfits)
     let categoryList = parseCategoryString(constraints.category);
     
-    // CRITICAL FIX: If user message doesn't explicitly mention "graphic" or "printed",
-    // but LLM output "graphic t shirt", replace it with generic "t shirt" to avoid over-restriction
-    if (userMessage && categoryList.length > 0) {
+    // Fashion-only heuristic: if user didn't explicitly request "graphic" styles, don't over-restrict.
+    if (categoryProfile?.name === 'fashion' && userMessage && categoryList.length > 0) {
       const messageLower = userMessage.toLowerCase();
       const hasGraphicKeyword = /\b(graphic|printed|print|design|logo|artwork)\b/i.test(messageLower);
       
@@ -282,24 +397,26 @@ async function buildBroadWhereFilters(
       const allDbCategories = new Set<string>();
       const orConditions: Array<{ category?: string; googleCategory?: string; productType?: string }> = [];
       
-      const ontology = await getCatalogOntology();
-      
       // For each category, expand canonical → DB and try canonicalization
       for (const cat of categoryList) {
         // First, expand using category mapping
-        const expanded = expandCanonicalToDbCategories(cat);
+        const expanded = expandCanonicalToDbCategories(cat, categoryProfile);
         for (const dbCat of expanded) {
           allDbCategories.add(dbCat);
           orConditions.push({ category: dbCat });
         }
         
         // Also try canonicalization for additional synonyms
-        const canonicalResult = canonicalizeCategory(cat, ontology);
+        const canonicalResult = canonicalizeCategory(cat, ontology, categoryProfile);
         
         if (canonicalResult.canonical !== 'UNKNOWN' && canonicalResult.confidence > 0.3) {
-          const expandedLeafCats = getExpandedLeafCategories(canonicalResult.canonical, ontology);
-          const gpcTerms = getParentGpcTerms(canonicalResult.canonical);
-          const synonymTerms = getSynonymTerms(canonicalResult.canonical);
+          const expandedLeafCats = getExpandedLeafCategories(
+            canonicalResult.canonical,
+            ontology,
+            categoryProfile,
+          );
+          const gpcTerms = getParentGpcTerms(canonicalResult.canonical, categoryProfile);
+          const synonymTerms = getSynonymTerms(canonicalResult.canonical, categoryProfile);
           
           // Match on DB category field
           for (const leafCat of expandedLeafCats) {
@@ -341,11 +458,14 @@ async function buildBroadWhereFilters(
       }
     } else if (userMessage) {
       // Fallback: try canonicalization from user message
-      const ontology = await getCatalogOntology();
-      const canonicalResult = canonicalizeCategory(userMessage, ontology);
+      const canonicalResult = canonicalizeCategory(userMessage, ontology, categoryProfile);
       
       if (canonicalResult.canonical !== 'UNKNOWN' && canonicalResult.confidence > 0.3) {
-        const expandedLeafCats = getExpandedLeafCategories(canonicalResult.canonical, ontology);
+        const expandedLeafCats = getExpandedLeafCategories(
+          canonicalResult.canonical,
+          ontology,
+          categoryProfile,
+        );
         const orConditions = expandedLeafCats.map(cat => ({ category: cat }));
         if (orConditions.length > 0) {
           filters.categoryOr = orConditions;
@@ -356,11 +476,28 @@ async function buildBroadWhereFilters(
     // Use expandedKeywords if provided and no keyword filters set yet
     if (!filters.keywordFilters && constraints.expandedKeywords?.length) {
       filters.keywordFilters = constraints.expandedKeywords.slice(0, 15);
+      logger.debug('expandedKeywords_used_in_search', {
+        expandedKeywords: constraints.expandedKeywords.slice(0, 15),
+        expandedKeywordsCount: constraints.expandedKeywords.length,
+        keywordFiltersSet: filters.keywordFilters.length,
+      });
+    }
+
+    // As a final fallback, use the literal categories as lightweight keyword filters
+    if (!filters.keywordFilters && categoryList.length > 0) {
+      filters.keywordFilters = categoryList
+        .map((cat) => cat.toLowerCase())
+        .slice(0, 10);
     }
   } else {
     // No category constraint - use expandedKeywords if provided
     if (constraints.expandedKeywords?.length) {
       filters.keywordFilters = constraints.expandedKeywords.slice(0, 15);
+      logger.debug('expandedKeywords_used_in_search_no_category', {
+        expandedKeywords: constraints.expandedKeywords.slice(0, 15),
+        expandedKeywordsCount: constraints.expandedKeywords.length,
+        keywordFiltersSet: filters.keywordFilters.length,
+      });
     }
   }
 
@@ -380,7 +517,7 @@ const calculateDynamicTake = (
   const base = limit * BASE_TAKE_MULTIPLIER;
   let take = Math.max(base, MIN_TAKE);
 
-  // Fix D: If category is missing OR query includes apparel keywords, increase take
+  // Fix D: If category is missing or query text is short/ambiguous, increase take
   const isBroadQuery =
     !constraints.category &&
     !constraints.brands?.length &&
@@ -476,10 +613,14 @@ async function dbRankedSearch(
       const lowerKeyword = keyword.toLowerCase();
       const pattern = `%${lowerKeyword}%`;
       // Use Prisma.sql template with proper parameter binding
+      // Include attributes JSON fields for unified catalog search
+      // Note: bulletHighlights and product_details are arrays/objects, so we search in the JSON text representation
       return Prisma.sql`(
         LOWER("title") LIKE ${pattern} OR
         LOWER("description") LIKE ${pattern} OR
-        LOWER("category") LIKE ${pattern}
+        LOWER("category") LIKE ${pattern} OR
+        LOWER(COALESCE(attributes->>'productHighlights', '')) LIKE ${pattern} OR
+        LOWER(COALESCE(attributes::text, '')) LIKE ${pattern}
       )`;
     });
     if (textFilterConditions.length > 0) {
@@ -730,6 +871,8 @@ async function dbRankedSearch(
     }
 
     // C) Keyword prefilter: Use keywordFilters or queryText for text search
+    // Note: Prisma doesn't support JSON path filtering directly in where clauses,
+    // so we'll search in title/description/category here, and include attributes in ranking
     const keywordFilters = whereFilters.keywordFilters || hardTextFilters;
     if (keywordFilters && keywordFilters.length > 0) {
       const keywordConditions = keywordFilters.map((keyword) => ({
@@ -860,15 +1003,22 @@ async function dbRankedSearch(
       }
       
       // Keyword/token match boost (max 4 matches, 0.75 each)
+      // Include unified catalog fields in text search
       const keywordFilters = whereFilters.keywordFilters || hardTextFilters;
       if (keywordFilters?.length) {
         const titleLower = product.title.toLowerCase();
         const descLower = (product.description || '').toLowerCase();
         const catLower = product.category.toLowerCase();
+        const attrsText = extractSearchableTextFromAttributes(attrs).toLowerCase();
         let keywordMatches = 0;
         for (const keyword of keywordFilters.slice(0, 10)) {
           const kwLower = keyword.toLowerCase();
-          if (titleLower.includes(kwLower) || descLower.includes(kwLower) || catLower.includes(kwLower)) {
+          if (
+            titleLower.includes(kwLower) ||
+            descLower.includes(kwLower) ||
+            catLower.includes(kwLower) ||
+            attrsText.includes(kwLower)
+          ) {
             keywordMatches++;
             if (keywordMatches >= 4) break;
           }
@@ -876,7 +1026,7 @@ async function dbRankedSearch(
         rank += keywordMatches * 0.75;
       }
       
-      // Query text token matches
+      // Query text token matches (include unified catalog fields)
       if (queryText?.trim()) {
         const words = queryText
           .split(/\s+/)
@@ -885,9 +1035,10 @@ async function dbRankedSearch(
           .slice(0, 5);
         const titleLower = product.title.toLowerCase();
         const descLower = (product.description || '').toLowerCase();
+        const attrsText = extractSearchableTextFromAttributes(attrs).toLowerCase();
         let tokenMatches = 0;
         for (const word of words) {
-          if (titleLower.includes(word) || descLower.includes(word)) {
+          if (titleLower.includes(word) || descLower.includes(word) || attrsText.includes(word)) {
             tokenMatches++;
             if (tokenMatches >= 4) break;
           }
@@ -1036,6 +1187,10 @@ export async function searchProducts(
     inStockOnly: constraints.inStockOnly,
     query: constraints.query,
     brands: constraints.brands?.length ? `${constraints.brands.length} brands` : undefined,
+    expandedKeywords: constraints.expandedKeywords,
+    expandedKeywordsCount: constraints.expandedKeywords?.length || 0,
+    hasHardTextFilters: !!(constraints as any).hardTextFilters,
+    hardTextFilters: (constraints as any).hardTextFilters,
   });
 
   const limit = constraints.limit ?? DEFAULT_LIMIT;
@@ -1077,21 +1232,38 @@ export async function searchProducts(
   // Step 2: In-memory attribute filtering (includes canonical category matching)
   // Get ontology for color validation
   const ontology = await getCatalogOntology();
-  const filtered = dbCandidates.filter((product) => {
-    const attrs = (product.attributes ?? {}) as ProductAttributes;
-    return matchesAttributeFilters(attrs, constraints, broadFilters.categoryOr, ontology.colors); // E) Pass color ontology for strict matching
-  });
+  const constraintMeta = deriveAttributeConstraintMeta(constraints, broadFilters.categoryOr);
+  let filtered = dbCandidates;
+  if (constraintMeta.hasHardAttributeConstraints) {
+    filtered = dbCandidates.filter((product) => {
+      const attrs = (product.attributes ?? {}) as ProductAttributes;
+      return matchesAttributeFilters(
+        attrs,
+        constraints,
+        broadFilters.categoryOr,
+        ontology.colors,
+        constraintMeta,
+      ); // E) Pass color ontology for strict matching
+    });
+  }
 
   logger.debug('searchProducts afterAttributeFilter', {
     dbCandidates: dbCandidates.length,
     afterAttributeFilter: filtered.length,
+    hasHardAttributeConstraints: constraintMeta.hasHardAttributeConstraints,
+    hasCategoryBridge: constraintMeta.hasCategoryBridge,
+    hardFacetFields: constraintMeta.hardFacetFields,
+    ignoredDerivedFacetFields: constraintMeta.ignoredDerivedFacetFields,
   });
 
   let finalProducts = filtered;
   let wasRelaxed = false;
 
-  // Step 3: Widening fallback if we don't have enough results
-  if (filtered.length < limit) {
+  // Step 3: Widening fallback only when explicit facets eliminated every candidate
+  const attributeFilterEliminatedAll =
+    constraintMeta.hasHardAttributeConstraints && filtered.length === 0 && dbCandidates.length > 0;
+
+  if (attributeFilterEliminatedAll) {
     const wideningTiers = buildWideningTiers(broadFilters, constraints.query);
     let widened = false;
 
@@ -1105,16 +1277,20 @@ export async function searchProducts(
         tierKeywordFilters, // F) Keep keyword filters during relaxation
       );
 
-      const tierFiltered = tierCandidates.filter((product) =>
-        matchesAttributeFilters(
-          (product.attributes ?? {}) as ProductAttributes,
-          constraints,
-          tier.whereFilters.categoryOr, // B) Pass categoryOr for JSON attribute matching
-          ontology.colors, // E) Pass color ontology for strict matching
-        ),
-      );
+      let tierFiltered = tierCandidates;
+      if (constraintMeta.hasHardAttributeConstraints) {
+        tierFiltered = tierCandidates.filter((product) =>
+          matchesAttributeFilters(
+            (product.attributes ?? {}) as ProductAttributes,
+            constraints,
+            tier.whereFilters.categoryOr, // B) Pass categoryOr for JSON attribute matching
+            ontology.colors, // E) Pass color ontology for strict matching
+            constraintMeta,
+          ),
+        );
+      }
 
-      if (tierFiltered.length > filtered.length) {
+      if (tierFiltered.length > 0) {
         finalProducts = tierFiltered;
         wasRelaxed = true;
         widened = true;
@@ -1127,7 +1303,7 @@ export async function searchProducts(
     }
 
     // If still not enough, use DB candidates without strict attribute filtering
-    if (!widened && dbCandidates.length > 0 && filtered.length === 0) {
+    if (!widened) {
       finalProducts = dbCandidates;
       wasRelaxed = true;
       logger.debug('searchProducts relaxed', {
@@ -1223,6 +1399,11 @@ const dropAttributeFilters = (constraints: SearchConstraints): SearchConstraints
   relaxed.occasions = undefined;
   relaxed.seasons = undefined;
   relaxed.useCases = undefined;
+  // New unified catalog attributes
+  relaxed.benefits = undefined;
+  relaxed.styleTags = undefined;
+  relaxed.compatibility = undefined;
+  relaxed.sensoryProfile = undefined;
   relaxed.productTypes = undefined;
   relaxed.googleCategories = undefined;
   relaxed.customLabels4 = undefined;

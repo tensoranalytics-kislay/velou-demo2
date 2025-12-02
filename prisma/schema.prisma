@@ -7,54 +7,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Product {
-  id             String      @id
-  title          String
-  description    String
-  imageUrl       String
-  priceCents     Int
-  currency       String
-  category       String
-  subcategory    String?
-  brand          String?
-  attributes     Json
-  stockStatus    StockStatus @default(in_stock)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  productUrl     String
-  salePriceCents Int?
-
-  @@index([category])
-  @@index([stockStatus])
-}
-
 model BrandConfig {
-  id                    Int      @id @default(1)
-  brandName             String
-  primaryColor          String
-  accentColor           String
-  voiceInstructions     String
-  toneFormal            Int
-  tonePlayful           Int
-  useMerchantKey        Boolean  @default(false)
-  merchantOpenAIKey     String?
-  merchantPerplexityKey String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                Int      @id @default(1)
+  brandName         String
+  /// Primary brand color (used for main buttons, highlights)
+  primaryColor      String   @default("#e11d48")
+  /// Secondary / accent color (chips, secondary buttons, etc.)
+  accentColor       String   @default("#f97373")
+  /// Page background behind hero and content
+  backgroundColor   String   @default("#ffffff")
+  /// Soft surface background (cards, hero panels, chat window)
+  surfaceColor      String   @default("#fff7f7")
+  /// Default border color for cards and UI chrome
+  borderColor       String   @default("#ffe4e6")
+  /// Optional URL to the brand logo image (e.g. /brand-logo.png or https URL)
+  logoUrl           String?
+  voiceInstructions String
+  toneFormal        Int
+  tonePlayful       Int
+  useMerchantKey    Boolean  @default(false)
+  merchantOpenAIKey String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime
+  datasetContext    Json?
 }
 
-model MerchRule {
-  id        Int           @id @default(autoincrement())
-  ruleType  MerchRuleType
-  value     String
-  weight    Int           @default(0)
-  isActive  Boolean       @default(true)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+model CatalogIngestionRun {
+  id          String        @id
+  vendorId    String
+  createdAt   DateTime      @default(now())
+  totalRows   Int
+  inserted    Int
+  updated     Int
+  invalidRows Int           @default(0)
+  deactivated Int?
+  mode        IngestionMode
+
+  @@index([createdAt])
+  @@index([vendorId, createdAt])
 }
 
 model ConversationEvent {
-  id                    String   @id @default(cuid())
+  id                    String   @id
   sessionId             String
   pageType              PageType
   productContextId      String?
@@ -66,14 +60,53 @@ model ConversationEvent {
   assistantReplySnippet String?  @db.VarChar(256)
   clicked               Boolean  @default(false)
 
-  @@index([sessionId])
   @@index([createdAt])
+  @@index([sessionId])
 }
 
-enum StockStatus {
-  in_stock
-  out_of_stock
-  low_stock
+model MerchRule {
+  id        Int           @id @default(autoincrement())
+  ruleType  MerchRuleType
+  value     String
+  weight    Int           @default(0)
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime
+}
+
+model Product {
+  /// Core product data. All flexible / vendor-specific attributes must be stored
+  /// in the JSON `attributes` field (e.g. "new", "is_featured", custom tags).
+  /// Do NOT add ad-hoc columns such as `new` – those belong in `attributes`.
+  id                String      @id
+  title             String
+  description       String
+  imageUrl          String
+  priceCents        Int
+  currency          String
+  category          String
+  subcategory       String?
+  brand             String?
+  attributes        Json
+  stockStatus       StockStatus @default(in_stock)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime
+  productUrl        String
+  salePriceCents    Int?
+  vendorId          String?
+  sourceId          String?
+  isActive          Boolean     @default(true)
+  lastIngestBatchId String?
+
+  @@index([category])
+  @@index([stockStatus])
+  @@index([vendorId, isActive])
+  @@index([vendorId, sourceId])
+}
+
+enum IngestionMode {
+  FULL_REPLACE
+  INCREMENTAL
 }
 
 enum MerchRuleType {
@@ -86,4 +119,10 @@ enum PageType {
   HOME
   PLP
   PDP
+}
+
+enum StockStatus {
+  in_stock
+  out_of_stock
+  low_stock
 }

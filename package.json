@@ -15,8 +15,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "migrate:deploy": "prisma migrate deploy",
-    "seed:catalog": "tsx scripts/importCatalogFromCsv.ts",
-    "seed:mock-catalog": "tsx scripts/generateMockCatalog.ts"
+    "seed:catalog": "tsx scripts/importCatalogFromCsv.ts"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",

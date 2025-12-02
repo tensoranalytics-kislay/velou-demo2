@@ -4,6 +4,7 @@ import type { ConversationContext } from '@/lib/llm/orchestrator';
 import type { SearchConstraints } from '@/lib/search/types';
 import { recordConversationEvent } from '@/lib/telemetry/metrics';
 import { logger } from '@/lib/telemetry/logger';
+import { getDatasetContext } from '@/lib/catalog/getDatasetContext';
 
 type AssistantApiRequest = {
   sessionId: string;
@@ -43,6 +44,19 @@ export async function POST(request: Request) {
       hasPendingSuggestion: !!body.pendingSuggestion,
     });
 
+    // Retrieve DatasetContext from BrandConfig if not provided in conversationContext
+    const datasetContext = body.conversationContext?.datasetContext ?? (await getDatasetContext());
+    
+    // Merge DatasetContext into conversationContext
+    const enrichedConversationContext: ConversationContext | undefined = body.conversationContext
+      ? {
+          ...body.conversationContext,
+          datasetContext: datasetContext ?? body.conversationContext.datasetContext ?? null,
+        }
+      : datasetContext
+        ? { datasetContext }
+        : undefined;
+
     const result = await handleAssistantQuery({
       sessionId: body.sessionId,
       pageType: body.pageType,
@@ -50,7 +64,7 @@ export async function POST(request: Request) {
       message: body.message,
       history: body.history,
       pendingSuggestion: body.pendingSuggestion,
-      conversationContext: body.conversationContext,
+      conversationContext: enrichedConversationContext,
     });
 
     logger.info('assistant_api_response', {

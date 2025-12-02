@@ -13,6 +13,9 @@ async function getBrandConfig() {
       voiceInstructions: 'Be helpful and warm.',
       toneFormal: 5,
       tonePlayful: 5,
+      // Explicitly provide timestamps to satisfy BrandConfigCreateInput
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
   });
 }

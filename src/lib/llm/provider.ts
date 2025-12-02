@@ -7,7 +7,7 @@ export type LlmMessage = {
 
 export type LlmCallOptions = {
   messages: LlmMessage[];
-  purpose: 'intent' | 'final_reply' | 'pdp_suitability' | 'card_reason';
+  purpose: 'intent' | 'final_reply' | 'pdp_suitability' | 'card_reason' | 'greeting';
   expectJson?: boolean;
   signal?: AbortSignal;
   schema?: {
@@ -27,77 +27,69 @@ class LLMError extends Error {
   }
 }
 
-async function callPerplexity(options: LlmCallOptions): Promise<LlmCallResult> {
-  if (!env.perplexityApiKey) {
-    throw new LLMError('PERPLEXITY_API_KEY is required for Perplexity provider');
+/**
+ * Model Selection by Purpose:
+ * 
+ * - intent: Requires structured JSON output and complex reasoning about user queries.
+ *   Uses: o3-mini (reasoning model) for best logical analysis, or GPT-5 as fallback.
+ * 
+ * - final_reply: Natural language generation for conversational responses.
+ *   Uses: GPT-5 for best quality and naturalness, or GPT-4.1 as fallback.
+ * 
+ * - pdp_suitability: Complex reasoning about product fit and user needs.
+ *   Uses: o3-mini (reasoning model) for best logical analysis, or GPT-5 as fallback.
+ * 
+ * - card_reason: Lightweight task generating short product card explanations.
+ *   Uses: GPT-4.1-mini for cost-effectiveness while maintaining quality.
+ */
+const REASONING_PURPOSES: Record<LlmCallOptions['purpose'], boolean> = {
+  intent: true,         // Complex reasoning about user intent
+  final_reply: false,   // Natural language generation
+  pdp_suitability: true,// Complex reasoning about product fit
+  card_reason: false,   // Simple text generation
+  greeting: false,      // Lightweight, stylistic text generation
+};
+
+const PRIMARY_PURPOSES: Record<LlmCallOptions['purpose'], boolean> = {
+  intent: true,
+  final_reply: true,
+  pdp_suitability: true,
+  card_reason: false,
+  greeting: false, // greetings should use lightweight model when available
+};
+
+const TEMPERATURE_BY_PURPOSE: Record<LlmCallOptions['purpose'], number> = {
+  intent: 0.1,          // Low temperature for structured, consistent outputs
+  final_reply: 0.7,     // Higher temperature for natural, varied responses
+  pdp_suitability: 0.4, // Moderate temperature for balanced reasoning
+  card_reason: 0.55,    // Moderate temperature for concise explanations
+  greeting: 0.75,       // Encourage friendly, varied greetings
+};
+
+function resolveModel(purpose: LlmCallOptions['purpose']) {
+  // Use reasoning model for complex logical tasks
+  if (REASONING_PURPOSES[purpose] && env.reasoningLlmModel) {
+    return env.reasoningLlmModel;
   }
-
-  try {
-    const body: Record<string, unknown> = {
-      model: 'sonar',
-      messages: options.messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-      max_tokens: 512,
-      temperature: options.purpose === 'intent' ? 0.0 : options.purpose === 'card_reason' ? 0.35 : 0.2,
-      disable_search: true,
-    };
-
-    if (options.expectJson && options.schema) {
-      body.response_format = {
-        type: 'json_schema',
-        json_schema: options.schema,
-      };
-    }
-
-    const response = await fetch('https://api.perplexity.ai/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${env.perplexityApiKey}`,
-      },
-      body: JSON.stringify(body),
-      signal: options.signal,
-    });
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      throw new LLMError(
-        `Perplexity API error: ${response.status} ${response.statusText}`,
-        text || undefined,
-      );
-    }
-
-    const json = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string }; delta?: { content?: string } }>;
-      error?: { message?: string };
-    };
-
-    if (json.error) {
-      throw new LLMError(`Perplexity API error: ${json.error.message ?? 'Unknown error'}`);
-    }
-
-    const rawText =
-      json?.choices?.[0]?.message?.content ?? json?.choices?.[0]?.delta?.content ?? '';
-
-    if (!rawText) {
-      throw new LLMError('Perplexity API returned empty completion', JSON.stringify(json));
-    }
-
-    return { rawText };
-  } catch (error) {
-    if (error instanceof LLMError) {
-      throw error;
-    }
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new LLMError('LLM request aborted', error);
-    }
-    throw new LLMError(
-      `Perplexity API call failed: ${error instanceof Error ? error.message : String(error)}`,
-      error,
-    );
+  
+  // Use primary model for high-stakes tasks
+  const prefersPrimary = PRIMARY_PURPOSES[purpose];
+  if (prefersPrimary || !env.lightLlmModel) {
+    return env.primaryLlmModel;
   }
+  
+  // Use lightweight model for simple tasks
+  return env.lightLlmModel;
+}
+
+/**
+ * Check if a model supports the temperature parameter.
+ * Reasoning models (o3-mini, gpt-5) don't support temperature.
+ */
+function modelSupportsTemperature(model: string): boolean {
+  // Models that don't support temperature
+  const noTemperatureModels = ['o3-mini', 'o3', 'gpt-5'];
+  return !noTemperatureModels.some((m) => model.toLowerCase().includes(m.toLowerCase()));
 }
 
 async function callOpenAI(options: LlmCallOptions): Promise<LlmCallResult> {
@@ -106,28 +98,35 @@ async function callOpenAI(options: LlmCallOptions): Promise<LlmCallResult> {
   }
 
   try {
-    const model = 'gpt-4o-mini';
-    const temperature =
-      options.purpose === 'intent' ? 0.1 : options.purpose === 'card_reason' ? 0.6 : 0.7;
+    const model = resolveModel(options.purpose);
+    const temperature = TEMPERATURE_BY_PURPOSE[options.purpose] ?? 0.6;
+    const supportsTemperature = modelSupportsTemperature(model);
+    
+    const requestBody: Record<string, unknown> = {
+      model,
+      messages: options.messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+      response_format: options.expectJson
+        ? options.schema
+          ? { type: 'json_schema', json_schema: options.schema }
+          : { type: 'json_object' }
+        : undefined,
+    };
+    
+    // Only include temperature if the model supports it
+    if (supportsTemperature) {
+      requestBody.temperature = temperature;
+    }
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${env.openaiApiKey}`,
       },
-      body: JSON.stringify({
-        model,
-        messages: options.messages.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        })),
-        temperature,
-        response_format: options.expectJson
-          ? options.schema
-            ? { type: 'json_schema', json_schema: options.schema }
-            : { type: 'json_object' }
-          : undefined,
-      }),
+      body: JSON.stringify(requestBody),
       signal: options.signal,
     });
 
@@ -168,8 +167,6 @@ export async function callLLM(options: LlmCallOptions): Promise<LlmCallResult> {
       throw new LLMError(`callLLM should not be invoked in mock mode (purpose: ${options.purpose})`);
     case 'openai':
       return callOpenAI(options);
-    case 'perplexity':
-      return callPerplexity(options);
     default:
       throw new LLMError(`Unknown LLM provider: ${env.llmProvider}`);
   }

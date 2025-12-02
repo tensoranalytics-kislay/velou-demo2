@@ -204,3 +204,4 @@ Fixed product discovery pipeline end-to-end to handle follow-up queries correctl
 - New functionality only activates when needed
 - No breaking API changes
 
+

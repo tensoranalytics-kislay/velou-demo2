@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import ChatPanel from './ChatPanel';
+import SuggestedPrompts from './SuggestedPrompts';
 
 export default function ChatWidget() {
   // Load saved position and size from localStorage
@@ -43,6 +44,32 @@ export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [windowSize, setWindowSize] = useState({ width: savedState.width, height: savedState.height });
   const [position, setPosition] = useState({ top: savedState.top, left: savedState.left });
+  const [brandName, setBrandName] = useState('our store');
+  const [vertical, setVertical] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch('/api/brand-info')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.brandName) setBrandName(data.brandName);
+        if (data.vertical) setVertical(data.vertical);
+      })
+      .catch(() => {
+        // Keep defaults on error
+      });
+  }, []);
+
+  const assistantTitle = vertical === 'skincare' || vertical === 'beauty'
+    ? `${brandName} beauty assistant`
+    : vertical === 'home' || vertical === 'home decor'
+    ? `${brandName} home assistant`
+    : `${brandName} stylist`;
+
+  const assistantSubtitle = vertical === 'skincare' || vertical === 'beauty'
+    ? 'Beauty guidance'
+    : vertical === 'home' || vertical === 'home decor'
+    ? 'Home styling'
+    : 'Always-on outfit guidance';
 
   // Save state to localStorage whenever position or size changes
   useEffect(() => {
@@ -198,23 +225,42 @@ export default function ChatWidget() {
 
   return (
     <>
-      {/* Floating chat button */}
+      {/* Floating chat button + vertical suggestion pills when closed */}
       {!isOpen && (
-        <button
-          type="button"
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-3 right-3 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg shadow-rose-300 transition hover:bg-rose-600 md:bottom-4 md:right-4 md:h-14 md:w-14"
-          aria-label="Open Lucky Brand stylist"
-        >
-          <svg className="h-6 w-6 md:h-7 md:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+        <>
+          <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end">
+            <SuggestedPrompts
+              orientation="column"
+              onSelect={(prompt) => {
+                // Store the prompt so ChatPanel can pick it up on mount
+                if (typeof window !== 'undefined') {
+                  try {
+                    window.localStorage.setItem('velou_external_prompt', prompt);
+                  } catch {
+                    // ignore storage errors
+                  }
+                }
+                setIsOpen(true);
+              }}
+              lastUserMessage={null}
             />
-          </svg>
-        </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsOpen(true)}
+            className="fixed bottom-3 right-3 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg shadow-rose-300 transition hover:bg-rose-600 md:bottom-4 md:right-4 md:h-14 md:w-14"
+            aria-label={`Open ${assistantTitle}`}
+          >
+            <svg className="h-6 w-6 md:h-7 md:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
+          </button>
+        </>
       )}
 
       {/* Chat window overlay */}
@@ -315,8 +361,8 @@ export default function ChatWidget() {
           {/* Header */}
           <div className="flex items-center justify-between border-b border-rose-100 bg-rose-50 px-3 py-2 sm:px-4 sm:py-3 relative z-10 rounded-t-2xl">
             <div className="flex-1 min-w-0">
-              <h3 className="text-xs sm:text-sm font-semibold text-rose-600 truncate">Lucky Brand stylist</h3>
-              <p className="text-[10px] sm:text-xs text-slate-500 truncate">Always-on outfit guidance</p>
+              <h3 className="text-xs sm:text-sm font-semibold text-rose-600 truncate">{assistantTitle}</h3>
+              <p className="text-[10px] sm:text-xs text-slate-500 truncate">{assistantSubtitle}</p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-slate-400">

@@ -184,7 +184,7 @@ export const REFINEMENT_PREFIXES = [
 export const COMPARATIVE_KEYWORDS = ['instead', 'rather', 'but', 'also'];
 
 export const CLARIFYING_REPLY =
-  "Totally—let me help you find the perfect piece.\n\nA few quick questions: casual or dressy? Any color preferences? Fabric or budget I should keep in mind?";
+  "Got it—let me help you find the right products.\n\nTo narrow things down, what type of product, main goal, and rough budget do you have in mind?";
 
 export const PRICE_REGEX = /(under|below|less than)\s*\$?\s*(\d+)/i;
 

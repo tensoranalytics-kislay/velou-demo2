@@ -1,7 +1,8 @@
 import { prisma } from '../../db';
-import { searchProducts, searchProductsRelaxed } from '../../search';
+import { searchProducts, searchProductsRelaxed, deriveAttributeConstraintMeta } from '../../search';
 import type { SearchConstraints, SearchResultItem } from '../../search/types';
 import { logger } from '../../telemetry/logger';
+import type { DatasetContext } from '../../catalog/datasetInspector';
 import {
   buildCardReason,
   buildDiscoveryReply,
@@ -11,6 +12,7 @@ import {
   buildQueryChips,
   buildSuitabilityReply,
   collectConstraintLabels,
+  describeConstraints,
   evaluateProductFit,
   fetchProductsByIds,
   inferImplicitPreferences,
@@ -32,6 +34,12 @@ import { getCatalogOntology } from '../../search/ontology';
 import { CLARIFYING_REPLY, MAX_RECOMMENDATIONS, PRODUCT_REQUEST_KEYWORDS } from './constants';
 import { extractHardTextFilterKeywords } from './utils';
 import { detectFollowUpType } from './followup-detector';
+import { callLLM, type LlmMessage } from '../provider';
+import {
+  buildClarifyingReplyPrompt,
+  buildOutOfScopeReplyPrompt,
+  buildPostCardsFollowupPrompt,
+} from '../prompts';
 
 // Export all types used by API/UI
 export type ChatHistoryItem = {
@@ -44,6 +52,7 @@ export type ConversationContext = {
   lastConstraints?: SearchConstraints | null;
   lastShownProductIds?: string[];
   lastUserQuery?: string | null;
+  datasetContext?: DatasetContext | null;
 };
 
 export type AssistantQueryInput = {
@@ -94,6 +103,7 @@ export type AssistantQueryResult = {
   intent?: AssistantIntent;
   resolvedConstraints?: SearchConstraints;
   usedFollowUpContext?: boolean;
+  followupText?: string;
 };
 
 export type PendingSuggestionInput = {
@@ -111,6 +121,7 @@ export type { AssistantIntent } from './intent';
 async function runPendingSuggestionFlow(
   pending: PendingSuggestionInput,
   userMessage: string,
+  datasetContext?: DatasetContext | null,
 ): Promise<AssistantQueryResult> {
   const products = await fetchProductsByIds(pending.candidateIds);
   if (products.length === 0) {
@@ -168,12 +179,20 @@ async function runPendingSuggestionFlow(
     constraints: pending.constraints,
     products: shortlistedProducts,
     wasRelaxed: false,
+    datasetContext,
   });
+
+  const followupText = await buildPostCardsFollowupText(
+    userMessage,
+    pending.constraints,
+    datasetContext,
+  );
 
   return {
     replyText: enhancedReply,
     productCards: cards,
     noExactMatch: false,
+    followupText,
   };
 }
 
@@ -181,6 +200,7 @@ async function runDiscoveryFlow(
   constraints: SearchConstraints,
   userMessage: string,
   intent: AssistantIntent,
+  datasetContext?: DatasetContext | null,
 ): Promise<AssistantQueryResult> {
   logger.debug('runDiscoveryFlow start', {
     constraints: {
@@ -191,7 +211,10 @@ async function runDiscoveryFlow(
   });
 
   if (!shouldShowCards(userMessage, constraints)) {
-    const clarifyingReply = await applyBrandVoiceToReply(CLARIFYING_REPLY);
+    const clarifyingReply = await buildClarifyingReply(
+      userMessage,
+      datasetContext,
+    );
     return {
       replyText: clarifyingReply,
       productCards: [],
@@ -495,12 +518,20 @@ Write a friendly response mentioning up to 3 closest products by title and askin
       constraints: wasRelaxed ? relaxedConstraints : constraints,
       products: shortlistedItems,
       wasRelaxed,
+      datasetContext,
     });
+
+    const followupText = await buildPostCardsFollowupText(
+      userMessage,
+      wasRelaxed ? relaxedConstraints : constraints,
+      datasetContext,
+    );
 
     return {
       replyText: enhancedReply,
       productCards: deduplicatedCards,
       noExactMatch: wasRelaxed,
+      followupText,
     };
   }
 
@@ -525,6 +556,7 @@ Write a friendly response mentioning up to 3 closest products by title and askin
     constraints: relaxedConstraints,
     products: candidates.slice(0, strictLimit),
     wasRelaxed: true,
+    datasetContext,
   });
 
   return {
@@ -539,10 +571,11 @@ async function runPdpFlow(
   productContextId: string,
   constraints: SearchConstraints,
   userMessage: string,
+  datasetContext?: DatasetContext | null,
 ): Promise<AssistantQueryResult> {
   const productRecord = await prisma.product.findUnique({ where: { id: productContextId } });
   if (!productRecord) {
-    return runDiscoveryFlow(constraints, userMessage, 'discovery');
+    return runDiscoveryFlow(constraints, userMessage, 'discovery', datasetContext);
   }
 
   const baseProduct = productToResultItem(productRecord);
@@ -603,12 +636,20 @@ async function runPdpFlow(
     constraints,
     products: [baseProduct, ...related],
     wasRelaxed,
+    datasetContext,
   });
+
+  const followupText = await buildPostCardsFollowupText(
+    userMessage,
+    constraints,
+    datasetContext,
+  );
 
   return {
     replyText: enhancedReply,
     productCards,
     noExactMatch: wasRelaxed,
+    followupText,
   };
 }
 
@@ -623,6 +664,7 @@ export async function handleAssistantQuery(input: AssistantQueryInput): Promise<
 
   // DB fallback: if conversationContext is missing, load last constraints from ConversationEvent
   let effectiveContext = input.conversationContext;
+  const datasetContext = input.conversationContext?.datasetContext ?? null;
   if (!effectiveContext) {
     try {
       const lastEvent = await prisma.conversationEvent.findFirst({
@@ -737,7 +779,11 @@ export async function handleAssistantQuery(input: AssistantQueryInput): Promise<
         reason: routerResult.reason,
         followUpType: followUpDetection.followUpType,
       });
-      const confirmed = await runPendingSuggestionFlow(input.pendingSuggestion, input.message);
+      const confirmed = await runPendingSuggestionFlow(
+        input.pendingSuggestion,
+        input.message,
+        datasetContext,
+      );
       return {
         ...confirmed,
         intent: input.conversationContext?.lastIntent ?? 'discovery',
@@ -831,9 +877,14 @@ export async function handleAssistantQuery(input: AssistantQueryInput): Promise<
 
       let result: AssistantQueryResult;
       if (intent === 'pdp_suitability' && input.productContextId) {
-        result = await runPdpFlow(input.productContextId, mergedConstraints, input.message);
+        result = await runPdpFlow(
+          input.productContextId,
+          mergedConstraints,
+          input.message,
+          datasetContext,
+        );
       } else {
-        result = await runDiscoveryFlow(mergedConstraints, input.message, intent);
+        result = await runDiscoveryFlow(mergedConstraints, input.message, intent, datasetContext);
       }
 
       return {
@@ -844,10 +895,12 @@ export async function handleAssistantQuery(input: AssistantQueryInput): Promise<
       };
     }
 
-    // For non_product_chat, return a clarifying response
+    // For non_product_chat, return a dataset-aware LLM reply that
+    // re-centers the conversation on product discovery.
     if (routerResult.action === 'non_product_chat') {
-      const clarifyingReply = await applyBrandVoiceToReply(
-        "I'm here to help you find products!\n\nWhat are you looking for?",
+      const clarifyingReply = await buildNonProductChatReply(
+        input.message,
+        datasetContext,
       );
       return {
         replyText: clarifyingReply,
@@ -877,7 +930,11 @@ export async function handleAssistantQuery(input: AssistantQueryInput): Promise<
         message: input.message,
         candidateCount: input.pendingSuggestion.candidateIds.length,
       });
-      const confirmed = await runPendingSuggestionFlow(input.pendingSuggestion, input.message);
+      const confirmed = await runPendingSuggestionFlow(
+        input.pendingSuggestion,
+        input.message,
+        datasetContext,
+      );
       return {
         ...confirmed,
         intent: input.conversationContext?.lastIntent ?? 'discovery',
@@ -896,25 +953,41 @@ export async function handleAssistantQuery(input: AssistantQueryInput): Promise<
     !!input.pendingSuggestion,
   );
 
+  // If the LLM decides this is not a discovery/PDP query, route to a
+  // dataset-aware non-product reply instead of forcing rule-based text.
+  if (intent !== 'discovery' && intent !== 'pdp_suitability') {
+    const nonProductReply = await buildNonProductChatReply(
+      input.message,
+      datasetContext,
+    );
+    return {
+      replyText: nonProductReply,
+      productCards: [],
+      noExactMatch: false,
+      intent,
+      resolvedConstraints: undefined,
+      usedFollowUpContext,
+    };
+  }
+
+  const attributeMeta = deriveAttributeConstraintMeta(constraints);
+
   logger.debug('handleAssistantQuery intent resolved', {
     intent,
     constraints: {
       category: constraints.category,
       priceMaxCents: constraints.priceMaxCents,
-      hasAttributeFilters: !!(
-        constraints.colors?.length ||
-        constraints.fabrics?.length ||
-        constraints.seasons?.length ||
-        constraints.occasions?.length
-      ),
+      hasAttributeFilters: attributeMeta.hasHardAttributeConstraints,
+      hardFacetFields: attributeMeta.hardFacetFields,
+      ignoredDerivedFacetFields: attributeMeta.ignoredDerivedFacetFields,
     },
   });
 
   let result: AssistantQueryResult;
   if (intent === 'pdp_suitability' && input.productContextId) {
-    result = await runPdpFlow(input.productContextId, constraints, input.message);
+    result = await runPdpFlow(input.productContextId, constraints, input.message, datasetContext);
   } else {
-    result = await runDiscoveryFlow(constraints, input.message, intent);
+    result = await runDiscoveryFlow(constraints, input.message, intent, datasetContext);
   }
 
   return {
@@ -923,5 +996,156 @@ export async function handleAssistantQuery(input: AssistantQueryInput): Promise<
     resolvedConstraints: constraints,
     usedFollowUpContext,
   };
+}
+
+async function buildPostCardsFollowupText(
+  userMessage: string,
+  constraints: SearchConstraints,
+  datasetContext?: DatasetContext | null,
+): Promise<string | undefined> {
+  try {
+    const constraintSummary = describeConstraints(constraints);
+    const prompt = buildPostCardsFollowupPrompt(datasetContext);
+
+    const messages: LlmMessage[] = [
+      {
+        role: 'system',
+        content: prompt,
+      },
+      {
+        role: 'user',
+        content: `userMessage: "${userMessage}"
+
+constraintSummary: "${constraintSummary || 'general preferences'}"`,
+      },
+    ];
+
+    const result = await callLLM({
+      messages,
+      purpose: 'final_reply',
+      expectJson: false,
+    });
+
+    const text = result.rawText.trim();
+    if (text.length) {
+      return text;
+    }
+  } catch (error) {
+    logger.error('post_cards_followup_failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  // Deterministic fallback if LLM is unavailable or returned empty text
+  const vertical = datasetContext?.vertical?.toLowerCase();
+  const hasBudget = Boolean(constraints.priceMaxCents);
+  const hasUseCases = Boolean(constraints.useCases?.length);
+
+  if (vertical && vertical.includes('beauty')) {
+    if (hasUseCases) {
+      return 'Want something lighter, richer, or for a different concern? Tell me what you’d like to tweak.';
+    }
+    return 'If you’d like a different texture, concern focus, or price range, tell me and I’ll adjust these picks.';
+  }
+
+  if (vertical && (vertical.includes('home') || vertical.includes('decor'))) {
+    return 'Need a different room, style, or budget? Tell me and I can pivot these suggestions.';
+  }
+
+  // Generic catalog fallback
+  if (hasBudget) {
+    return 'Want to go lighter, more premium, or switch categories? Tell me and I’ll refine these results.';
+  }
+
+  return 'If you’d like a different category, style, or price range, tell me and I’ll tweak these options.';
+}
+
+/**
+ * Build a dataset-aware clarifying reply when the user has given a
+ * product-ish but underspecified request (no clear category/price/facets),
+ * using an LLM first and falling back to the older rule-based copy.
+ */
+async function buildClarifyingReply(
+  userMessage: string,
+  datasetContext?: DatasetContext | null,
+): Promise<string> {
+  try {
+    const prompt = buildClarifyingReplyPrompt(datasetContext);
+    const messages: LlmMessage[] = [
+      {
+        role: 'system',
+        content: prompt,
+      },
+      {
+        role: 'user',
+        content: `userMessage: "${userMessage}"`,
+      },
+    ];
+
+    const result = await callLLM({
+      messages,
+      purpose: 'final_reply',
+      expectJson: false,
+    });
+
+    const text = result.rawText.trim();
+    if (text.length) {
+      return text;
+    }
+  } catch (error) {
+    logger.error('clarifying_reply_llm_failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  // Deterministic, brand-voiced fallback if LLM is unavailable
+  let fallback = CLARIFYING_REPLY;
+  fallback = await applyBrandVoiceToReply(fallback);
+  return fallback;
+}
+
+/**
+ * Build a dataset-aware LLM reply for non-product or out-of-scope chat.
+ * This is used as a richer fallback when the router or intent detector
+ * classifies the message as "non_product_chat" or "other/qa".
+ */
+async function buildNonProductChatReply(
+  userMessage: string,
+  datasetContext?: DatasetContext | null,
+): Promise<string> {
+  try {
+    const prompt = buildOutOfScopeReplyPrompt(datasetContext);
+    const messages: LlmMessage[] = [
+      {
+        role: 'system',
+        content: prompt,
+      },
+      {
+        role: 'user',
+        content: `userMessage: "${userMessage}"`,
+      },
+    ];
+
+    const result = await callLLM({
+      messages,
+      purpose: 'final_reply',
+      expectJson: false,
+    });
+
+    const text = result.rawText.trim();
+    if (text.length) {
+      return text;
+    }
+  } catch (error) {
+    logger.error('non_product_chat_llm_failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  // Deterministic, brand-voiced fallback if LLM is unavailable
+  let fallback =
+    "I'm here to help you find products in this catalog. Tell me a category, concern, or price range and I'll pull options that fit.";
+  fallback = await applyBrandVoiceToReply(fallback);
+  return fallback;
 }
 

@@ -14,6 +14,8 @@ async function getBrandConfig() {
         'Be helpful, warm, and knowledgeable about fashion. Use a conversational tone that feels like a personal stylist.',
       toneFormal: 5,
       tonePlayful: 5,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
   });
 }

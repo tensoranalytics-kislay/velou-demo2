@@ -161,3 +161,4 @@ All fixes include comprehensive debug logging:
 - New functionality only activates when category is missing or override detected
 - No breaking API changes
 
+

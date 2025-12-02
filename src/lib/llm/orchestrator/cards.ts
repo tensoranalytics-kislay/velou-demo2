@@ -497,13 +497,85 @@ export function evaluateProductFit(
     }
   };
 
+  // Helper to count array overlaps and add proportional score bonus
+  const checkArrayOverlap = (
+    wanted?: string[],
+    actual?: string[],
+    scorePerMatch = 1.5,
+    maxMatches = 3,
+    factTemplate?: (matches: string[]) => string,
+  ) => {
+    if (!wanted?.length || !actual?.length) return;
+    const wantedLower = wanted.map((v) => v.toLowerCase());
+    const actualLower = actual.map((v) => String(v).toLowerCase());
+    const matches = wantedLower.filter((w) => actualLower.includes(w));
+    if (matches.length > 0) {
+      const matchCount = Math.min(matches.length, maxMatches);
+      score += matchCount * scorePerMatch;
+      if (factTemplate) {
+        const matchedValues = matches.slice(0, maxMatches).map((m) => {
+          // Find original case from actual array
+          return actual.find((a) => a.toLowerCase() === m) || m;
+        });
+        facts.push(factTemplate(matchedValues));
+      }
+    }
+  };
+
   checkArrayMatch(constraints.colors, attrs.color as string | undefined, `it's available in that ${attrs.color?.toString().toLowerCase()} shade you asked about`);
   checkArrayMatch(constraints.fabrics, attrs.fabric as string | undefined, `it's done in ${attrs.fabric?.toString().toLowerCase()} like you mentioned`);
   checkArrayMatch(constraints.materials, attrs.material as string | undefined, `it leans on ${attrs.material?.toString().toLowerCase()} materials you prefer`);
   checkArrayMatch(constraints.seasons, attrs.season as string | undefined, `it's comfortable for ${attrs.season?.toString().toLowerCase()} days`);
   checkArrayMatch(constraints.occasions, attrs.occasion as string | undefined, `it's made for ${attrs.occasion?.toString().toLowerCase()} moments`);
-  checkArrayMatch(constraints.useCases, attrs.useCases as string[] | undefined, `it fits that ${attrs.useCases} use-case you mentioned`);
   checkArrayMatch(constraints.sizes, attrs.size as string | undefined, `it's available in the sizes you called out`);
+
+  // Generic facet scoring: benefits
+  checkArrayOverlap(
+    constraints.benefits,
+    attrs.benefits as string[] | undefined,
+    1.5,
+    3,
+    (matches) => `it offers ${matches.length > 1 ? matches.join(', ') : matches[0]} like you wanted`,
+  );
+
+  // Generic facet scoring: styleTags
+  checkArrayOverlap(
+    constraints.styleTags,
+    attrs.styleTags as string[] | undefined,
+    1.5,
+    3,
+    (matches) => `it has that ${matches.length > 1 ? matches.join(', ') : matches[0]} style you mentioned`,
+  );
+
+  // Generic facet scoring: compatibility
+  checkArrayOverlap(
+    constraints.compatibility,
+    attrs.compatibility as string[] | undefined,
+    1.5,
+    3,
+    (matches) => `it works with ${matches.length > 1 ? matches.join(', ') : matches[0]} as you need`,
+  );
+
+  // Generic facet scoring: useCases (enhanced with overlap counting)
+  if (constraints.useCases?.length && attrs.useCases) {
+    checkArrayOverlap(
+      constraints.useCases,
+      attrs.useCases as string[],
+      1.5,
+      3,
+      (matches) => `it's perfect for ${matches.length > 1 ? matches.join(', ') : matches[0]}`,
+    );
+  }
+
+  // Generic facet scoring: sensoryProfile (substring match)
+  if (constraints.sensoryProfile && attrs.sensoryProfile) {
+    const constraintLower = constraints.sensoryProfile.toLowerCase();
+    const attributeLower = String(attrs.sensoryProfile).toLowerCase();
+    if (attributeLower.includes(constraintLower)) {
+      score += 1.5;
+      facts.push(`it has that ${constraints.sensoryProfile} quality you're looking for`);
+    }
+  }
 
   checkArrayMatch(implicit.fabrics, attrs.fabric as string | undefined, `its ${attrs.fabric?.toString().toLowerCase()} fabric keeps things comfy for your climate`);
   checkArrayMatch(
@@ -517,11 +589,16 @@ export function evaluateProductFit(
     attrs.fit as string | undefined,
     `the ${attrs.fit?.toString().toLowerCase()} fit lines up with your style preference`,
   );
-  checkArrayMatch(
-    implicit.useCases,
-    attrs.useCases as string[] | undefined,
-    `it's meant for the same plans you mentioned`,
-  );
+  // Enhanced useCases overlap for implicit preferences
+  if (implicit.useCases?.length && attrs.useCases) {
+    checkArrayOverlap(
+      implicit.useCases,
+      attrs.useCases as string[],
+      1.5,
+      3,
+      (matches) => `it's meant for ${matches.length > 1 ? matches.join(', ') : matches[0]} like you mentioned`,
+    );
+  }
   checkArrayMatch(implicit.categories, [item.category], `it keeps the focus on ${item.category.toLowerCase()} outfits`);
 
   if (constraints.fit && attrs.fit && String(attrs.fit).toLowerCase() === constraints.fit.toLowerCase()) {

@@ -29,11 +29,17 @@ type CanonicalGroup = {
   productTypeSynonyms: string[];
 };
 
+export type CategoryProfile = {
+  name: string;
+  groups: Record<CanonicalCategory, CanonicalGroup>;
+};
+
 /**
- * Category synonym map derived from dataset taxonomy
- * Maps user language variations to canonical categories
+ * Fashion-specific canonical category groups.
+ * These are now part of an optional profile so generic catalogs
+ * don't inherit apparel-only heuristics by default.
  */
-export const CATEGORY_SYNONYMS: Record<CanonicalCategory, CanonicalGroup> = {
+const FASHION_CATEGORY_GROUPS: Record<CanonicalCategory, CanonicalGroup> = {
   TSHIRT: {
     canonical: 'TSHIRT',
     synonyms: [
@@ -261,6 +267,11 @@ export const CATEGORY_SYNONYMS: Record<CanonicalCategory, CanonicalGroup> = {
   },
 };
 
+export const FASHION_CATEGORY_PROFILE: CategoryProfile = {
+  name: 'fashion',
+  groups: FASHION_CATEGORY_GROUPS,
+};
+
 /**
  * Canonicalizes user text to a canonical category
  * Returns the canonical category, matched synonyms, and confidence score
@@ -268,6 +279,7 @@ export const CATEGORY_SYNONYMS: Record<CanonicalCategory, CanonicalGroup> = {
 export function canonicalizeCategory(
   userText: string,
   ontology?: { categories: string[]; productTypes: string[] },
+  profile?: CategoryProfile | null,
 ): {
   canonical: CanonicalCategory;
   matchedSynonyms: string[];
@@ -277,13 +289,18 @@ export function canonicalizeCategory(
     return { canonical: 'UNKNOWN', matchedSynonyms: [], confidence: 0 };
   }
 
+  const groups = profile?.groups;
+  if (!groups || Object.keys(groups).length === 0) {
+    return { canonical: 'UNKNOWN', matchedSynonyms: [], confidence: 0 };
+  }
+
   const normalized = userText.toLowerCase().trim();
   const matchedSynonyms: string[] = [];
   let bestMatch: CanonicalCategory = 'UNKNOWN';
   let bestConfidence = 0;
 
   // Check each canonical category for matches
-  for (const [canonical, group] of Object.entries(CATEGORY_SYNONYMS) as Array<
+  for (const [canonical, group] of Object.entries(groups) as Array<
     [CanonicalCategory, CanonicalGroup]
   >) {
     if (canonical === 'UNKNOWN') continue;
@@ -293,7 +310,6 @@ export function canonicalizeCategory(
       const regex = new RegExp(`\\b${synonym.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
       if (regex.test(normalized)) {
         matchedSynonyms.push(synonym);
-        // Exact match gets high confidence
         const confidence = synonym.length >= 4 ? 0.9 : 0.7;
         if (confidence > bestConfidence) {
           bestMatch = canonical;
@@ -317,7 +333,7 @@ export function canonicalizeCategory(
 
   // If we have ontology, check against actual DB categories for validation
   if (ontology && bestMatch !== 'UNKNOWN') {
-    const group = CATEGORY_SYNONYMS[bestMatch];
+    const group = groups[bestMatch];
     const hasMatchingCategory = group.expandedLeafCats.some((leaf) =>
       ontology.categories.some((cat) => cat.toLowerCase().includes(leaf.toLowerCase())),
     );
@@ -340,8 +356,9 @@ export function canonicalizeCategory(
 export function getExpandedLeafCategories(
   canonical: CanonicalCategory,
   ontology?: { categories: string[]; productTypes: string[] },
+  profile?: CategoryProfile | null,
 ): string[] {
-  const group = CATEGORY_SYNONYMS[canonical];
+  const group = profile?.groups[canonical];
   if (!group) return [];
 
   // If ontology provided, filter to only categories that exist in DB
@@ -357,16 +374,22 @@ export function getExpandedLeafCategories(
 /**
  * Gets parent Google Product Category terms for a canonical category
  */
-export function getParentGpcTerms(canonical: CanonicalCategory): string[] {
-  const group = CATEGORY_SYNONYMS[canonical];
+export function getParentGpcTerms(
+  canonical: CanonicalCategory,
+  profile?: CategoryProfile | null,
+): string[] {
+  const group = profile?.groups[canonical];
   return group?.parentGpcTerms || [];
 }
 
 /**
  * Gets product type synonyms for a canonical category
  */
-export function getSynonymTerms(canonical: CanonicalCategory): string[] {
-  const group = CATEGORY_SYNONYMS[canonical];
+export function getSynonymTerms(
+  canonical: CanonicalCategory,
+  profile?: CategoryProfile | null,
+): string[] {
+  const group = profile?.groups[canonical];
   return group?.productTypeSynonyms || [];
 }
 
@@ -374,8 +397,11 @@ export function getSynonymTerms(canonical: CanonicalCategory): string[] {
  * Gets ALL synonyms (including productTypeSynonyms) for a canonical category
  * This is used for comprehensive text matching in titles/descriptions
  */
-export function getAllSynonyms(canonical: CanonicalCategory): string[] {
-  const group = CATEGORY_SYNONYMS[canonical];
+export function getAllSynonyms(
+  canonical: CanonicalCategory,
+  profile?: CategoryProfile | null,
+): string[] {
+  const group = profile?.groups[canonical];
   if (!group) return [];
   
   // Combine all synonym arrays and deduplicate
@@ -475,6 +501,53 @@ export function generateSynonymVariants(keyword: string): string[] {
   }
   
   return Array.from(variants).filter(v => v.length >= 2);
+}
+
+const FASHION_PROFILE_KEYWORDS = [
+  'tshirt',
+  't shirt',
+  'tee',
+  'tank',
+  'dress',
+  'gown',
+  'skirt',
+  'jean',
+  'denim',
+  'jogger',
+  'hoodie',
+  'sweater',
+  'outerwear',
+  'jacket',
+  'sneaker',
+  'boot',
+  'heels',
+  'shorts',
+  'blazer',
+];
+
+/**
+ * Detects whether the catalog looks like a fashion/apparel dataset.
+ * Uses ontology metadata and optional vertical hints from dataset context.
+ */
+export function detectCategoryProfile(
+  ontology?: { categories: string[]; productTypes: string[] },
+  options?: { verticalHint?: string | null },
+): CategoryProfile | null {
+  const vertical = options?.verticalHint?.toLowerCase();
+  if (vertical && /(apparel|fashion|clothing)/.test(vertical)) {
+    return FASHION_CATEGORY_PROFILE;
+  }
+
+  if (!ontology) return null;
+  const haystack = [...(ontology.categories || []), ...(ontology.productTypes || [])]
+    .map((value) => value?.toLowerCase?.())
+    .filter(Boolean) as string[];
+
+  const hasFashionSignal = FASHION_PROFILE_KEYWORDS.some((keyword) =>
+    haystack.some((value) => value.includes(keyword)),
+  );
+
+  return hasFashionSignal ? FASHION_CATEGORY_PROFILE : null;
 }
 
 /**

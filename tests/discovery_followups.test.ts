@@ -6,8 +6,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   canonicalizeCategory,
+  detectCategoryProfile,
   getExpandedLeafCategories,
   getSynonymTerms,
+  FASHION_CATEGORY_PROFILE,
   type CanonicalCategory,
 } from '../src/lib/search/canonicalize';
 import { detectFollowUpType } from '../src/lib/llm/orchestrator/followup-detector';
@@ -26,6 +28,8 @@ const mockOntology: CatalogOntology = {
   customLabels4: [],
 };
 
+const fashionProfile = detectCategoryProfile(mockOntology) ?? FASHION_CATEGORY_PROFILE;
+
 describe('Canonicalization', () => {
   describe('canonicalizeCategory', () => {
     it('should map t-shirt synonyms to TSHIRT', () => {
@@ -39,7 +43,7 @@ describe('Canonicalization', () => {
       ];
 
       for (const testCase of testCases) {
-        const result = canonicalizeCategory(testCase.input, mockOntology);
+        const result = canonicalizeCategory(testCase.input, mockOntology, fashionProfile);
         expect(result.canonical).toBe(testCase.expected);
         expect(result.confidence).toBeGreaterThan(0.3);
       }
@@ -54,13 +58,13 @@ describe('Canonicalization', () => {
       ];
 
       for (const testCase of testCases) {
-        const result = canonicalizeCategory(testCase.input, mockOntology);
+        const result = canonicalizeCategory(testCase.input, mockOntology, fashionProfile);
         expect(result.canonical).toBe(testCase.expected);
       }
     });
 
     it('should return UNKNOWN for unrecognized text', () => {
-      const result = canonicalizeCategory('random text', mockOntology);
+      const result = canonicalizeCategory('random text', mockOntology, fashionProfile);
       expect(result.canonical).toBe('UNKNOWN');
       expect(result.confidence).toBeLessThan(0.3);
     });
@@ -68,13 +72,13 @@ describe('Canonicalization', () => {
 
   describe('getExpandedLeafCategories', () => {
     it('should return expanded leaf categories for TSHIRT', () => {
-      const leaves = getExpandedLeafCategories('TSHIRT', mockOntology);
+      const leaves = getExpandedLeafCategories('TSHIRT', mockOntology, fashionProfile);
       expect(leaves.length).toBeGreaterThan(0);
       expect(leaves.some((leaf) => leaf.includes('t shirt'))).toBe(true);
     });
 
     it('should return expanded leaf categories for SKIRT', () => {
-      const leaves = getExpandedLeafCategories('SKIRT', mockOntology);
+      const leaves = getExpandedLeafCategories('SKIRT', mockOntology, fashionProfile);
       expect(leaves.length).toBeGreaterThan(0);
       expect(leaves.some((leaf) => leaf.includes('skirt'))).toBe(true);
     });
@@ -82,7 +86,7 @@ describe('Canonicalization', () => {
 
   describe('getSynonymTerms', () => {
     it('should return synonym terms for TSHIRT', () => {
-      const synonyms = getSynonymTerms('TSHIRT');
+      const synonyms = getSynonymTerms('TSHIRT', fashionProfile);
       expect(synonyms.length).toBeGreaterThan(0);
       expect(synonyms).toContain('tshirt');
       expect(synonyms).toContain('tee');
@@ -191,7 +195,7 @@ describe('End-to-end Follow-up Scenarios', () => {
     const followUpMessage = 'only tshirts';
 
     // Initial request - no previous constraints
-    const initialCanonical = canonicalizeCategory(initialMessage, mockOntology);
+    const initialCanonical = canonicalizeCategory(initialMessage, mockOntology, fashionProfile);
     expect(initialCanonical.canonical).toBe('UNKNOWN'); // Too broad
 
     // Follow-up switch
@@ -246,4 +250,5 @@ describe('End-to-end Follow-up Scenarios', () => {
     expect(followUpDetection.carryOver.hardFilters).toBe(true);
   });
 });
+
 

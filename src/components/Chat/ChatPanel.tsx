@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import type {
   ConversationContext,
   PendingSuggestionResult,
@@ -27,11 +27,12 @@ const createId = () =>
 
 const STORAGE_KEY = 'velou_chat_v1_default';
 
+// Fallback initial message (will be replaced by dataset-aware greeting)
 const defaultInitialMessage: ChatMessage = {
   id: 'welcome',
   role: 'assistant',
   content:
-    "Hey there—I'm the Lucky Brand stylist. Tell me the vibe, fabric, or budget you're shopping for and I'll pull pieces straight from our catalog.",
+    "Hey there—I'm your shopping assistant. Tell me what you're looking for and I'll help you find the perfect products from our catalog.",
   productCards: [],
 };
 
@@ -43,6 +44,7 @@ type AssistantApiResponse = {
   intent?: 'discovery' | 'pdp_suitability';
   resolvedConstraints?: SearchConstraints;
   usedFollowUpContext?: boolean;
+   followupText?: string;
 };
 
 export default function ChatPanel() {
@@ -63,18 +65,132 @@ export default function ChatPanel() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  const scrollToBottom = useCallback(
+    (behavior: ScrollBehavior = 'smooth') => {
+      const container = scrollContainerRef.current;
+      if (container) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior,
+        });
+      }
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
-    const stored = loadChatHistory(STORAGE_KEY);
-    if (stored.length) {
-      setMessages(
-        stored.map((entry, index) => ({
-          id: `stored-${entry.ts ?? index}-${index}`,
-          role: entry.role,
-          content: entry.text,
-          productCards: entry.productCards,
-        })),
-      );
-    }
+    // Always fetch fresh greeting to ensure it's dataset-aware
+    fetch('/api/chat/greeting')
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Greeting API returned ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (data.greeting) {
+          const greetingMessage: ChatMessage = {
+            id: 'welcome',
+            role: 'assistant',
+            content: data.greeting,
+            productCards: [],
+          };
+          
+          const stored = loadChatHistory(STORAGE_KEY);
+          if (stored.length) {
+            // If there's stored history, check if first message is the old greeting and replace it
+            const messages: ChatMessage[] = stored.map((entry, index) => ({
+              id: `stored-${entry.ts ?? index}-${index}`,
+              role: entry.role,
+              content: entry.text,
+              productCards: entry.productCards || [],
+            }));
+            
+            // Check if first message is an old greeting (contains old greeting patterns)
+            const firstMessage = messages[0];
+            const oldGreetingPatterns = [
+              'Lucky Brand stylist',
+              "Tell me the vibe, fabric, or budget",
+              "I'm the Lucky Brand stylist",
+              "I'm Lucky Brand's stylist",
+            ];
+            const isOldGreeting = firstMessage?.role === 'assistant' && 
+              (firstMessage.id === 'welcome' ||
+               oldGreetingPatterns.some(pattern => firstMessage.content.includes(pattern)));
+            
+            // Always update the first message if it's a greeting (id === 'welcome' or matches greeting pattern)
+            // This ensures the greeting stays fresh and dataset-aware
+            if (firstMessage.id === 'welcome' || isOldGreeting || firstMessage.content !== data.greeting) {
+              // Replace greeting with new one
+              messages[0] = {
+                ...greetingMessage,
+                productCards: greetingMessage.productCards || [],
+              };
+              // Also update localStorage to persist the new greeting
+              const timestampBase = Date.now();
+              const serializable: StoredChatMessage[] = messages.map((message, index) => ({
+                role: message.role,
+                text: message.content,
+                productCards: message.productCards,
+                ts: timestampBase + index,
+              }));
+              saveChatHistory(STORAGE_KEY, serializable);
+            }
+            
+            setMessages(messages);
+          } else {
+            // No stored history, use the dataset-aware greeting
+            setMessages([greetingMessage]);
+          }
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load greeting:', error);
+        // Fall back to default
+        const stored = loadChatHistory(STORAGE_KEY);
+        if (stored.length) {
+          const messages: ChatMessage[] = stored.map((entry, index) => ({
+            id: `stored-${entry.ts ?? index}-${index}`,
+            role: entry.role,
+            content: entry.text,
+            productCards: entry.productCards || [],
+          }));
+          
+          // Still check and replace old greeting even if API failed
+          const firstMessage = messages[0];
+          const oldGreetingPatterns = [
+            'Lucky Brand stylist',
+            "Tell me the vibe, fabric, or budget",
+            "I'm the Lucky Brand stylist",
+          ];
+          const isOldGreeting = firstMessage?.role === 'assistant' && 
+            oldGreetingPatterns.some(pattern => firstMessage.content.includes(pattern));
+          
+          if (isOldGreeting) {
+            // Use default generic greeting
+            messages[0] = {
+              ...defaultInitialMessage,
+              productCards: defaultInitialMessage.productCards || [],
+            };
+            const timestampBase = Date.now();
+            const serializable: StoredChatMessage[] = messages.map((message, index) => ({
+              role: message.role,
+              text: message.content,
+              productCards: message.productCards,
+              ts: timestampBase + index,
+            }));
+            saveChatHistory(STORAGE_KEY, serializable);
+          }
+          
+          setMessages(messages);
+        } else {
+          setMessages([defaultInitialMessage]);
+        }
+      });
+    
     const storedPending = loadPendingSuggestionCache(STORAGE_KEY);
     if (storedPending) {
       setPendingSuggestion(storedPending);
@@ -113,13 +229,47 @@ export default function ChatPanel() {
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-  }, [messages, isLoading]);
+    if (!hasHydrated) return;
+    const frame = requestAnimationFrame(() => {
+      scrollToBottom();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [messages, isLoading, hasHydrated, scrollToBottom]);
 
-  const resetConversation = () => {
-    setMessages([defaultInitialMessage]);
+  // If a floating suggestion pill stored an external prompt before the chat opened,
+  // pick it up once after hydration and send it as the first user message.
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (typeof window === 'undefined') return;
+
+    try {
+      const external = window.localStorage.getItem('velou_external_prompt');
+      if (external && external.trim()) {
+        window.localStorage.removeItem('velou_external_prompt');
+        void handleSendMessage(external);
+      }
+    } catch {
+      // ignore storage errors
+    }
+    // run once after hydration
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasHydrated]);
+
+  const resetConversation = async () => {
+    // Fetch fresh greeting when resetting
+    try {
+      const response = await fetch('/api/chat/greeting');
+      const data = await response.json();
+      const greetingMessage: ChatMessage = {
+        id: 'welcome',
+        role: 'assistant',
+        content: data.greeting || defaultInitialMessage.content,
+        productCards: [],
+      };
+      setMessages([greetingMessage]);
+    } catch {
+      setMessages([defaultInitialMessage]);
+    }
     setPageType('HOME');
     setProductContextId(undefined);
     setPendingSuggestion(null);
@@ -155,6 +305,7 @@ export default function ChatPanel() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    requestAnimationFrame(() => scrollToBottom('smooth'));
     setIsLoading(true);
 
     try {
@@ -201,10 +352,15 @@ export default function ChatPanel() {
         role: 'assistant',
         content: data.replyText,
         productCards: shouldShowCards ? data.productCards : [],
-        noExactMatch: data.noExactMatch, // Pass through for UI to show "Relaxed results" banner
+        noExactMatch: data.noExactMatch, // Pass through for UI to show "Rel
+        followupText:
+          shouldShowCards && data.followupText && data.followupText.trim().length
+            ? data.followupText
+            : undefined,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+      requestAnimationFrame(() => scrollToBottom('smooth'));
 
       setConversationContext({
         lastIntent: data.intent ?? conversationContext.lastIntent ?? null,
@@ -220,6 +376,7 @@ export default function ChatPanel() {
           'Our assistant is temporarily unavailable. Please try again soon or browse with the standard filters.',
       };
       setMessages((prev) => [...prev, fallbackMessage]);
+      requestAnimationFrame(() => scrollToBottom('smooth'));
     } finally {
       setIsLoading(false);
     }
@@ -240,7 +397,7 @@ export default function ChatPanel() {
       {/* Scrollable chat area - extends to bottom */}
       <div
         ref={scrollContainerRef}
-        className="chat-scrollbar absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-contain px-3 pt-3 pb-[180px] sm:px-4 sm:pt-4 sm:pb-[200px] md:px-6 md:pt-6 md:pb-[220px]"
+        className="chat-scrollbar absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-contain px-3 pt-6 pb-[190px] sm:px-4 sm:pt-8 sm:pb-[210px] md:px-6 md:pt-10 md:pb-[240px]"
       >
         <MessageList messages={messages} onProductClick={handleProductClick} />
         {isLoading && (
@@ -250,7 +407,7 @@ export default function ChatPanel() {
               <span className="h-2 w-2 animate-bounce rounded-full bg-rose-400 [animation-delay:-0.15s]" />
               <span className="h-2 w-2 animate-bounce rounded-full bg-rose-300" />
             </div>
-            <span>The Lucky Brand stylist is thinking…</span>
+            <span>The assistant is thinking…</span>
           </div>
         )}
         <div ref={messagesEndRef} />

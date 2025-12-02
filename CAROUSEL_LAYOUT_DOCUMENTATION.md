@@ -96,3 +96,4 @@ Tests are in `tests/product_carousel_compact_layout.test.tsx`:
 
 5 tests currently failing (as expected) - will pass after implementation.
 
+

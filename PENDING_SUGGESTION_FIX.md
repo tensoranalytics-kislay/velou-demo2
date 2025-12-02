@@ -112,3 +112,4 @@ Test cases that should now work:
 - ✅ Logic flow: Hard override checked before affirmative response
 - ✅ Pattern matching: Covers "only/just/show me + category" patterns
 
+

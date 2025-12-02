@@ -5,19 +5,21 @@ import { useState } from 'react';
 type Props = {
   currentProvider: string;
   hasOpenAIKey: boolean;
-  hasPerplexityKey: boolean;
   useMerchantKey: boolean;
   hasMerchantOpenAIKey: boolean;
-  hasMerchantPerplexityKey: boolean;
+  primaryModel: string;
+  reasoningModel: string;
+  lightModel: string;
 };
 
 export default function LLMConfigDisplay({
   currentProvider,
   hasOpenAIKey,
-  hasPerplexityKey,
   useMerchantKey,
   hasMerchantOpenAIKey,
-  hasMerchantPerplexityKey,
+  primaryModel,
+  reasoningModel,
+  lightModel,
 }: Props) {
   const [isSaving, setIsSaving] = useState(false);
 
@@ -68,18 +70,6 @@ export default function LLMConfigDisplay({
                   {hasOpenAIKey ? 'Set' : 'Not set'}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-700">Perplexity API Key</span>
-                <span
-                  className={`rounded-full px-2 py-1 text-xs ${
-                    hasPerplexityKey
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  {hasPerplexityKey ? 'Set' : 'Not set'}
-                </span>
-              </div>
             </dd>
           </div>
 
@@ -110,14 +100,26 @@ export default function LLMConfigDisplay({
                       {hasMerchantOpenAIKey ? '********' : 'Not set'}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-700">Merchant Perplexity Key</span>
-                    <span className="font-mono text-xs text-slate-500">
-                      {hasMerchantPerplexityKey ? '********' : 'Not set'}
-                    </span>
-                  </div>
                 </>
               )}
+            </dd>
+          </div>
+
+          <div>
+            <dt className="text-sm font-medium text-slate-500">Model Routing</dt>
+            <dd className="mt-1 space-y-2 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-700">Primary (final replies, dataset analysis)</span>
+                <span className="font-mono text-xs text-slate-600">{primaryModel}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-700">Reasoning (intent parsing, suitability)</span>
+                <span className="font-mono text-xs text-slate-600">{reasoningModel}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-700">Lightweight (card reasons, helpers)</span>
+                <span className="font-mono text-xs text-slate-600">{lightModel}</span>
+              </div>
             </dd>
           </div>
         </dl>
@@ -127,8 +129,11 @@ export default function LLMConfigDisplay({
         <p className="text-sm text-amber-800">
           <strong>Note:</strong> LLM provider and API keys are configured via environment variables (
           <code className="rounded bg-amber-100 px-1">LLM_PROVIDER</code>,{' '}
-          <code className="rounded bg-amber-100 px-1">OPENAI_API_KEY</code>, etc.). Changes require
-          a server restart.
+          <code className="rounded bg-amber-100 px-1">OPENAI_API_KEY</code>,{' '}
+          <code className="rounded bg-amber-100 px-1">PRIMARY_LLM_MODEL</code>,{' '}
+          <code className="rounded bg-amber-100 px-1">REASONING_LLM_MODEL</code>,{' '}
+          <code className="rounded bg-amber-100 px-1">LIGHT_LLM_MODEL</code>). Changes require a
+          server restart.
         </p>
       </div>
     </div>

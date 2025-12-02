@@ -37,3 +37,4 @@ CREATE INDEX IF NOT EXISTS "Product_priceCents_idx" ON "Product"("priceCents");
 -- Add index on brand for brand filtering
 CREATE INDEX IF NOT EXISTS "Product_brand_idx" ON "Product"("brand") WHERE "brand" IS NOT NULL;
 
+

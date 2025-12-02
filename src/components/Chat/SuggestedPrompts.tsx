@@ -2,18 +2,26 @@
 
 import { useEffect, useState } from 'react';
 
+// Generic default suggestions (will be replaced by API call)
 const DEFAULT_SUGGESTIONS = [
-  'flare jeans under $50',
-  'dresses date night under $200',
-  'skinny jeans under $100',
+  'popular items',
+  'best sellers',
+  'featured products',
 ];
 
 type SuggestedPromptsProps = {
   onSelect: (prompt: string) => void;
   lastUserMessage?: string | null;
+  orientation?: 'row' | 'column';
+  className?: string;
 };
 
-export default function SuggestedPrompts({ onSelect, lastUserMessage }: SuggestedPromptsProps) {
+export default function SuggestedPrompts({
+  onSelect,
+  lastUserMessage,
+  orientation = 'row',
+  className,
+}: SuggestedPromptsProps) {
   const [suggestions, setSuggestions] = useState<string[]>(DEFAULT_SUGGESTIONS);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -40,14 +48,23 @@ export default function SuggestedPrompts({ onSelect, lastUserMessage }: Suggeste
       });
   }, [lastUserMessage]);
 
+  const layoutClass =
+    orientation === 'column'
+      ? 'flex flex-col items-end gap-2'
+      : 'flex flex-wrap gap-1.5';
+  const buttonBase =
+    orientation === 'column'
+      ? 'px-3 py-1.5 text-xs'
+      : 'px-2.5 py-1 text-[10px]';
+
   if (isLoading) {
     return (
-      <div className="mb-2">
-        <div className="flex flex-wrap gap-1.5">
+      <div className={`mb-2 ${className ?? ''}`}>
+        <div className={layoutClass}>
           {DEFAULT_SUGGESTIONS.slice(0, 3).map((prompt, idx) => (
             <div
               key={idx}
-              className="h-6 w-32 animate-pulse rounded-full border border-rose-100/50 bg-rose-50/50"
+              className={`h-7 min-w-[10rem] animate-pulse rounded-full border border-rose-100/50 bg-rose-50/50`}
             />
           ))}
         </div>
@@ -56,14 +73,14 @@ export default function SuggestedPrompts({ onSelect, lastUserMessage }: Suggeste
   }
 
   return (
-    <div className="mb-2">
-      <div className="flex flex-wrap gap-1.5">
+    <div className={`mb-2 ${className ?? ''}`}>
+      <div className={layoutClass}>
         {suggestions.map((prompt) => (
           <button
             key={prompt}
             type="button"
             onClick={() => onSelect(prompt)}
-            className="group rounded-full border border-rose-200/60 bg-white px-2.5 py-1 text-[10px] font-medium text-slate-700 shadow-sm transition-all hover:border-rose-300 hover:bg-rose-50 hover:shadow-md active:scale-[0.98] cursor-pointer"
+            className={`group inline-flex rounded-full border border-rose-200/60 bg-white ${buttonBase} font-medium text-slate-700 shadow-sm transition-all hover:border-rose-300 hover:bg-rose-50 hover:shadow-md active:scale-[0.98] cursor-pointer whitespace-nowrap text-right`}
           >
             {prompt}
           </button>

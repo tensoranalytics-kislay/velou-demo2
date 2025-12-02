@@ -14,6 +14,8 @@ async function getBrandConfig() {
       voiceInstructions: 'Be helpful and warm.',
       toneFormal: 5,
       tonePlayful: 5,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
   });
 }
@@ -22,7 +24,6 @@ export default async function LLMConfigPage() {
   const config = await getBrandConfig();
   const currentProvider = env.llmProvider;
   const hasOpenAIKey = Boolean(env.openaiApiKey);
-  const hasPerplexityKey = Boolean(env.perplexityApiKey);
 
   return (
     <div className="max-w-3xl">
@@ -34,10 +35,11 @@ export default async function LLMConfigPage() {
       <LLMConfigDisplay
         currentProvider={currentProvider}
         hasOpenAIKey={hasOpenAIKey}
-        hasPerplexityKey={hasPerplexityKey}
         useMerchantKey={config.useMerchantKey}
         hasMerchantOpenAIKey={Boolean(config.merchantOpenAIKey)}
-        hasMerchantPerplexityKey={Boolean(config.merchantPerplexityKey)}
+        primaryModel={env.primaryLlmModel}
+        reasoningModel={env.reasoningLlmModel}
+        lightModel={env.lightLlmModel}
       />
     </div>
   );

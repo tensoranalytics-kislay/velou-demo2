@@ -5,17 +5,19 @@ import {
   CONTEXT_GATEKEEPER_JSON_SCHEMA,
   CONTEXT_GATEKEEPER_PROMPT_V2,
   CONTEXT_GATEKEEPER_V2_JSON_SCHEMA,
-  INTENT_AND_CONSTRAINTS_PROMPT,
   INTENT_AND_CONSTRAINTS_PROMPT_V2,
   INTENT_AND_CONSTRAINTS_V2_JSON_SCHEMA,
   SEARCH_CONSTRAINTS_JSON_SCHEMA,
   VELOU_ROUTER_PROMPT,
   VELOU_ROUTER_JSON_SCHEMA,
+  buildIntentAndConstraintsPrompt,
+  buildDatasetContextHint,
 } from '../prompts';
 import { logger } from '../../telemetry/logger';
 import { getCatalogOntology, type CatalogOntology } from '../../search/ontology';
 import type { SearchConstraints } from '../../search/types';
 import type { ConversationContext } from './index';
+import type { DatasetContext } from '../../catalog/datasetInspector';
 import {
   CATEGORY_KEYWORDS,
   COLOR_KEYWORDS,
@@ -603,6 +605,7 @@ async function inferIntentAndConstraintsWithLlm(input: {
   ontology: CatalogOntology;
   standaloneQuery?: string;
   constraintsDelta?: Partial<SearchConstraints>;
+  datasetContext?: DatasetContext | null;
 }): Promise<IntentResolution> {
   const contextJson = JSON.stringify({
     pageType: input.pageType,
@@ -613,7 +616,10 @@ async function inferIntentAndConstraintsWithLlm(input: {
 
   // Use V2 prompt if available (feature flag via env or default to V2)
   const useV2 = true; // TODO: Make configurable via env var
-  const prompt = useV2 ? INTENT_AND_CONSTRAINTS_PROMPT_V2 : INTENT_AND_CONSTRAINTS_PROMPT;
+  const datasetContext = input.datasetContext ?? null;
+  const prompt = useV2
+    ? INTENT_AND_CONSTRAINTS_PROMPT_V2
+    : buildIntentAndConstraintsPrompt(datasetContext);
   const schema = useV2 ? INTENT_AND_CONSTRAINTS_V2_JSON_SCHEMA : SEARCH_CONSTRAINTS_JSON_SCHEMA;
 
   // Build taxonomy categories list for the prompt (includes actual DB categories + common synonyms)
@@ -715,6 +721,8 @@ AGE_GROUPS: ${(input.ontology as any).ageGroups?.join(', ') || 'adult, kids'}
 SEASONS: ${(input.ontology as any).seasons?.join(', ') || 'summer, winter, spring, fall'}
 OCCASIONS: ${(input.ontology as any).occasions?.join(', ') || 'office, casual, formal, party'}`.trim();
 
+  const datasetContextHint = buildDatasetContextHint(datasetContext);
+
   const messages: LlmMessage[] = [
     {
       role: 'system',
@@ -728,6 +736,7 @@ OCCASIONS: ${(input.ontology as any).occasions?.join(', ') || 'office, casual, f
             .replace('{AGE_GROUPS}', (input.ontology as any).ageGroups?.join(', ') || 'adult, kids')
             .replace('{SEASONS}', (input.ontology as any).seasons?.join(', ') || 'summer, winter, spring, fall')
             .replace('{OCCASIONS}', (input.ontology as any).occasions?.join(', ') || 'office, casual, formal, party')
+            .replace('{DATASET_CONTEXT_HINT}', datasetContextHint || 'Note: Use generic facet fields (useCases, styleTags, benefits, claims, sensoryProfile, compatibility) only when user language clearly maps to them and the catalog likely supports them.')
         : prompt,
     },
     {
@@ -805,10 +814,25 @@ Extract intent, constraints, and expandedKeywords.`
       expandedKeywords = parsed.expandedKeywords;
       contextAction = 'carry'; // V2 doesn't have contextAction, default to carry
       queryText = parsed.constraints?.query || queryToUse;
+      
+      // Log expandedKeywords extraction
+      logger.debug('expandedKeywords_extracted', {
+        expandedKeywords: expandedKeywords,
+        expandedKeywordsCount: expandedKeywords?.length || 0,
+        source: 'llm_v2',
+        message: queryToUse,
+      });
     } else {
       // V1 format
       contextAction = (parsed as any).contextAction;
       queryText = (parsed as any).query || queryToUse;
+      
+      // Log if expandedKeywords were missing
+      logger.debug('expandedKeywords_missing', {
+        source: 'llm_v1_or_missing',
+        message: queryToUse,
+        hasExpandedKeywords: 'expandedKeywords' in parsed,
+      });
     }
 
     // Handle new schema format with contextAction and query
@@ -972,6 +996,7 @@ export async function inferIntentAndConstraints(
 ): Promise<IntentResolution & { usedFollowUpContext: boolean }> {
   const ontology = await getCatalogOntology();
   const previousConstraints = conversationContext?.lastConstraints ?? null;
+  const datasetContext = conversationContext?.datasetContext ?? null;
   
   // Extract previous user messages from history (last 5 user messages)
   const previousUserMessages = history
@@ -1063,21 +1088,34 @@ export async function inferIntentAndConstraints(
       if (isSwitch && followUpDetection.overrideCategory) {
         // SWITCH: Set category from overrideCategory (canonical category)
         // Map canonical category to DB category format
-        const { canonicalizeCategory, CATEGORY_SYNONYMS } = await import('../../search/canonicalize');
-        const canonical = canonicalizeCategory(followUpDetection.overrideCategory, ontology);
-        if (canonical.canonical !== 'UNKNOWN') {
-          const categoryGroup = CATEGORY_SYNONYMS[canonical.canonical];
-          if (categoryGroup) {
-            // Use first expanded leaf category or canonical synonym
-            if (categoryGroup.expandedLeafCats?.length) {
-              baseConstraints.category = categoryGroup.expandedLeafCats[0];
-            } else if (categoryGroup.synonyms?.length) {
-              baseConstraints.category = categoryGroup.synonyms[0];
-            }
-            // Set hardTextFilters to tee synonyms to avoid broad tops
-            if (canonical.canonical === 'TSHIRT') {
-              (baseConstraints as any).hardTextFilters = categoryGroup.productTypeSynonyms || ['t shirt', 'tshirt', 'tee'];
-            }
+        const {
+          canonicalizeCategory: canonicalizeCategoryDynamic,
+          detectCategoryProfile: detectCategoryProfileDynamic,
+          getExpandedLeafCategories: getExpandedLeafCategoriesDynamic,
+          getAllSynonyms: getAllSynonymsDynamic,
+        } = await import('../../search/canonicalize');
+        const profile = detectCategoryProfileDynamic(ontology, {
+          verticalHint: datasetContext?.vertical,
+        });
+        const canonical = canonicalizeCategoryDynamic(
+          followUpDetection.overrideCategory,
+          ontology,
+          profile,
+        );
+        if (canonical.canonical !== 'UNKNOWN' && profile) {
+          const group = profile.groups[canonical.canonical];
+          if (group?.expandedLeafCats?.length) {
+            baseConstraints.category = getExpandedLeafCategoriesDynamic(
+              canonical.canonical,
+              ontology,
+              profile,
+            )[0];
+          } else if (group?.synonyms?.length) {
+            baseConstraints.category = group.synonyms[0];
+          }
+          if (canonical.canonical === 'TSHIRT') {
+            (baseConstraints as any).hardTextFilters =
+              getAllSynonymsDynamic(canonical.canonical, profile) || ['t shirt', 'tshirt', 'tee'];
           }
         }
         
@@ -1170,6 +1208,7 @@ export async function inferIntentAndConstraints(
       ontology,
       standaloneQuery: gatekeeperResult.standaloneQuery,
       constraintsDelta: gatekeeperResult.constraintsDelta,
+      datasetContext,
     });
     
     // Use intent from gatekeeper if it's more specific (e.g., pdp_suitability)
@@ -1181,6 +1220,8 @@ export async function inferIntentAndConstraints(
     logger.debug('inferIntentAndConstraintsWithLlm', {
       intent: finalIntent,
       contextAction,
+      expandedKeywords: result.constraints.expandedKeywords,
+      expandedKeywordsCount: result.constraints.expandedKeywords?.length || 0,
       constraints: {
         category: result.constraints.category,
         priceMinCents: result.constraints.priceMinCents,

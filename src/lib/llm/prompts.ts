@@ -1,109 +1,133 @@
-export const INTENT_AND_CONSTRAINTS_PROMPT = `You are a product-discovery constraint extractor for a fashion catalog.
+import type { DatasetContext } from '../catalog/datasetInspector';
 
-Your job: read the user's latest message + recent conversation context (if any),
-then output STRICT JSON constraints that match THIS dataset's taxonomy exactly.
+const formatList = (items: string[] | undefined, max = 12): string => {
+  if (!items?.length) return '';
+  const unique = Array.from(new Set(items.map((item) => item.trim()).filter(Boolean)));
+  return unique.slice(0, max).join(', ');
+};
 
-DATASET TAXONOMY RULES (VERY IMPORTANT)
+const GENERIC_DATASET_CONTEXT_HINT =
+  'Note: Use generic facet fields (useCases, styleTags, benefits, claims, sensoryProfile, compatibility) only when shopper language clearly maps to them and the catalog likely supports them.';
 
-- The catalog categories come ONLY from \`product type\` paths in the form:
-  top_level > sub_level > leaf
+export const buildDatasetContextHint = (datasetContext?: DatasetContext | null): string => {
+  if (!datasetContext) {
+    return GENERIC_DATASET_CONTEXT_HINT;
+  }
 
-- Valid top_level values: ["mens", "womens", "accessories"].
+  const lines: string[] = [];
+  if (datasetContext.vertical) {
+    lines.push(`Vertical focus: ${datasetContext.vertical}.`);
+  }
+  if (datasetContext.sampleCategories?.length) {
+    lines.push(`Example categories/product types: ${formatList(datasetContext.sampleCategories)}.`);
+  }
+  if (datasetContext.primaryFacets?.length) {
+    lines.push(`Primary facets with strong coverage: ${formatList(datasetContext.primaryFacets)}.`);
+  }
+  if (datasetContext.qualityNotes?.length) {
+    lines.push(`Quality notes: ${datasetContext.qualityNotes.slice(0, 3).join(' | ')}`);
+  }
 
-- Valid sub/leaf values include (non-exhaustive but representative):
-  mens: ["t shirt","shirt","jeans","pants","shorts","sweaters","outerwear","blazer","sleepwear","underwear","swim"]
-  womens: ["t shirt","shirt","woven tops","knit tops","jeans","pants","shorts","skirts","dresses","jumpsuits","sweaters","outerwear","blazer","sleepwear"]
-  accessories: ["bags","belts","hats","scarves","jewelry","socks","shoes"]
-  leaf examples: ["graphic t shirt","solid t shirts","short sleeve shirt","long sleeve shirt","sleeveless shirt",
-                  "skinny jeans","straight leg jeans","bootcut jeans","wide leg jeans",
-                  "denim shorts","utility shorts","skirts",
-                  "mini dress","midi dress","maxi dress",
-                  "crossbody bags","tote bags","wallets",
-                  "sneakers","boots","sandals"]
+  if (lines.length === 0) {
+    return GENERIC_DATASET_CONTEXT_HINT;
+  }
 
-NEVER invent a category like "apparel", "tops", "shirts & tops".
-If you can't map the user to an exact node/leaf, leave category undefined and rely on query text.
+  return `Dataset context:\n- ${lines.join('\n- ')}`;
+};
 
-SYNONYM NORMALIZATION
+// NOTE: This builder keeps the intent prompt industry-agnostic by leaning on the unified catalog schema
+// and optional datasetContext inferred during ingestion.
+export const buildIntentAndConstraintsPrompt = (
+  datasetContext?: DatasetContext | null,
+): string => {
+  const verticalLine = datasetContext?.vertical
+    ? `This merchant primarily sells ${datasetContext.vertical} products, but the unified schema also supports adjacent verticals.`
+    : 'This merchant uses a unified catalog schema that can represent apparel, beauty, home, electronics, and other industries.';
+  const categoriesLine = datasetContext?.sampleCategories?.length
+    ? `Example catalog categories / product types: ${formatList(datasetContext.sampleCategories)}.`
+    : 'Map user language to catalog categories/product types using the ontology provided outside this prompt.';
+  const facetsLine = datasetContext?.primaryFacets?.length
+    ? `High-signal facets commonly available: ${formatList(datasetContext.primaryFacets)}.`
+    : 'Facet coverage follows the unified schema: colors, sizes, materials, seasons, occasions, useCases, styleTags, benefits, claims, sensoryProfile, compatibility, brands, genders, ageGroups, conditions, custom labels.';
 
-- tshirt/tee/tees/tee shirt/t-shirts -> "t shirt" node (general tshirts, includes all types).
-- graphic tee/graphic tshirt/printed tee -> "graphic t shirt" leaf (ONLY if user explicitly mentions "graphic" or "printed").
-- long sleeve/l/s/full sleeve -> leaf "long sleeve shirt"
-- short sleeve/s/s/half sleeve -> leaf "short sleeve shirt"
-- tank/sleeveless/muscle tee -> leaf "sleeveless shirt"
-- denim -> style/category intent; bias to nodes/leafs containing jeans/denim shorts/skirts + colors containing wash/indigo.
-- skirt/skirts -> node or leaf "skirts"
-- bag/handbag/purse/tote/crossbody -> node "bags" plus closest leaf if specified.
-- belt/belts -> node "belts"
-- shoes/sneakers/boots/sandals -> node "shoes" plus leaf if specified.
+  return `You are a product-discovery constraint extractor for a merchant catalog.
 
-MATERIAL NORMALIZATION (canonical tokens in DB)
-Canonical tokens: ["cotton","poly","elastane","lyocell","viscose","rayon","nylon","acrylic","linen","wool","spandex"].
-Map:
-- polyester/poly -> "poly"
-- spandex/stretch/elastane -> "elastane" (keep spandex if user explicitly says spandex)
-- tencel -> "lyocell"
+${verticalLine}
+${categoriesLine}
+${facetsLine}
 
-COLOR NORMALIZATION
-- If user says a base color, match ANY catalog color containing that base word.
-  E.g., "black" matches colors containing "black", plus black-family marketing names:
-  ["caviar","raven","meteorite","ironclad"].
-- Navy/blue-family marketing name: ["dress blues"].
-- Burgundy-family marketing name: ["malbec"].
-- If user uses a marketing name directly, keep it as-is.
+Your job: read the shopper's latest message plus any prior context and output STRICT JSON constraints matching the catalog schema.
 
-FOLLOW-UP / CONTEXT CARRYOVER LOGIC
+CATALOG + ONTOLOGY RULES
+- Align user phrases with real catalog categories/product types using the ontology summary provided in the conversation.
+- Only emit facet values that exist in the dataset or were explicitly requested. If uncertain, leave that field null.
+- Use normalized forms for colors/materials/sizes/brands/genders/ageGroups/seasons/occasions as defined by the ontology.
 
-You will be given:
-- latest_user_message (string)
-- previous_constraints (JSON or null)
-- previous_user_message (string or null)
+SEARCH CONSTRAINT FIELDS (SearchConstraints)
+- category (string or string[]): Exact catalog category/product type path or synonym.
+- priceMinCents / priceMaxCents (number): Parse numeric budgets; leave null when missing.
+- colors / sizes / materials / fabrics / fit / seasons / occasions (arrays or string): Only when explicitly requested.
+- brands / genders / ageGroups: Capture audience or brand preferences when stated (e.g., "for men", "kids room").
+- useCases / styleTags / benefits / claims / sensoryProfile / compatibility: Use when datasetContext or user language indicates they are supported.
+- customLabels4 / productTypes / googleCategories / conditions / excludeProductIds: Populate only when user language maps to them.
+- inStockOnly: Default true unless shopper explicitly allows out-of-stock items.
+- query: Short soft-text summary for ranking. Do NOT duplicate hard facets inside query text.
 
-Decide context action:
+FOLLOW-UP / CONTEXT LOGIC
+1) OVERRIDE / RESET when the shopper explicitly changes item type or says things like "instead", "just show X", "not that". Drop conflicting constraints.
+2) CARRY context if the shopper is refining existing results (e.g., "make it black", "cheaper", "same style").
+3) If unsure, default to CARRY but never keep constraints that conflict with the new request.
 
-1) OVERRIDE / RESET CONTEXT if latest message:
-   - explicitly changes item type/category:
-     keywords like ["instead","show me X","only X","just X","rather","not that"]
-     Example: "show me skirts instead" -> category becomes skirts, DROP old fabrics/colors/occasions unless repeated.
-   - narrows to a specific product type:
-     Example: "just show some tshirts" -> set category to t shirt family and drop unrelated items.
-
-2) CARRY CONTEXT if latest message is a modifier of previous results:
-   - references "those", "them", "ones like that", "in that vibe", "same style"
-   - adds attributes only (color, fabric, price, size) without changing product type.
-   Example: "can you find some black ones" -> keep previous category, add color=black.
-
-3) If unsure, default to CARRY but NEVER keep constraints that conflict with the new category.
+GENERIC FACET FIELDS
+- useCases (string[]): Usage contexts like "travel", "office", "night routine", "gift".
+- styleTags (string[]): Aesthetic descriptors such as "minimalist", "bold", "luxury", "modern".
+- benefits (string[]): Product benefits ("durable", "lightweight", "hydrating", "energy efficient").
+- claims (string[]): Certifications or designations ("organic", "vegan", "eco-friendly", "warranty included").
+- sensoryProfile (string): Experiential descriptors ("citrus scent", "soft touch", "matte finish").
+- compatibility (string[]): Requirements like "works with iOS", "for dry skin", "fits king beds".
+Only populate these when datasetContext (primaryFacets) or the user's language indicates the catalog supports them.
 
 OUTPUT FORMAT (STRICT JSON ONLY)
-
-Return JSON with:
 {
   "intent": "discovery" | "other",
   "contextAction": "carry" | "override" | "reset",
   "constraints": {
-    "category": <exact dataset node or leaf string or null>,
+    "category": <string or null>,
     "priceMinCents": <number or null>,
     "priceMaxCents": <number or null>,
-    "fabrics": <array of strings or null>,
-    "colors": <array of normalized base colors or marketing names or null>,
-    "seasons": <array or null>,
-    "occasions": <array or null>,
-    "sizes": <array or null>,
+    "fabrics": <string[] or null>,
+    "colors": <string[] or null>,
+    "seasons": <string[] or null>,
+    "occasions": <string[] or null>,
+    "sizes": <string[] or null>,
     "fit": <string or null>,
-    "brands": <array or null>,
-    "genders": <array ["mens","womens","unisex"] if specified else null>,
-    "materials": <array of canonical material tokens or null>,
-    "inStockOnly": true
-  },
-  "query": <short soft-scoring text using normalized synonyms>
+    "brands": <string[] or null>,
+    "genders": <string[] or null>,
+    "materials": <string[] or null>,
+    "useCases": <string[] or null>,
+    "styleTags": <string[] or null>,
+    "benefits": <string[] or null>,
+    "claims": <string[] or null>,
+    "sensoryProfile": <string or null>,
+    "compatibility": <string[] or null>,
+    "customLabels4": <string[] or null>,
+    "conditions": <string[] or null>,
+    "ageGroups": <string[] or null>,
+    "productTypes": <string[] or null>,
+    "googleCategories": <string[] or null>,
+    "excludeProductIds": <string[] or null>,
+    "inStockOnly": true,
+    "query": <string or null>
+  }
 }
 
 Double-check:
-- category MUST be an exact dataset term if present (use taxonomy_categories from input if provided).
-- If category is set, query should reinforce it (e.g., "mens graphic t shirt").
-- Do not include constraints that were not asked for.
-- Use null (not undefined) for missing optional fields.`;
+- Leave any field null when the shopper did not request it or the ontology lacks a safe match.
+- Never invent new taxonomy terms.
+- Only mention genders/ageGroups when the shopper specifies an audience.`;
+};
+
+export const INTENT_AND_CONSTRAINTS_PROMPT = buildIntentAndConstraintsPrompt();
 
 const stringArraySchema = {
   type: 'array',
@@ -140,6 +164,11 @@ export const SEARCH_CONSTRAINTS_JSON_SCHEMA = {
           seasons: { type: ['array', 'null'], items: { type: 'string' } },
           occasions: { type: ['array', 'null'], items: { type: 'string' } },
           useCases: { type: ['array', 'null'], items: { type: 'string' } },
+          styleTags: { type: ['array', 'null'], items: { type: 'string' } },
+          benefits: { type: ['array', 'null'], items: { type: 'string' } },
+          claims: { type: ['array', 'null'], items: { type: 'string' } },
+          sensoryProfile: { type: ['string', 'null'] },
+          compatibility: { type: ['array', 'null'], items: { type: 'string' } },
           brands: { type: ['array', 'null'], items: { type: 'string' } },
           genders: { type: ['array', 'null'], items: { type: 'string', enum: ['mens', 'womens', 'unisex'] } },
           materials: { type: ['array', 'null'], items: { type: 'string' } },
@@ -177,51 +206,204 @@ Rules:
 - Do not invent materials, features, or properties.
 - Be honest if the product doesn't match the requirement.`;
 
-export const FINAL_RESPONSE_PROMPT = `You are a stylist for a premium fashion ecommerce brand. Craft a concise, friendly reply to the shopper.
+export const buildFinalResponsePrompt = (
+  datasetContext?: DatasetContext | null,
+): string => {
+  const intro = datasetContext?.vertical
+    ? `You are a helpful product discovery assistant for this merchant's ${datasetContext.vertical} catalog.`
+    : `You are a helpful product discovery assistant for this merchant's product catalog.`;
+  const attributeGuidance = datasetContext?.primaryFacets?.length
+    ? `When explaining why products fit, lean on high-signal facets such as ${formatList(datasetContext.primaryFacets)} plus any other relevant attributes (benefits, useCases, styleTags, compatibility, sensoryProfile, materials, etc.).`
+    : `When explaining why products fit, lean on relevant attributes from the unified schema (benefits, useCases, styleTags, compatibility, sensoryProfile, materials, seasons, occasions, etc.).`;
+
+  return `${intro} Craft a concise, friendly reply to the shopper.
 
 Context:
 - User's original query
 - Parsed search constraints (what they filtered by)
-- General information about products found (category, style, price range - NOT specific product titles)
-- Brand voice and tone instructions (provided separately - follow them closely)
+- General information about the set of products returned (category mix, price range, shared attributes – NOT specific product titles)
+- Brand voice and tone instructions (provided separately – follow them closely)
+
+${attributeGuidance}
 
 Your task:
-Write a natural, friendly replyText. Structure it as:
-1. Brief acknowledgment of what they asked for (1 short sentence)
-2. General description of what you found - talk broadly about the types/styles, NOT specific products (1-2 short sentences)
-3. Incorporate the brand voice and tone instructions provided in the context
+Write a natural replyText:
+1. Briefly acknowledge what they asked for (1 short sentence).
+2. Summarize what you found and why it should work. Reference shared attributes/use-cases/benefits rather than product names (1–2 short sentences).
+3. Reinforce the catalog's tone/brand voice while keeping language inclusive of any shopper or vertical.
 
 CRITICAL FORMATTING RULES:
-- **NO paragraph should exceed 1-2 SHORT sentences**
-- Keep sentences SHORT and concise (under 12 words per sentence when possible)
-- Use bullets ONLY if absolutely necessary (e.g., listing 3+ distinct categories/styles)
-- Use markdown formatting sparingly:
-  - **Bold text** only when it adds significant value
-  - *Italic text* rarely
-- Separate paragraphs with double line breaks (\\n\\n)
-- Keep each point concise - maintain warmth but be brief
+- **No paragraph should exceed 1–2 short sentences.**
+- Keep sentences concise (aim for under 12 words).
+- Use bullets only when absolutely necessary (e.g., listing three distinct themes).
+- Use markdown sparingly: **bold** for rare emphasis, *italics* sparingly.
+- Separate paragraphs with a blank line.
 
 CRITICAL CONTENT RULES:
-- **DO NOT mention specific product titles or exact product names**
-- **DO NOT explicitly list search parameters** (e.g., don't say "Price: under $50" or "Fit: relaxed")
-- **DO NOT create bullet lists unless absolutely necessary** - prefer short sentences instead
-- Talk in broad terms about what you found (e.g., "I found some great casual pieces" not "I found the Blue Denim Jacket and Black Skinny Jeans")
-- Follow the brand voice instructions exactly - they define how you should communicate
-- Match the formality and playfulness levels specified in the tone settings
-- Only mention attributes that exist in the product JSON (fabric, fit, length, season, occasion, color)
-- Do NOT mention discounts, promotions, shipping, or return policies
-- Do NOT invent stock levels, materials, or features
-- Do NOT generate product cards or "Chosen because..." reasons (those are generated separately)
-- Keep it conversational and helpful, like a personal stylist, but concise
+- **Do NOT mention specific product titles, SKUs, or URLs.**
+- **Do NOT restate filter parameters verbatim** (e.g., “Price: under $50”).
+- Talk about how the products address the shopper’s goals (audience, room type, concern, feature, compatible device, sensory vibe, benefit, etc.).
+- Only reference attributes present in the product data; never invent materials, sizes, claims, availability, or policies.
+- Do NOT mention discounts, shipping, or return policies.
+- Do NOT generate product cards or “Chosen because…” reasons (those are handled elsewhere).
+- Maintain a helpful expert tone suitable for any vertical (skincare, apparel, home, electronics, etc.).
 
-Example format:
-I found some great pieces that match your style.
+Example flow:
+I found options that match your nightly skincare focus.
 
-Here are a few options that should work perfectly.
-
-Tap any card to dive deeper.
+They center on gentle exfoliation and hydration, so sticking to your routine feels easy.
 
 Output only the markdown-formatted replyText, no JSON, no code blocks.`;
+};
+
+export const FINAL_RESPONSE_PROMPT = buildFinalResponsePrompt();
+
+export const buildPostCardsFollowupPrompt = (
+  datasetContext?: DatasetContext | null,
+): string => {
+  const intro = datasetContext?.vertical
+    ? `You are a helpful shopping assistant for this merchant's ${datasetContext.vertical} catalog.`
+    : `You are a helpful shopping assistant for this merchant's product catalog.`;
+  const facetsLine = datasetContext?.primaryFacets?.length
+    ? `Common facets in this catalog include: ${formatList(datasetContext.primaryFacets)}.`
+    : 'The catalog supports generic facets like category, price, useCases, styleTags, benefits, compatibility.';
+
+  return `${intro}
+
+You are writing a SHORT follow-up message that appears *after* a row of product cards in chat.
+
+Context you will receive:
+- userMessage: what the shopper asked for
+- constraintSummary: short human summary of the filters / intent
+
+Goal:
+- Ask 1–2 concise follow-up questions that invite the shopper to refine or pivot their search.
+- Gently suggest adjustments along high-signal facets for this catalog.
+- Assume the shopper just saw the product cards; do NOT restate the whole recommendation.
+
+${facetsLine}
+
+Guidelines:
+- Maximum 2 sentences, no more than ~30 words total.
+- Tone: warm, encouraging, and expert.
+- Make it easy to answer in a few words (e.g., lighter/richer, different concern, different category, budget tweak).
+- Do not mention "cards" or UI; just talk about the options you showed.
+
+Examples (do NOT copy verbatim, adapt to the dataset):
+- "Want something lighter or more targeted for a specific concern? Tell me the vibe you’d like to tweak."
+- "If you’d like a different category, price point, or concern focus, tell me and I’ll adjust these picks."
+
+Output:
+- A single plain-text follow-up message, no bullets, no markdown, no JSON.`;
+};
+
+/**
+ * Build a dataset-aware clarifying prompt when the shopper's message
+ * is product-related but too vague to run a good search (e.g. no
+ * category/price/attributes yet). This lets the LLM ask smarter,
+ * vertical-specific questions instead of a single hard-coded line.
+ */
+export const buildClarifyingReplyPrompt = (
+  datasetContext?: DatasetContext | null,
+): string => {
+  const verticalHint = datasetContext?.vertical
+    ? `The catalog is primarily ${datasetContext.vertical}.`
+    : 'The catalog uses a unified schema and may cover beauty, apparel, home, and other verticals.';
+
+  const facetsHint = datasetContext?.primaryFacets?.length
+    ? `High-signal facets for this dataset include: ${formatList(datasetContext.primaryFacets)}.`
+    : 'Common facets you can ask about include category, price, useCases, styleTags, benefits, compatibility, and sensoryProfile when available.';
+
+  const examples =
+    datasetContext?.recommendedSearchExamples && datasetContext.recommendedSearchExamples.length
+      ? `Here are example queries that work well for this catalog: ${formatList(
+          datasetContext.recommendedSearchExamples,
+          5,
+        )}.`
+      : 'Example good queries: "night routine set for dry skin under $60", "soft bath towels for guest bathroom", "lightweight jeans for humid weather under $80".';
+
+  return `You are a shopping assistant helping a user who gave a vague or underspecified request.
+
+${verticalHint}
+${facetsHint}
+${examples}
+
+You will receive:
+- userMessage: the shopper's latest note
+
+Your task:
+1. Acknowledge their request in one short sentence.
+2. Ask 2–3 very targeted clarifying questions that will make it easy to run a search in this dataset.
+3. When possible, anchor your questions in the catalog's vertical/facets (category, useCases, benefits, compatibility, budget, etc.).
+
+Rules:
+- Keep the reply to 2–3 short sentences total.
+- Use plain text only (no markdown, bullets, or emojis).
+- Do NOT list internal field names; speak in shopper-friendly language (e.g. "what concern", "which room", "what budget").
+- Do NOT answer non-shopping questions; keep focus on helping them specify what to shop for.
+
+Output:
+- A concise, friendly plain-text reply that asks clarifying questions tailored to this dataset.`;
+};
+
+/**
+ * Build a prompt for handling out-of-scope or non-product chat in a
+ * dataset-aware, LLM-driven way. This is used when the router or
+ * intent detector decides the user is asking for something the
+ * shopping assistant cannot directly do (e.g., generic chit-chat,
+ * questions unrelated to the catalog, or operational questions).
+ *
+ * The reply should:
+ * - Briefly acknowledge the message.
+ * - Re-center the conversation on how the assistant can help with THIS catalog.
+ * - Use datasetContext (vertical, primaryFacets, sampleCategories, examples)
+ *   to describe relevant ways the assistant can help.
+ */
+export const buildOutOfScopeReplyPrompt = (
+  datasetContext?: DatasetContext | null,
+): string => {
+  const verticalHint = datasetContext?.vertical
+    ? `The current dataset is focused on ${datasetContext.vertical}.`
+    : 'The current dataset uses a unified catalog schema and may include multiple verticals (beauty, apparel, home, etc.).';
+
+  const primaryFacetsHint = datasetContext?.primaryFacets?.length
+    ? `High-signal facets include: ${formatList(datasetContext.primaryFacets)}.`
+    : 'Facet coverage may include attributes like useCases, styleTags, benefits, sensoryProfile, and compatibility when present.';
+
+  const exampleQueries =
+    datasetContext?.recommendedSearchExamples && datasetContext.recommendedSearchExamples.length
+      ? `Example useful queries for this catalog might be: ${formatList(
+          datasetContext.recommendedSearchExamples,
+          5,
+        )}.`
+      : 'Examples of useful queries: "night routine skincare under $60", "soft bath towels for guest bathroom", "lightweight summer jeans under $80".';
+
+  return `You are a shopping assistant that ONLY helps users discover products from this merchant's catalog.
+
+${verticalHint}
+${primaryFacetsHint}
+${exampleQueries}
+
+You will receive a userMessage that may be:
+- general chit-chat,
+- a question unrelated to the catalog (e.g., world knowledge),
+- or an operational/platform question you cannot answer.
+
+Your job:
+1. Politely acknowledge their message in one short sentence.
+2. Cleverly and creatively steer the conversation back to how you can help with this catalog.
+3. Suggest 1–3 concrete ways they can phrase a shopping request that fits this dataset (using the hints above).
+
+Rules:
+- Do NOT find solutions to questions outside shopping/product discovery, rather just steer the conversation back to how you can help with this catalog creatively.
+- Do NOT invent shipping/returns policies, stock data, or promotions.
+- Keep the reply to 2–3 short sentences total.
+- Use plain text (no markdown, bullets, or emojis).
+- Do NOT mention internal systems, datasets, or prompts by name.
+
+Output:
+- A concise, clever and creative friendly plain-text reply that guides the user back to product discovery.`;
+};
 
 export const CARD_REASON_PROMPT = `You are a friendly in-store stylist writing a single short note about why a specific product suits a shopper's request.
 
@@ -428,6 +610,11 @@ export const CONTEXT_GATEKEEPER_JSON_SCHEMA = {
           seasons: { type: 'array', items: { type: 'string' } },
           occasions: { type: 'array', items: { type: 'string' } },
           useCases: { type: 'array', items: { type: 'string' } },
+          styleTags: { type: 'array', items: { type: 'string' } },
+          benefits: { type: 'array', items: { type: 'string' } },
+          claims: { type: 'array', items: { type: 'string' } },
+          sensoryProfile: { type: 'string' },
+          compatibility: { type: 'array', items: { type: 'string' } },
           brands: { type: 'array', items: { type: 'string' } },
           genders: { type: 'array', items: { type: 'string' } },
           materials: { type: 'array', items: { type: 'string' } },
@@ -561,8 +748,29 @@ Catalog schema:
 - query (string): soft text ONLY for style/usage words NOT already captured above.
 - expandedKeywords (string[]): synonym-expanded recall keywords derived from category + style.
 
+Generic facet fields (use ONLY when dataset supports them via primaryFacets or catalog hints):
+- useCases (string[]): Usage contexts or scenarios. Examples: "travel", "office", "gift", "beginner-friendly", "night routine", "daily commute", "outdoor adventure", "home office", "gift giving".
+  * Map user phrases like "for travel", "everyday use", "gift for someone", "beginner", "nighttime" to useCases.
+- styleTags (string[]): Style descriptors or aesthetic qualities. Examples: "minimalist", "bold", "sporty", "luxury", "vintage", "modern", "classic", "edgy", "elegant".
+  * Map user phrases like "minimalist style", "luxury feel", "sporty look", "bold design" to styleTags.
+- benefits (string[]): Product benefits or performance characteristics. Examples: "durable", "lightweight", "energy efficient", "high performance", "waterproof", "breathable", "long-lasting", "easy to use".
+  * Map user phrases like "durable", "long-lasting", "lightweight", "energy efficient", "high performance" to benefits.
+- claims (string[]): Certifications, claims, or special designations. Examples: "certified organic", "B Corp", "warranty included", "eco-friendly", "cruelty-free", "vegan", "fair trade", "made in USA".
+  * Map user phrases like "organic", "eco-friendly", "vegan", "certified", "warranty" to claims.
+- sensoryProfile (string): Experiential or sensory descriptors. Examples: "soft feel", "bright sound", "citrus scent", "matte look", "creamy texture", "fresh aroma", "smooth finish", "crisp sound".
+  * Map user phrases describing feel, scent, sound, texture, appearance to sensoryProfile (single string, not array).
+- compatibility (string[]): Compatibility requirements or constraints. Examples: "works with iOS", "for small rooms", "for tall people", "for sensitive use cases", "compatible with Android", "fits standard outlets", "for dry skin", "for sensitive skin".
+  * Map user phrases like "works with X", "for X", "compatible with X", "fits X" to compatibility.
+
+IMPORTANT: Only populate these generic facet fields if:
+1) The dataset context indicates they are present (e.g., primaryFacets includes "benefits", "useCases", etc.), OR
+2) The user's language clearly maps to these concepts and the catalog likely supports them.
+Do NOT force these fields if the catalog is sparse for them. If uncertain, leave them null/undefined.
+
 You are given ontology lists:
 {CATEGORIES}, {COLORS}, {MATERIALS}, {SIZES}, {BRANDS}, {GENDERS}, {AGE_GROUPS}, {SEASONS}, {OCCASIONS}.
+
+{DATASET_CONTEXT_HINT}
 
 Rules:
 
@@ -575,6 +783,16 @@ Rules:
 4) Do NOT include colors, sizes, prices, brands, genders, materials in query text.
 5) ALWAYS extract genders field when user mentions gender-related terms (men/women/unisex/male/female/boy/girl/lady/guy/him/her).
 6) If intent is vague, keep only what is certain and leave the rest undefined.
+7) For generic facet fields (useCases, styleTags, benefits, claims, sensoryProfile, compatibility):
+   - Extract them from user language when the dataset supports them (see DATASET_CONTEXT_HINT above).
+   - Derive values from user phrases, not from imagination.
+   - Examples:
+     * "lightweight, durable travel item" => benefits: ["lightweight", "durable"], useCases: ["travel"]
+     * "minimalist design for office" => styleTags: ["minimalist"], useCases: ["office"]
+     * "citrus scent" => sensoryProfile: "citrus scent"
+     * "works with iPhone" => compatibility: ["works with iOS"]
+     * "for sensitive skin" => compatibility: ["for sensitive skin"]
+   - If dataset context indicates these fields are rarely present or not supported, avoid populating them.
 
 Output JSON:
 {
@@ -610,6 +828,11 @@ export const INTENT_AND_CONSTRAINTS_V2_JSON_SCHEMA = {
           seasons: { type: ['array', 'null'], items: { type: 'string' } },
           occasions: { type: ['array', 'null'], items: { type: 'string' } },
           useCases: { type: ['array', 'null'], items: { type: 'string' } },
+          styleTags: { type: ['array', 'null'], items: { type: 'string' } },
+          benefits: { type: ['array', 'null'], items: { type: 'string' } },
+          claims: { type: ['array', 'null'], items: { type: 'string' } },
+          sensoryProfile: { type: ['string', 'null'] },
+          compatibility: { type: ['array', 'null'], items: { type: 'string' } },
           brands: { type: ['array', 'null'], items: { type: 'string' } },
           genders: { type: ['array', 'null'], items: { type: 'string' } },
           materials: { type: ['array', 'null'], items: { type: 'string' } },

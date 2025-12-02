@@ -213,3 +213,4 @@ CREATE INDEX IF NOT EXISTS product_search_vector_gin ON "Product" USING GIN(sear
    - Test confirm-to-show with "yes/show/anything"
    - Test card deduplication with duplicate titles
 
+

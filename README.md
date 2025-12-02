@@ -1,22 +1,75 @@
-# Velou Shopping Assistant – Demo Prototype (Single Merchant, Apparel)
+# Velou Shopping Assistant – Unified Catalog Demo
 
 ## 1. Project Overview
 
-This repo implements the **Velou Shopping Assistant** as a fully functional **demo prototype** for a **single fashion/apparel ecommerce site**.
+This repo implements the **Velou Shopping Assistant** as a fully functional **demo prototype** for a **single merchant ecommerce site** with an **industry-agnostic, unified catalog engine**.
 
 The assistant is:
 - A **ChatGPT/Grok/Gemini-style on-site chat UI** embedded on a **single-page placeholder website**.
-- Powered by **Velou-style enriched apparel catalog data** stored in PostgreSQL.
+- Powered by a **unified catalog schema** that works across multiple verticals (apparel, skincare, home goods, electronics, etc.) as long as data conforms to the unified CSV format.
 - Able to answer:
-  - “What should I buy?” – natural language product discovery.
-  - “Is this right for me?” – PDP-context suitability questions.
+  - "What should I buy?" – natural language product discovery.
+  - "Is this right for me?" – PDP-context suitability questions.
 - Always responds with:
   - A short conversational answer.
   - A **professionally-designed product carousel** (cards) showing product details + attribute tags.
 
-For this demo, the catalog is sourced from the provided Lucky Brand CSV feed (`products_2025-11-20_10:52:20.csv`). The importer preserves all rich apparel attributes (fabric, fit, length, occasion, pattern, season, etc.) so the assistant can reason about outfits in a grounded way.
+The core engine is **industry-agnostic** and **schema-driven**:
+- LLM prompts and search behavior adapt to the catalog's vertical and available attributes via `datasetContext`.
+- The unified schema supports classification fields (category, vertical, taxon_path), descriptive fields (benefits, claims, sensory_profile), and experiential fields (usage_contexts, style_tags, compatibility) that work across industries.
+- Search heuristics and canonicalization are vertical-aware, applying industry-specific logic only when the catalog profile suggests it (e.g., fashion-specific category mapping for apparel catalogs).
+
+For this demo, you can import your own unified catalog CSV through the admin interface. The system automatically adapts to your catalog's vertical and attributes.
 
 The goal is to **prove end-to-end feasibility and UX quality** for one real merchant, not to build a multi-tenant SaaS.
+
+---
+
+## 1.1 Unified Catalog Schema
+
+The system uses a **unified CSV schema** (`UnifiedVendorCatalogRow`) that supports multiple verticals through industry-agnostic field groups. See `src/lib/catalog/unifiedSchemaConfig.ts` for the complete schema definition.
+
+### Major Column Groups
+
+- **Identity**: `product_id`, `product_url`, `image_url_primary`, `external_sku`, `barcode`, `parent_id`, `related_id`
+- **Classification**: `vertical`, `category`, `subcategory`, `taxon_path`, `google_product_category`, `product_type`, `brand`
+- **Commercial**: `price`, `sale_price`, `currency`, `availability`, `inventory`, `condition`
+- **Descriptive**: `title`, `description`, `product_highlights`, `bullet_highlights`, `product_details` (JSON)
+- **Experience**: `usage_contexts` (pipe-separated), `style_tags` (pipe-separated), `benefits` (pipe-separated), `claims` (pipe-separated), `sensory_profile`, `compatibility` (pipe-separated)
+- **Media**: `image_url_primary`, `image_url_alt1`, `image_url_alt2`, `media_gallery` (JSON array)
+- **Extensible**: `attribute_blob` (JSON) for vendor-specific custom fields
+
+During CSV ingestion, these fields are mapped into the `Product` model:
+- Direct fields (e.g., `title`, `category`, `priceCents`) are stored as Prisma columns.
+- Unified attributes (e.g., `usage_contexts`, `benefits`, `sensory_profile`) are stored in `Product.attributes` JSON for flexible, industry-agnostic search and filtering.
+
+The schema is designed to accommodate:
+- **Apparel**: Uses `style_tags`, `usage_contexts` (e.g., "beach wedding", "office"), materials, fit, occasion, season.
+- **Skincare/Beauty**: Uses `benefits`, `claims`, `sensory_profile`, `compatibility` (e.g., "dry skin", "sensitive skin"), `usage_contexts` (e.g., "night routine", "before bed").
+- **Home Goods**: Uses `style_tags`, `usage_contexts` (e.g., "bathroom", "guest bathroom"), materials, `compatibility`.
+- **Electronics**: Uses `compatibility`, `benefits`, `claims`, `usage_contexts`.
+
+---
+
+## 1.2 Using Your Own Unified Catalog CSV
+
+To import your own catalog:
+
+1. **Format your CSV** according to the unified schema (see `src/lib/catalog/unifiedSchemaConfig.ts`).
+2. **Run the import script**:
+   ```bash
+   npm run seed:catalog
+   ```
+   This will:
+   - Read from your CSV file (defaults to the path configured in the script).
+   - Map columns to the unified schema.
+   - Infer `datasetContext` (vertical, primary facets, sample categories) from your data.
+   - Store products in PostgreSQL with attributes preserved in JSON.
+
+3. **The system automatically adapts**:
+   - LLM prompts use `datasetContext` to describe the catalog's vertical and available facets.
+   - Search heuristics detect the catalog profile (e.g., "fashion" vs generic) and apply vertical-specific logic only when appropriate.
+   - Attribute filtering works with any unified schema fields (useCases, benefits, styleTags, compatibility, etc.).
 
 ---
 
@@ -29,11 +82,11 @@ The goal is to **prove end-to-end feasibility and UX quality** for one real merc
   - Main panel with **chat assistant** and product card responses.
 - **Chat assistant features:**
   - Free-form discovery queries:
-    - e.g. “beach wedding dress under $200, not bodycon, pastel color”.
+    - e.g. "almond-scented body scrub under $50", "minimalist bathroom towels", "beach wedding dress under $200".
   - Refinement:
-    - “cheaper”, “more colorful”, “only size M”.
+    - "cheaper", "more colorful", "only size M", "for sensitive skin".
   - PDP-style suitability questions (simulated via context):
-    - “Is this good for humid weather?”
+    - "Is this good for humid weather?", "Will this work for dry skin?", "Is this suitable for a guest bathroom?"
   - Always:
     - short conversational reply.
     - 3–8 product cards with:
@@ -51,24 +104,18 @@ The goal is to **prove end-to-end feasibility and UX quality** for one real merc
     - hide out-of-stock items.
     - boost/exclude categories.
   - LLM configuration:
-    - Provider: **Perplexity** if configured, otherwise **OpenAI**.
+    - Provider: **OpenAI** (gpt-4.1 stack) or fully mocked for tests.
     - Toggle: “use Velou key” vs “use merchant key”.
 
-- **Mock catalog data generation:**
-  - Script to generate a **mock, enriched apparel catalog** (tops, dresses, pants, outerwear, etc.).
+- **Catalog ingestion:**
+  - CSV upload through admin interface with automatic schema mapping and dataset context inference.
   - Each product includes:
     - ID, title, description, image URL (placeholder), price, currency.
-    - Category/subcategory/brand.
-    - Attributes JSON:
-      - fabric
-      - fit
-      - length
-      - pattern
-      - season
-      - occasion
-      - use-cases (e.g. “beach wedding”, “office”, “casual weekend”)
-      - color
-      - size options.
+    - Category/subcategory/brand/vertical.
+    - Attributes JSON using unified schema fields:
+      - For apparel: fabric, fit, length, pattern, season, occasion, style_tags, usage_contexts.
+      - For skincare: benefits, claims, sensory_profile, compatibility, usage_contexts.
+      - For home: style_tags, usage_contexts, materials, compatibility.
     - Stock status.
 
 - **Metrics (MVP-level):**
@@ -94,8 +141,9 @@ The goal is to **prove end-to-end feasibility and UX quality** for one real merc
 - **Styling:** Tailwind CSS + modern UI patterns (glassmorphism, soft gradients).
 - **DB:** PostgreSQL (e.g. Neon or similar) via Prisma.
 - **LLM providers:**
-  - Primary: **Perplexity API** (if `LLM_PROVIDER=perplexity` and keys provided).
-  - Fallback: **OpenAI API** (if `LLM_PROVIDER=openai`).
+  - Primary: **OpenAI API** (default `gpt-5` for highest quality tasks).
+  - Reasoning: **OpenAI `o3-mini`** for complex logical analysis (intent parsing, suitability).
+  - Lightweight: **OpenAI `gpt-4.1-mini`** for cost-effective simple tasks.
   - Optional local/mock provider for development.
 
 - **Hosting (demo):**
@@ -104,18 +152,18 @@ The goal is to **prove end-to-end feasibility and UX quality** for one real merc
 
 ### 3.1 LLM Configuration
 
-The assistant supports three modes via the `LLM_PROVIDER` environment variable:
+The assistant supports two modes via the `LLM_PROVIDER` environment variable:
 
-- **`mock`** (default): Uses deterministic rule-based parsing for intent/constraints and reply generation. Fully functional without any API keys. This is the recommended mode for development and demos.
+- **`openai`** (default): Uses OpenAI Chat Completions with a dual-model routing strategy.
+- **`mock`**: Deterministic, rule-based parsing for development or automated tests (no API calls).
 
-- **`openai`**: Uses OpenAI's Chat Completions API for enhanced intent parsing and reply text generation. Requires `OPENAI_API_KEY` to be set. Falls back to rule-based logic if the API call fails.
+**Key environment variables:**
+- `OPENAI_API_KEY` – required when `LLM_PROVIDER=openai`
+- `PRIMARY_LLM_MODEL` – defaults to `gpt-5`, used for final replies and dataset analysis
+- `REASONING_LLM_MODEL` – defaults to `o3-mini`, used for intent parsing and suitability analysis (complex reasoning)
+- `LIGHT_LLM_MODEL` – defaults to `gpt-4.1-mini`, used for inexpensive helper tasks (card reasons, lightweight transforms)
 
-- **`perplexity`**: Reserved for future Perplexity API integration. Currently throws a clear "not implemented" error if selected.
-
-**Required keys:**
-- `LLM_PROVIDER=openai` → `OPENAI_API_KEY` must be set
-- `LLM_PROVIDER=perplexity` → `PERPLEXITY_API_KEY` must be set (when implemented)
-- `LLM_PROVIDER=mock` → No keys required
+See `docs/llm_model_selection.md` for detailed model selection strategy.
 
 The system always falls back to rule-based parsing if LLM calls fail, ensuring the assistant remains functional even when external APIs are unavailable.
 
@@ -146,25 +194,30 @@ The system always falls back to rule-based parsing if LLM calls fail, ensuring t
 3. **Search / Index Layer (Internal library)**
    - `searchProducts(constraints: SearchConstraints)`.
    - Backed by Prisma + PostgreSQL.
-   - Supports:
-     - category, subcategory, price range.
-     - size, color, fabric, fit, season, occasion, use-cases.
-     - stock filtering.
+   - Supports unified schema attributes:
+     - Classification: category, subcategory, vertical, price range.
+     - Industry-agnostic facets: colors, sizes, materials, useCases, styleTags, benefits, compatibility, sensoryProfile.
+     - Vertical-specific facets (when applicable): fabric, fit, occasion, season (for fashion), claims (for beauty).
    - Applies merchandising rules (boost/exclude).
+   - Attribute filtering is schema-driven and vertical-aware via `datasetContext`.
 
 4. **LLM Orchestration Layer**
    - All LLM calls go through a **single adapter**:
-     - `src/lib/llm/provider.ts` (Perplexity/OpenAI).
+    - `src/lib/llm/provider.ts` (OpenAI adapter + mock fallback).
    - Orchestrator:
-     - step 1: parse intent + constraints from user query and lightweight context.
+     - step 1: parse intent + constraints from user query and lightweight context (uses `datasetContext` to adapt prompts to catalog vertical).
      - step 2: call search module to get candidate products.
-     - step 3: generate final conversational answer + “Chosen because…” reasons, grounded in product JSON.
+     - step 3: generate final conversational answer + "Chosen because…" reasons, grounded in product JSON (uses `datasetContext` to guide attribute explanations).
+   - Prompts are **industry-agnostic** and **vertical-aware**:
+     - `buildIntentAndConstraintsPrompt(datasetContext)` adapts examples and facet guidance based on the catalog's vertical.
+     - `buildFinalResponsePrompt(datasetContext)` describes the assistant's role and available attributes based on the catalog profile.
    - Guardrails:
      - Only reference attributes from product JSON.
      - No invented discounts/stock/shipping claims.
 
 5. **CSV Catalog Importer**
-   - Script (`scripts/importCatalogFromCsv.ts`) ingests the Lucky Brand CSV feed (~13k rows) and writes the normalized apparel catalog into Postgres with all rich attributes preserved for intent/search.
+   - Script (`scripts/importCatalogFromCsv.ts`) ingests unified catalog CSV files conforming to the unified schema and writes normalized products into Postgres with all attributes preserved for intent/search.
+   - During import, the system infers `datasetContext` (vertical, primary facets, sample categories) from the data to parameterize LLM prompts and search heuristics.
 
 ---
 
@@ -185,7 +238,7 @@ model Product {
   category     String
   subcategory  String?
   brand        String?
-  attributes   Json     // enriched attrs: fabric, fit, length, pattern, season, occasion, useCase, color, sizes, etc.
+  attributes   Json     // unified schema attrs: usage_contexts, style_tags, benefits, claims, sensory_profile, compatibility, materials, colors, sizes, etc. (industry-agnostic)
   stockStatus  String   // 'in_stock' | 'out_of_stock' | 'low_stock'
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -226,15 +279,16 @@ model ConversationEvent {
 
 ### CSV Catalog Import
 
-- `npm run seed:catalog` ingests `/mnt/data/products_2025-11-20_10:52:20.csv` (falls back to the repo copy if the mounted path is unavailable).
-- Column mapping highlights:
-  - `title`, `description`, `image link`, `link`, `brand`, `google product category`, `product type`, `custom label 4`.
-  - `price` → `priceCents` (USD) plus the raw string stored in `attributes.price`.
-  - `sale price` → optional `salePriceCents` plus the raw string stored in `attributes.salePrice`.
-  - `link` → `productUrl` (used for “View product”).
-  - `availability` + `inventory` → `stockStatus` (`in_stock`, `low_stock`, `out_of_stock`).
-  - Remaining feed columns (`condition`, `age group`, `gender`, `material`, etc.) are preserved in `attributes` using camelCase keys so search + LLM prompts can reference them directly.
-- The importer clears the `Product` table first, then inserts rows in batches of 500 until all ~13k products are written.
+- `npm run seed:catalog` ingests unified catalog CSV files conforming to the schema defined in `src/lib/catalog/unifiedSchemaConfig.ts`.
+- Column mapping follows the unified schema:
+  - **Identity fields**: `product_id` → `id`, `product_url` → `productUrl`, `image_url_primary` → `imageUrl`.
+  - **Commercial fields**: `price` → `priceCents`, `sale_price` → `salePriceCents`, `availability` + `inventory` → `stockStatus`.
+  - **Classification fields**: `category`, `subcategory`, `vertical`, `brand`, `google_product_category`, `product_type` → direct columns or `attributes`.
+  - **Unified attributes**: `usage_contexts`, `style_tags`, `benefits`, `claims`, `sensory_profile`, `compatibility`, `materials`, `colors`, `sizes`, etc. → stored in `attributes` JSON for flexible, industry-agnostic search.
+- The importer:
+  - Clears the `Product` table first.
+  - Inserts rows in batches of 500.
+  - Infers `datasetContext` (vertical, primary facets, sample categories) from the imported data to parameterize LLM prompts and search behavior.
 
 ### 6. Assistant Behaviour (End-to-End Flow)
 
@@ -254,11 +308,12 @@ model ConversationEvent {
 
    - user query
    - minimal context (pageType, productContext summary)
+   - `datasetContext` (vertical, primary facets, sample categories) to adapt the prompt to the catalog's profile
 
    LLM returns JSON with:
 
    - `intent`: `"discovery"` or `"pdp_suitability"`
-   - `constraints`: normalized `SearchConstraints`
+   - `constraints`: normalized `SearchConstraints` (using unified schema fields: useCases, benefits, styleTags, compatibility, etc.)
 
 3. **Backend – Search**
 
@@ -275,11 +330,12 @@ model ConversationEvent {
    - brand voice instructions
    - structured constraints
    - candidate products (title, price, attributes, `imageUrl`)
+   - `datasetContext` to guide attribute explanations based on the catalog's vertical and available facets
 
    LLM produces:
 
-   - `replyText`
-   - reasons per product (`"Chosen because..."`), grounded in attributes only
+   - `replyText` (industry-agnostic, vertical-aware)
+   - reasons per product (`"Chosen because..."`), grounded in unified schema attributes only
 
 5. **Backend – Response & Logging**
 
@@ -323,8 +379,8 @@ model ConversationEvent {
    - Each card:
      - product image at the top
      - title + price
-     - row of attribute tags (fabric, fit, occasion, color)
-     - reason text: small, muted, starting with **“Chosen because…”**
+     - row of attribute tags (top 3–5 relevant attributes from unified schema: e.g., benefits, useCases, styleTags, materials, colors, compatibility)
+     - reason text: small, muted, starting with **"Chosen because…"**
      - primary CTA button
 
 4. **Single-page site**
@@ -334,35 +390,12 @@ model ConversationEvent {
 
 ---
 
-### 8. Mock Data Generation
-
-Implement a script, e.g. `scripts/generateMockCatalog.ts`, that:
-
-- Uses predefined lists for:
-
-  - `categories`: `["Dresses", "Tops", "Pants", "Outerwear", "Skirts"]`
-  - `fabrics`: `["cotton", "linen", "silk", "polyester blend", "wool blend"]`
-  - `fits`: `["regular", "slim", "relaxed", "oversized", "bodycon"]`
-  - `lengths`: `["mini", "midi", "maxi", "waist-length", "ankle-length"]`
-  - `patterns`: `["solid", "floral", "striped", "checked", "abstract"]`
-  - `seasons`: `["summer", "winter", "spring", "autumn", "all-season"]`
-  - `occasions`: `["beach wedding", "office", "casual weekend", "formal event", "date night"]`
-  - `colors`: `["black", "white", "navy", "pastel pink", "sage", "beige", "bright red"]`
-  - `sizes`: `["XS", "S", "M", "L", "XL"]`
-
-- Randomly composes products with coherent combinations (e.g. `linen + summer + beach wedding`).
-- Adds realistic price ranges.
-- Populates `attributes` JSON and `stockStatus`.
-
-No LLM is required for mock data (to keep it free); fallback to static templates is fine for the demo.
-
----
-
 ### 9. LLM Provider Strategy
 
 - **Environment variables:**
-  - `LLM_PROVIDER`: `"perplexity"` | `"openai"` | `"mock"`
-  - `PERPLEXITY_API_KEY`: optional
+- `LLM_PROVIDER`: `"openai"` | `"mock"`
+- `PRIMARY_LLM_MODEL`: defaults to `gpt-4.1`
+- `LIGHT_LLM_MODEL`: defaults to `gpt-4.1-mini`
   - `OPENAI_API_KEY`: optional
 
 - **Single adapter module:**
@@ -388,9 +421,9 @@ No LLM is required for mock data (to keep it free); fallback to static templates
    - Schema defined and migrated.
    - Health check endpoint.
 
-2. **Phase 2 – Mock Catalog & Search**
+2. **Phase 2 – Catalog Ingestion & Search**
 
-   - Implement mock catalog generator and import.
+   - Implement CSV catalog ingestion and import.
    - Implement search module with simple filters + merchandising rules.
    - Build a dev-only `/debug/catalog` view.
 
@@ -420,4 +453,4 @@ No LLM is required for mock data (to keep it free); fallback to static templates
 6. **Phase 6 – Polish & Demo Script**
 
    - UX polishing (animations, transitions).
-   - Seed realistic apparel data and test end-to-end demo scenarios.
+   - Seed realistic unified catalog data across multiple verticals and test end-to-end demo scenarios.

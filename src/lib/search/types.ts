@@ -11,7 +11,12 @@ export type SearchConstraints = {
   fit?: string;
   seasons?: string[];
   occasions?: string[];
-  useCases?: string[];
+  useCases?: string[]; // Generic: usage contexts (e.g., "travel", "office", "gift", "beginner-friendly", "night routine")
+  styleTags?: string[]; // Generic: style descriptors (e.g., "minimalist", "bold", "sporty", "luxury")
+  benefits?: string[]; // Generic: product benefits (e.g., "durable", "lightweight", "energy efficient", "high performance")
+  claims?: string[]; // Generic: certifications/claims (e.g., "certified organic", "B Corp", "warranty included", "eco-friendly")
+  sensoryProfile?: string; // Generic: experiential descriptors (e.g., "soft feel", "bright sound", "citrus scent", "matte look")
+  compatibility?: string[]; // Generic: compatibility requirements (e.g., "works with iOS", "for small rooms", "for tall people", "for sensitive use cases")
   brands?: string[];
   genders?: string[];
   materials?: string[];
@@ -28,6 +33,7 @@ export type SearchConstraints = {
 };
 
 export type ProductAttributes = {
+  // Apparel-specific (existing)
   fabric?: string;
   fit?: string;
   length?: string;
@@ -35,7 +41,6 @@ export type ProductAttributes = {
   season?: string;
   occasion?: string;
   color?: string;
-  useCases?: string[];
   sizes?: string[];
   care?: string;
   material?: string;
@@ -46,6 +51,31 @@ export type ProductAttributes = {
   ageGroup?: string;
   gender?: string;
   brand?: string;
+  
+  // Unified catalog fields (industry-agnostic)
+  useCases?: string[]; // from usage_contexts
+  styleTags?: string[]; // from style_tags
+  benefits?: string[];
+  claims?: string[];
+  safetyCompliance?: string[];
+  sensoryProfile?: string;
+  compatibility?: string[];
+  collection?: string;
+  label?: string;
+  shipRegions?: string[];
+  bulletHighlights?: string[];
+  productHighlights?: string;
+  usageInstructions?: string;
+  materials?: string[]; // Array version (from materials pipe_list if applicable)
+  ingredients?: string[];
+  dimensions?: string;
+  weight?: string;
+  sizeFitNotes?: string;
+  
+  // Extensible attributes from attribute_blob
+  extensible?: Record<string, unknown>;
+  
+  // Additional fields that may exist
   [key: string]: unknown;
 };
 

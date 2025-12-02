@@ -2,6 +2,39 @@
 
 ## CHANGELOG
 
+### 2025-11-25 - OpenAI-Only LLM Stack & Dual-Model Routing
+
+#### Summary
+- Removed the dormant Perplexity provider path and standardized every LLM call on OpenAI with deterministic model routing.
+- Added first-class config for `PRIMARY_LLM_MODEL` (defaults to `gpt-4.1`) and `LIGHT_LLM_MODEL` (defaults to `gpt-4.1-mini`) so high-stakes vs. helper flows can be tuned without code edits.
+- Cleaned up admin surfaces, migrations, and suggestion helpers to reflect the OpenAI-only setup.
+
+#### Technical Changes
+- **`src/lib/config.ts`**
+  - `LLMProvider` union is now `'openai' | 'mock'`.
+  - Reads `PRIMARY_LLM_MODEL` / `LIGHT_LLM_MODEL` env vars and validates `OPENAI_API_KEY` when `LLM_PROVIDER=openai`.
+- **`src/lib/llm/provider.ts`**
+  - Removed `callPerplexity`.
+  - Added `resolveModel()` + `PRIMARY_PURPOSES` + `TEMPERATURE_BY_PURPOSE` maps so:
+    - `intent`, `final_reply`, and `pdp_suitability` always hit the primary model (e.g., `gpt-4.1`).
+    - `card_reason` uses the lightweight model unless it is unset.
+  - Maintains JSON schema support for `expectJson` calls.
+- **`src/app/admin/llm/page.tsx` & `LLMConfigDisplay.tsx`**
+  - UI now surfaces the active OpenAI models (primary vs. lightweight) instead of Perplexity toggles.
+  - Merchant settings only reference an OpenAI key.
+- **`src/app/api/suggestions/route.ts`**
+  - Follow-up prompt generation commentary updated to explicitly reference the lightweight OpenAI helper rather than Perplexity.
+- **Prisma schema & migration**
+  - Dropped `merchantPerplexityKey` via migration `20251125120000_remove_perplexity_keys`.
+- **Environment**
+  - `.env` must include `OPENAI_API_KEY` plus optional overrides for `PRIMARY_LLM_MODEL` / `LIGHT_LLM_MODEL`.
+  - `LLM_PROVIDER` now defaults to `openai`, with `mock` reserved for deterministic tests.
+
+#### Testing / Ops Notes
+- Run `npx prisma migrate deploy` to apply the Perplexity cleanup migration before booting the server.
+- Restart the Next dev server whenever model env vars change so `env` picks up the new routing.
+- Existing Vitest coverage for orchestrator/search remains valid; no behavior change in tests other than the provider being OpenAI-only.
+
 ### 2025-01-XX - Gender Filtering + Relevance Ranking Fixes
 
 #### New Features
@@ -148,6 +181,64 @@
 
 ---
 
+### 2025-11-28 - Unified Catalog Ingestion System
+
+#### Summary
+- Implemented industry-agnostic catalog ingestion system that accepts unified CSV format from any vendor
+- Added LLM-powered dataset inspector to auto-detect vertical, facets, and data quality
+- Created admin UI for catalog upload with validation feedback and dataset context display
+- System is config-driven, streaming-based, and non-blocking
+
+#### Technical Changes
+
+**Catalog Ingestion Core**:
+- **`src/lib/catalog/unifiedSchemaConfig.ts`**: Defines unified CSV schema with field definitions, required levels, and mapping rules
+- **`src/lib/catalog/types.ts`**: TypeScript types for `UnifiedVendorCatalogRow`, validation issues, and ingestion summary
+- **`src/lib/catalog/validation.ts`**: Row normalization, validation (hard/soft requirements), and stats accumulation
+- **`src/lib/catalog/ingestUnifiedCsv.ts`**: Streaming CSV parser, product upsert logic, and ingestion orchestrator
+  - `parseUnifiedCsv()`: Async generator for streaming CSV parsing
+  - `upsertProductFromUnifiedRow()`: Maps unified row to Prisma `Product` model
+  - `ingestUnifiedCsvStream()`: Orchestrates ingestion with validation and context inference
+
+**Dataset Inspector**:
+- **`src/lib/catalog/datasetInspector.ts`**: LLM-powered dataset context inference
+  - `inferDatasetContextFromRows()`: Uses primary LLM model to infer vertical, currency, facets, search examples
+  - Samples up to 50 rows from first 200 processed
+  - Returns `DatasetContext` with vertical, currency, facets, quality notes
+  - Handles LLM failures gracefully with fallback context
+
+**Admin UI**:
+- **`src/app/admin/catalog/page.tsx`**: Catalog upload page with form, progress, and results display
+- **`src/app/api/admin/catalog/upload/route.ts`**: API endpoint for CSV upload and ingestion
+  - Accepts `multipart/form-data` with CSV file and vendor ID
+  - Optional admin hints: `vertical`, `currency`, `enableContextInference`
+  - Returns `IngestionSummary` with metrics, validation issues, and dataset context
+
+**Key Features**:
+- **Streaming ingestion**: Processes large CSV files without loading entire file into memory
+- **Config-driven mapping**: All field definitions and requirements in `UNIFIED_CATALOG_SCHEMA`
+- **Industry-agnostic**: Unknown fields stored in `attributes.extensible` JSON
+- **LLM-powered inspection**: Auto-detects dataset characteristics (vertical, facets, quality)
+- **Validation-first**: Clear distinction between hard-required, recommended, and optional fields
+- **Non-blocking**: Context inference runs after ingestion, doesn't block product upserts
+
+#### Data Flow
+
+1. **Admin uploads CSV** → `POST /api/admin/catalog/upload`
+2. **Streaming parse** → `parseUnifiedCsv()` yields rows one-by-one
+3. **Validate & normalize** → `validateUnifiedRow()` checks requirements
+4. **Upsert products** → `upsertProductFromUnifiedRow()` maps to `Product` table
+5. **Collect samples** → First 200 valid rows collected for context inference
+6. **Infer context** → `inferDatasetContextFromRows()` uses LLM (non-blocking)
+7. **Return summary** → `IngestionSummary` with metrics, issues, and context
+
+#### Testing
+- Unit tests in `tests/catalog/` for schema config, validation, and ingestion
+- Admin page tests in `tests/admin/catalog-upload.test.tsx`
+- All 59 catalog tests passing
+
+---
+
 # Velou Shopping Assistant - Pipeline Documentation
 
 ## Pipeline Map (file/function list)
@@ -258,11 +349,176 @@
   - `keyAttributes` extracted from `attributes` JSON: `['fabric', 'fit', 'length', 'season', 'occasion', 'color']`
   - `reason` generated by `buildCardReason()` (LLM or rule-based)
 
+### Catalog Ingestion System
+- **File**: `src/lib/catalog/unifiedSchemaConfig.ts`
+  - `UNIFIED_CATALOG_SCHEMA` - Config-driven field definitions with required levels and mappings
+  - `getFieldDefinition()` - Lookup field by name
+  - `getFieldsByGroup()` - Get fields by group (identity, classification, commercial, etc.)
+- **File**: `src/lib/catalog/types.ts`
+  - `UnifiedVendorCatalogRow` - Type for normalized CSV row
+  - `CatalogValidationIssue` - Error/warning with level, field, message, rowIndex
+  - `DatasetCoreStats` - Coverage stats (rows with price, images, descriptions, etc.)
+  - `IngestionSummary` - Final ingestion result with metrics, issues, stats, and dataset context
+- **File**: `src/lib/catalog/validation.ts`
+  - `normalizeUnifiedRow()` - Normalizes raw CSV row (trim, lowercase, parse pipe-lists)
+  - `validateUnifiedRow()` - Validates row against schema (hard requirements, warnings)
+  - `updateDatasetCoreStats()` - Accumulates coverage statistics
+- **File**: `src/lib/catalog/ingestUnifiedCsv.ts`
+  - `parseUnifiedCsv()` - Async generator for streaming CSV parsing
+  - `upsertProductFromUnifiedRow()` - Maps unified row to Prisma `Product` model
+  - `ingestUnifiedCsvStream()` - Orchestrates ingestion with validation and context inference
+- **File**: `src/lib/catalog/datasetInspector.ts`
+  - `inferDatasetContextFromRows()` - LLM-powered dataset context inference
+  - `buildSampleView()` - Creates compact JSON view of sample rows for LLM
+  - Returns `DatasetContext` with vertical, currency, facets, search examples, quality notes
+- **File**: `src/app/api/admin/catalog/upload/route.ts`
+  - `POST()` - Handles CSV file upload, triggers ingestion
+  - Accepts: `file`, `vendorId`, optional `vertical`, `currency`, `enableContextInference`
+  - Returns: `IngestionSummary` with truncated issues (first 100)
+- **File**: `src/app/admin/catalog/page.tsx`
+  - Admin UI for catalog upload with form, progress, and results display
+  - Shows summary metrics, data coverage, validation issues table, and dataset context card
+
 ---
 
 ## Step-by-Step Execution Trace
 
-### Single Request Flow
+### Catalog Ingestion Flow
+
+#### 1. Admin Uploads CSV (`POST /api/admin/catalog/upload`)
+**Inputs**:
+- `file: File` (CSV file)
+- `vendorId: string`
+- `vertical?: string` (optional admin hint)
+- `currency?: string` (optional admin hint)
+- `enableContextInference?: boolean` (defaults to `true`)
+
+**Process**:
+1. Validates file is CSV
+2. Converts `File` to Node.js `ReadableStream`
+3. Calls `ingestUnifiedCsvStream(stream, vendorId, options)`
+4. Truncates issues to first 100 for response
+5. Returns `IngestionSummary` JSON
+
+**Logs**: `Starting catalog ingestion` (INFO), `dataset_context_inferred` (INFO)
+
+**Outputs**: `IngestionSummary` with `totalRows`, `inserted`, `updated`, `invalidRows`, `issues[]`, `coreStats`, `datasetContext?`
+
+---
+
+#### 2. Streaming CSV Parse (`parseUnifiedCsv()`)
+**File**: `src/lib/catalog/ingestUnifiedCsv.ts`
+
+**Process**:
+1. Creates CSV parser with `csv-parse` library
+2. Validates header row matches expected columns (case-insensitive)
+3. Yields rows one-by-one as async generator:
+   - `{ rowIndex, normalized: UnifiedVendorCatalogRow, validation: CatalogRowValidationResult }`
+4. Normalizes each row: trims strings, parses pipe-delimited lists, handles empty values
+5. Validates each row against `UNIFIED_CATALOG_SCHEMA`
+
+**Outputs**: Async generator yielding normalized rows with validation results
+
+---
+
+#### 3. Row Validation (`validateUnifiedRow()`)
+**File**: `src/lib/catalog/validation.ts`
+
+**Process**:
+1. Checks hard requirements:
+   - `product_id` must be present and non-empty
+   - `title` OR `short_title` must be present
+   - `product_url` must be present
+2. Generates warnings for recommended fields:
+   - `price` recommended if `currency` present
+   - `image_url_primary` recommended for visual catalogs
+   - `category` recommended if classification missing
+3. Updates `DatasetCoreStats`:
+   - Tracks rows with core identity, price, images, descriptions, categories, brands
+4. Returns `CatalogRowValidationResult` with `isValid`, `errors[]`, `warnings[]`
+
+**Outputs**: Validation result with errors and warnings
+
+---
+
+#### 4. Product Upsert (`upsertProductFromUnifiedRow()`)
+**File**: `src/lib/catalog/ingestUnifiedCsv.ts`
+
+**Process**:
+1. Generates product ID: `{vendorId}_{product_id}`
+2. Maps unified row to Prisma `Product` model:
+   - Core fields: `title`, `description`, `imageUrl`, `productUrl`, `category`, `subcategory`, `brand`
+   - Price: Parses `price` string to `priceCents` (handles "$19.99", "19.99 USD", etc.)
+   - Stock: Normalizes `stock_status` to `'in_stock' | 'low_stock' | 'out_of_stock'`
+   - Attributes: Parses `attribute_blob` (pipe-delimited `key:value` pairs) into JSON
+   - Extensible: Unknown columns stored in `attributes.extensible`
+3. Upserts to database using `prisma.product.upsert()`:
+   - `where: { id: generatedId }`
+   - `update: { ...mappedFields }`
+   - `create: { ...mappedFields }`
+4. Returns `{ created: boolean }`
+
+**Outputs**: Upsert result indicating if product was created or updated
+
+---
+
+#### 5. Dataset Context Inference (`inferDatasetContextFromRows()`)
+**File**: `src/lib/catalog/datasetInspector.ts`
+
+**Trigger**: After processing first 200 rows (if `enableContextInference=true`)
+
+**Process**:
+1. Collects up to 50 sample rows from first 200 processed (only valid rows)
+2. Builds compact JSON view of sample rows via `buildSampleView()`:
+   - Extracts key fields: `product_id`, `title`, `category`, `price`, `currency`, `description`, `image_url_primary`
+   - Limits to essential data for LLM prompt
+3. Calls LLM with primary model (`purpose: 'intent'`):
+   - System prompt: Instructs LLM to infer dataset characteristics
+   - User prompt: Sample rows JSON + current stats
+   - JSON schema: Enforces `DatasetContext` structure
+4. Parses LLM response using `safeParseLlmJson()`
+5. Applies admin hints (if provided):
+   - `adminHints.vertical` overrides LLM `vertical`
+   - `adminHints.currency` overrides LLM `dominantPriceCurrency`
+6. Returns `DatasetContext`:
+   - `vertical?: string` (e.g., "apparel", "furniture", "skincare")
+   - `dominantPriceCurrency?: string` (e.g., "USD", "EUR")
+   - `hasPriceData: boolean`
+   - `hasImages: boolean`
+   - `sampleCategories: string[]`
+   - `primaryFacets: string[]` (e.g., ["size", "color", "fit"])
+   - `recommendedSearchExamples: string[]` (e.g., ["show me casual t-shirts"])
+   - `qualityNotes: string[]`
+
+**Error Handling**:
+- If LLM fails: Returns fallback context with basic stats and quality notes
+- Ingestion continues even if context inference fails (non-blocking)
+
+**Logs**: `dataset_context_inferred` (INFO) with key metrics
+
+**Outputs**: `DatasetContext` added to `IngestionSummary`
+
+---
+
+#### 6. Ingestion Summary Generation
+**File**: `src/lib/catalog/ingestUnifiedCsv.ts` → `ingestUnifiedCsvStream()`
+
+**Process**:
+1. Accumulates stats during ingestion:
+   - `totalRows`: Total rows processed
+   - `inserted`: New products created
+   - `updated`: Existing products updated
+   - `invalidRows`: Rows with hard validation errors
+   - `issues[]`: All errors and warnings (truncated to 100 in API response)
+   - `coreStats`: Coverage statistics
+2. Calls `inferDatasetContextFromRows()` after processing (non-blocking)
+3. Returns `IngestionSummary` with all metrics and context
+
+**Outputs**: Complete ingestion summary
+
+---
+
+### Single Request Flow (Assistant Query)
 
 #### 1. API Entrypoint (`POST /api/assistant`)
 **Inputs**:
@@ -994,6 +1250,88 @@ if (!wasRelaxed || !hasManyCandidates || categoryWasDropped) {
 
 ---
 
+## End-to-End Data Flow
+
+### Complete System Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CATALOG INGESTION FLOW                       │
+└─────────────────────────────────────────────────────────────────┘
+
+1. Admin uploads CSV via /admin/catalog
+   ↓
+2. POST /api/admin/catalog/upload
+   ↓
+3. Streaming CSV parse (parseUnifiedCsv)
+   ↓
+4. For each row:
+   ├─ Normalize (trim, parse pipe-lists)
+   ├─ Validate (hard requirements, warnings)
+   ├─ Update stats (coverage tracking)
+   ├─ Upsert to Product table
+   └─ Collect samples (first 200 rows)
+   ↓
+5. Infer dataset context (LLM, non-blocking)
+   ↓
+6. Return IngestionSummary to admin UI
+   ↓
+7. Products available in search/assistant
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    ASSISTANT QUERY FLOW                         │
+└─────────────────────────────────────────────────────────────────┘
+
+1. User sends message via chat UI
+   ↓
+2. POST /api/assistant
+   ↓
+3. handleAssistantQuery()
+   ├─ Check pending suggestion
+   ├─ Infer intent & constraints (LLM)
+   └─ Route to discovery/PDP flow
+   ↓
+4. runDiscoveryFlow()
+   ├─ searchProductsRelaxed()
+   │  ├─ searchProducts() with widening tiers
+   │  ├─ Attribute filtering (JSON attributes)
+   │  └─ Scoring & ranking
+   ├─ evaluateProductFit() (card-level scoring)
+   ├─ buildProductCard() (extract key attributes)
+   └─ buildCardReason() (LLM or rule-based)
+   ↓
+5. Return replyText + productCards[]
+   ↓
+6. Record ConversationEvent (metrics)
+   ↓
+7. UI renders cards and reply
+
+┌─────────────────────────────────────────────────────────────────┐
+│                    DATA SOURCES                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+Product Table (PostgreSQL):
+├─ Core fields: id, title, description, category, priceCents, etc.
+└─ attributes JSON: Flexible storage for industry-agnostic data
+   ├─ Standard attributes: color, fabric, fit, season, occasion, etc.
+   └─ Extensible attributes: Unknown fields from vendor CSV
+
+Search Stack:
+├─ Filters on DB fields: category, brand, price, stockStatus
+├─ Filters on JSON attributes: colors, fabrics, materials, sizes, etc.
+└─ Keyword matching: title, description, category (ILIKE)
+
+LLM Integration:
+├─ Reasoning model (o3-mini): Intent parsing, PDP suitability analysis
+├─ Primary model (gpt-5): Final replies, dataset inspection
+├─ Lightweight model (gpt-4.1-mini): Card reasons, keyword expansion
+
+See `docs/llm_model_selection.md` for detailed model selection strategy.
+└─ JSON schema enforcement for structured outputs
+```
+
+---
+
 ## Data Model + Retrieval Fields
 
 ### Prisma Schema (`prisma/schema.prisma`)
@@ -1158,4 +1496,13 @@ model Product {
 
 5. **How are product cards sorted when `wasRelaxed=false`?**
    - Answer: By `evaluateProductFit()` score (desc), then price (asc). Database ranking is not used in final sort (only for initial fetch).
+
+6. **How does catalog ingestion work?**
+   - Answer: Admin uploads CSV via `/admin/catalog` → API parses streaming CSV → validates each row → upserts to `Product` table → infers dataset context via LLM → returns summary with metrics and context. Products immediately available for search/assistant.
+
+7. **What is the unified catalog schema?**
+   - Answer: Standardized CSV format with config-driven field definitions. Required fields: `product_id`, `title`/`short_title`, `product_url`. All other fields optional but improve search. Unknown fields stored in `attributes.extensible` JSON.
+
+8. **How does dataset context inference work?**
+   - Answer: After processing first 200 rows, system samples up to 50 valid rows and sends to primary LLM model. LLM infers vertical, currency, primary facets, and recommended search examples. Admin hints override LLM values. Non-blocking (ingestion continues even if LLM fails).
 

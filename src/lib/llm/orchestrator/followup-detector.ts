@@ -4,7 +4,11 @@
  */
 
 import type { SearchConstraints } from '../../search/types';
-import { canonicalizeCategory, type CanonicalCategory } from '../../search/canonicalize';
+import {
+  canonicalizeCategory,
+  detectCategoryProfile,
+  type CanonicalCategory,
+} from '../../search/canonicalize';
 import type { CatalogOntology } from '../../search/ontology';
 
 export type FollowUpType = 'REFINE' | 'SWITCH' | 'CONFIRM_SUGGESTION' | 'UNKNOWN';
@@ -30,6 +34,7 @@ export function detectFollowUpType(
   ontology: CatalogOntology,
 ): FollowUpDetection {
   const normalized = userMessage.toLowerCase().trim();
+  const categoryProfile = detectCategoryProfile(ontology);
 
   // D) Heuristics for follow-up detection
 
@@ -43,7 +48,7 @@ export function detectFollowUpType(
     const match = normalized.match(pattern);
     if (match) {
       const categoryText = match[2] || match[1];
-      const canonical = canonicalizeCategory(categoryText, ontology);
+      const canonical = canonicalizeCategory(categoryText, ontology, categoryProfile);
       if (canonical.canonical !== 'UNKNOWN' && canonical.confidence > 0.3) {
         return {
           isFollowUp: true,
@@ -60,14 +65,14 @@ export function detectFollowUpType(
 
   // Check for explicit category mention without switch keywords
   if (previousConstraints) {
-    const canonical = canonicalizeCategory(userMessage, ontology);
+    const canonical = canonicalizeCategory(userMessage, ontology, categoryProfile);
     if (canonical.canonical !== 'UNKNOWN' && canonical.confidence > 0.5) {
       // If new category detected and different from previous, it's a switch
       const prevCategory = Array.isArray(previousConstraints.category)
         ? previousConstraints.category[0]
         : previousConstraints.category;
       const prevCanonical = prevCategory
-        ? canonicalizeCategory(prevCategory, ontology)
+        ? canonicalizeCategory(prevCategory, ontology, categoryProfile)
         : null;
       if (prevCanonical && prevCanonical.canonical !== canonical.canonical) {
         return {
@@ -105,7 +110,8 @@ export function detectFollowUpType(
       }
 
       // Only return REFINE if no new category noun is present (to avoid SWITCH)
-      const hasNewCategory = canonicalizeCategory(userMessage, ontology).canonical !== 'UNKNOWN';
+      const hasNewCategory =
+        canonicalizeCategory(userMessage, ontology, categoryProfile).canonical !== 'UNKNOWN';
       if (!hasNewCategory && detectedGender) {
         return {
           isFollowUp: true,
@@ -165,7 +171,8 @@ export function detectFollowUpType(
       /\b(yes|yeah|ok|okay|sure|go ahead|show me|show them|that works|more like that|continue)\b/i,
     ];
     // Only confirm if NO new category noun is present
-    const hasNewCategory = canonicalizeCategory(userMessage, ontology).canonical !== 'UNKNOWN';
+    const hasNewCategory =
+      canonicalizeCategory(userMessage, ontology, categoryProfile).canonical !== 'UNKNOWN';
     if (!hasNewCategory) {
       for (const pattern of confirmPatterns) {
         if (pattern.test(normalized)) {

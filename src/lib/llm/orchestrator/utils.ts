@@ -118,6 +118,14 @@ export const normalizeConstraintValues = (constraints: SearchConstraints): Searc
   normalized.seasons = cleanArray(normalized.seasons);
   normalized.occasions = cleanArray(normalized.occasions);
   normalized.useCases = cleanArray(normalized.useCases);
+  normalized.styleTags = cleanArray(normalized.styleTags);
+  normalized.benefits = cleanArray(normalized.benefits);
+  normalized.claims = cleanArray(normalized.claims);
+  normalized.compatibility = cleanArray(normalized.compatibility);
+  // sensoryProfile is a string, not an array
+  if (normalized.sensoryProfile === '' || normalized.sensoryProfile === null) {
+    normalized.sensoryProfile = undefined;
+  }
   normalized.brands = cleanArray(normalized.brands);
   normalized.genders = cleanArray(normalized.genders);
   normalized.materials = cleanArray(normalized.materials);
@@ -137,6 +145,11 @@ export const normalizeConstraintArrays = (constraints: SearchConstraints) => {
   constraints.seasons = coerceStringArray(constraints.seasons);
   constraints.occasions = coerceStringArray(constraints.occasions);
   constraints.useCases = coerceStringArray(constraints.useCases);
+  constraints.styleTags = coerceStringArray(constraints.styleTags);
+  constraints.benefits = coerceStringArray(constraints.benefits);
+  constraints.claims = coerceStringArray(constraints.claims);
+  constraints.compatibility = coerceStringArray(constraints.compatibility);
+  // sensoryProfile is a string, not an array - no normalization needed here
   constraints.brands = coerceStringArray(constraints.brands);
   constraints.genders = coerceStringArray(constraints.genders);
   constraints.materials = coerceStringArray(constraints.materials);

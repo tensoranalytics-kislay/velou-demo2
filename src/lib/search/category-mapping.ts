@@ -1,16 +1,19 @@
+import type { CategoryProfile } from './canonicalize';
+
 /**
- * Maps canonical category names to actual DB category values
- * Used to bridge the gap between LLM output (canonical) and database storage (DB categories)
+ * Base canonical-to-DB mapping (empty by default; used for optional profiles).
  */
-export const CANONICAL_TO_DB_CATEGORIES: Record<string, string[]> = {
+const BASE_CANONICAL_TO_DB: Record<string, string[]> = {};
+
+/**
+ * Fashion-specific canonical mapping retained for merchants that opt into the fashion profile.
+ */
+const FASHION_CANONICAL_TO_DB: Record<string, string[]> = {
   'shirts & tops': ['shirts', 'tops', 't-shirts', 'tees', 'blouses', 'shirts & tops'],
-  // CRITICAL: Don't include "graphic t shirt" in default tshirt expansion - only include if user explicitly says "graphic"
-  // This prevents restricting results to only graphic tshirts when user just says "tshirt"
   'tshirt': ['t-shirts', 'tees', 't shirt', 'tshirt', 'solid t shirts'],
   't-shirt': ['t-shirts', 'tees', 't shirt', 'tshirt'],
   'tee': ['tees', 't-shirts', 't shirt', 'tshirt'],
   'tees': ['tees', 't-shirts', 't shirt', 'tshirt'],
-  // Only include graphic tshirt variants when explicitly requested
   'graphic t shirt': ['graphic t shirt', 'graphic t-shirts', 'graphic tees'],
   'graphic tee': ['graphic t shirt', 'graphic t-shirts', 'graphic tees'],
   'graphic tshirt': ['graphic t shirt', 'graphic t-shirts', 'graphic tees'],
@@ -35,18 +38,23 @@ export const CANONICAL_TO_DB_CATEGORIES: Record<string, string[]> = {
  */
 export function expandCanonicalToDbCategories(
   category: string | string[] | undefined,
+  profile?: CategoryProfile | null,
 ): string[] {
   if (!category) return [];
   
   const categories = Array.isArray(category) ? category : [category];
   const expanded = new Set<string>();
+  const mapping =
+    profile?.name === 'fashion'
+      ? FASHION_CANONICAL_TO_DB
+      : BASE_CANONICAL_TO_DB;
   
   for (const cat of categories) {
     const normalized = cat.toLowerCase().trim();
     
     // Check if it's a canonical that needs mapping
-    if (CANONICAL_TO_DB_CATEGORIES[normalized]) {
-      for (const dbCat of CANONICAL_TO_DB_CATEGORIES[normalized]) {
+    if (mapping[normalized]) {
+      for (const dbCat of mapping[normalized]) {
         expanded.add(dbCat);
       }
     } else {

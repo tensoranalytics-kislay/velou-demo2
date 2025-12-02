@@ -11,6 +11,10 @@ export async function PATCH(request: Request) {
       primaryColor?: string;
       accentColor?: string;
       useMerchantKey?: boolean;
+      backgroundColor?: string;
+      surfaceColor?: string;
+      borderColor?: string;
+      logoUrl?: string | null;
     };
 
     const updated = await prisma.brandConfig.update({
@@ -23,6 +27,11 @@ export async function PATCH(request: Request) {
         ...(body.primaryColor !== undefined && { primaryColor: body.primaryColor }),
         ...(body.accentColor !== undefined && { accentColor: body.accentColor }),
         ...(body.useMerchantKey !== undefined && { useMerchantKey: body.useMerchantKey }),
+        ...(body.backgroundColor !== undefined && { backgroundColor: body.backgroundColor }),
+        ...(body.surfaceColor !== undefined && { surfaceColor: body.surfaceColor }),
+        ...(body.borderColor !== undefined && { borderColor: body.borderColor }),
+        ...(body.logoUrl !== undefined && { logoUrl: body.logoUrl }),
+        updatedAt: new Date(),
       },
     });
 

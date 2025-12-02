@@ -10,6 +10,7 @@ export type ChatMessage = {
   content: string;
   productCards?: ProductCard[];
   noExactMatch?: boolean;
+  followupText?: string;
 };
 
 type MessageListProps = {
@@ -19,7 +20,7 @@ type MessageListProps = {
 
 export default function MessageList({ messages, onProductClick }: MessageListProps) {
   return (
-    <div className="space-y-8 sm:space-y-10 pb-4 sm:pb-6 overflow-x-hidden">
+    <div className="space-y-8 sm:space-y-10 pb-8 sm:pb-12 md:pb-16 overflow-x-hidden">
       {messages.map((message) => (
         <div key={message.id} className="w-full">
           {/* Text message with avatar */}
@@ -46,7 +47,7 @@ export default function MessageList({ messages, onProductClick }: MessageListPro
                   </svg>
                 </div>
               ) : (
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-rose-500 to-rose-600 flex items-center justify-center -mt-1">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-rose-500 to-rose-600 flex items-center justify-center mt-1">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     className="h-5 w-5 text-white"
@@ -81,6 +82,35 @@ export default function MessageList({ messages, onProductClick }: MessageListPro
           {message.role === 'assistant' && message.productCards && message.productCards.length > 0 && (
             <div className="mt-8 w-full -mr-2">
               <ProductCarousel products={message.productCards} onProductClick={onProductClick} />
+            </div>
+          )}
+
+          {/* Optional follow-up text that appears after product cards, aligned as an assistant message */}
+          {message.role === 'assistant' && message.followupText && (
+            <div className="mt-6 sm:mt-8 flex items-start gap-3">
+              <div className="flex-shrink-0">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-rose-500 to-rose-600 flex items-center justify-center mt-1">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <div className="flex-1 min-w-0 flex justify-start">
+                <div className="max-w-[95%] md:max-w-[80%] min-w-0">
+                  <MarkdownText content={message.followupText} className="text-black" />
+                </div>
+              </div>
             </div>
           )}
         </div>

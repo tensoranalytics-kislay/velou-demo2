@@ -211,6 +211,9 @@ const transformRow = (row: CsvRow): Prisma.ProductCreateManyInput | null => {
     brand: clean(row.brand),
     attributes: buildAttributes(row),
     stockStatus,
+    // Prisma will auto-generate createdAt and updatedAt, but createMany requires them
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 };
 
