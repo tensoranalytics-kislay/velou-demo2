@@ -59,11 +59,7 @@ export default function ChatWidget() {
       });
   }, []);
 
-  const assistantTitle = vertical === 'skincare' || vertical === 'beauty'
-    ? `${brandName} beauty assistant`
-    : vertical === 'home' || vertical === 'home decor'
-    ? `${brandName} home assistant`
-    : `${brandName} stylist`;
+  const assistantTitle = `${brandName} Advisor`;
 
   const assistantSubtitle = vertical === 'skincare' || vertical === 'beauty'
     ? 'Beauty guidance'

@@ -7,17 +7,43 @@ const formatCurrency = (value: number, currency: string) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value / 100);
 
 export default async function ProductGrid() {
-  const products = await prisma.product.findMany({
-    where: {
-      stockStatus: {
-        not: 'out_of_stock',
+  let products = [];
+  let brandName = 'our store';
+  
+  // Fetch brand name from database
+  try {
+    const brandConfig = await prisma.brandConfig.findUnique({
+      where: { id: 1 },
+      select: { brandName: true },
+    });
+    if (brandConfig?.brandName) {
+      brandName = brandConfig.brandName;
+    }
+  } catch (error) {
+    // Use default if brand config fetch fails
+  }
+  
+  try {
+    products = await prisma.product.findMany({
+      where: {
+        stockStatus: {
+          not: 'out_of_stock',
+        },
       },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    take: 12,
-  });
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 12,
+    });
+  } catch (error) {
+    // Gracefully handle database connection errors
+    // Log error in development but don't break the page
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Failed to fetch products:', error instanceof Error ? error.message : String(error));
+    }
+    // Return empty array so the page still renders with the "No products found" message
+    products = [];
+  }
 
   return (
     <section className="mx-auto max-w-7xl px-4 pb-24 pt-12 md:px-8">
@@ -35,7 +61,7 @@ export default async function ProductGrid() {
       </div>
       {products.length === 0 ? (
         <p className="mt-12 rounded-2xl border border-dashed border-rose-200 bg-white p-8 text-center text-sm text-slate-500">
-          No products found yet. Once the catalog syncs, Lucky Brand arrivals will appear here automatically.
+          No products found yet. Once the catalog syncs, {brandName} arrivals will appear here automatically.
         </p>
       ) : (
         <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
@@ -61,7 +87,7 @@ export default async function ProductGrid() {
               />
             </div>
                 <div className="flex flex-1 flex-col px-4 py-5">
-                  <p className="text-xs uppercase tracking-[0.4em] text-rose-300">Lucky Brand</p>
+                  <p className="text-xs uppercase tracking-[0.4em] text-rose-300">{brandName}</p>
                   <h4 className="mt-2 text-sm font-medium text-slate-900 line-clamp-2">{product.title}</h4>
                   <div className="mt-3 flex items-baseline gap-2">
                     <span className="text-base font-semibold text-rose-500">

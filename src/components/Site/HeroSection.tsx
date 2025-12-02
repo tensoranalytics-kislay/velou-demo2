@@ -34,7 +34,7 @@ export default function HeroSection() {
     <section className="mx-auto max-w-6xl rounded-3xl border border-rose-100 bg-rose-50/60 px-6 py-16 text-center md:px-12 md:py-20">
       <p className="text-xs uppercase tracking-[0.4em] text-rose-400">{brandName} concierge</p>
       <h2 className="mt-4 text-4xl font-semibold text-slate-900 md:text-5xl">
-        Your {assistantTitle} is online
+        Try The {brandName} Product Advisor Now
         </h2>
       <p className="mx-auto mt-4 max-w-3xl text-base text-slate-600 md:text-lg">
         {description}
