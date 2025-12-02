@@ -1,9 +1,6 @@
 import { prisma } from '@/lib/db';
 import MerchRulesList from './MerchRulesList';
 
-// Force dynamic rendering to avoid build-time database queries
-export const dynamic = 'force-dynamic';
-
 async function getMerchRules() {
   return prisma.merchRule.findMany({
     orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],

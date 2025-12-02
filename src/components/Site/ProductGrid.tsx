@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
-import type { Product } from '@prisma/client';
 
 const FALLBACK_IMAGE = 'https://picsum.photos/seed/luckybrand/600/800';
 
@@ -8,26 +7,17 @@ const formatCurrency = (value: number, currency: string) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(value / 100);
 
 export default async function ProductGrid() {
-  // Handle case where DATABASE_URL might not be available during build
-  let products: Product[] = [];
-  try {
-    products = await prisma.product.findMany({
-      where: {
-        stockStatus: {
-          not: 'out_of_stock',
-        },
+  const products = await prisma.product.findMany({
+    where: {
+      stockStatus: {
+        not: 'out_of_stock',
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: 12,
-    });
-  } catch (error) {
-    // During build or if database is unavailable, return empty array
-    // This allows the page to render without crashing
-    console.warn('ProductGrid: Could not fetch products', error instanceof Error ? error.message : String(error));
-    products = [];
-  }
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 12,
+  });
 
   return (
     <section className="mx-auto max-w-7xl px-4 pb-24 pt-12 md:px-8">

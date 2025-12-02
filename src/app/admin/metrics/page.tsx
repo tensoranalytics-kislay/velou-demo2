@@ -1,9 +1,6 @@
 import { prisma } from '@/lib/db';
 import MetricsDisplay from './MetricsDisplay';
 
-// Force dynamic rendering to avoid build-time database queries
-export const dynamic = 'force-dynamic';
-
 async function getMetrics() {
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);

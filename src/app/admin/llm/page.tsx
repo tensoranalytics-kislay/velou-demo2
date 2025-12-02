@@ -2,9 +2,6 @@ import { env } from '@/lib/config';
 import { prisma } from '@/lib/db';
 import LLMConfigDisplay from './LLMConfigDisplay';
 
-// Force dynamic rendering to avoid build-time database queries
-export const dynamic = 'force-dynamic';
-
 async function getBrandConfig() {
   return prisma.brandConfig.upsert({
     where: { id: 1 },
@@ -14,33 +11,11 @@ async function getBrandConfig() {
       brandName: 'Velou Atelier',
       primaryColor: '#3b82f6',
       accentColor: '#8b5cf6',
-      backgroundColor: '#ffffff',
-      surfaceColor: '#fff7f7',
-      borderColor: '#ffe4e6',
       voiceInstructions: 'Be helpful and warm.',
       toneFormal: 5,
       tonePlayful: 5,
       createdAt: new Date(),
       updatedAt: new Date(),
-    },
-    // Explicitly select only fields that exist in the schema
-    select: {
-      id: true,
-      brandName: true,
-      primaryColor: true,
-      accentColor: true,
-      backgroundColor: true,
-      surfaceColor: true,
-      borderColor: true,
-      logoUrl: true,
-      voiceInstructions: true,
-      toneFormal: true,
-      tonePlayful: true,
-      useMerchantKey: true,
-      merchantOpenAIKey: true,
-      createdAt: true,
-      updatedAt: true,
-      datasetContext: true,
     },
   });
 }
