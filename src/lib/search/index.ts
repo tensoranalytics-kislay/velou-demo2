@@ -606,30 +606,122 @@ async function dbRankedSearch(
   }
 
   // C) Keyword prefilter: Always include when canonical category detected or hardTextFilters provided
+  // Generate keyword combinations with priority: exact phrase > 2-word combinations > individual words
   const keywordFilters = whereFilters.keywordFilters || hardTextFilters;
+  let keywordRankingBoosts: Prisma.Sql[] = [];
+  
   if (keywordFilters && keywordFilters.length > 0) {
-    // Build OR condition for each keyword using ILIKE for case-insensitive matching
-    const textFilterConditions = keywordFilters.map((keyword: string) => {
+    // Organize keywords by priority: exact phrases, 2-word combinations, individual words
+    const exactPhrases: string[] = [];
+    const twoWordCombos: string[] = [];
+    const individualWords: string[] = [];
+    const allKeywordsForWhere: string[] = [];
+    
+    for (const keyword of keywordFilters) {
       const lowerKeyword = keyword.toLowerCase();
-      const pattern = `%${lowerKeyword}%`;
-      // Use Prisma.sql template with proper parameter binding
-      // Include attributes JSON fields for unified catalog search
-      // Note: bulletHighlights and product_details are arrays/objects, so we search in the JSON text representation
+      const words = lowerKeyword.split(/\s+/).filter(w => w.length >= 2);
+      
+      if (words.length > 1) {
+        // Multi-word phrase: prioritize exact phrase, then combinations, then individual words
+        exactPhrases.push(lowerKeyword);
+        allKeywordsForWhere.push(lowerKeyword);
+        
+        // Generate 2-word combinations (e.g., "bath gift", "gift set" from "bath gift set")
+        for (let i = 0; i < words.length - 1; i++) {
+          const combo = `${words[i]} ${words[i + 1]}`;
+          if (!twoWordCombos.includes(combo)) {
+            twoWordCombos.push(combo);
+            allKeywordsForWhere.push(combo);
+          }
+        }
+        
+        // Add individual words
+        for (const word of words) {
+          if (!individualWords.includes(word)) {
+            individualWords.push(word);
+            allKeywordsForWhere.push(word);
+          }
+        }
+      } else {
+        // Single word: treat as exact phrase
+        exactPhrases.push(lowerKeyword);
+        allKeywordsForWhere.push(lowerKeyword);
+      }
+    }
+    
+    // Build WHERE conditions (all keywords, no priority)
+    const textFilterConditions = allKeywordsForWhere.map((keyword: string) => {
+      const pattern = `%${keyword}%`;
       return Prisma.sql`(
         LOWER("title") LIKE ${pattern} OR
         LOWER("description") LIKE ${pattern} OR
         LOWER("category") LIKE ${pattern} OR
+        LOWER(COALESCE("subcategory", '')) LIKE ${pattern} OR
         LOWER(COALESCE(attributes->>'productHighlights', '')) LIKE ${pattern} OR
         LOWER(COALESCE(attributes::text, '')) LIKE ${pattern}
       )`;
     });
     if (textFilterConditions.length > 0) {
-      // Join with OR separator
       const joined = textFilterConditions.reduce((acc, condition, idx) => {
         if (idx === 0) return condition;
         return Prisma.sql`${acc} OR ${condition}`;
       });
       whereParts.push(Prisma.sql`(${joined})`);
+    }
+    
+    // Build ranking boosts: exact phrases (highest), then 2-word combos, then individual words
+    // Exact phrase match: +10.0 boost
+    if (exactPhrases.length > 0) {
+      const exactConditions = exactPhrases.map((phrase) => {
+        const pattern = `%${phrase}%`;
+        return Prisma.sql`(
+          LOWER("title") LIKE ${pattern} OR
+          LOWER("description") LIKE ${pattern} OR
+          LOWER(COALESCE("subcategory", '')) LIKE ${pattern} OR
+          LOWER(COALESCE(attributes->>'productHighlights', '')) LIKE ${pattern}
+        )`;
+      });
+      const exactJoined = exactConditions.reduce((acc, condition, idx) => {
+        if (idx === 0) return condition;
+        return Prisma.sql`${acc} OR ${condition}`;
+      });
+      keywordRankingBoosts.push(Prisma.sql`(CASE WHEN ${exactJoined} THEN 10.0 ELSE 0 END)`);
+    }
+    
+    // 2-word combination match: +5.0 boost
+    if (twoWordCombos.length > 0) {
+      const comboConditions = twoWordCombos.map((combo) => {
+        const pattern = `%${combo}%`;
+        return Prisma.sql`(
+          LOWER("title") LIKE ${pattern} OR
+          LOWER("description") LIKE ${pattern} OR
+          LOWER(COALESCE("subcategory", '')) LIKE ${pattern} OR
+          LOWER(COALESCE(attributes->>'productHighlights', '')) LIKE ${pattern}
+        )`;
+      });
+      const comboJoined = comboConditions.reduce((acc, condition, idx) => {
+        if (idx === 0) return condition;
+        return Prisma.sql`${acc} OR ${condition}`;
+      });
+      keywordRankingBoosts.push(Prisma.sql`(CASE WHEN ${comboJoined} THEN 5.0 ELSE 0 END)`);
+    }
+    
+    // Individual word match: +1.0 boost (lowest priority)
+    if (individualWords.length > 0) {
+      const wordConditions = individualWords.map((word) => {
+        const pattern = `%${word}%`;
+        return Prisma.sql`(
+          LOWER("title") LIKE ${pattern} OR
+          LOWER("description") LIKE ${pattern} OR
+          LOWER(COALESCE("subcategory", '')) LIKE ${pattern} OR
+          LOWER(COALESCE(attributes->>'productHighlights', '')) LIKE ${pattern}
+        )`;
+      });
+      const wordJoined = wordConditions.reduce((acc, condition, idx) => {
+        if (idx === 0) return condition;
+        return Prisma.sql`${acc} OR ${condition}`;
+      });
+      keywordRankingBoosts.push(Prisma.sql`(CASE WHEN ${wordJoined} THEN 1.0 ELSE 0 END)`);
     }
   }
 
@@ -727,6 +819,15 @@ async function dbRankedSearch(
       return Prisma.sql`${acc} + ${boost}`;
     });
     rankParts.push(Prisma.sql`(${joinedBoosts})`);
+  }
+
+  // Keyword match ranking boost (exact phrase > combinations > individual words)
+  if (keywordRankingBoosts.length > 0) {
+    const keywordBoost = keywordRankingBoosts.reduce((acc, boost, idx) => {
+      if (idx === 0) return boost;
+      return Prisma.sql`${acc} + ${boost}`;
+    });
+    rankParts.push(keywordBoost);
   }
 
   // Recency boost (newer products slightly favored)
@@ -871,15 +972,65 @@ async function dbRankedSearch(
     }
 
     // C) Keyword prefilter: Use keywordFilters or queryText for text search
+    // Generate keyword combinations with priority: exact phrase > 2-word combinations > individual words
     // Note: Prisma doesn't support JSON path filtering directly in where clauses,
     // so we'll search in title/description/category here, and include attributes in ranking
     const keywordFilters = whereFilters.keywordFilters || hardTextFilters;
+    let keywordRankingData: {
+      exactPhrases: string[];
+      twoWordCombos: string[];
+      individualWords: string[];
+    } | null = null;
+    
     if (keywordFilters && keywordFilters.length > 0) {
-      const keywordConditions = keywordFilters.map((keyword) => ({
+      // Organize keywords by priority: exact phrases, 2-word combinations, individual words
+      const exactPhrases: string[] = [];
+      const twoWordCombos: string[] = [];
+      const individualWords: string[] = [];
+      const allKeywordsForWhere: string[] = [];
+      
+      for (const keyword of keywordFilters) {
+        const lowerKeyword = keyword.toLowerCase();
+        const words = lowerKeyword.split(/\s+/).filter(w => w.length >= 2);
+        
+        if (words.length > 1) {
+          // Multi-word phrase: prioritize exact phrase, then combinations, then individual words
+          exactPhrases.push(lowerKeyword);
+          allKeywordsForWhere.push(lowerKeyword);
+          
+          // Generate 2-word combinations (e.g., "bath gift", "gift set" from "bath gift set")
+          for (let i = 0; i < words.length - 1; i++) {
+            const combo = `${words[i]} ${words[i + 1]}`;
+            if (!twoWordCombos.includes(combo)) {
+              twoWordCombos.push(combo);
+              allKeywordsForWhere.push(combo);
+            }
+          }
+          
+          // Add individual words
+          for (const word of words) {
+            if (!individualWords.includes(word)) {
+              individualWords.push(word);
+              allKeywordsForWhere.push(word);
+            }
+          }
+        } else {
+          // Single word: treat as exact phrase
+          exactPhrases.push(lowerKeyword);
+          allKeywordsForWhere.push(lowerKeyword);
+        }
+      }
+      
+      // Store for ranking later
+      keywordRankingData = { exactPhrases, twoWordCombos, individualWords };
+      
+      // Build WHERE conditions (all keywords, no priority)
+      const keywordConditions = allKeywordsForWhere.map((keyword) => ({
         OR: [
           { title: { contains: keyword, mode: Prisma.QueryMode.insensitive } },
           { description: { contains: keyword, mode: Prisma.QueryMode.insensitive } },
           { category: { contains: keyword, mode: Prisma.QueryMode.insensitive } },
+          { subcategory: { contains: keyword, mode: Prisma.QueryMode.insensitive } },
         ],
       }));
       const existingAnd = Array.isArray(prismaWhere.AND) ? prismaWhere.AND : prismaWhere.AND ? [prismaWhere.AND] : [];
@@ -1002,28 +1153,46 @@ async function dbRankedSearch(
         }
       }
       
-      // Keyword/token match boost (max 4 matches, 0.75 each)
+      // Keyword match boost with priority: exact phrase > 2-word combos > individual words
       // Include unified catalog fields in text search
-      const keywordFilters = whereFilters.keywordFilters || hardTextFilters;
-      if (keywordFilters?.length) {
+      if (keywordRankingData) {
         const titleLower = product.title.toLowerCase();
         const descLower = (product.description || '').toLowerCase();
-        const catLower = product.category.toLowerCase();
+        const subcatLower = ((product as any).subcategory || '').toLowerCase();
         const attrsText = extractSearchableTextFromAttributes(attrs).toLowerCase();
-        let keywordMatches = 0;
-        for (const keyword of keywordFilters.slice(0, 10)) {
-          const kwLower = keyword.toLowerCase();
-          if (
-            titleLower.includes(kwLower) ||
-            descLower.includes(kwLower) ||
-            catLower.includes(kwLower) ||
-            attrsText.includes(kwLower)
-          ) {
-            keywordMatches++;
-            if (keywordMatches >= 4) break;
+        const searchText = `${titleLower} ${descLower} ${subcatLower} ${attrsText}`;
+        
+        // Exact phrase match: +10.0 boost (highest priority)
+        for (const phrase of keywordRankingData.exactPhrases) {
+          if (searchText.includes(phrase)) {
+            rank += 10.0;
+            break; // Only count once per product
           }
         }
-        rank += keywordMatches * 0.75;
+        
+        // 2-word combination match: +5.0 boost (medium priority)
+        // Only apply if exact phrase didn't match
+        if (rank < 10.0) {
+          for (const combo of keywordRankingData.twoWordCombos) {
+            if (searchText.includes(combo)) {
+              rank += 5.0;
+              break; // Only count once per product
+            }
+          }
+        }
+        
+        // Individual word match: +1.0 boost per word (lowest priority)
+        // Only apply if exact phrase and combos didn't match
+        if (rank < 5.0) {
+          let wordMatches = 0;
+          for (const word of keywordRankingData.individualWords) {
+            if (searchText.includes(word)) {
+              wordMatches++;
+              if (wordMatches >= 4) break; // Max 4 words
+            }
+          }
+          rank += wordMatches * 1.0;
+        }
       }
       
       // Query text token matches (include unified catalog fields)
@@ -1035,10 +1204,11 @@ async function dbRankedSearch(
           .slice(0, 5);
         const titleLower = product.title.toLowerCase();
         const descLower = (product.description || '').toLowerCase();
+        const subcatLower = ((product as any).subcategory || '').toLowerCase();
         const attrsText = extractSearchableTextFromAttributes(attrs).toLowerCase();
         let tokenMatches = 0;
         for (const word of words) {
-          if (titleLower.includes(word) || descLower.includes(word) || attrsText.includes(word)) {
+          if (titleLower.includes(word) || descLower.includes(word) || subcatLower.includes(word) || attrsText.includes(word)) {
             tokenMatches++;
             if (tokenMatches >= 4) break;
           }

@@ -2,12 +2,20 @@
 
 import { useState } from 'react';
 
+type ProductContext = {
+  id: string;
+  title: string;
+  imageUrl: string;
+};
+
 type MessageInputProps = {
   onSend: (message: string) => Promise<void> | void;
   disabled?: boolean;
+  productContext?: ProductContext | undefined;
+  onClearProductContext?: () => void;
 };
 
-export default function MessageInput({ onSend, disabled }: MessageInputProps) {
+export default function MessageInput({ onSend, disabled, productContext, onClearProductContext }: MessageInputProps) {
   const [value, setValue] = useState('');
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -16,6 +24,7 @@ export default function MessageInput({ onSend, disabled }: MessageInputProps) {
     const message = value.trim();
     setValue('');
     await onSend(message);
+    // Don't clear product context - user can ask multiple questions
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -26,32 +35,77 @@ export default function MessageInput({ onSend, disabled }: MessageInputProps) {
         const message = value.trim();
         setValue('');
         onSend(message);
+        // Don't clear product context - user can ask multiple questions
       }
     }
     // Shift+Enter will create a new line (default behavior)
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex items-end gap-2 sm:gap-3 rounded-2xl sm:rounded-3xl border border-rose-200/60 bg-[#FEEEED] p-3 sm:p-4 shadow-sm transition-shadow focus-within:border-rose-300/80 focus-within:shadow-md"
-    >
-      <textarea
-        className="h-14 sm:h-16 flex-1 resize-none bg-transparent text-xs sm:text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none"
-        placeholder="Ask for a breathable dress under $200 or refine a look…"
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
-        onKeyDown={handleKeyDown}
-        disabled={disabled}
-      />
-      <button
-        type="submit"
-        disabled={disabled}
-        className="rounded-full bg-[#D61F2B] px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-[#FEEEED] shadow-lg shadow-[#D61F2B]/30 transition hover:bg-[#b91822] disabled:opacity-50 cursor-pointer"
+    <div className="space-y-2">
+      {/* Product context display - matches screenshot style */}
+      {productContext && (
+        <div className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200/60">
+          {/* Product thumbnail */}
+          <div className="flex-shrink-0">
+            <div className="h-12 w-12 rounded border border-slate-200 bg-white overflow-hidden">
+              <img
+                src={productContext.imageUrl}
+                alt={productContext.title}
+                className="h-full w-full object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = `https://picsum.photos/seed/${productContext.id}/400/600`;
+                }}
+              />
+            </div>
+          </div>
+          {/* Text and close button */}
+          <div className="flex-1 min-w-0 flex items-center justify-between gap-2">
+            <span className="text-xs text-slate-700 font-medium">
+              Ask more about this product
+            </span>
+            {onClearProductContext && (
+              <button
+                type="button"
+                onClick={onClearProductContext}
+                className="flex-shrink-0 rounded p-0.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition"
+                aria-label="Clear product context"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      <form
+        onSubmit={handleSubmit}
+        className="flex items-end gap-2 sm:gap-3 rounded-2xl sm:rounded-3xl border border-rose-200/60 bg-[#FEEEED] p-3 sm:p-4 shadow-sm transition-shadow focus-within:border-rose-300/80 focus-within:shadow-md"
       >
-        Send
-      </button>
-    </form>
+        <textarea
+          className="h-14 sm:h-16 flex-1 resize-none bg-transparent text-xs sm:text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none"
+          placeholder={productContext ? `Ask about ${productContext.title}...` : "Ask for a breathable dress under $200 or refine a look…"}
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+        />
+        <button
+          type="submit"
+          disabled={disabled}
+          className="rounded-full bg-[#D61F2B] px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold text-[#FEEEED] shadow-lg shadow-[#D61F2B]/30 transition hover:bg-[#b91822] disabled:opacity-50 cursor-pointer"
+        >
+          Send
+        </button>
+      </form>
+    </div>
   );
 }
 

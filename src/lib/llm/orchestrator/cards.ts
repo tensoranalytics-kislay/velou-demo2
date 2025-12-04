@@ -1,7 +1,7 @@
 import { prisma } from '../../db';
 import { env } from '../../config';
 import { callLLM, type LlmMessage } from '../provider';
-import { CARD_REASON_PROMPT } from '../prompts';
+import { CARD_REASON_PROMPT, CARD_REASON_MULTI_PROMPT } from '../prompts';
 import { logger } from '../../telemetry/logger';
 import type { ProductAttributes, SearchConstraints, SearchResultItem } from '../../search/types';
 import { stripJsonFences } from './utils';
@@ -454,6 +454,112 @@ Write one short reason.`,
   }
 
   return enforceWordCount(deterministic);
+}
+
+type CardReasonInput = {
+  item: SearchResultItem;
+  userMessage: string;
+  constraintLabels: string[];
+  facts: string[];
+  implicitPrefs: ImplicitPreferences;
+};
+
+/**
+ * Batched card reason generator.
+ * Issues a SINGLE LLM call for a list of products, and then
+ * splits the response on a delimiter so each card gets a reason
+ * in the same order.
+ */
+export async function buildCardReasonsBatch(
+  inputs: CardReasonInput[],
+): Promise<string[]> {
+  if (inputs.length === 0) {
+    return [];
+  }
+
+  const deterministicReasons = inputs.map((input) =>
+    enforceWordCount(buildDeterministicReason(input.item, input.facts, input.constraintLabels)),
+  );
+
+  if (env.llmProvider === 'mock') {
+    return deterministicReasons;
+  }
+
+  try {
+    const shopperQuery = inputs[0]?.userMessage ?? '';
+
+    const productSummaries = inputs.map((input, index) => {
+      const intentNotes = [
+        ...input.constraintLabels,
+        ...input.implicitPrefs.notes.map((chip) => chip.label),
+      ].slice(0, 4);
+
+      return {
+        index: index + 1,
+        title: getDisplayName(input.item.title),
+        description: input.item.description?.slice(0, 400) ?? '',
+        attributes: input.item.attributes,
+        intentNotes,
+        facts: input.facts.slice(0, 4),
+      };
+    });
+
+    const productsBlock = productSummaries
+      .map(
+        (p) =>
+          `[${p.index}] Title: ${p.title}
+Description: ${p.description}
+Intent notes: ${p.intentNotes.length ? p.intentNotes.join(', ') : 'general style guidance'}
+Grounded facts: ${p.facts.length ? p.facts.join(' | ') : 'N/A'}`,
+      )
+      .join('\n\n');
+
+    const messages: LlmMessage[] = [
+      {
+        role: 'system',
+        content: CARD_REASON_MULTI_PROMPT,
+      },
+      {
+        role: 'user',
+        content: `Shopper query: "${shopperQuery}"
+
+Products:
+${productsBlock}
+
+Write one short reason per product in order, using the required delimiter.`,
+      },
+    ];
+
+    const result = await callLLM({
+      messages,
+      purpose: 'card_reason',
+      expectJson: false,
+    });
+
+    const cleaned = stripJsonFences(result.rawText).trim();
+    if (!cleaned) {
+      return deterministicReasons;
+    }
+
+    const rawParts = cleaned
+      .split(/<<<END_REASON>>>/i)
+      .map((part) => part.replace(/^["']|["']$/g, '').trim())
+      .filter(Boolean);
+
+    const reasons: string[] = deterministicReasons.slice();
+    for (let i = 0; i < Math.min(rawParts.length, inputs.length); i++) {
+      if (rawParts[i]) {
+        reasons[i] = enforceWordCount(rawParts[i]);
+      }
+    }
+
+    return reasons;
+  } catch (error) {
+    logger.error('llm_card_reason_failed_batch', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return deterministicReasons;
+  }
 }
 
 export function evaluateProductFit(

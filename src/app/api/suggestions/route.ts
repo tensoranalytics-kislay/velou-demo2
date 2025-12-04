@@ -217,6 +217,7 @@ export async function GET(request: NextRequest) {
 
     // If we don't have enough suggestions yet, generate from catalog data
     if (suggestions.length < 3) {
+      // Only generate apparel-specific suggestions if vertical is explicitly apparel/fashion
       if (isApparel) {
       // Apparel-specific suggestions
       // Style + Category + Gender + Price (e.g., "flare jeans under $50")
@@ -711,16 +712,30 @@ Generate 3 follow-up prompts that are:
 4. Specific with style, gender, occasion, or price when appropriate
 5. Different from each other (vary the angle: refine, explore alternatives, add constraints)
 
-CRITICAL: Keep prompts SHORT - maximum 5 words. NEVER include filler phrases like "show me", "find", "looking for", "search for", "I want", "get me". Start directly with the product/category. Use language appropriate for ${vertical || 'the catalog'}. Examples:
+CRITICAL: Keep prompts SHORT - maximum 5 words. NEVER include filler phrases like "show me", "find", "looking for", "search for", "I want", "get me". Start directly with the product/category. Use language appropriate for ${vertical || 'the catalog'}. 
+
 ${vertical === 'skincare' || vertical === 'beauty' 
-  ? '- "moisturizer for dry skin"\n- "night routine serum"\n- "sensitive skin cleanser"'
+  ? 'Examples: "moisturizer for dry skin", "night routine serum", "sensitive skin cleanser"'
   : vertical === 'home' || vertical === 'home decor'
-  ? '- "bathroom towels under $50"\n- "minimalist bedroom decor"\n- "spa-like essentials"'
-  : '- "flare jeans under $50"\n- "black straight leg jeans"\n- "wide leg pants casual"'
+  ? 'Examples: "bathroom towels under $50", "minimalist bedroom decor", "spa-like essentials"'
+  : vertical === 'apparel' || vertical === 'fashion'
+  ? 'Examples: "flare jeans under $50", "black straight leg jeans", "wide leg pants casual"'
+  : popularCategories.length > 0
+  ? `Examples: "${popularCategories[0]} ${priceTiers.length > 0 ? priceTiers[0].label : ''}", "${popularCategories.length > 1 ? popularCategories[1] : popularCategories[0]}", "popular items"`
+  : 'Examples: "popular items", "best sellers", "featured products"'
 }
 
 Format: Return ONLY a JSON array of exactly 3 strings, no other text.
-Example: ["flare jeans under $50", "black straight leg jeans", "wide leg pants casual"]
+${vertical === 'skincare' || vertical === 'beauty'
+  ? 'Example: ["moisturizer for dry skin", "night routine serum", "sensitive skin cleanser"]'
+  : vertical === 'home' || vertical === 'home decor'
+  ? 'Example: ["bathroom towels under $50", "minimalist bedroom decor", "spa-like essentials"]'
+  : vertical === 'apparel' || vertical === 'fashion'
+  ? 'Example: ["flare jeans under $50", "black straight leg jeans", "wide leg pants casual"]'
+  : popularCategories.length > 0
+  ? `Example: ["${popularCategories[0]} ${priceTiers.length > 0 ? priceTiers[0].label : ''}", "${popularCategories.length > 1 ? popularCategories[1] : popularCategories[0]}", "popular items"]`
+  : 'Example: ["popular items", "best sellers", "featured products"]'
+}
 
 Return the JSON array:`;
 

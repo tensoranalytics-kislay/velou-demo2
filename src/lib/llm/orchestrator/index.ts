@@ -5,6 +5,7 @@ import { logger } from '../../telemetry/logger';
 import type { DatasetContext } from '../../catalog/datasetInspector';
 import {
   buildCardReason,
+  buildCardReasonsBatch,
   buildDiscoveryReply,
   buildPendingReminderReply,
   buildPendingSummary,
@@ -39,7 +40,10 @@ import {
   buildClarifyingReplyPrompt,
   buildOutOfScopeReplyPrompt,
   buildPostCardsFollowupPrompt,
+  buildProductQaPrompt,
 } from '../prompts';
+import type { ProgressCallback } from './progress';
+import { STAGE_PROGRESS, STAGE_LABELS } from './progress';
 
 // Export all types used by API/UI
 export type ChatHistoryItem = {
@@ -63,6 +67,7 @@ export type AssistantQueryInput = {
   productContextId?: string;
   pendingSuggestion?: PendingSuggestionInput;
   conversationContext?: ConversationContext;
+  onProgress?: ProgressCallback;
 };
 
 // Re-export types from cards
@@ -150,19 +155,20 @@ async function runPendingSuggestionFlow(
 
   const shortlistedProducts = evaluated.map((entry) => entry.item);
 
-  const cards = await Promise.all(
-    evaluated.map(async ({ item, facts }) => {
-      const reason = await buildCardReason({
-        item,
-        userMessage,
-        constraintLabels,
-        facts,
-        implicitPrefs,
-      });
-      return buildProductCard(item, {
-        reason,
-        queryChips,
-      });
+  const reasonInputs = evaluated.map(({ item, facts }) => ({
+    item,
+    userMessage,
+    constraintLabels,
+    facts,
+    implicitPrefs,
+  }));
+
+  const reasons = await buildCardReasonsBatch(reasonInputs);
+
+  const cards = evaluated.map(({ item }, index) =>
+    buildProductCard(item, {
+      reason: reasons[index],
+      queryChips,
     }),
   );
 
@@ -201,6 +207,7 @@ async function runDiscoveryFlow(
   userMessage: string,
   intent: AssistantIntent,
   datasetContext?: DatasetContext | null,
+  onProgress?: ProgressCallback,
 ): Promise<AssistantQueryResult> {
   logger.debug('runDiscoveryFlow start', {
     constraints: {
@@ -210,11 +217,17 @@ async function runDiscoveryFlow(
     },
   });
 
+  // Stage 1: Understanding complete (handled in handleAssistantQuery)
+  // Stage 2: Searching products
+  onProgress?.('searching', STAGE_PROGRESS.searching);
+
   if (!shouldShowCards(userMessage, constraints)) {
+    onProgress?.('generating', STAGE_PROGRESS.generating);
     const clarifyingReply = await buildClarifyingReply(
       userMessage,
       datasetContext,
     );
+    onProgress?.('complete', STAGE_PROGRESS.complete);
     return {
       replyText: clarifyingReply,
       productCards: [],
@@ -246,6 +259,9 @@ async function runDiscoveryFlow(
     strictLimit,
     userMessage, // Pass userMessage for canonicalization
   );
+
+  // Stage 3: Evaluating matches
+  onProgress?.('evaluating', STAGE_PROGRESS.evaluating);
 
   if (candidates.length === 0) {
     logger.warn('runDiscoveryFlow no products found, starting rescue stage', {
@@ -383,6 +399,7 @@ Write a friendly response mentioning up to 3 closest products by title and askin
       const noProductsReply = replyResult.rawText.trim();
       const finalReply = await applyBrandVoiceToReply(noProductsReply);
 
+      onProgress?.('complete', STAGE_PROGRESS.complete);
       return {
         replyText: finalReply,
         productCards: [],
@@ -406,6 +423,7 @@ Write a friendly response mentioning up to 3 closest products by title and askin
       }
       noProductsReply = await applyBrandVoiceToReply(noProductsReply);
 
+      onProgress?.('complete', STAGE_PROGRESS.complete);
       return {
         replyText: noProductsReply,
         productCards: [],
@@ -462,16 +480,20 @@ Write a friendly response mentioning up to 3 closest products by title and askin
   const constraintLabels = collectConstraintLabels(constraints);
   const queryChips = buildQueryChips(constraints, implicitPrefs);
 
-  const strictCards = await Promise.all(
-    topEvaluations.map(async ({ item, facts }) => {
-      const reason = await buildCardReason({
-        item,
-        userMessage,
-        constraintLabels,
-        facts,
-        implicitPrefs,
-      });
-      return buildProductCard(item, { reason, queryChips });
+  const strictReasonInputs = topEvaluations.map(({ item, facts }) => ({
+    item,
+    userMessage,
+    constraintLabels,
+    facts,
+    implicitPrefs,
+  }));
+
+  const strictReasons = await buildCardReasonsBatch(strictReasonInputs);
+
+  const strictCards = topEvaluations.map(({ item }, index) =>
+    buildProductCard(item, {
+      reason: strictReasons[index],
+      queryChips,
     }),
   );
   
@@ -527,6 +549,9 @@ Write a friendly response mentioning up to 3 closest products by title and askin
       datasetContext,
     );
 
+    // Stage 5: Complete
+    onProgress?.('complete', STAGE_PROGRESS.complete);
+
     return {
       replyText: enhancedReply,
       productCards: deduplicatedCards,
@@ -559,12 +584,150 @@ Write a friendly response mentioning up to 3 closest products by title and askin
     datasetContext,
   });
 
+  onProgress?.('complete', STAGE_PROGRESS.complete);
+
   return {
     replyText: enhancedReply,
     productCards: [],
     noExactMatch: true,
     pendingSuggestion,
   };
+}
+
+/**
+ * Product Q&A flow: answers questions about a specific product using its details.
+ * Returns text-only replies (no product cards) in the same tone as product card reasons.
+ */
+async function runProductQaFlow(
+  productContextId: string,
+  userMessage: string,
+  datasetContext?: DatasetContext | null,
+  onProgress?: ProgressCallback,
+): Promise<AssistantQueryResult> {
+  onProgress?.('loading_product', STAGE_PROGRESS.loading_product);
+  
+  const productRecord = await prisma.product.findUnique({ where: { id: productContextId } });
+  if (!productRecord) {
+    return {
+      replyText: "I couldn't find that product. Could you try asking about a different product?",
+      productCards: [],
+      noExactMatch: false,
+    };
+  }
+
+  onProgress?.('analyzing', STAGE_PROGRESS.analyzing);
+  
+  const product = productToResultItem(productRecord);
+  const attributes = product.attributes ?? {};
+  
+  // Extract product details for the prompt
+  const productDetails: string[] = [];
+  
+  // Title and description
+  productDetails.push(`Title: ${product.title}`);
+  if (product.description) {
+    productDetails.push(`Description: ${product.description}`);
+  }
+  
+  // Price information (important for "how much" questions)
+  const priceDollars = (product.priceCents / 100).toFixed(2);
+  const salePriceDollars = product.salePriceCents ? (product.salePriceCents / 100).toFixed(2) : null;
+  if (salePriceDollars) {
+    productDetails.push(`Price: ${product.currency} ${salePriceDollars} (on sale, originally ${product.currency} ${priceDollars})`);
+  } else {
+    productDetails.push(`Price: ${product.currency} ${priceDollars}`);
+  }
+  
+  // Attributes
+  const attributeKeys = [
+    'fabric', 'material', 'fit', 'color', 'season', 'occasion', 'useCases', 'styleTags',
+    'benefits', 'claims', 'sensoryProfile', 'compatibility', 'materials', 'ingredients',
+    'dimensions', 'weight', 'sizeFitNotes', 'care', 'usageInstructions',
+  ];
+  
+  for (const key of attributeKeys) {
+    const value = attributes[key];
+    if (value) {
+      if (Array.isArray(value)) {
+        if (value.length > 0) {
+          productDetails.push(`${key}: ${value.join(', ')}`);
+        }
+      } else if (typeof value === 'string' && value.trim()) {
+        productDetails.push(`${key}: ${value}`);
+      }
+    }
+  }
+  
+  // Highlights
+  if (attributes.productHighlights) {
+    productDetails.push(`Highlights: ${attributes.productHighlights}`);
+  }
+  if (attributes.bulletHighlights && Array.isArray(attributes.bulletHighlights)) {
+    productDetails.push(`Bullet points: ${attributes.bulletHighlights.join('; ')}`);
+  }
+  
+  // Product details (key-value pairs)
+  const productDetailsObj = attributes.product_details as Record<string, string> | undefined;
+  if (productDetailsObj && typeof productDetailsObj === 'object') {
+    const detailPairs = Object.entries(productDetailsObj)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join('; ');
+    if (detailPairs) {
+      productDetails.push(`Details: ${detailPairs}`);
+    }
+  }
+
+  const productInfoText = productDetails.join('\n');
+
+  onProgress?.('answering', STAGE_PROGRESS.answering);
+
+  // Generate Q&A reply using LLM
+  const prompt = buildProductQaPrompt(datasetContext);
+  const messages: LlmMessage[] = [
+    { role: 'system', content: prompt },
+    {
+      role: 'user',
+      content: `Product Information:
+${productInfoText}
+
+User Question: "${userMessage}"
+
+Answer the question about this product using only the information provided above.`,
+    },
+  ];
+
+  try {
+    const result = await callLLM({
+      messages,
+      purpose: 'final_reply',
+      expectJson: false,
+    });
+
+    let replyText = result.rawText.trim();
+    
+    // Apply brand voice to the reply
+    replyText = await applyBrandVoiceToReply(replyText);
+
+    onProgress?.('complete', STAGE_PROGRESS.complete);
+
+    return {
+      replyText,
+      productCards: [], // No product cards for Q&A
+      noExactMatch: false,
+    };
+  } catch (error) {
+    logger.error('product_qa_flow_failed', {
+      error: error instanceof Error ? error.message : String(error),
+      productId: productContextId,
+    });
+    
+    // Fallback reply
+    return {
+      replyText: `I'm having trouble answering that right now. Could you try rephrasing your question about ${product.title}?`,
+      productCards: [],
+      noExactMatch: false,
+    };
+  }
 }
 
 async function runPdpFlow(
@@ -591,29 +754,36 @@ async function runPdpFlow(
   const constraintLabels = collectConstraintLabels(constraints);
   const queryChips = buildQueryChips(constraints, implicitPrefs);
 
-  const baseReason = await buildCardReason({
-    item: baseProduct,
+  const baseFacts = ["it is the specific piece you're currently viewing"];
+  const relatedInputs = related.map((item: SearchResultItem) => ({
+    item,
     userMessage,
     constraintLabels,
-    facts: ["it is the specific piece you're currently viewing"],
+    facts: [
+      `it shares the ${(item.attributes as any)?.fabric ?? 'fabric'} finish you liked`,
+      `it keeps the same ${item.category.toLowerCase()} vibe`,
+    ],
     implicitPrefs,
-  });
-  const relatedCards = await Promise.all(
-    related.map(async (item: SearchResultItem) => {
-      const reason = await buildCardReason({
-        item,
-        userMessage,
-        constraintLabels,
-        facts: [
-          `it shares the ${item.attributes.fabric ?? 'fabric'} finish you liked`,
-          `it keeps the same ${item.category.toLowerCase()} vibe`,
-        ],
-        implicitPrefs,
-      });
-      return buildProductCard(item, {
-        reason,
-        queryChips,
-      });
+  }));
+
+  const allReasonInputs = [
+    {
+      item: baseProduct,
+      userMessage,
+      constraintLabels,
+      facts: baseFacts,
+      implicitPrefs,
+    },
+    ...relatedInputs,
+  ];
+
+  const allReasons = await buildCardReasonsBatch(allReasonInputs);
+  const [baseReason, ...relatedReasons] = allReasons;
+
+  const relatedCards = related.map((item: SearchResultItem, index: number) =>
+    buildProductCard(item, {
+      reason: relatedReasons[index],
+      queryChips,
     }),
   );
 
@@ -876,15 +1046,12 @@ export async function handleAssistantQuery(input: AssistantQueryInput): Promise<
         : constraints;
 
       let result: AssistantQueryResult;
-      if (intent === 'pdp_suitability' && input.productContextId) {
-        result = await runPdpFlow(
-          input.productContextId,
-          mergedConstraints,
-          input.message,
-          datasetContext,
-        );
+      
+      // If productContextId is set, always route to Q&A flow (text-only, no product cards)
+      if (input.productContextId) {
+        result = await runProductQaFlow(input.productContextId, input.message, datasetContext, input.onProgress);
       } else {
-        result = await runDiscoveryFlow(mergedConstraints, input.message, intent, datasetContext);
+        result = await runDiscoveryFlow(mergedConstraints, input.message, intent, datasetContext, input.onProgress);
       }
 
       return {
@@ -944,6 +1111,9 @@ export async function handleAssistantQuery(input: AssistantQueryInput): Promise<
     }
   }
 
+  // Stage 1: Understanding request (Intent & Constraints Extraction)
+  input.onProgress?.('understanding', STAGE_PROGRESS.understanding);
+
   const { intent, constraints, usedFollowUpContext } = await inferIntentAndConstraints(
     input.message,
     input.pageType,
@@ -984,10 +1154,12 @@ export async function handleAssistantQuery(input: AssistantQueryInput): Promise<
   });
 
   let result: AssistantQueryResult;
-  if (intent === 'pdp_suitability' && input.productContextId) {
-    result = await runPdpFlow(input.productContextId, constraints, input.message, datasetContext);
+  
+  // If productContextId is set, always route to Q&A flow (text-only, no product cards)
+  if (input.productContextId) {
+    result = await runProductQaFlow(input.productContextId, input.message, datasetContext, input.onProgress);
   } else {
-    result = await runDiscoveryFlow(constraints, input.message, intent, datasetContext);
+    result = await runDiscoveryFlow(constraints, input.message, intent, datasetContext, input.onProgress);
   }
 
   return {

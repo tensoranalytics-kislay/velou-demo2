@@ -1,5 +1,7 @@
 'use client';
 
+import ProductClicksTable from './ProductClicksTable';
+
 type Metrics = {
   last7Days: {
     conversations: number;
@@ -134,6 +136,15 @@ export default function MetricsDisplay({ metrics }: { metrics: Metrics }) {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Product Clicks Section */}
+      <div>
+        <h3 className="mb-4 text-lg font-medium text-slate-900">Product Click Metrics</h3>
+        <p className="mb-4 text-sm text-slate-600">
+          Track which products are being clicked most often. Filter by category, brand, price range, and more.
+        </p>
+        <ProductClicksTable />
       </div>
     </div>
   );

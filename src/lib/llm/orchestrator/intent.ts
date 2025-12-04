@@ -311,7 +311,33 @@ export function applyOntologyToConstraints(
   mapArrayField('colors', ontology.colors);
   mapArrayField('materials', ontology.materials);
   mapArrayField('fabrics', ontology.materials);
-  mapArrayField('brands', ontology.brands);
+  // CRITICAL: Brands must match EXACTLY (case-insensitive) - no fuzzy/substring matching
+  // This prevents "lucky brand" from matching partial brand names or other brands
+  const mapBrandsStrict = () => {
+    const values = constraints.brands;
+    if (!values?.length || !ontology.brands?.length) {
+      constraints.brands = undefined;
+      return;
+    }
+    const normalized: string[] = [];
+    const brandSet = new Set(ontology.brands.map(b => b.toLowerCase()));
+    for (const raw of values) {
+      const normalizedRaw = raw.trim().toLowerCase();
+      // Only exact match (case-insensitive) - no substring matching
+      const exactMatch = ontology.brands.find(b => b.toLowerCase() === normalizedRaw);
+      if (exactMatch) {
+        normalized.push(exactMatch);
+      } else {
+        droppedTerms.push(raw);
+        logger.debug('brand_dropped_not_in_ontology', {
+          requestedBrand: raw,
+          availableBrands: ontology.brands.slice(0, 10),
+        });
+      }
+    }
+    constraints.brands = normalized.length ? Array.from(new Set(normalized)) : undefined;
+  };
+  mapBrandsStrict();
   // CRITICAL: Skip ontology validation for genders - they're already canonical (mens/womens/unisex)
   // The ontology may have "male"/"female" from CSV, but we use "mens"/"womens" in constraints
   // Don't drop genders just because they don't match ontology values
@@ -415,9 +441,8 @@ export function inferIntentAndConstraintsRuleBased(
     }
   }
 
-  if (normalizedMessage.includes('lucky brand')) {
-    constraints.brands = pushUnique(constraints.brands, 'Lucky Brand');
-  }
+  // Don't hardcode brand names - let the search handle brand matching from actual catalog data
+  // Brand filtering should come from the catalog ontology, not hardcoded values
 
   // Only set colors if explicitly mentioned
   const colors = COLOR_KEYWORDS.filter((color) => normalizedMessage.includes(color));

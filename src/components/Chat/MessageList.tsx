@@ -16,9 +16,10 @@ export type ChatMessage = {
 type MessageListProps = {
   messages: ChatMessage[];
   onProductClick?: (productId: string) => Promise<void> | void;
+  onProductAsk?: (productId: string, productTitle: string, productImageUrl: string) => Promise<void> | void;
 };
 
-export default function MessageList({ messages, onProductClick }: MessageListProps) {
+export default function MessageList({ messages, onProductClick, onProductAsk }: MessageListProps) {
   return (
     <div className="space-y-8 sm:space-y-10 pb-8 sm:pb-12 md:pb-16 overflow-x-hidden">
       {messages.map((message) => (
@@ -81,7 +82,7 @@ export default function MessageList({ messages, onProductClick }: MessageListPro
           {/* Product Carousel (full width, extending to where user message icon ends) */}
           {message.role === 'assistant' && message.productCards && message.productCards.length > 0 && (
             <div className="mt-8 w-full -mr-2">
-              <ProductCarousel products={message.productCards} onProductClick={onProductClick} />
+              <ProductCarousel products={message.productCards} onProductClick={onProductClick} onProductAsk={onProductAsk} />
             </div>
           )}
 

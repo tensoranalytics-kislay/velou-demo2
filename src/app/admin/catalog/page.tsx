@@ -9,6 +9,8 @@ export default function CatalogUploadPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [summary, setSummary] = useState<IngestionSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isClearing, setIsClearing] = useState(false);
+  const [clearResult, setClearResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -33,6 +35,7 @@ export default function CatalogUploadPage() {
     setIsUploading(true);
     setError(null);
     setSummary(null);
+    setClearResult(null);
 
     try {
       const formData = new FormData();
@@ -59,6 +62,46 @@ export default function CatalogUploadPage() {
     }
   };
 
+  const handleClearCatalog = async () => {
+    const confirmed = window.confirm(
+      '⚠️ WARNING: This will permanently delete ALL products from the catalog.\n\n' +
+      'This action cannot be undone. Are you sure you want to continue?'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsClearing(true);
+    setError(null);
+    setClearResult(null);
+    setSummary(null);
+
+    try {
+      const response = await fetch('/api/admin/catalog/clear', {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Clear failed' }));
+        throw new Error(errorData.error || errorData.message || 'Failed to clear catalog');
+      }
+
+      const data = await response.json();
+      setClearResult({
+        success: true,
+        message: data.message || `Successfully deleted ${data.deletedCount || 0} products.`,
+      });
+    } catch (err) {
+      setClearResult({
+        success: false,
+        message: err instanceof Error ? err.message : 'Failed to clear catalog',
+      });
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl">
       <div className="mb-6">
@@ -66,6 +109,34 @@ export default function CatalogUploadPage() {
         <p className="mt-2 text-slate-600">
           Upload a unified catalog CSV to import products into the system.
         </p>
+      </div>
+
+      {/* Danger Zone - Clear Catalog */}
+      <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h3 className="mb-2 text-sm font-medium text-red-900">Clear Catalog</h3>
+            <p className="mb-3 text-sm text-red-800">
+              Permanently delete all products from the catalog. This action cannot be undone. Use this before uploading a completely new dataset.
+            </p>
+            {clearResult && (
+              <div className={`mb-3 rounded-lg border p-3 ${
+                clearResult.success
+                  ? 'border-green-200 bg-green-50 text-green-800'
+                  : 'border-red-200 bg-red-50 text-red-800'
+              }`}>
+                <p className="text-sm font-medium">{clearResult.message}</p>
+              </div>
+            )}
+            <button
+              onClick={handleClearCatalog}
+              disabled={isClearing || isUploading}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isClearing ? 'Clearing...' : 'Clear All Products'}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Info Box */}
