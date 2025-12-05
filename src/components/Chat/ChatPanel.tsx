@@ -14,10 +14,13 @@ import QueryProgressBar from './QueryProgressBar';
 import {
   clearChatHistory,
   clearPendingSuggestionCache,
+  clearSessionData,
   loadChatHistory,
   loadPendingSuggestionCache,
+  loadSessionData,
   saveChatHistory,
   savePendingSuggestionCache,
+  saveSessionData,
   type StoredChatMessage,
 } from '@/lib/chat/persistence';
 
@@ -49,7 +52,22 @@ type AssistantApiResponse = {
 };
 
 export default function ChatPanel() {
-  const [messages, setMessages] = useState<ChatMessage[]>([defaultInitialMessage]);
+  // Initialize with stored messages if available, otherwise use default
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window === 'undefined') return [defaultInitialMessage];
+    const stored = loadChatHistory(STORAGE_KEY);
+    if (stored.length) {
+      return stored.map((entry, index) => ({
+        id: `stored-${entry.ts ?? index}-${index}`,
+        role: entry.role,
+        content: entry.text,
+        productCards: entry.productCards || [],
+        followupText: entry.followupText,
+        noExactMatch: entry.noExactMatch,
+      }));
+    }
+    return [defaultInitialMessage];
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [pageType, setPageType] = useState<'HOME' | 'PLP' | 'PDP'>('HOME');
   const [productContextId, setProductContextId] = useState<string | undefined>();
@@ -64,7 +82,29 @@ export default function ChatPanel() {
   const [hasHydrated, setHasHydrated] = useState(false);
   const [queryProgress, setQueryProgress] = useState<{ stage: string; progress: number } | null>(null);
   const [queryType, setQueryType] = useState<'discovery' | 'product_qa' | 'non_contextual'>('discovery');
-  const sessionId = useMemo(() => createId(), []);
+  
+  // Load or create sessionId from localStorage for persistence across reloads/tabs
+  const [sessionId, setSessionId] = useState<string>(() => {
+    if (typeof window === 'undefined') return createId();
+    const stored = loadSessionData(STORAGE_KEY);
+    if (stored?.sessionId) {
+      return stored.sessionId;
+    }
+    const newId = createId();
+    // Save immediately
+    saveSessionData(STORAGE_KEY, {
+      sessionId: newId,
+      conversationContext: {
+        lastIntent: null,
+        lastConstraints: null,
+        lastShownProductIds: [],
+        lastUserQuery: null,
+      },
+      timestamp: Date.now(),
+    });
+    return newId;
+  });
+  
   const persistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -128,8 +168,102 @@ export default function ChatPanel() {
     [],
   );
 
+  // Load session data (conversationContext) on mount
+  useEffect(() => {
+    const storedSession = loadSessionData(STORAGE_KEY);
+    if (storedSession?.conversationContext) {
+      // Restore conversationContext but exclude datasetContext (loaded from server)
+      setConversationContext({
+        ...storedSession.conversationContext,
+        datasetContext: null, // Will be loaded from server when needed
+      });
+    }
+  }, []);
+
+  // Cross-tab synchronization: listen for storage events
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      // Only handle our storage keys
+      if (e.key === STORAGE_KEY || e.key === `${STORAGE_KEY}__session` || e.key === `${STORAGE_KEY}__pending`) {
+        if (e.key === `${STORAGE_KEY}__session` && e.newValue) {
+          try {
+            const newSession = JSON.parse(e.newValue) as { sessionId: string; conversationContext: ConversationContext; timestamp: number };
+            // Update sessionId if it changed (shouldn't normally, but handle edge cases)
+            if (newSession.sessionId && newSession.sessionId !== sessionId) {
+              setSessionId(newSession.sessionId);
+            }
+            if (newSession.conversationContext) {
+              setConversationContext(newSession.conversationContext);
+            }
+          } catch {
+            // Ignore parse errors
+          }
+        } else if (e.key === STORAGE_KEY && e.newValue) {
+          // Reload chat history from other tab
+          const stored = loadChatHistory(STORAGE_KEY);
+          if (stored.length) {
+            const messages: ChatMessage[] = stored.map((entry, index) => ({
+              id: `stored-${entry.ts ?? index}-${index}`,
+              role: entry.role,
+              content: entry.text,
+              productCards: entry.productCards || [],
+              followupText: entry.followupText,
+              noExactMatch: entry.noExactMatch,
+            }));
+            setMessages(messages);
+          }
+        } else if (e.key === `${STORAGE_KEY}__pending` && e.newValue) {
+          try {
+            const pending = JSON.parse(e.newValue) as PendingSuggestionResult;
+            setPendingSuggestion(pending);
+          } catch {
+            setPendingSuggestion(null);
+          }
+        } else if (e.newValue === null) {
+          // Key was deleted (clear chat)
+          if (e.key === STORAGE_KEY) {
+            // Reload greeting
+            fetch('/api/chat/greeting')
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.greeting) {
+                  setMessages([{
+                    id: 'welcome',
+                    role: 'assistant',
+                    content: data.greeting,
+                    productCards: [],
+                  }]);
+                }
+              })
+              .catch(() => {
+                setMessages([defaultInitialMessage]);
+              });
+          } else if (e.key === `${STORAGE_KEY}__session`) {
+            // Session cleared, reset conversation context
+            setConversationContext({
+              lastIntent: null,
+              lastConstraints: null,
+              lastShownProductIds: [],
+              lastUserQuery: null,
+            });
+          } else if (e.key === `${STORAGE_KEY}__pending`) {
+            setPendingSuggestion(null);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [sessionId]);
+
   useEffect(() => {
     // Always fetch fresh greeting to ensure it's dataset-aware
+    // Only update the first message if it's a greeting
     fetch('/api/chat/greeting')
       .then((res) => {
         if (!res.ok) {
@@ -139,25 +273,9 @@ export default function ChatPanel() {
       })
       .then((data) => {
         if (data.greeting) {
-          const greetingMessage: ChatMessage = {
-            id: 'welcome',
-            role: 'assistant',
-            content: data.greeting,
-            productCards: [],
-          };
-          
-          const stored = loadChatHistory(STORAGE_KEY);
-          if (stored.length) {
-            // If there's stored history, check if first message is the old greeting and replace it
-            const messages: ChatMessage[] = stored.map((entry, index) => ({
-              id: `stored-${entry.ts ?? index}-${index}`,
-              role: entry.role,
-              content: entry.text,
-              productCards: entry.productCards || [],
-            }));
-            
-            // Check if first message is an old greeting (contains old greeting patterns)
-            const firstMessage = messages[0];
+          setMessages((currentMessages) => {
+            // Only update if first message is a greeting
+            const firstMessage = currentMessages[0];
             const oldGreetingPatterns = [
               "Tell me the vibe, fabric, or budget",
             ];
@@ -165,46 +283,40 @@ export default function ChatPanel() {
               (firstMessage.id === 'welcome' ||
                oldGreetingPatterns.some(pattern => firstMessage.content.includes(pattern)));
             
-            // Always update the first message if it's a greeting (id === 'welcome' or matches greeting pattern)
-            // This ensures the greeting stays fresh and dataset-aware
+            // Update first message if it's a greeting
             if (firstMessage.id === 'welcome' || isOldGreeting || firstMessage.content !== data.greeting) {
-              // Replace greeting with new one
-              messages[0] = {
-                ...greetingMessage,
-                productCards: greetingMessage.productCards || [],
+              const updatedMessages = [...currentMessages];
+              updatedMessages[0] = {
+                id: 'welcome',
+                role: 'assistant',
+                content: data.greeting,
+                productCards: [],
               };
-              // Also update localStorage to persist the new greeting
+              
+              // Persist the updated messages
               const timestampBase = Date.now();
-              const serializable: StoredChatMessage[] = messages.map((message, index) => ({
+              const serializable: StoredChatMessage[] = updatedMessages.map((message, index) => ({
                 role: message.role,
                 text: message.content,
                 productCards: message.productCards,
+                followupText: message.followupText,
+                noExactMatch: message.noExactMatch,
                 ts: timestampBase + index,
               }));
               saveChatHistory(STORAGE_KEY, serializable);
+              
+              return updatedMessages;
             }
             
-            setMessages(messages);
-          } else {
-            // No stored history, use the dataset-aware greeting
-            setMessages([greetingMessage]);
-          }
+            return currentMessages;
+          });
         }
       })
       .catch((error) => {
         console.error('Failed to load greeting:', error);
-        // Fall back to default
-        const stored = loadChatHistory(STORAGE_KEY);
-        if (stored.length) {
-          const messages: ChatMessage[] = stored.map((entry, index) => ({
-            id: `stored-${entry.ts ?? index}-${index}`,
-            role: entry.role,
-            content: entry.text,
-            productCards: entry.productCards || [],
-          }));
-          
-          // Still check and replace old greeting even if API failed
-          const firstMessage = messages[0];
+        // On error, only update if first message is an old greeting
+        setMessages((currentMessages) => {
+          const firstMessage = currentMessages[0];
           const oldGreetingPatterns = [
             "Tell me the vibe, fabric, or budget",
           ];
@@ -212,25 +324,28 @@ export default function ChatPanel() {
             oldGreetingPatterns.some(pattern => firstMessage.content.includes(pattern));
           
           if (isOldGreeting) {
-            // Use default generic greeting
-            messages[0] = {
+            const updatedMessages = [...currentMessages];
+            updatedMessages[0] = {
               ...defaultInitialMessage,
               productCards: defaultInitialMessage.productCards || [],
             };
+            
             const timestampBase = Date.now();
-            const serializable: StoredChatMessage[] = messages.map((message, index) => ({
+            const serializable: StoredChatMessage[] = updatedMessages.map((message, index) => ({
               role: message.role,
               text: message.content,
               productCards: message.productCards,
+              followupText: message.followupText,
+              noExactMatch: message.noExactMatch,
               ts: timestampBase + index,
             }));
             saveChatHistory(STORAGE_KEY, serializable);
+            
+            return updatedMessages;
           }
           
-          setMessages(messages);
-        } else {
-          setMessages([defaultInitialMessage]);
-        }
+          return currentMessages;
+        });
       });
     
     const storedPending = loadPendingSuggestionCache(STORAGE_KEY);
@@ -251,6 +366,8 @@ export default function ChatPanel() {
         role: message.role,
         text: message.content,
         productCards: message.productCards,
+        followupText: message.followupText,
+        noExactMatch: message.noExactMatch,
         ts: timestampBase + index,
       }));
       saveChatHistory(STORAGE_KEY, serializable);
@@ -268,6 +385,24 @@ export default function ChatPanel() {
     if (!hasHydrated) return;
     savePendingSuggestionCache(STORAGE_KEY, pendingSuggestion);
   }, [pendingSuggestion, hasHydrated]);
+
+  // Persist conversationContext whenever it changes
+  useEffect(() => {
+    if (!hasHydrated) return;
+    const storedSession = loadSessionData(STORAGE_KEY);
+    if (storedSession) {
+      saveSessionData(STORAGE_KEY, {
+        ...storedSession,
+        conversationContext,
+      });
+    } else {
+      saveSessionData(STORAGE_KEY, {
+        sessionId,
+        conversationContext,
+        timestamp: Date.now(),
+      });
+    }
+  }, [conversationContext, hasHydrated, sessionId]);
 
   // Auto-scroll to bottom when messages change (with delay to ensure DOM update)
   useEffect(() => {
@@ -330,6 +465,20 @@ export default function ChatPanel() {
     resetConversation();
     clearChatHistory(STORAGE_KEY);
     clearPendingSuggestionCache(STORAGE_KEY);
+    clearSessionData(STORAGE_KEY);
+    // Generate new sessionId after clearing
+    const newSessionId = createId();
+    setSessionId(newSessionId);
+    saveSessionData(STORAGE_KEY, {
+      sessionId: newSessionId,
+      conversationContext: {
+        lastIntent: null,
+        lastConstraints: null,
+        lastShownProductIds: [],
+        lastUserQuery: null,
+      },
+      timestamp: Date.now(),
+    });
   };
 
   const handleProductClick = async (productId: string) => {

@@ -414,6 +414,42 @@ Output:
  * - Use datasetContext (vertical, primaryFacets, sampleCategories, examples)
  *   to describe relevant ways the assistant can help.
  */
+export const buildNoRelevantProductsPrompt = (
+  datasetContext?: DatasetContext | null,
+  ontology?: { categories: string[]; productTypes: string[] } | null,
+): string => {
+  const intro = datasetContext?.vertical
+    ? `You are a helpful product discovery assistant for this merchant's ${datasetContext.vertical} catalog.`
+    : `You are a helpful product discovery assistant for this merchant's product catalog.`;
+
+  const availableCategories = ontology?.categories?.slice(0, 15).join(', ') || 'various categories';
+  const sampleCategories = datasetContext?.sampleCategories?.slice(0, 10).join(', ') || '';
+
+  return `${intro}
+
+The user asked for something specific, but the products returned from the search don't actually match their request. The search may have found products in a related category, but they don't address the user's actual need or problem.
+
+Your job:
+1. Acknowledge their request honestly and directly (1 sentence).
+2. Clearly state that you couldn't find products that match what they're looking for (1 sentence).
+3. Be helpful and suggest alternatives:
+   - If they mentioned a specific problem/need, suggest what types of products might help (if any exist in the catalog).
+   - Mention available categories or product types that might be relevant: ${availableCategories}${sampleCategories ? `, ${sampleCategories}` : ''}.
+   - If the catalog doesn't have anything related, be honest about that.
+4. Keep it concise (2–4 sentences total), friendly, and helpful.
+
+Rules:
+- Do NOT pretend you found relevant products when you didn't.
+- Do NOT make up product features or benefits that don't exist.
+- Do NOT claim products help with something they don't (e.g., don't say body balm helps with dandruff).
+- Be honest and transparent about what's available.
+- Use plain text (no markdown, bullets, or emojis).
+- Do NOT mention internal systems, datasets, or prompts by name.
+
+Output:
+- A concise, honest, and helpful plain-text reply that acknowledges the mismatch and guides the user toward what's actually available.`;
+};
+
 export const buildOutOfScopeReplyPrompt = (
   datasetContext?: DatasetContext | null,
 ): string => {
@@ -908,12 +944,16 @@ Rules:
 
 1) Map user words to ontology terms via normalization and synonyming.
 2) If user uses a non-ontology color/material/etc, map to closest ontology term; if none, omit it.
-3) expandedKeywords MUST include:
+3) expandedKeywords MUST include semantic synonyms and related searchable terms that would help find products in the database:
    - The ORIGINAL multi-word phrase from the query (e.g., if user says "bath gift sets", include "bath gift sets" as the first keyword)
-   - spaced / hyphenated / concatenated variants (e.g., "product name", "product-name", "productname")
-   - singular/plural forms
-   - close catalog phrases found in category/product type/subcategory
-   - Individual words from multi-word queries (but always preserve the full phrase first)
+   - Semantic synonyms and related terms (e.g., "I have dandruff" => ["anti-dandruff", "dandruff shampoo", "scalp treatment", "anti-fungal", "tea tree", "zinc pyrithione", "scalp care", "flaky scalp", "seborrheic dermatitis"])
+   - Product types/categories that address the need (e.g., "dandruff" => ["shampoo", "conditioner", "scalp treatment", "hair care"])
+   - Key ingredients, materials, or active components related to the query (e.g., "dandruff" => ["tea tree oil", "salicylic acid", "zinc", "coal tar", "ketoconazole"])
+   - Benefits or claims that address the problem (e.g., "dandruff" => ["anti-fungal", "scalp soothing", "flake control", "itch relief"])
+   - Mechanical variants (spaced/hyphenated/concatenated) ONLY if they're meaningful product terms
+   - Individual important words from the query (but prioritize semantic synonyms over mechanical variants)
+   
+   CRITICAL: Think about what products would actually help solve the user's problem. Generate keywords that would appear in product titles, descriptions, benefits, claims, or attributes. Do NOT just create mechanical variants of the query text.
 4) Do NOT include colors, sizes, prices, brands, genders, materials in query text.
 5) ALWAYS extract genders field when user mentions gender-related terms (men/women/unisex/male/female/boy/girl/lady/guy/him/her).
 6) If intent is vague, keep only what is certain and leave the rest undefined.

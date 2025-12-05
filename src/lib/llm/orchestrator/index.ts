@@ -38,6 +38,7 @@ import { detectFollowUpType } from './followup-detector';
 import { callLLM, type LlmMessage } from '../provider';
 import {
   buildClarifyingReplyPrompt,
+  buildNoRelevantProductsPrompt,
   buildOutOfScopeReplyPrompt,
   buildPostCardsFollowupPrompt,
   buildProductQaPrompt,
@@ -628,6 +629,65 @@ Write a friendly response mentioning up to 3 closest products by title and askin
       if (b.score !== a.score) return b.score - a.score;
       return a.item.priceCents - b.item.priceCents;
     });
+
+  // Relevance check: Verify that top products actually match the user's intent
+  // Check if products match the core intent keywords from expandedKeywords
+  const expandedKeywords = constraints.expandedKeywords || [];
+  const coreIntentKeywords = expandedKeywords.length > 0 
+    ? expandedKeywords.slice(0, 5) // Use top 5 keywords as core intent
+    : queryTokens.filter(t => t.length > 3); // Fallback to meaningful query tokens
+  
+  if (coreIntentKeywords.length > 0 && evaluated.length > 0) {
+    const topProducts = evaluated.slice(0, Math.min(4, evaluated.length));
+    const relevantProducts = topProducts.filter(({ item }) => {
+      const searchableText = `${item.title} ${item.description} ${item.category}`.toLowerCase();
+      const attrs = (item.attributes ?? {}) as any;
+      const attrText = [
+        attrs.benefits?.join(' ') || '',
+        attrs.claims?.join(' ') || '',
+        attrs.useCases?.join(' ') || '',
+        attrs.compatibility?.join(' ') || '',
+        attrs.productHighlights || '',
+        attrs.bulletHighlights?.join(' ') || '',
+      ].join(' ').toLowerCase();
+      
+      const fullText = `${searchableText} ${attrText}`;
+      
+      // Check if at least one core intent keyword appears in the product
+      return coreIntentKeywords.some(keyword => {
+        const kw = keyword.toLowerCase();
+        // Match whole words or phrases, not just substrings
+        return fullText.includes(kw) || 
+               fullText.split(/\s+/).some(word => word.includes(kw) || kw.includes(word));
+      });
+    });
+    
+    // If less than 50% of top products are relevant, consider them irrelevant
+    if (relevantProducts.length < Math.ceil(topProducts.length * 0.5)) {
+      logger.info('runDiscoveryFlow products_not_relevant', {
+        userMessage,
+        topProductsCount: topProducts.length,
+        relevantProductsCount: relevantProducts.length,
+        coreIntentKeywords: coreIntentKeywords.slice(0, 5),
+        topProductTitles: topProducts.map(({ item }) => item.title).slice(0, 3),
+      });
+      
+      // Return a response indicating no relevant products found
+      onProgress?.('generating', STAGE_PROGRESS.generating);
+      const noRelevantReply = await buildNoRelevantProductsReply(
+        userMessage,
+        constraints,
+        datasetContext,
+        ontology,
+      );
+      onProgress?.('complete', STAGE_PROGRESS.complete);
+      return {
+        replyText: noRelevantReply,
+        productCards: [],
+        noExactMatch: true,
+      };
+    }
+  }
 
   // Fix D: Deduplicate by product.id BEFORE slicing to limit
   const seenIds = new Set<string>();
@@ -1510,6 +1570,53 @@ async function buildClarifyingReply(
 
   // Deterministic, brand-voiced fallback if LLM is unavailable
   let fallback = CLARIFYING_REPLY;
+  fallback = await applyBrandVoiceToReply(fallback);
+  return fallback;
+}
+
+/**
+ * Build a dataset-aware LLM reply when products were found but are not relevant to the user's query.
+ * This is used when search returns products that don't actually match the user's intent.
+ */
+async function buildNoRelevantProductsReply(
+  userMessage: string,
+  constraints: SearchConstraints,
+  datasetContext?: DatasetContext | null,
+  ontology?: CatalogOntology | null,
+): Promise<string> {
+  try {
+    const prompt = buildNoRelevantProductsPrompt(datasetContext, ontology);
+    const messages: LlmMessage[] = [
+      {
+        role: 'system',
+        content: prompt,
+      },
+      {
+        role: 'user',
+        content: `userMessage: "${userMessage}"
+constraints: ${JSON.stringify(constraints)}
+expandedKeywords: ${JSON.stringify(constraints.expandedKeywords || [])}`,
+      },
+    ];
+
+    const result = await callLLM({
+      messages,
+      purpose: 'final_reply',
+      expectJson: false,
+    });
+
+    const text = result.rawText.trim();
+    if (text.length) {
+      return await applyBrandVoiceToReply(text);
+    }
+  } catch (error) {
+    logger.error('no_relevant_products_reply_llm_failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  // Deterministic, brand-voiced fallback if LLM is unavailable
+  let fallback = "I couldn't find products that match what you're looking for. Try adjusting your search terms or browse by category.";
   fallback = await applyBrandVoiceToReply(fallback);
   return fallback;
 }

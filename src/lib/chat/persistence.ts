@@ -1,10 +1,18 @@
-import type { PendingSuggestionResult, ProductCard } from '@/lib/llm/orchestrator';
+import type { PendingSuggestionResult, ProductCard, ConversationContext } from '@/lib/llm/orchestrator';
 
 export type StoredChatMessage = {
   role: 'user' | 'assistant';
   text: string;
   productCards?: ProductCard[];
+  followupText?: string;
+  noExactMatch?: boolean;
   ts: number;
+};
+
+export type StoredSessionData = {
+  sessionId: string;
+  conversationContext: ConversationContext;
+  timestamp: number;
 };
 
 const safeJsonParse = (value: string | null): StoredChatMessage[] => {
@@ -83,6 +91,45 @@ export const clearPendingSuggestionCache = (storageKey: string) => {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.removeItem(pendingKeyFor(storageKey));
+  } catch {
+    // Ignore removal errors
+  }
+};
+
+const sessionKeyFor = (storageKey: string) => `${storageKey}__session`;
+
+export const loadSessionData = (storageKey: string): StoredSessionData | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(sessionKeyFor(storageKey));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredSessionData;
+    // Validate structure
+    if (parsed && typeof parsed.sessionId === 'string' && parsed.conversationContext) {
+      return parsed;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+export const saveSessionData = (storageKey: string, sessionData: StoredSessionData) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(sessionKeyFor(storageKey), JSON.stringify({
+      ...sessionData,
+      timestamp: Date.now(),
+    }));
+  } catch {
+    // Ignore write errors (quota/private mode)
+  }
+};
+
+export const clearSessionData = (storageKey: string) => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(sessionKeyFor(storageKey));
   } catch {
     // Ignore removal errors
   }
