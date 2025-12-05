@@ -31,17 +31,31 @@ export default function SuggestedPrompts({
       ? `/api/suggestions?lastMessage=${encodeURIComponent(lastUserMessage.trim())}`
       : '/api/suggestions';
     
+    console.log('[SuggestedPrompts] Fetching suggestions:', { lastUserMessage, url });
     setIsLoading(true);
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        if (data.suggestions && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
-          setSuggestions(data.suggestions);
+        console.log('[SuggestedPrompts] Received suggestions:', { 
+          count: data.suggestions?.length || 0, 
+          suggestions: data.suggestions 
+        });
+        // If API returns empty array for irrelevant queries, keep existing suggestions
+        // If API returns suggestions, update them
+        if (data.suggestions && Array.isArray(data.suggestions)) {
+          if (data.suggestions.length > 0) {
+            console.log('[SuggestedPrompts] Updating suggestions with new prompts');
+            setSuggestions(data.suggestions);
+          } else {
+            console.log('[SuggestedPrompts] Empty suggestions array - keeping existing suggestions');
+          }
+          // If empty array and we have lastUserMessage, it means query was irrelevant
+          // Keep existing suggestions (don't update)
         }
       })
       .catch((error) => {
-        console.error('Failed to load suggestions:', error);
-        // Keep default suggestions on error
+        console.error('[SuggestedPrompts] Failed to load suggestions:', error);
+        // Keep existing suggestions on error
       })
       .finally(() => {
         setIsLoading(false);

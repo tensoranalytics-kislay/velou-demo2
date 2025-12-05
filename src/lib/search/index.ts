@@ -19,7 +19,10 @@ import type {
 
 const DEFAULT_LIMIT = 8;
 const RELAXED_TARGET = 8;
-const STOCK_OK: Array<'in_stock' | 'low_stock'> = ['in_stock', 'low_stock'];
+// Default stock filter: only in-stock products are shown (hard filter)
+// This can be overridden by constraints.inStockOnly = false if needed
+const DEFAULT_STOCK_STATUS: Array<'in_stock'> = ['in_stock'];
+const STOCK_OK: Array<'in_stock' | 'low_stock'> = ['in_stock', 'low_stock']; // Kept for backward compatibility if needed
 
 // Dynamic take constants for ~13k catalog
 const BASE_TAKE_MULTIPLIER = 50; // base * limit
@@ -79,6 +82,33 @@ const extractSearchableTextFromAttributes = (attributes: ProductAttributes): str
   if (productDetails && typeof productDetails === 'object') {
     parts.push(...Object.values(productDetails));
   }
+
+  // Need/benefit/attribute signals
+  if (attributes.benefits) parts.push(...attributes.benefits);
+  if (attributes.claims) parts.push(...attributes.claims);
+  if (attributes.useCases) parts.push(...attributes.useCases);
+  if (attributes.styleTags) parts.push(...attributes.styleTags);
+  if (attributes.compatibility) parts.push(...attributes.compatibility);
+  if (attributes.sensoryProfile) parts.push(attributes.sensoryProfile);
+  if ((attributes as any).attribute_chips) {
+    const chips = (attributes as any).attribute_chips;
+    if (Array.isArray(chips)) parts.push(...chips);
+  }
+
+  // Identity/family hints
+  if (attributes.label) parts.push(attributes.label);
+  if (attributes.collection) parts.push(attributes.collection);
+  if (attributes.brand) parts.push(attributes.brand);
+
+  // Specs / ingredients / materials
+  if (attributes.ingredients) parts.push(...attributes.ingredients);
+  if (attributes.materials) parts.push(...attributes.materials);
+  if ((attributes as any).material) parts.push((attributes as any).material as string);
+  if (attributes.dimensions) parts.push(attributes.dimensions);
+  if (attributes.weight) parts.push(attributes.weight);
+  if (attributes.sizeFitNotes) parts.push(attributes.sizeFitNotes);
+  if (attributes.usageInstructions) parts.push(attributes.usageInstructions);
+  if (attributes.safetyCompliance) parts.push(...attributes.safetyCompliance);
   
   return parts.join(' ');
 };
@@ -390,7 +420,9 @@ async function buildBroadWhereFilters(
     priceMaxCents: constraints.priceMaxCents === null ? undefined : constraints.priceMaxCents,
     brands: constraints.brands?.length ? constraints.brands : undefined,
     excludeProductIds: constraints.excludeProductIds,
-    stockStatus: requireFreshStock ? STOCK_OK : [],
+    // Stock status: HARD FILTER - only in-stock products by default
+    // This filters at DB level for efficiency, with in-memory filter as safety net
+    stockStatus: requireFreshStock ? DEFAULT_STOCK_STATUS : [],
     excludedCategories: Array.from(merchContext.excludedCategories),
     // Gender filter: hard filter at DB level
     genders: constraints.genders?.length ? constraints.genders : undefined,
@@ -611,15 +643,19 @@ async function dbRankedSearch(
   }
 
   // B) Tolerant category matching: Use OR conditions for canonical categories
+  // IMPORTANT: Also check subcategory field, as products may have matching subcategories
+  // even if their main category is different (e.g., "Perfume" subcategory under "Fragrance" category)
   if (whereFilters.categoryOr && whereFilters.categoryOr.length > 0) {
     // Build OR conditions for category matching
     const categoryConditions: Prisma.Sql[] = [];
     
     for (const orCondition of whereFilters.categoryOr) {
       if (orCondition.category) {
-        // Match on DB category field (exact or contains)
+        // Match on both DB category AND subcategory fields (exact or contains)
         const pattern = `%${orCondition.category.toLowerCase()}%`;
-        categoryConditions.push(Prisma.sql`LOWER("category") LIKE ${pattern}`);
+        categoryConditions.push(
+          Prisma.sql`LOWER("category") LIKE ${pattern} OR LOWER(COALESCE("subcategory", '')) LIKE ${pattern}`
+        );
       }
       // Note: googleCategory and productType are in JSON attributes, handled in post-filter
     }
@@ -633,9 +669,11 @@ async function dbRankedSearch(
       whereParts.push(Prisma.sql`(${joined})`);
     }
   } else if (whereFilters.category) {
-    // Use ILIKE for case-insensitive matching instead of exact match
+    // Use ILIKE for case-insensitive matching, also check subcategory
     const pattern = `%${whereFilters.category.toLowerCase()}%`;
-    whereParts.push(Prisma.sql`LOWER("category") LIKE ${pattern}`);
+    whereParts.push(
+      Prisma.sql`(LOWER("category") LIKE ${pattern} OR LOWER(COALESCE("subcategory", '')) LIKE ${pattern})`
+    );
   }
 
   // C) Keyword prefilter: Always include when canonical category detected or hardTextFilters provided
@@ -935,15 +973,25 @@ async function dbRankedSearch(
     }
     
     // B) Handle categoryOr for tolerant matching
+    // IMPORTANT: Also check subcategory field, as products may have matching subcategories
+    // even if their main category is different (e.g., "Perfume" subcategory under "Fragrance" category)
     if (whereFilters.categoryOr && whereFilters.categoryOr.length > 0) {
       const categoryConditions = whereFilters.categoryOr
         .filter((c) => c.category)
-        .map((c) => ({ category: { contains: c.category!, mode: Prisma.QueryMode.insensitive } }));
+        .flatMap((c) => [
+          { category: { contains: c.category!, mode: Prisma.QueryMode.insensitive } },
+          { subcategory: { contains: c.category!, mode: Prisma.QueryMode.insensitive } },
+        ]);
       if (categoryConditions.length > 0) {
         prismaWhere.OR = [...(prismaWhere.OR || []), ...categoryConditions];
       }
     } else if (whereFilters.category) {
-      prismaWhere.category = whereFilters.category;
+      // Check both category and subcategory fields
+      prismaWhere.OR = [
+        ...(prismaWhere.OR || []),
+        { category: { contains: whereFilters.category, mode: Prisma.QueryMode.insensitive } },
+        { subcategory: { contains: whereFilters.category, mode: Prisma.QueryMode.insensitive } },
+      ];
     }
     
     // Fix: Only add priceCents filter if values are defined and not null
@@ -1105,11 +1153,17 @@ async function dbRankedSearch(
       take: fetchTake,
     });
 
+    // Apply hard filters: stock status (in-stock only) and gender
+    // Stock status is a HARD FILTER - only in-stock products are scored and shown
+    let filteredResults = results.filter((product) => {
+      // Hard filter: Only in-stock products
+      return product.stockStatus === 'in_stock';
+    });
+    
     // Apply gender filter in-memory if needed (Prisma JSON path filtering not available in all versions)
     // Supports both normalized (mens/womens) and raw CSV values (male/female)
-    let filteredResults = results;
     if (genderFilter?.length) {
-      filteredResults = results.filter((product) => {
+      filteredResults = filteredResults.filter((product) => {
         const attrs = product.attributes as any;
         const productGender = attrs?.gender;
         if (!productGender) return false;
@@ -1148,13 +1202,110 @@ async function dbRankedSearch(
       });
     }
 
-    // Calculate fallback relevance ranking (not recency-only)
+    // Calculate fallback relevance ranking (not recency-only) with a weighted hierarchy
     const rankedResults = filteredResults.map((product) => {
       let rank = 0.0;
       const attrs = product.attributes as any;
       
-      // Gender match boost (+2.0 for exact match, +1.0 for unisex match)
-      // Supports both normalized (mens/womens) and raw CSV values (male/female)
+      // -----------------------------
+      // Helpers
+      // -----------------------------
+      const safeLower = (val?: string | null) => (val || '').toString().toLowerCase().trim();
+      const arrayLower = (arr?: unknown[]) =>
+        Array.isArray(arr) ? arr.map((v) => safeLower(String(v))).filter(Boolean) : [];
+      const textIncludesAny = (haystack: string, needles: string[]) =>
+        needles.some((n) => n && haystack.includes(n));
+      
+      const titleLower = safeLower(product.title);
+      const descLower = safeLower(product.description);
+      const subcatLower = safeLower((product as any).subcategory);
+      const brandLower = safeLower((product as any).brand) || safeLower(attrs?.brand);
+      const labelLower = safeLower(attrs?.label);
+      const collectionLower = safeLower(attrs?.collection);
+      const shortTitleLower = safeLower(attrs?.short_title || attrs?.shortTitle);
+      const categoryLower = safeLower(product.category);
+      const verticalLower = safeLower(attrs?.vertical);
+      const taxonPathLower = safeLower(attrs?.taxon_path);
+      const externalSkuLower = safeLower(attrs?.external_sku);
+      const barcodeLower = safeLower(attrs?.barcode);
+      const sourceIdLower = safeLower((product as any).sourceId);
+      
+      const attrText = extractSearchableTextFromAttributes(attrs).toLowerCase();
+      const benefitsLower = arrayLower(attrs?.benefits).join(' ');
+      const claimsLower = arrayLower(attrs?.claims).join(' ');
+      const useCasesLower = arrayLower(attrs?.useCases).join(' ');
+      const styleTagsLower = arrayLower(attrs?.styleTags).join(' ');
+      const compatibilityLower = arrayLower(attrs?.compatibility).join(' ');
+      const sensoryLower = safeLower(attrs?.sensoryProfile);
+      const ingredientsLower = arrayLower(attrs?.ingredients).join(' ');
+      const materialsLower = arrayLower(attrs?.materials || [attrs?.material]).join(' ');
+      const dimsLower = safeLower(attrs?.dimensions);
+      const weightLower = safeLower(attrs?.weight);
+      const sizeNotesLower = safeLower(attrs?.sizeFitNotes);
+      const usageInstrLower = safeLower(attrs?.usageInstructions);
+      const safetyLower = arrayLower(attrs?.safetyCompliance).join(' ');
+      const attrChipsLower = arrayLower((attrs as any)?.attribute_chips).join(' ');
+      
+      const keywordData = keywordRankingData;
+      const queryTokens =
+        keywordData?.individualWords?.length
+          ? keywordData.individualWords
+          : (queryText || '')
+              .toLowerCase()
+              .split(/\s+/)
+              .filter((w) => w.length >= 2)
+              .slice(0, 10);
+      const phrases = keywordData?.exactPhrases || [];
+      const twoWordCombos = keywordData?.twoWordCombos || [];
+      
+      const isCodeLike =
+        !!queryText &&
+        (/[A-Za-z]+[\d]+[\w-]*/.test(queryText) || /^\d{8,}$/.test(queryText.trim()));
+      
+      // -----------------------------
+      // A) Identity / codes (strongest)
+      // -----------------------------
+      if (isCodeLike) {
+        const qLower = queryText!.toLowerCase().trim();
+        if (qLower && (externalSkuLower === qLower || barcodeLower === qLower || sourceIdLower === qLower)) {
+          rank += 120;
+        }
+      }
+      // Title / short title / label exact phrase (highest priority for identity)
+      // Title matches should "almost automatically push products to the very top"
+      if (phrases.some((p) => titleLower.includes(p))) rank += 60;
+      if (phrases.some((p) => shortTitleLower.includes(p) || labelLower.includes(p))) rank += 40;
+      // Brand / collection (very strong signal when mentioned)
+      if (brandLower && queryTokens.some((t) => brandLower.includes(t))) rank += 30;
+      if (collectionLower && queryTokens.some((t) => collectionLower.includes(t))) rank += 22;
+      
+      // -----------------------------
+      // B) Type & category (almost as important as name)
+      // -----------------------------
+      const typeText = `${categoryLower} ${subcatLower} ${verticalLower} ${taxonPathLower}`;
+      if (textIncludesAny(typeText, phrases)) rank += 28;
+      else if (textIncludesAny(typeText, twoWordCombos)) rank += 20;
+      else if (textIncludesAny(typeText, queryTokens)) rank += 15;
+      
+      // -----------------------------
+      // C) Needs & benefits (description, highlights, benefits, claims, attributes)
+      // -----------------------------
+      const needText = `${descLower} ${attrText} ${benefitsLower} ${claimsLower} ${useCasesLower} ${styleTagsLower} ${compatibilityLower} ${sensoryLower} ${attrChipsLower}`;
+      if (textIncludesAny(needText, phrases)) rank += 20;
+      else if (textIncludesAny(needText, twoWordCombos)) rank += 14;
+      else if (textIncludesAny(needText, queryTokens)) rank += 10;
+      
+      // -----------------------------
+      // D) Specs / ingredients / size (strong when explicitly asked)
+      // -----------------------------
+      const specText = `${ingredientsLower} ${materialsLower} ${dimsLower} ${weightLower} ${sizeNotesLower} ${usageInstrLower} ${safetyLower}`;
+      if (textIncludesAny(specText, phrases)) rank += 18;
+      else if (textIncludesAny(specText, twoWordCombos)) rank += 13;
+      else if (textIncludesAny(specText, queryTokens)) rank += 9;
+      
+      // -----------------------------
+      // E) Gender preference boost (kept)
+      // -----------------------------
       if (genderFilter?.length) {
         const productGender = attrs?.gender;
         const normalizedProductGender = productGender?.toLowerCase().trim();
@@ -1186,84 +1337,52 @@ async function dbRankedSearch(
         }
       }
       
-      // Keyword match boost with priority: exact phrase > 2-word combos > individual words
-      // Include unified catalog fields in text search
-      if (keywordRankingData) {
-        const titleLower = product.title.toLowerCase();
-        const descLower = (product.description || '').toLowerCase();
-        const subcatLower = ((product as any).subcategory || '').toLowerCase();
-        const attrsText = extractSearchableTextFromAttributes(attrs).toLowerCase();
-        const searchText = `${titleLower} ${descLower} ${subcatLower} ${attrsText}`;
-        
-        // Exact phrase match: +10.0 boost (highest priority)
-        for (const phrase of keywordRankingData.exactPhrases) {
-          if (searchText.includes(phrase)) {
-            rank += 10.0;
-            break; // Only count once per product
-          }
-        }
-        
-        // 2-word combination match: +5.0 boost (medium priority)
-        // Only apply if exact phrase didn't match
-        if (rank < 10.0) {
-          for (const combo of keywordRankingData.twoWordCombos) {
-            if (searchText.includes(combo)) {
-              rank += 5.0;
-              break; // Only count once per product
-            }
-          }
-        }
-        
-        // Individual word match: +1.0 boost per word (lowest priority)
-        // Only apply if exact phrase and combos didn't match
-        if (rank < 5.0) {
+      // -----------------------------
+      // F) Fallback general keyword boosts (lighter)
+      // -----------------------------
+      if (keywordData) {
+        const searchText = `${titleLower} ${shortTitleLower} ${descLower} ${subcatLower} ${attrText}`;
+        if (phrases.some((p) => searchText.includes(p))) rank += 6;
+        else if (twoWordCombos.some((c) => searchText.includes(c))) rank += 4;
+        else {
           let wordMatches = 0;
-          for (const word of keywordRankingData.individualWords) {
+          for (const word of queryTokens) {
             if (searchText.includes(word)) {
               wordMatches++;
-              if (wordMatches >= 4) break; // Max 4 words
+              if (wordMatches >= 4) break;
             }
           }
           rank += wordMatches * 1.0;
         }
       }
       
-      // Query text token matches (include unified catalog fields)
-      if (queryText?.trim()) {
-        const words = queryText
-          .split(/\s+/)
-          .map((w) => w.trim().toLowerCase())
-          .filter((w) => w.length >= 3)
-          .slice(0, 5);
-        const titleLower = product.title.toLowerCase();
-        const descLower = (product.description || '').toLowerCase();
-        const subcatLower = ((product as any).subcategory || '').toLowerCase();
-        const attrsText = extractSearchableTextFromAttributes(attrs).toLowerCase();
-        let tokenMatches = 0;
-        for (const word of words) {
-          if (titleLower.includes(word) || descLower.includes(word) || subcatLower.includes(word) || attrsText.includes(word)) {
-            tokenMatches++;
-            if (tokenMatches >= 4) break;
-          }
-        }
-        rank += tokenMatches * 0.75;
-      }
-      
-      // Category match boost (+1.5)
+      // -----------------------------
+      // G) Category alignment (extra boost when product type clearly matches query type)
+      // -----------------------------
       if (whereFilters.categoryOr && whereFilters.categoryOr.length > 0) {
         for (const orCondition of whereFilters.categoryOr) {
           if (orCondition.category && product.category.toLowerCase().includes(orCondition.category.toLowerCase())) {
-            rank += 1.5;
+            rank += 8.0;
             break;
           }
         }
       } else if (whereFilters.category && product.category.toLowerCase().includes(whereFilters.category.toLowerCase())) {
-        rank += 1.5;
+        rank += 8.0;
       }
       
-      // Recency as tie-breaker only (0.2 * normalized days since update)
+      // -----------------------------
+      // H) Price & availability as tie-breakers (small bonuses, only reorder already-good matches)
+      // -----------------------------
+      // NOTE: Stock status is now a HARD FILTER (applied above), not a scoring bonus
+      // On sale: small tie-breaker
+      if (product.salePriceCents && product.salePriceCents < product.priceCents) {
+        rank += 3.0;
+      }
+      
+      // Recency: small tie-breaker (up to +2 max)
       const daysSinceUpdate = (Date.now() - product.updatedAt.getTime()) / (1000 * 60 * 60 * 24);
-      rank += 0.2 * Math.max(0, 30 - daysSinceUpdate) / 30; // Normalize to 0-0.2 range
+      // Normalize to 0-2 range (products updated within last 30 days get full +2, older products get less)
+      rank += (2.0 * Math.max(0, 30 - daysSinceUpdate)) / 30;
       
       return { ...product, rank };
     });

@@ -240,7 +240,9 @@ Example good opening: "I don't have ${categoryStr} in the catalog, but I found s
 DO NOT write a reply that pretends we have ${categoryStr}.`;
   }
 
-  return `${intro} Craft a concise, friendly reply to the shopper.
+  return `${intro} Craft a concise, friendly opening message that appears ABOVE the product cards.
+
+IMPORTANT: This is an OPENER/INTRODUCTION, not a conclusion. A separate follow-up message below the cards will provide the conclusion and next steps.
 
 Context:
 - User's original query
@@ -252,10 +254,17 @@ ${attributeGuidance}
 ${categoryExistenceWarning}
 
 Your task:
-Write a natural replyText:
-1. Briefly acknowledge what they asked for (1 short sentence).${requestedCategoryExists === false ? ' If the requested category doesn\'t exist, acknowledge this immediately and honestly.' : ''}
-2. Summarize what you found and why it should work. Reference shared attributes/use-cases/benefits rather than product names (1–2 short sentences).
-3. Reinforce the catalog's tone/brand voice while keeping language inclusive of any shopper or vertical.
+Write a natural opening replyText that:
+1. Briefly acknowledges what they asked for (1 short sentence).${requestedCategoryExists === false ? ' If the requested category doesn\'t exist, acknowledge this immediately and honestly.' : ''}
+2. Describes what you found on a broad level and why you found these products (1–2 short sentences). Focus on the search criteria, category, shared attributes, or general characteristics that led to these results. Reference shared attributes/use-cases/benefits rather than product names.
+3. Sets up the products they're about to see without being conclusive. Think of this as an introduction that explains the search process and what types of products match their criteria.
+
+CRITICAL TONE RULES:
+- **This is an OPENER, not a conclusion.** Keep it exploratory and informative, not definitive.
+- **Do NOT sound conclusive** (e.g., avoid "Here are the perfect options" or "These are exactly what you need").
+- **Do sound informative** (e.g., "I searched for X and found products that match Y criteria" or "Based on your request for X, I found options with Y attributes").
+- **Explain the "why" concisely** - briefly mention what search criteria or attributes led to these results.
+- Maintain the catalog's tone/brand voice while keeping language inclusive of any shopper or vertical.
 
 CRITICAL FORMATTING RULES:
 - **No paragraph should exceed 1–2 short sentences.**
@@ -267,7 +276,8 @@ CRITICAL FORMATTING RULES:
 CRITICAL CONTENT RULES:
 - **Do NOT mention specific product titles, SKUs, or URLs.**
 - **Do NOT restate filter parameters verbatim** (e.g., "Price: under $50").
-- Talk about how the products address the shopper's goals using dataset-appropriate attributes (benefits, useCases, styleTags, compatibility, sensoryProfile, materials, etc.).
+- **Do NOT sound conclusive or definitive** - save conclusions for the follow-up text below the cards.
+- Talk about the search process and what types of products match using dataset-appropriate attributes (benefits, useCases, styleTags, compatibility, sensoryProfile, materials, etc.).
 - Only reference attributes present in the product data; never invent materials, sizes, claims, availability, or policies.
 - Do NOT mention discounts, shipping, or return policies.
 - Do NOT generate product cards or "Chosen because…" reasons (those are handled elsewhere).

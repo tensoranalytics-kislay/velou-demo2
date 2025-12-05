@@ -495,6 +495,12 @@ export default function ChatPanel() {
 
   const isEmpty = messages.length === 1 && messages[0].role === 'assistant';
 
+  // Memoize lastUserMessage to ensure SuggestedPrompts component properly reacts to changes
+  const lastUserMessage = useMemo(() => {
+    const userMessages = messages.filter((m) => m.role === 'user');
+    return userMessages.length > 0 ? userMessages[userMessages.length - 1]?.content || null : null;
+  }, [messages]);
+
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-x-hidden">
       {/* Clear chat button - positioned absolutely in top right */}
@@ -526,16 +532,11 @@ export default function ChatPanel() {
           queryType={queryType}
         />
         <SuggestedPrompts
+          key={lastUserMessage || 'initial'}
           onSelect={(prompt) => {
             handleSendMessage(prompt);
           }}
-          lastUserMessage={
-            messages.length > 0
-              ? messages
-                  .filter((m) => m.role === 'user')
-                  .slice(-1)[0]?.content || null
-              : null
-          }
+          lastUserMessage={lastUserMessage}
         />
         <div className="mt-3">
           <MessageInput 

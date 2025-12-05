@@ -50,12 +50,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ suggestions: unique });
     }
     
-    // If lastMessage is unrelated to catalog terms, short-circuit with no new prompts
+    // If lastMessage is provided, always attempt LLM generation first
+    // Only skip if we can definitively prove it's irrelevant by checking actual product data
     if (lastMessage) {
       const keywords = stripFillerPhrases(lastMessage)
         .toLowerCase()
         .split(/\s+/)
-        .filter(Boolean);
+        .filter(Boolean)
+        .filter(kw => !['under', 'below', 'over', 'above', '$'].includes(kw)); // Remove price-related filler words
+      
+      // Check against ontology terms
       const catalogTerms = new Set(
         [
           ...(ontology.categories || []),
@@ -66,12 +70,51 @@ export async function GET(request: NextRequest) {
           .filter(Boolean)
           .map((t) => t.toLowerCase()),
       );
-      const hasMatch = keywords.some((kw) =>
-        Array.from(catalogTerms).some((ct) => kw.includes(ct) || ct.includes(kw)),
+      
+      // Also check against actual product data (titles, descriptions, subcategories)
+      // This is more lenient and catches product types that might not be in ontology
+      const hasOntologyMatch = keywords.some((kw) =>
+        Array.from(catalogTerms).some((ct) => {
+          const kwLower = kw.toLowerCase();
+          const ctLower = ct.toLowerCase();
+          return kwLower.includes(ctLower) || ctLower.includes(kwLower) || kwLower === ctLower;
+        }),
       );
-      if (!hasMatch) {
-        return NextResponse.json({ suggestions: [] });
+      
+      // Quick check against product titles/subcategories if ontology check fails
+      let hasProductMatch = false;
+      if (!hasOntologyMatch && keywords.length > 0) {
+        const searchTerm = keywords.slice(0, 2).join(' '); // Use first 2 keywords for quick check
+        const productCheck = await prisma.product.findFirst({
+          where: {
+            OR: [
+              { title: { contains: searchTerm, mode: 'insensitive' } },
+              { subcategory: { contains: searchTerm, mode: 'insensitive' } },
+              { description: { contains: searchTerm, mode: 'insensitive' } },
+            ],
+          },
+          select: { id: true },
+        });
+        hasProductMatch = !!productCheck;
       }
+      
+      const isRelevant = hasOntologyMatch || hasProductMatch;
+      
+      console.log('[suggestions] Catalog relevance check:', {
+        lastMessage,
+        keywords,
+        catalogTermsCount: catalogTerms.size,
+        hasOntologyMatch,
+        hasProductMatch,
+        isRelevant,
+      });
+      
+      // Always proceed to LLM generation - don't block based on relevance check
+      // The LLM can handle edge cases and generate relevant prompts even if keyword matching fails
+      console.log('[suggestions] Proceeding with prompt generation', {
+        isRelevant,
+        willAttemptLLM: true,
+      });
     }
 
     // Get price ranges from catalog
@@ -430,15 +473,47 @@ export async function GET(request: NextRequest) {
 
     // If lastMessage is provided, generate follow-up prompts via the lightweight OpenAI helper
     if (lastMessage && lastMessage.trim()) {
+      console.log('[suggestions] ===== STARTING PROMPT GENERATION =====');
+      console.log('[suggestions] Generating follow-up prompts for:', lastMessage);
+      console.log('[suggestions] Dataset context:', {
+        vertical: datasetContext?.vertical,
+        hasPrimaryFacets: !!datasetContext?.primaryFacets?.length,
+        hasSampleCategories: !!datasetContext?.sampleCategories?.length,
+      });
       try {
         const followUpPrompts = await generateFollowUpPrompts(lastMessage, ontology, popularCategories, popularColors, fitArray, occasionArray, genders, priceTiers, datasetContext);
-        if (followUpPrompts.length >= 3) {
+        console.log('[suggestions] Generated follow-up prompts:', {
+          count: followUpPrompts.length,
+          prompts: followUpPrompts,
+        });
+        if (followUpPrompts.length > 0) {
+          console.log('[suggestions] ===== RETURNING LLM PROMPTS =====');
           return NextResponse.json({ suggestions: followUpPrompts.slice(0, 3) });
         }
-        // Fall through to catalog-based suggestions if LLM fails
+        // Fall through to generate dataset-aware prompts based on lastMessage
+        console.log('[suggestions] LLM returned empty prompts, generating dataset-aware prompts from lastMessage');
       } catch (error) {
-        console.error('Error generating follow-up prompts:', error);
-        // Fall through to catalog-based suggestions
+        console.error('[suggestions] Error generating follow-up prompts:', error);
+        console.error('[suggestions] Error details:', error instanceof Error ? error.message : String(error));
+        // Fall through to generate dataset-aware prompts based on lastMessage
+      }
+      
+      // Generate dataset-aware prompts based on lastMessage when LLM fails
+      const messageBasedPrompts = await generateMessageBasedPrompts(
+        lastMessage,
+        ontology,
+        popularCategories,
+        popularColors,
+        fitArray,
+        occasionArray,
+        genders,
+        priceTiers,
+        datasetContext,
+        suggestions, // Pass existing catalog suggestions as context
+      );
+      if (messageBasedPrompts.length > 0) {
+        console.log('[suggestions] Generated message-based prompts:', messageBasedPrompts);
+        return NextResponse.json({ suggestions: messageBasedPrompts.slice(0, 3) });
       }
     }
 
@@ -672,6 +747,162 @@ function formatPrompt(prompt: string): string {
 }
 
 /**
+ * Generates dataset-aware prompts based on the last user message when LLM fails
+ * Extracts relevant categories, attributes, and constraints from the message
+ * and combines them with catalog data to create relevant prompts
+ */
+async function generateMessageBasedPrompts(
+  lastMessage: string,
+  ontology: Awaited<ReturnType<typeof getCatalogOntology>>,
+  popularCategories: string[],
+  popularColors: string[],
+  popularFits: string[],
+  popularOccasions: string[],
+  genders: string[],
+  priceTiers: Array<{ label: string; max: number }>,
+  datasetContext: Awaited<ReturnType<typeof getDatasetContext>>,
+  existingSuggestions: string[],
+): Promise<string[]> {
+  const prompts: string[] = [];
+  const messageLower = lastMessage.toLowerCase();
+  
+  // Extract price constraints from message
+  const priceMatch = lastMessage.match(/\$(\d+)|under\s+\$(\d+)|below\s+\$(\d+)/i);
+  const priceConstraint = priceMatch ? priceMatch[1] || priceMatch[2] || priceMatch[3] : null;
+  const priceTier = priceConstraint && priceTiers.length > 0
+    ? priceTiers.find(t => parseInt(priceConstraint) <= t.max) || priceTiers[0]
+    : priceTiers.length > 0 ? priceTiers[0] : null;
+  
+  // Find matching categories from the message
+  const allCategories = [
+    ...popularCategories,
+    ...(datasetContext?.sampleCategories || []),
+    ...(ontology.categories || []),
+  ];
+  const matchingCategories = allCategories.filter(cat => {
+    const catLower = cat.toLowerCase();
+    const messageWords = messageLower.split(/\s+/);
+    return messageWords.some(word => catLower.includes(word) || word.includes(catLower)) ||
+           catLower.includes(messageLower.split(/\s+/)[0]);
+  });
+  const categoriesToUse = matchingCategories.length > 0 
+    ? Array.from(new Set(matchingCategories)).slice(0, 3)
+    : (datasetContext?.sampleCategories?.slice(0, 3) || popularCategories.slice(0, 3));
+  
+  // Find matching colors
+  const matchingColors = popularColors.filter(color => 
+    messageLower.includes(color.toLowerCase())
+  );
+  
+  // Query products to get actual attribute values
+  const attributeSamples = await prisma.product.findMany({
+    where: {
+      stockStatus: { in: ['in_stock', 'low_stock'] },
+      ...(categoriesToUse.length > 0 ? {
+        category: { in: categoriesToUse },
+      } : {}),
+    },
+    select: { attributes: true },
+    take: 50,
+  });
+  
+  // Extract actual attribute values from products
+  const actualAttributes: Record<string, Set<string>> = {};
+  attributeSamples.forEach(p => {
+    const attrs = p.attributes as any;
+    if (attrs) {
+      ['usage_contexts', 'benefits', 'compatibility', 'style_tags'].forEach(attrKey => {
+        if (Array.isArray(attrs[attrKey])) {
+          if (!actualAttributes[attrKey]) actualAttributes[attrKey] = new Set();
+          attrs[attrKey].forEach((val: string) => {
+            if (typeof val === 'string' && val.trim()) {
+              actualAttributes[attrKey].add(val.toLowerCase().trim());
+            }
+          });
+        }
+      });
+    }
+  });
+  
+  // Extract attributes/benefits from message
+  const primaryFacets = datasetContext?.primaryFacets || [];
+  const extractedAttributes: string[] = [];
+  
+  // Check message against actual catalog attributes
+  Object.values(actualAttributes).forEach(attrSet => {
+    attrSet.forEach(attr => {
+      if (messageLower.includes(attr) || attr.includes(messageLower.split(/\s+/)[0])) {
+        extractedAttributes.push(attr);
+      }
+    });
+  });
+  
+  // Also check for common attribute keywords
+  const attributeKeywords = [
+    'dry', 'oily', 'sensitive', 'normal', 'combination',
+    'moisturizing', 'hydrating', 'anti-aging', 'brightening',
+    'fragrance-free', 'vegan', 'organic', 'natural',
+    'casual', 'formal', 'office', 'beach', 'winter', 'summer',
+  ];
+  
+  attributeKeywords.forEach(keyword => {
+    if (messageLower.includes(keyword) && !extractedAttributes.includes(keyword)) {
+      extractedAttributes.push(keyword);
+    }
+  });
+  
+  // Generate prompts based on extracted information
+  if (categoriesToUse.length > 0) {
+    const category = categoriesToUse[0];
+    
+    // Category + Price
+    if (priceTier) {
+      prompts.push(`${category} ${priceTier.label}`);
+    }
+    
+    // Category + Attribute + Price
+    if (extractedAttributes.length > 0 && priceTier) {
+      const attr = extractedAttributes[0];
+      prompts.push(`${category} for ${attr}${priceTier ? ` ${priceTier.label}` : ''}`);
+    }
+    
+    // Category + Color (if color mentioned)
+    if (matchingColors.length > 0) {
+      prompts.push(`${category} ${matchingColors[0]}${priceTier ? ` ${priceTier.label}` : ''}`);
+    }
+    
+    // Category + Primary Facet from dataset
+    if (primaryFacets.length > 0 && extractedAttributes.length === 0) {
+      const facetValue = actualAttributes[primaryFacets[0].toLowerCase()] 
+        ? Array.from(actualAttributes[primaryFacets[0].toLowerCase()])[0]
+        : primaryFacets[0];
+      prompts.push(`${category} for ${facetValue}${priceTier ? ` ${priceTier.label}` : ''}`);
+    }
+    
+    // Second category variation
+    if (categoriesToUse.length > 1) {
+      const secondCategory = categoriesToUse[1];
+      if (priceTier) {
+        prompts.push(`${secondCategory} ${priceTier.label}`);
+      } else if (extractedAttributes.length > 0) {
+        prompts.push(`${secondCategory} for ${extractedAttributes[0]}`);
+      }
+    }
+  }
+  
+  // If we still don't have enough prompts, use dataset-aware defaults
+  if (prompts.length < 3) {
+    const defaultSuggestions = getDefaultSuggestions(datasetContext, popularCategories, priceTiers);
+    prompts.push(...defaultSuggestions.filter(s => !prompts.includes(s)).slice(0, 3 - prompts.length));
+  }
+  
+  // Remove duplicates, format, and return
+  return Array.from(new Set(prompts))
+    .map(formatPrompt)
+    .slice(0, 3);
+}
+
+/**
  * Generates follow-up prompts based on the last user message using OpenAI
  */
 async function generateFollowUpPrompts(
@@ -685,17 +916,17 @@ async function generateFollowUpPrompts(
   priceTiers: Array<{ label: string; max: number }>,
   datasetContext: Awaited<ReturnType<typeof getDatasetContext>>,
 ): Promise<string[]> {
-  // Build context about available catalog items
+  // Build comprehensive catalog context
   const catalogContext = `
-Available categories: ${popularCategories.slice(0, 10).join(', ')}
-Available colors: ${popularColors.slice(0, 10).join(', ')}
-Available fits/styles: ${popularFits.slice(0, 10).join(', ')}
-Available occasions: ${popularOccasions.slice(0, 10).join(', ')}
-Available genders: ${genders.slice(0, 5).join(', ')}
+Available categories: ${popularCategories.slice(0, 15).join(', ')}
+Available colors: ${popularColors.slice(0, 15).join(', ')}
+${popularFits.length > 0 ? `Available fits/styles: ${popularFits.slice(0, 10).join(', ')}` : ''}
+${popularOccasions.length > 0 ? `Available occasions: ${popularOccasions.slice(0, 10).join(', ')}` : ''}
+${genders.length > 0 ? `Available genders: ${genders.slice(0, 5).join(', ')}` : ''}
 Price ranges: ${priceTiers.map(t => t.label).join(', ')}
 `.trim();
 
-  // Build vertical-specific context
+  // Build vertical-specific context with dataset information
   const vertical = datasetContext?.vertical;
   const verticalContext = vertical
     ? `This catalog focuses on ${vertical} products.`
@@ -703,12 +934,22 @@ Price ranges: ${priceTiers.map(t => t.label).join(', ')}
   
   const primaryFacets = datasetContext?.primaryFacets || [];
   const facetsContext = primaryFacets.length > 0
-    ? `Key attributes customers care about: ${primaryFacets.slice(0, 5).join(', ')}.`
+    ? `Key attributes customers care about: ${primaryFacets.slice(0, 8).join(', ')}.`
+    : '';
+
+  const sampleCategories = datasetContext?.sampleCategories || [];
+  const sampleCategoriesContext = sampleCategories.length > 0
+    ? `Sample categories in this catalog: ${sampleCategories.slice(0, 10).join(', ')}.`
+    : '';
+
+  const recommendedExamples = datasetContext?.recommendedSearchExamples || [];
+  const examplesContext = recommendedExamples.length > 0
+    ? `Example search queries that work well: ${recommendedExamples.slice(0, 5).map(ex => `"${ex}"`).join(', ')}.`
     : '';
 
   // Build industry-agnostic assistant description
   let assistantDescription = 'a shopping assistant helping users find products';
-  if (vertical === 'skincare' || vertical === 'beauty') {
+  if (vertical === 'skincare' || vertical === 'beauty' || vertical === 'health & beauty') {
     assistantDescription = 'a beauty assistant helping users find skincare and beauty products';
   } else if (vertical === 'home' || vertical === 'home decor') {
     assistantDescription = 'a home assistant helping users find home decor and furnishings';
@@ -716,49 +957,55 @@ Price ranges: ${priceTiers.map(t => t.label).join(', ')}
     assistantDescription = 'a shopping assistant helping users find fashion items';
   }
 
-  const prompt = `You are ${assistantDescription}. Based on the user's last message, generate 3 relevant follow-up search prompts that would help them refine or explore related items.
+  const prompt = `You are ${assistantDescription}. Based on the user's last message, generate 3 detailed and specific follow-up search prompts that would help them refine or explore related items.
 
 ${verticalContext}
 ${facetsContext}
-
-User's last message: "${lastMessage}"
-
-${catalogContext}
+${sampleCategoriesContext}
+${examplesContext}
 
 User's last message: "${lastMessage}"
 
 ${catalogContext}
 
 Generate 3 follow-up prompts that are:
-1. Relevant to what the user just asked about
-2. VERY CONCISE (3-5 words maximum, no filler words)
+1. Highly relevant to what the user just asked about (build on their query)
+2. DETAILED and SPECIFIC (6-12 words, include relevant attributes, benefits, use cases, or constraints)
 3. Properly capitalized with correct grammar (first word capitalized, proper nouns capitalized)
-4. Specific with style, gender, occasion, or price when appropriate
-5. Different from each other (vary the angle: refine, explore alternatives, add constraints)
+4. Include specific attributes when appropriate (e.g., "for dry skin", "under $50", "citrus-scented", "vegan", "sensitive skin")
+5. Different from each other (vary the angle: refine with different attributes, explore alternatives, add price/style constraints)
+6. Use language and terminology appropriate for ${vertical || 'this catalog'}
 
-CRITICAL: Keep prompts SHORT - maximum 5 words. NEVER include filler phrases like "show me", "find", "looking for", "search for", "I want", "get me". Start directly with the product/category. Use language appropriate for ${vertical || 'the catalog'}. 
+CRITICAL RULES:
+- NEVER include filler phrases like "show me", "find", "looking for", "search for", "I want", "get me", "help me find"
+- Start directly with the product/category/attribute
+- Make prompts DETAILED and SPECIFIC - include relevant attributes, benefits, use cases, price constraints, or style details
+- Use actual categories, attributes, and terms from the catalog context above
+- Each prompt should be distinct and offer a different exploration path
 
-${vertical === 'skincare' || vertical === 'beauty' 
-  ? 'Examples: "moisturizer for dry skin", "night routine serum", "sensitive skin cleanser"'
+${examplesContext ? `Use these example patterns as inspiration: ${recommendedExamples.slice(0, 3).map(ex => `"${ex}"`).join(', ')}` : ''}
+
+${vertical === 'skincare' || vertical === 'beauty' || vertical === 'health & beauty'
+  ? 'Examples: "moisturizer for dry skin under $40", "night routine serum with hyaluronic acid", "sensitive skin cleanser fragrance-free"'
   : vertical === 'home' || vertical === 'home decor'
-  ? 'Examples: "bathroom towels under $50", "minimalist bedroom decor", "spa-like essentials"'
+  ? 'Examples: "bathroom towels under $50 soft and absorbent", "minimalist bedroom decor neutral colors", "spa-like essentials for relaxation"'
   : vertical === 'apparel' || vertical === 'fashion'
-  ? 'Examples: "flare jeans under $50", "black straight leg jeans", "wide leg pants casual"'
+  ? 'Examples: "flare jeans under $50 high-waisted", "black straight leg jeans for casual wear", "wide leg pants in neutral colors"'
   : popularCategories.length > 0
-  ? `Examples: "${popularCategories[0]} ${priceTiers.length > 0 ? priceTiers[0].label : ''}", "${popularCategories.length > 1 ? popularCategories[1] : popularCategories[0]}", "popular items"`
-  : 'Examples: "popular items", "best sellers", "featured products"'
+  ? `Examples: "${popularCategories[0]} ${primaryFacets.length > 0 ? `for ${primaryFacets[0]}` : ''} ${priceTiers.length > 0 ? priceTiers[0].label : ''}", "${popularCategories.length > 1 ? popularCategories[1] : popularCategories[0]} ${primaryFacets.length > 1 ? `with ${primaryFacets[1]}` : ''}", "${popularCategories[0]} ${popularColors.length > 0 ? popularColors[0] : ''} ${priceTiers.length > 0 ? priceTiers[0].label : ''}"`
+  : 'Examples: "popular items with great reviews", "best sellers under $100", "featured products for daily use"'
 }
 
 Format: Return ONLY a JSON array of exactly 3 strings, no other text.
-${vertical === 'skincare' || vertical === 'beauty'
-  ? 'Example: ["moisturizer for dry skin", "night routine serum", "sensitive skin cleanser"]'
+${vertical === 'skincare' || vertical === 'beauty' || vertical === 'health & beauty'
+  ? 'Example: ["moisturizer for dry skin under $40", "night routine serum with hyaluronic acid", "sensitive skin cleanser fragrance-free"]'
   : vertical === 'home' || vertical === 'home decor'
-  ? 'Example: ["bathroom towels under $50", "minimalist bedroom decor", "spa-like essentials"]'
+  ? 'Example: ["bathroom towels under $50 soft and absorbent", "minimalist bedroom decor neutral colors", "spa-like essentials for relaxation"]'
   : vertical === 'apparel' || vertical === 'fashion'
-  ? 'Example: ["flare jeans under $50", "black straight leg jeans", "wide leg pants casual"]'
+  ? 'Example: ["flare jeans under $50 high-waisted", "black straight leg jeans for casual wear", "wide leg pants in neutral colors"]'
   : popularCategories.length > 0
-  ? `Example: ["${popularCategories[0]} ${priceTiers.length > 0 ? priceTiers[0].label : ''}", "${popularCategories.length > 1 ? popularCategories[1] : popularCategories[0]}", "popular items"]`
-  : 'Example: ["popular items", "best sellers", "featured products"]'
+  ? `Example: ["${popularCategories[0]} ${primaryFacets.length > 0 ? `for ${primaryFacets[0]}` : ''} ${priceTiers.length > 0 ? priceTiers[0].label : ''}", "${popularCategories.length > 1 ? popularCategories[1] : popularCategories[0]} ${primaryFacets.length > 1 ? `with ${primaryFacets[1]}` : ''}", "${popularCategories[0]} ${popularColors.length > 0 ? popularColors[0] : ''} ${priceTiers.length > 0 ? priceTiers[0].label : ''}"]`
+  : 'Example: ["popular items with great reviews", "best sellers under $100", "featured products for daily use"]'
 }
 
 Return the JSON array:`;
