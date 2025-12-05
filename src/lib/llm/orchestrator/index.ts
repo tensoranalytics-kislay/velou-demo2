@@ -208,6 +208,7 @@ async function runDiscoveryFlow(
   intent: AssistantIntent,
   datasetContext?: DatasetContext | null,
   onProgress?: ProgressCallback,
+  conversationContext?: ConversationContext,
 ): Promise<AssistantQueryResult> {
   logger.debug('runDiscoveryFlow start', {
     constraints: {
@@ -240,9 +241,45 @@ async function runDiscoveryFlow(
     ? extractHardTextFilterKeywords(userMessage, constraints.category)
     : (constraints as any).hardTextFilters as string[] | undefined;
 
-  // Add hardTextFilters to constraints for searchProducts
+  // Exclude previously shown products in follow-up refinements
+  // This ensures users see different products when they refine their search
+  // Only exclude when:
+  // 1. There are previously shown products
+  // 2. This is a follow-up (has previous constraints)
+  // 3. Category hasn't changed (not a SWITCH)
+  const lastShownProductIds = conversationContext?.lastShownProductIds;
+  const previousConstraints = conversationContext?.lastConstraints;
+  const previousCategory = previousConstraints?.category 
+    ? (Array.isArray(previousConstraints.category) ? previousConstraints.category[0] : previousConstraints.category)
+    : null;
+  const currentCategory = constraints.category
+    ? (Array.isArray(constraints.category) ? constraints.category[0] : constraints.category)
+    : null;
+  const categoryChanged = previousCategory && currentCategory && previousCategory !== currentCategory;
+  
+  const shouldExcludePrevious = lastShownProductIds && 
+    lastShownProductIds.length > 0 && 
+    previousConstraints && 
+    !categoryChanged; // Don't exclude on category switches
+  
+  const excludeProductIds = shouldExcludePrevious
+    ? [...(constraints.excludeProductIds || []), ...lastShownProductIds]
+    : constraints.excludeProductIds;
+  
+  if (shouldExcludePrevious && excludeProductIds?.length) {
+    logger.debug('runDiscoveryFlow excluding previous products', {
+      excludedCount: excludeProductIds.length,
+      lastShownProductIds: lastShownProductIds.length,
+      previousCategory,
+      currentCategory,
+      categoryChanged,
+    });
+  }
+
+  // Add hardTextFilters and excludeProductIds to constraints for searchProducts
   const constraintsWithHardFilters = {
     ...constraints,
+    excludeProductIds: excludeProductIds?.length ? Array.from(new Set(excludeProductIds)) : undefined, // Deduplicate
     ...(hardTextFilters && hardTextFilters.length > 0 ? { hardTextFilters } : {}),
   } as SearchConstraints & { hardTextFilters?: string[] };
 
@@ -738,7 +775,7 @@ async function runPdpFlow(
 ): Promise<AssistantQueryResult> {
   const productRecord = await prisma.product.findUnique({ where: { id: productContextId } });
   if (!productRecord) {
-    return runDiscoveryFlow(constraints, userMessage, 'discovery', datasetContext);
+    return runDiscoveryFlow(constraints, userMessage, 'discovery', datasetContext, undefined, undefined);
   }
 
   const baseProduct = productToResultItem(productRecord);
@@ -1051,7 +1088,7 @@ export async function handleAssistantQuery(input: AssistantQueryInput): Promise<
       if (input.productContextId) {
         result = await runProductQaFlow(input.productContextId, input.message, datasetContext, input.onProgress);
       } else {
-        result = await runDiscoveryFlow(mergedConstraints, input.message, intent, datasetContext, input.onProgress);
+        result = await runDiscoveryFlow(mergedConstraints, input.message, intent, datasetContext, input.onProgress, input.conversationContext);
       }
 
       return {
@@ -1159,7 +1196,7 @@ export async function handleAssistantQuery(input: AssistantQueryInput): Promise<
   if (input.productContextId) {
     result = await runProductQaFlow(input.productContextId, input.message, datasetContext, input.onProgress);
   } else {
-    result = await runDiscoveryFlow(constraints, input.message, intent, datasetContext, input.onProgress);
+    result = await runDiscoveryFlow(constraints, input.message, intent, datasetContext, input.onProgress, input.conversationContext);
   }
 
   return {

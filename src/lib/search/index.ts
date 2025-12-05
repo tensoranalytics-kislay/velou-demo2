@@ -281,8 +281,17 @@ export const matchesAttributeFilters = (
   if (constraints.occasions?.length && !valueMatches(attrs.occasion, constraints.occasions))
     return false;
   if (constraints.sizes?.length && !arrayIncludes(attrs.sizes, constraints.sizes)) return false;
-  if (constraints.useCases?.length && !arrayIncludes(attrs.useCases, constraints.useCases))
-    return false;
+  // Use soft matching for useCases: check if any constraint value is contained in any product useCase (substring match)
+  if (constraints.useCases?.length) {
+    const productUseCases = attrs.useCases || [];
+    const useCaseMatches = constraints.useCases.some((constraintUseCase) =>
+      productUseCases.some((productUseCase) =>
+        productUseCase.toLowerCase().includes(constraintUseCase.toLowerCase()) ||
+        constraintUseCase.toLowerCase().includes(productUseCase.toLowerCase())
+      )
+    );
+    if (!useCaseMatches) return false;
+  }
 
   if (
     constraints.sensoryProfile &&
@@ -308,6 +317,30 @@ export const matchesAttributeFilters = (
     return false;
   if (constraints.genders?.length && !valueMatches(attrs.gender, constraints.genders)) return false;
   if (constraints.brands?.length && !valueMatches(attrs.brand, constraints.brands)) return false;
+
+  // Use soft matching for compatibility: check if any constraint value is contained in any product compatibility (substring match)
+  if (constraints.compatibility?.length) {
+    const productCompatibility = attrs.compatibility || [];
+    const compatibilityMatches = constraints.compatibility.some((constraintCompat) =>
+      productCompatibility.some((productCompat) =>
+        productCompat.toLowerCase().includes(constraintCompat.toLowerCase()) ||
+        constraintCompat.toLowerCase().includes(productCompat.toLowerCase())
+      )
+    );
+    if (!compatibilityMatches) return false;
+  }
+
+  // Use soft matching for benefits: check if any constraint value is contained in any product benefit (substring match)
+  if (constraints.benefits?.length) {
+    const productBenefits = attrs.benefits || [];
+    const benefitsMatches = constraints.benefits.some((constraintBenefit) =>
+      productBenefits.some((productBenefit) =>
+        productBenefit.toLowerCase().includes(constraintBenefit.toLowerCase()) ||
+        constraintBenefit.toLowerCase().includes(productBenefit.toLowerCase())
+      )
+    );
+    if (!benefitsMatches) return false;
+  }
 
   return true;
 };
@@ -1568,12 +1601,14 @@ const dropAttributeFilters = (constraints: SearchConstraints): SearchConstraints
   relaxed.sizes = undefined;
   relaxed.occasions = undefined;
   relaxed.seasons = undefined;
-  relaxed.useCases = undefined;
+  // Preserve user-explicitly-requested filters: useCases, benefits, compatibility
+  // These are often core requirements (e.g., "for dry hair", "for sensitive skin")
+  // relaxed.useCases = undefined; // Keep useCases
+  // relaxed.benefits = undefined; // Keep benefits
+  // relaxed.compatibility = undefined; // Keep compatibility
   // New unified catalog attributes
-  relaxed.benefits = undefined;
   relaxed.styleTags = undefined;
-  relaxed.compatibility = undefined;
-  relaxed.sensoryProfile = undefined;
+  relaxed.sensoryProfile = undefined; // Can be relaxed as it's often stylistic
   relaxed.productTypes = undefined;
   relaxed.googleCategories = undefined;
   relaxed.customLabels4 = undefined;
