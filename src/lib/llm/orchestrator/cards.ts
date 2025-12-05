@@ -1,7 +1,7 @@
 import { prisma } from '../../db';
 import { env } from '../../config';
 import { callLLM, type LlmMessage } from '../provider';
-import { CARD_REASON_PROMPT, CARD_REASON_MULTI_PROMPT } from '../prompts';
+import { buildCardReasonPrompt, buildCardReasonMultiPrompt } from '../prompts';
 import { logger } from '../../telemetry/logger';
 import type { ProductAttributes, SearchConstraints, SearchResultItem } from '../../search/types';
 import { stripJsonFences } from './utils';
@@ -396,12 +396,16 @@ export async function buildCardReason({
   constraintLabels,
   facts,
   implicitPrefs,
+  requestedCategoryExists,
+  requestedCategory,
 }: {
   item: SearchResultItem;
   userMessage: string;
   constraintLabels: string[];
   facts: string[];
   implicitPrefs: ImplicitPreferences;
+  requestedCategoryExists?: boolean;
+  requestedCategory?: string | string[] | null;
 }): Promise<string> {
   const deterministic = buildDeterministicReason(item, facts, constraintLabels);
 
@@ -423,7 +427,7 @@ export async function buildCardReason({
     const messages: LlmMessage[] = [
       {
         role: 'system',
-        content: CARD_REASON_PROMPT,
+        content: buildCardReasonPrompt(requestedCategoryExists, requestedCategory),
       },
       {
         role: 'user',
@@ -472,6 +476,8 @@ type CardReasonInput = {
  */
 export async function buildCardReasonsBatch(
   inputs: CardReasonInput[],
+  requestedCategoryExists?: boolean,
+  requestedCategory?: string | string[] | null,
 ): Promise<string[]> {
   if (inputs.length === 0) {
     return [];
@@ -517,7 +523,7 @@ Grounded facts: ${p.facts.length ? p.facts.join(' | ') : 'N/A'}`,
     const messages: LlmMessage[] = [
       {
         role: 'system',
-        content: CARD_REASON_MULTI_PROMPT,
+        content: buildCardReasonMultiPrompt(requestedCategoryExists, requestedCategory),
       },
       {
         role: 'user',

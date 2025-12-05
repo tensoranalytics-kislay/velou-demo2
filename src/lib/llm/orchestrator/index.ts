@@ -31,7 +31,7 @@ import {
   type AssistantIntent,
 } from './intent';
 import { callVelouRouter, type VelouRouterResult } from './intent-router';
-import { getCatalogOntology } from '../../search/ontology';
+import { getCatalogOntology, type CatalogOntology } from '../../search/ontology';
 import { CLARIFYING_REPLY, MAX_RECOMMENDATIONS, PRODUCT_REQUEST_KEYWORDS } from './constants';
 import { extractHardTextFilterKeywords } from './utils';
 import { detectFollowUpType } from './followup-detector';
@@ -44,6 +44,51 @@ import {
 } from '../prompts';
 import type { ProgressCallback } from './progress';
 import { STAGE_PROGRESS, STAGE_LABELS } from './progress';
+
+/**
+ * Check if a requested category exists in the catalog ontology.
+ * Returns true if the category (or a close match) exists in categories or productTypes.
+ */
+function categoryExistsInCatalog(
+  requestedCategory: string | string[] | undefined,
+  ontology: CatalogOntology,
+): boolean {
+  if (!requestedCategory) return true; // No category requested, so it "exists"
+
+  const categories = Array.isArray(requestedCategory) ? requestedCategory : [requestedCategory];
+  const allCatalogCategories = [
+    ...ontology.categories.map((c) => c.toLowerCase()),
+    ...ontology.productTypes.map((pt) => pt.toLowerCase()),
+  ];
+
+  // Check if any requested category matches any catalog category
+  for (const reqCat of categories) {
+    const normalizedReq = reqCat.toLowerCase().trim();
+    
+    // Exact match
+    if (allCatalogCategories.includes(normalizedReq)) {
+      return true;
+    }
+
+    // Substring match (e.g., "shoes" matches "running shoes")
+    if (allCatalogCategories.some((cat) => cat.includes(normalizedReq) || normalizedReq.includes(cat))) {
+      return true;
+    }
+
+    // Check for common synonyms (e.g., "shoe" -> "shoes", "boot" -> "boots")
+    const synonyms = [
+      normalizedReq,
+      normalizedReq + 's',
+      normalizedReq.replace(/s$/, ''), // Remove trailing 's'
+    ];
+    
+    if (synonyms.some((syn) => allCatalogCategories.some((cat) => cat.includes(syn) || syn.includes(cat)))) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 // Export all types used by API/UI
 export type ChatHistoryItem = {
@@ -140,6 +185,10 @@ async function runPendingSuggestionFlow(
     };
   }
 
+  // Get ontology to check if requested category exists
+  const ontology = await getCatalogOntology();
+  const requestedCategoryExists = categoryExistsInCatalog(pending.constraints.category, ontology);
+
   const implicitPrefs = inferImplicitPreferences(userMessage);
   const queryTokens = tokenize(userMessage);
   const queryChips = buildQueryChips(pending.constraints, implicitPrefs);
@@ -163,7 +212,7 @@ async function runPendingSuggestionFlow(
     implicitPrefs,
   }));
 
-  const reasons = await buildCardReasonsBatch(reasonInputs);
+  const reasons = await buildCardReasonsBatch(reasonInputs, requestedCategoryExists, pending.constraints.category);
 
   const cards = evaluated.map(({ item }, index) =>
     buildProductCard(item, {
@@ -186,12 +235,27 @@ async function runPendingSuggestionFlow(
     products: shortlistedProducts,
     wasRelaxed: false,
     datasetContext,
+    ontology,
+    requestedCategoryExists,
+  });
+
+  const productSummaries = cards.map((card) => {
+    const reasonPart = card.reason ? ` — ${card.reason}` : '';
+    const pricePart =
+      typeof card.priceCents === 'number'
+        ? ` (${card.currency ?? 'USD'} ${(card.priceCents / 100).toFixed(2)})`
+        : '';
+    return `${card.title}${reasonPart}${pricePart}`.trim();
   });
 
   const followupText = await buildPostCardsFollowupText(
     userMessage,
     pending.constraints,
     datasetContext,
+    ontology,
+    requestedCategoryExists,
+    enhancedReply,
+    productSummaries,
   );
 
   return {
@@ -217,6 +281,76 @@ async function runDiscoveryFlow(
       limit: constraints.limit ?? 8,
     },
   });
+
+  // Get ontology to check if requested category exists
+  const ontology = await getCatalogOntology();
+  const requestedCategoryExists = categoryExistsInCatalog(constraints.category, ontology);
+
+  // Guard: if no category and no overlap with catalog terms, short-circuit with an out-of-catalog reply
+  if (!constraints.category) {
+    const keywords =
+      (constraints as any).expandedKeywords && (constraints as any).expandedKeywords.length
+        ? ((constraints as any).expandedKeywords as string[])
+        : tokenize(userMessage);
+
+    const catalogTerms = new Set(
+      [
+        ...(ontology.categories || []),
+        ...(ontology.productTypes || []),
+        ...(ontology.brands || []),
+        ...(datasetContext?.sampleCategories || []),
+      ]
+        .filter(Boolean)
+        .map((t) => t.toLowerCase()),
+    );
+
+    const hasCatalogMatch = keywords.some((k) => {
+      const kw = k.toLowerCase();
+      return Array.from(catalogTerms).some((ct) => kw.includes(ct) || ct.includes(kw));
+    });
+
+    if (!hasCatalogMatch) {
+      onProgress?.('generating', STAGE_PROGRESS.generating);
+      try {
+        const prompt = buildOutOfScopeReplyPrompt(datasetContext);
+        const messages: LlmMessage[] = [
+          { role: 'system', content: prompt },
+          { role: 'user', content: `userMessage: "${userMessage}"` },
+        ];
+
+        const result = await callLLM({
+          messages,
+          purpose: 'final_reply',
+          expectJson: false,
+        });
+
+        const text = result.rawText.trim();
+        const reply = text.length
+          ? await applyBrandVoiceToReply(text)
+          : "I don't have that in this catalog. Tell me a category, need, or budget here and I’ll search for you.";
+
+        onProgress?.('complete', STAGE_PROGRESS.complete);
+        return {
+          replyText: reply,
+          productCards: [],
+          noExactMatch: true,
+        };
+      } catch (error) {
+        logger.error('out_of_catalog_reply_failed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        const fallback = await applyBrandVoiceToReply(
+          "I don't have that in this catalog. Tell me a category, need, or budget and I’ll search what's available here.",
+        );
+        onProgress?.('complete', STAGE_PROGRESS.complete);
+        return {
+          replyText: fallback,
+          productCards: [],
+          noExactMatch: true,
+        };
+      }
+    }
+  }
 
   // Stage 1: Understanding complete (handled in handleAssistantQuery)
   // Stage 2: Searching products
@@ -395,6 +529,21 @@ Create a rescue search plan.`,
         }
       }
 
+      if (closestCandidates.length === 0) {
+        const verticalNote = datasetContext?.vertical
+          ? `This catalog focuses on ${datasetContext.vertical}.`
+          : 'This catalog is limited to the products currently uploaded.';
+        const fallback = await applyBrandVoiceToReply(
+          `I don't have items like "${userMessage}" in this catalog. ${verticalNote} Tell me a category, need, or budget within this catalog and I’ll search for you.`,
+        );
+        onProgress?.('complete', STAGE_PROGRESS.complete);
+        return {
+          replyText: fallback,
+          productCards: [],
+          noExactMatch: true,
+        };
+      }
+
       // Step 3: Get top 5 closest candidates
       const topClosest = closestCandidates
         .slice(0, 5)
@@ -525,7 +674,7 @@ Write a friendly response mentioning up to 3 closest products by title and askin
     implicitPrefs,
   }));
 
-  const strictReasons = await buildCardReasonsBatch(strictReasonInputs);
+  const strictReasons = await buildCardReasonsBatch(strictReasonInputs, requestedCategoryExists, constraints.category);
 
   const strictCards = topEvaluations.map(({ item }, index) =>
     buildProductCard(item, {
@@ -578,12 +727,27 @@ Write a friendly response mentioning up to 3 closest products by title and askin
       products: shortlistedItems,
       wasRelaxed,
       datasetContext,
+      ontology,
+      requestedCategoryExists,
+    });
+
+    const productSummaries = deduplicatedCards.map((card) => {
+      const reasonPart = card.reason ? ` — ${card.reason}` : '';
+      const pricePart =
+        typeof card.priceCents === 'number'
+          ? ` (${card.currency ?? 'USD'} ${(card.priceCents / 100).toFixed(2)})`
+          : '';
+      return `${card.title}${reasonPart}${pricePart}`.trim();
     });
 
     const followupText = await buildPostCardsFollowupText(
       userMessage,
       wasRelaxed ? relaxedConstraints : constraints,
       datasetContext,
+      ontology,
+      requestedCategoryExists,
+      enhancedReply,
+      productSummaries,
     );
 
     // Stage 5: Complete
@@ -778,6 +942,10 @@ async function runPdpFlow(
     return runDiscoveryFlow(constraints, userMessage, 'discovery', datasetContext, undefined, undefined);
   }
 
+  // Get ontology to check if requested category exists
+  const ontology = await getCatalogOntology();
+  const requestedCategoryExists = categoryExistsInCatalog(constraints.category, ontology);
+
   const baseProduct = productToResultItem(productRecord);
   const { products: related, wasRelaxed } = await searchProducts({
     ...constraints,
@@ -814,7 +982,7 @@ async function runPdpFlow(
     ...relatedInputs,
   ];
 
-  const allReasons = await buildCardReasonsBatch(allReasonInputs);
+  const allReasons = await buildCardReasonsBatch(allReasonInputs, requestedCategoryExists, constraints.category);
   const [baseReason, ...relatedReasons] = allReasons;
 
   const relatedCards = related.map((item: SearchResultItem, index: number) =>
@@ -844,12 +1012,27 @@ async function runPdpFlow(
     products: [baseProduct, ...related],
     wasRelaxed,
     datasetContext,
+    ontology,
+    requestedCategoryExists,
+  });
+
+  const productSummaries = productCards.map((card) => {
+    const reasonPart = card.reason ? ` — ${card.reason}` : '';
+    const pricePart =
+      typeof card.priceCents === 'number'
+        ? ` (${card.currency ?? 'USD'} ${(card.priceCents / 100).toFixed(2)})`
+        : '';
+    return `${card.title}${reasonPart}${pricePart}`.trim();
   });
 
   const followupText = await buildPostCardsFollowupText(
     userMessage,
     constraints,
     datasetContext,
+    ontology,
+    requestedCategoryExists,
+    enhancedReply,
+    productSummaries,
   );
 
   return {
@@ -1102,15 +1285,19 @@ export async function handleAssistantQuery(input: AssistantQueryInput): Promise<
     // For non_product_chat, return a dataset-aware LLM reply that
     // re-centers the conversation on product discovery.
     if (routerResult.action === 'non_product_chat') {
+      // Stage 1: Understanding (already done before router check)
+      input.onProgress?.('understanding', STAGE_PROGRESS.understanding);
+      // Stage 2: Generating response
       const clarifyingReply = await buildNonProductChatReply(
         input.message,
         datasetContext,
+        input.onProgress,
       );
       return {
         replyText: clarifyingReply,
         productCards: [],
         noExactMatch: false,
-        intent: input.conversationContext?.lastIntent ?? 'discovery',
+        intent: 'other' as AssistantIntent, // Mark as non-contextual
         resolvedConstraints: input.pendingSuggestion.constraints,
         usedFollowUpContext: false,
       };
@@ -1163,15 +1350,18 @@ export async function handleAssistantQuery(input: AssistantQueryInput): Promise<
   // If the LLM decides this is not a discovery/PDP query, route to a
   // dataset-aware non-product reply instead of forcing rule-based text.
   if (intent !== 'discovery' && intent !== 'pdp_suitability') {
+    // Stage 2: Generating response (understanding already done)
+    input.onProgress?.('generating', STAGE_PROGRESS.generating);
     const nonProductReply = await buildNonProductChatReply(
       input.message,
       datasetContext,
+      input.onProgress,
     );
     return {
       replyText: nonProductReply,
       productCards: [],
       noExactMatch: false,
-      intent,
+      intent: 'other' as AssistantIntent, // Mark as non-contextual for frontend
       resolvedConstraints: undefined,
       usedFollowUpContext,
     };
@@ -1211,10 +1401,21 @@ async function buildPostCardsFollowupText(
   userMessage: string,
   constraints: SearchConstraints,
   datasetContext?: DatasetContext | null,
+  ontology?: CatalogOntology,
+  requestedCategoryExists?: boolean,
+  mainReplyText?: string,
+  productSummaries?: string[],
 ): Promise<string | undefined> {
   try {
     const constraintSummary = describeConstraints(constraints);
-    const prompt = buildPostCardsFollowupPrompt(datasetContext);
+    const prompt = buildPostCardsFollowupPrompt(
+      datasetContext,
+      ontology,
+      requestedCategoryExists,
+      constraints.category,
+      mainReplyText,
+      productSummaries,
+    );
 
     const messages: LlmMessage[] = [
       {
@@ -1252,9 +1453,9 @@ constraintSummary: "${constraintSummary || 'general preferences'}"`,
 
   if (vertical && vertical.includes('beauty')) {
     if (hasUseCases) {
-      return 'Want something lighter, richer, or for a different concern? Tell me what you’d like to tweak.';
+      return "Want something lighter, richer, or for a different concern? Tell me what you'd like to tweak.";
     }
-    return 'If you’d like a different texture, concern focus, or price range, tell me and I’ll adjust these picks.';
+    return "If you'd like a different texture, concern focus, or price range, tell me and I'll adjust these picks.";
   }
 
   if (vertical && (vertical.includes('home') || vertical.includes('decor'))) {
@@ -1263,10 +1464,10 @@ constraintSummary: "${constraintSummary || 'general preferences'}"`,
 
   // Generic catalog fallback
   if (hasBudget) {
-    return 'Want to go lighter, more premium, or switch categories? Tell me and I’ll refine these results.';
+    return "Want to go lighter, more premium, or switch categories? Tell me and I'll refine these results.";
   }
 
-  return 'If you’d like a different category, style, or price range, tell me and I’ll tweak these options.';
+  return "If you'd like a different category, style, or price range, tell me and I'll tweak these options.";
 }
 
 /**
@@ -1321,7 +1522,11 @@ async function buildClarifyingReply(
 async function buildNonProductChatReply(
   userMessage: string,
   datasetContext?: DatasetContext | null,
+  onProgress?: ProgressCallback,
 ): Promise<string> {
+  // Stage 2: Generating response (understanding already done before this function is called)
+  onProgress?.('generating', STAGE_PROGRESS.generating);
+  
   try {
     const prompt = buildOutOfScopeReplyPrompt(datasetContext);
     const messages: LlmMessage[] = [
@@ -1343,7 +1548,10 @@ async function buildNonProductChatReply(
 
     const text = result.rawText.trim();
     if (text.length) {
-      return text;
+      onProgress?.('completing', STAGE_PROGRESS.completing);
+      const finalText = await applyBrandVoiceToReply(text);
+      onProgress?.('complete', STAGE_PROGRESS.complete);
+      return finalText;
     }
   } catch (error) {
     logger.error('non_product_chat_llm_failed', {
@@ -1352,9 +1560,11 @@ async function buildNonProductChatReply(
   }
 
   // Deterministic, brand-voiced fallback if LLM is unavailable
+  onProgress?.('completing', STAGE_PROGRESS.completing);
   let fallback =
     "I'm here to help you find products in this catalog. Tell me a category, concern, or price range and I'll pull options that fit.";
   fallback = await applyBrandVoiceToReply(fallback);
+  onProgress?.('complete', STAGE_PROGRESS.complete);
   return fallback;
 }
 

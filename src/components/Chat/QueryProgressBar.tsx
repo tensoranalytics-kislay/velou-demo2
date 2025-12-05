@@ -7,7 +7,7 @@ type QueryProgressBarProps = {
   isLoading: boolean;
   currentStage?: QueryStage | null;
   currentProgress?: number | null;
-  queryType?: QueryType; // 'discovery' or 'product_qa'
+  queryType?: QueryType; // 'discovery', 'product_qa', or 'non_contextual'
 };
 
 export default function QueryProgressBar({ isLoading, currentStage, currentProgress, queryType = 'discovery' }: QueryProgressBarProps) {
@@ -66,9 +66,12 @@ export default function QueryProgressBar({ isLoading, currentStage, currentProgr
   // Get appropriate stage label based on query type
   const getStageLabel = (stage: QueryStage | null): string => {
     if (!stage) {
-      return queryType === 'product_qa' 
-        ? STAGE_LABELS.loading_product 
-        : STAGE_LABELS.understanding;
+      if (queryType === 'product_qa') {
+        return STAGE_LABELS.loading_product;
+      } else if (queryType === 'non_contextual') {
+        return STAGE_LABELS.understanding;
+      }
+      return STAGE_LABELS.understanding;
     }
     
     // For product Q&A, use Q&A-specific labels
@@ -78,6 +81,18 @@ export default function QueryProgressBar({ isLoading, currentStage, currentProgr
       }
       // Fallback for discovery stages if somehow used in Q&A
       return STAGE_LABELS[stage];
+    }
+    
+    // For non-contextual queries, use simplified stages (understanding -> generating -> completing)
+    if (queryType === 'non_contextual') {
+      if (stage === 'understanding' || stage === 'generating' || stage === 'completing') {
+        return STAGE_LABELS[stage];
+      }
+      // Map other stages to non-contextual equivalents
+      if (stage === 'searching' || stage === 'evaluating') {
+        return STAGE_LABELS.generating; // Skip search/evaluate stages for non-contextual
+      }
+      return STAGE_LABELS[stage] || STAGE_LABELS.understanding;
     }
     
     // For discovery, use discovery-specific labels

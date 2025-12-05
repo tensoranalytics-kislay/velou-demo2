@@ -7,6 +7,7 @@ import type { SearchConstraints, SearchResultItem } from '../../search/types';
 import type { AssistantIntent } from './intent';
 import { formatMoney } from './cards';
 import type { DatasetContext } from '../../catalog/datasetInspector';
+import type { CatalogOntology } from '../../search/ontology';
 
 async function getBrandVoiceContext(): Promise<string> {
   try {
@@ -82,6 +83,8 @@ export async function maybeEnhanceReplyWithLlm(params: {
   products: SearchResultItem[];
   wasRelaxed?: boolean;
   datasetContext?: DatasetContext | null;
+  ontology?: CatalogOntology;
+  requestedCategoryExists?: boolean;
 }): Promise<string> {
   if (env.llmProvider === 'mock') {
     return params.baseReply;
@@ -111,8 +114,32 @@ export async function maybeEnhanceReplyWithLlm(params: {
     
     const generalSummary = `Found ${params.products.length} items in ${categoryList}. Styles include ${styleList}.${priceInfo ? ` ${priceInfo}.` : ''}`;
 
-    const basePrompt = buildFinalResponsePrompt(params.datasetContext);
+    const requestedCategory = params.constraints.category
+      ? (Array.isArray(params.constraints.category) ? params.constraints.category : [params.constraints.category])
+      : null;
+    const availableCategories = params.ontology
+      ? [...params.ontology.categories, ...params.ontology.productTypes]
+      : undefined;
+    const basePrompt = buildFinalResponsePrompt(
+      params.datasetContext,
+      params.requestedCategoryExists,
+      requestedCategory,
+      availableCategories,
+    );
     const systemPrompt = brandContext ? `${basePrompt}\n\n${brandContext}` : basePrompt;
+
+    // If the requested category doesn't exist, add a note to the prompt
+    let categoryNote = '';
+    if (params.requestedCategoryExists === false && params.constraints.category) {
+      const requestedCategory = Array.isArray(params.constraints.category)
+        ? params.constraints.category.join(', ')
+        : params.constraints.category;
+      const availableCategories = params.ontology
+        ? [...params.ontology.categories, ...params.ontology.productTypes].slice(0, 10).join(', ')
+        : 'other products';
+      
+      categoryNote = `\n\nCRITICAL: The user asked for "${requestedCategory}", but this category does NOT exist in the catalog. The products shown are from different categories (${categoryList}). You MUST acknowledge this in a witty, friendly way. Be honest that we don't have ${requestedCategory}, but show enthusiasm about what we do have. Do NOT pretend we have ${requestedCategory}, and do NOT imply these products protect or replace ${requestedCategory}. Mention what categories are actually available (${availableCategories}).`;
+    }
 
     const relaxedNote = params.wasRelaxed
       ? '\n\nNote: These are the closest matches available, as no products matched all the requested attributes exactly.'
@@ -121,7 +148,7 @@ export async function maybeEnhanceReplyWithLlm(params: {
     const messages: LlmMessage[] = [
       {
         role: 'system',
-        content: systemPrompt,
+        content: systemPrompt + categoryNote,
       },
       {
         role: 'user',

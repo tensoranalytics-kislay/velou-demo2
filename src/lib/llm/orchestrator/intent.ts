@@ -52,7 +52,7 @@ import {
   stripJsonFences,
 } from './utils';
 
-export type AssistantIntent = 'discovery' | 'pdp_suitability';
+export type AssistantIntent = 'discovery' | 'pdp_suitability' | 'other';
 
 export type IntentResolution = {
   intent: AssistantIntent;

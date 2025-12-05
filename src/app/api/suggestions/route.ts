@@ -50,6 +50,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ suggestions: unique });
     }
     
+    // If lastMessage is unrelated to catalog terms, short-circuit with no new prompts
+    if (lastMessage) {
+      const keywords = stripFillerPhrases(lastMessage)
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean);
+      const catalogTerms = new Set(
+        [
+          ...(ontology.categories || []),
+          ...(ontology.productTypes || []),
+          ...(ontology.brands || []),
+          ...(datasetContext?.sampleCategories || []),
+        ]
+          .filter(Boolean)
+          .map((t) => t.toLowerCase()),
+      );
+      const hasMatch = keywords.some((kw) =>
+        Array.from(catalogTerms).some((ct) => kw.includes(ct) || ct.includes(kw)),
+      );
+      if (!hasMatch) {
+        return NextResponse.json({ suggestions: [] });
+      }
+    }
+
     // Get price ranges from catalog
     const priceStats = await prisma.product.aggregate({
       where: {

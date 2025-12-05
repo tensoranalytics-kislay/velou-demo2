@@ -42,7 +42,7 @@ type AssistantApiResponse = {
   productCards: ProductCard[];
   noExactMatch: boolean;
   pendingSuggestion?: PendingSuggestionResult | null;
-  intent?: 'discovery' | 'pdp_suitability';
+  intent?: 'discovery' | 'pdp_suitability' | 'other';
   resolvedConstraints?: SearchConstraints;
   usedFollowUpContext?: boolean;
    followupText?: string;
@@ -63,7 +63,7 @@ export default function ChatPanel() {
   });
   const [hasHydrated, setHasHydrated] = useState(false);
   const [queryProgress, setQueryProgress] = useState<{ stage: string; progress: number } | null>(null);
-  const [queryType, setQueryType] = useState<'discovery' | 'product_qa'>('discovery');
+  const [queryType, setQueryType] = useState<'discovery' | 'product_qa' | 'non_contextual'>('discovery');
   const sessionId = useMemo(() => createId(), []);
   const persistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -361,7 +361,8 @@ export default function ChatPanel() {
     setTimeout(() => scrollToBottom('smooth'), 50);
     setIsLoading(true);
     setQueryProgress(null);
-    // Determine query type based on whether productContextId is set
+    // Determine initial query type based on whether productContextId is set
+    // Will be updated based on actual intent from API response
     setQueryType(overrideProductContextId ?? productContextId ? 'product_qa' : 'discovery');
 
     try {
@@ -441,6 +442,15 @@ export default function ChatPanel() {
 
       if (!finalData) {
         throw new Error('No final data received');
+      }
+
+      // Update query type based on actual intent from API response
+      if (finalData.intent && finalData.intent !== 'discovery' && finalData.intent !== 'pdp_suitability') {
+        setQueryType('non_contextual');
+      } else if (overrideProductContextId ?? productContextId) {
+        setQueryType('product_qa');
+      } else {
+        setQueryType('discovery');
       }
 
       setPendingSuggestion(finalData.pendingSuggestion ?? null);
