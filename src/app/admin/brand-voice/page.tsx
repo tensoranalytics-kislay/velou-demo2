@@ -11,7 +11,7 @@ async function getBrandConfig() {
       primaryColor: '#3b82f6',
       accentColor: '#8b5cf6',
       voiceInstructions:
-        'Be helpful, warm, and knowledgeable about fashion. Use a conversational tone that feels like a personal stylist.',
+        'Be helpful, warm, and knowledgeable about your products. Use a conversational tone that feels like a personal Product Advisor.',
       toneFormal: 5,
       tonePlayful: 5,
       createdAt: new Date(),

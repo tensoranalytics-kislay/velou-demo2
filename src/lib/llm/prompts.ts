@@ -507,7 +507,7 @@ export const buildCardReasonPrompt = (
     categoryWarning = `\n\n🚨 CRITICAL: The user asked for "${categoryStr}", but this category DOES NOT EXIST in the catalog. The product shown is from a DIFFERENT category.\n\nYOU MUST:\n- NEVER mention "${categoryStr}" or reference it in any way (e.g., "though not ${categoryStr}", "instead of ${categoryStr}").\n- Do NOT imply the product is for ${categoryStr} (do not say it protects, outfits, or replaces ${categoryStr}).\n- Focus ONLY on why the product itself fits the user's underlying need using its real attributes.\n- Do NOT apologize or explain why the product isn't the requested category.`;
   }
 
-  return `You are a friendly in-store stylist writing a single short note about why a specific product suits a shopper's request.
+  return `You are a friendly Product Advisor writing a single short note about why a specific product suits a shopper's request.
 ${categoryWarning}
 
 Guidelines:
@@ -534,7 +534,7 @@ export const buildCardReasonMultiPrompt = (
     categoryWarning = `\n\n🚨 CRITICAL: The user asked for "${categoryStr}", but this category DOES NOT EXIST in the catalog. The products shown are from DIFFERENT categories.\n\nYOU MUST:\n- NEVER mention "${categoryStr}" or reference it in any way (e.g., "though not ${categoryStr}", "instead of ${categoryStr}", "while we don't have ${categoryStr}").\n- Do NOT imply the products are for ${categoryStr} (do not say they protect, outfit, or replace ${categoryStr}).\n- Focus ONLY on why each product fits the user's underlying need using its real attributes.\n- Do NOT apologize or explain why the product isn't the requested category.`;
   }
 
-  return `You are a friendly in-store stylist writing short notes about why multiple products suit a shopper's request.
+  return `You are a friendly Product Advisor writing short notes about why multiple products suit a shopper's request.
 
 You will be given:
 - The shopper's query.
@@ -909,9 +909,11 @@ Rules:
 1) Map user words to ontology terms via normalization and synonyming.
 2) If user uses a non-ontology color/material/etc, map to closest ontology term; if none, omit it.
 3) expandedKeywords MUST include:
+   - The ORIGINAL multi-word phrase from the query (e.g., if user says "bath gift sets", include "bath gift sets" as the first keyword)
    - spaced / hyphenated / concatenated variants (e.g., "product name", "product-name", "productname")
    - singular/plural forms
-   - close catalog phrases found in category/product type.
+   - close catalog phrases found in category/product type/subcategory
+   - Individual words from multi-word queries (but always preserve the full phrase first)
 4) Do NOT include colors, sizes, prices, brands, genders, materials in query text.
 5) ALWAYS extract genders field when user mentions gender-related terms (men/women/unisex/male/female/boy/girl/lady/guy/him/her).
 6) If intent is vague, keep only what is certain and leave the rest undefined.

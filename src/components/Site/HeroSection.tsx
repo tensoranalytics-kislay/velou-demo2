@@ -22,13 +22,13 @@ export default function HeroSection() {
     ? `${brandName} beauty assistant`
     : vertical === 'home' || vertical === 'home decor'
     ? `${brandName} home assistant`
-    : `${brandName} stylist`;
+    : `${brandName} Product Advisor`;
 
   const description = vertical === 'skincare' || vertical === 'beauty'
     ? `Browse our skincare and beauty products, then chat with the ${brandName} beauty assistant to find products for your skin type, concerns, and routine.`
     : vertical === 'home' || vertical === 'home decor'
     ? `Browse our home decor and furnishings, then chat with the ${brandName} home assistant to find items for your space, style, and budget.`
-    : `Browse the latest products pulled directly from our catalog, then chat with the ${brandName} stylist to fine-tune your search.`;
+    : `Browse the latest products pulled directly from our catalog, then chat with the ${brandName} Product Advisor to fine-tune your search.`;
 
   return (
     <section className="mx-auto max-w-6xl rounded-3xl border border-rose-100 bg-rose-50/60 px-6 py-16 text-center md:px-12 md:py-20">
@@ -50,7 +50,7 @@ export default function HeroSection() {
           type="button"
           className="rounded-full border border-rose-200 bg-white px-8 py-3 text-sm font-semibold text-rose-500 transition hover:border-rose-300"
         >
-          Ask the stylist
+          Ask the Product Advisor
         </button>
       </div>
     </section>

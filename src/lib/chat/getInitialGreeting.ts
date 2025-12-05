@@ -49,8 +49,8 @@ function buildDeterministicGreetingOptions(
 
   if (vertical === 'apparel' || vertical === 'fashion') {
     return [
-      `Hi! I'm ${brandName}'s stylist. Tell me the vibe, fit, or budget you're shopping for and I'll pull pieces straight from our catalog.`,
-      `You're chatting with ${brandName}'s outfitting assistant—share the occasion, fabric, or price point and I'll do the rest.`,
+      `Hi! I'm ${brandName}'s Product Advisor. Tell me the vibe, fit, or budget you're shopping for and I'll pull pieces straight from our catalog.`,
+      `You're chatting with ${brandName}'s Product Advisor—share the occasion, fabric, or price point and I'll do the rest.`,
       `Need something new? Give me hints like ${topFacetSnippet ?? 'style, fit, fabric'} or even a favorite category and I'll curate picks.`,
     ];
   }

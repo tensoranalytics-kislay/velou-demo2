@@ -53,7 +53,7 @@ function buildGreetingFromContext(options: {
 
   if (v === 'apparel' || v === 'fashion') {
     const facetHint = hasFacets ? topFacets : 'fit, style, or budget';
-    return `Hey there, I'm ${safeBrand}'s stylist. Share the occasion, ${facetHint}, or price point and I'll curate looks from our catalog.`;
+    return `Hey there, I'm ${safeBrand}'s Product Advisor. Share the occasion, ${facetHint}, or price point and I'll curate looks from our catalog.`;
   }
 
   if (hasExamples) {

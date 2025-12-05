@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 type ProductContext = {
   id: string;
@@ -17,6 +17,21 @@ type MessageInputProps = {
 
 export default function MessageInput({ onSend, disabled, productContext, onClearProductContext }: MessageInputProps) {
   const [value, setValue] = useState('');
+  const [placeholder, setPlaceholder] = useState('Ask for products...');
+
+  useEffect(() => {
+    // Fetch LLM-driven placeholder text
+    fetch('/api/chat/placeholder')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.placeholder) {
+          setPlaceholder(data.placeholder);
+        }
+      })
+      .catch(() => {
+        // Keep default placeholder on error
+      });
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -91,7 +106,7 @@ export default function MessageInput({ onSend, disabled, productContext, onClear
       >
         <textarea
           className="h-14 sm:h-16 flex-1 resize-none bg-transparent text-xs sm:text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none"
-          placeholder={productContext ? `Ask about ${productContext.title}...` : "Ask for a breathable dress under $200 or refine a look…"}
+          placeholder={productContext ? `Ask about ${productContext.title}...` : placeholder}
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}

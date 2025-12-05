@@ -1287,6 +1287,16 @@ async function dbRankedSearch(
       else if (textIncludesAny(typeText, twoWordCombos)) rank += 20;
       else if (textIncludesAny(typeText, queryTokens)) rank += 15;
       
+      // Special boost for subcategory matches with multiple query words
+      // This helps queries like "bath gift sets" match "Bath & Body Gift Sets" subcategory
+      if (subcatLower && queryTokens.length >= 2) {
+        const matchingWords = queryTokens.filter(word => subcatLower.includes(word));
+        if (matchingWords.length >= 2) {
+          // Give extra boost when subcategory matches 2+ words from query
+          rank += 10 + (matchingWords.length - 2) * 2; // +10 for 2 words, +12 for 3, +14 for 4, etc.
+        }
+      }
+      
       // -----------------------------
       // C) Needs & benefits (description, highlights, benefits, claims, attributes)
       // -----------------------------

@@ -61,11 +61,9 @@ export default function ChatWidget() {
 
   const assistantTitle = `${brandName} Advisor`;
 
-  const assistantSubtitle = vertical === 'skincare' || vertical === 'beauty'
-    ? 'Beauty guidance'
-    : vertical === 'home' || vertical === 'home decor'
-    ? 'Home styling'
-    : 'Always-on outfit guidance';
+  const assistantSubtitle = vertical
+    ? `Always-on ${vertical} guidance`
+    : 'Always-on product guidance';
 
   // Save state to localStorage whenever position or size changes
   useEffect(() => {
