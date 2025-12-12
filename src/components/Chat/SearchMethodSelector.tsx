@@ -35,8 +35,11 @@ export default function SearchMethodSelector({ mode, onChange }: SearchMethodSel
   }, [isOpen]);
 
   const handleModeChange = (newMode: SearchMode) => {
-    console.log('[SearchMethodSelector] Mode changed to:', newMode);
+    console.log('[SearchMethodSelector] handleModeChange called with:', newMode);
+    console.log('[SearchMethodSelector] Current mode before change:', mode);
+    console.log('[SearchMethodSelector] Calling onChange with:', newMode);
     onChange(newMode);
+    console.log('[SearchMethodSelector] onChange called, closing dropdown');
     setIsOpen(false);
   };
 

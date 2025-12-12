@@ -556,7 +556,23 @@ export default function ChatPanel() {
   };
 
   const handleSendMessage = async (message: string, overrideProductContextId?: string, searchMethods?: { lexical: boolean; semantic: boolean; concept: boolean }) => {
-    console.log('[ChatPanel] handleSendMessage called with searchMethods:', searchMethods);
+    console.log('[ChatPanel] handleSendMessage called');
+    console.log('[ChatPanel] searchMethods received:', searchMethods);
+    console.log('[ChatPanel] searchMethods type:', typeof searchMethods);
+    console.log('[ChatPanel] searchMethods?.lexical:', searchMethods?.lexical);
+    console.log('[ChatPanel] searchMethods?.semantic:', searchMethods?.semantic);
+    console.log('[ChatPanel] searchMethods?.concept:', searchMethods?.concept);
+    
+    // Validate searchMethods structure
+    const validatedSearchMethods = searchMethods && 
+      typeof searchMethods === 'object' &&
+      typeof searchMethods.lexical === 'boolean' &&
+      typeof searchMethods.semantic === 'boolean' &&
+      typeof searchMethods.concept === 'boolean'
+      ? searchMethods
+      : { lexical: false, semantic: true, concept: true }; // Default to fast mode
+    
+    console.log('[ChatPanel] validatedSearchMethods:', validatedSearchMethods);
     const userMessage: ChatMessage = {
       id: createId(),
       role: 'user',
@@ -597,19 +613,24 @@ export default function ChatPanel() {
           : undefined;
 
       // Use streaming endpoint for real-time progress
+      const finalProductContextId = overrideProductContextId ?? productContextId;
+      console.log('[ChatPanel] Sending message with productContextId:', finalProductContextId);
+      console.log('[ChatPanel] productContext state:', productContext);
+      console.log('[ChatPanel] productContextId state:', productContextId);
+      
       const response = await fetch('/api/assistant/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId,
           pageType,
-          productContextId: overrideProductContextId ?? productContextId,
+          productContextId: finalProductContextId,
           message,
           history: historyPayload,
           pendingSuggestion: pendingPayload,
           conversationContext: contextPayload,
-          // Always include searchMethods - use user's choice, or default to fast mode
-          searchMethods: searchMethods || { lexical: false, semantic: true, concept: true },
+          // Always include validated searchMethods - use user's choice, or default to fast mode
+          searchMethods: validatedSearchMethods,
         }),
       });
 

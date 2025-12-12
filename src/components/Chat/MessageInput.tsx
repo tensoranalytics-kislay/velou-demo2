@@ -32,13 +32,43 @@ export default function MessageInput({ onSend, disabled, productContext, onClear
     }
     return 'fast';
   });
+  
+  // Use ref to always have latest mode value (avoids React state timing issues)
+  const searchModeRef = useRef<SearchMode>(searchMode);
+  useEffect(() => {
+    searchModeRef.current = searchMode;
+  }, [searchMode]);
 
   // Save search mode to localStorage when it changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(SEARCH_MODE_STORAGE_KEY, searchMode);
-      console.log('[MessageInput] Search mode updated to:', searchMode, 'preferences:', modeToPreferences(searchMode), '(saved to localStorage)');
+      const preferences = modeToPreferences(searchMode);
+      console.log('[MessageInput] useEffect - searchMode changed to:', searchMode);
+      console.log('[MessageInput] useEffect - preferences:', preferences);
+      console.log('[MessageInput] useEffect - saved to localStorage as:', searchMode);
     }
+  }, [searchMode]);
+
+  // Real-time cross-tab synchronization: listen for search mode changes from other tabs
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === SEARCH_MODE_STORAGE_KEY && e.newValue) {
+        const newMode = (e.newValue === 'fast' || e.newValue === 'advanced') ? e.newValue : 'fast';
+        if (newMode !== searchMode) {
+          console.log('[MessageInput] Cross-tab sync: searchMode changed from', searchMode, 'to', newMode);
+          searchModeRef.current = newMode; // Update ref immediately
+          setSearchMode(newMode); // Update state
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [searchMode]);
 
   useEffect(() => {
@@ -60,11 +90,25 @@ export default function MessageInput({ onSend, disabled, productContext, onClear
     if (!value.trim() || disabled) return;
     const message = value.trim();
     setValue('');
-    // Capture current mode at submission time to ensure we use the latest value
-    const currentMode = searchMode;
+    // Always read from localStorage to get the absolute latest value (handles cross-tab changes)
+    const latestMode = (() => {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem(SEARCH_MODE_STORAGE_KEY);
+        return (saved === 'fast' || saved === 'advanced') ? saved : 'fast';
+      }
+      return searchModeRef.current;
+    })();
+    // Update ref and state if they're out of sync
+    if (latestMode !== searchModeRef.current) {
+      searchModeRef.current = latestMode;
+      setSearchMode(latestMode);
+    }
     // Always send searchMethods based on user's choice - no auto-selection
-    const searchMethods = modeToPreferences(currentMode);
-    console.log('[MessageInput] Sending message with mode:', currentMode, 'searchMethods:', searchMethods);
+    const searchMethods = modeToPreferences(latestMode);
+    console.log('[MessageInput] handleSubmit - Latest mode from localStorage:', latestMode);
+    console.log('[MessageInput] handleSubmit - Converting to searchMethods:', searchMethods);
+    console.log('[MessageInput] handleSubmit - Expected for advanced:', { lexical: true, semantic: true, concept: true });
+    console.log('[MessageInput] handleSubmit - Expected for fast:', { lexical: false, semantic: true, concept: true });
     await onSend(message, searchMethods);
     // Don't clear product context - user can ask multiple questions
   };
@@ -76,11 +120,23 @@ export default function MessageInput({ onSend, disabled, productContext, onClear
       if (value.trim() && !disabled) {
         const message = value.trim();
         setValue('');
-        // Capture current mode at submission time to ensure we use the latest value
-        const currentMode = searchMode;
+        // Always read from localStorage to get the absolute latest value (handles cross-tab changes)
+        const latestMode = (() => {
+          if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem(SEARCH_MODE_STORAGE_KEY);
+            return (saved === 'fast' || saved === 'advanced') ? saved : 'fast';
+          }
+          return searchModeRef.current;
+        })();
+        // Update ref and state if they're out of sync
+        if (latestMode !== searchModeRef.current) {
+          searchModeRef.current = latestMode;
+          setSearchMode(latestMode);
+        }
         // Always send searchMethods based on user's choice - no auto-selection
-        const searchMethods = modeToPreferences(currentMode);
-        console.log('[MessageInput] Sending message (Enter key) with mode:', currentMode, 'searchMethods:', searchMethods);
+        const searchMethods = modeToPreferences(latestMode);
+        console.log('[MessageInput] handleKeyDown - Latest mode from localStorage:', latestMode);
+        console.log('[MessageInput] handleKeyDown - Converting to searchMethods:', searchMethods);
         onSend(message, searchMethods);
         // Don't clear product context - user can ask multiple questions
       }
@@ -174,7 +230,17 @@ export default function MessageInput({ onSend, disabled, productContext, onClear
           <div className="flex items-center justify-end relative overflow-visible">
             <SearchMethodSelector
               mode={searchMode}
-              onChange={setSearchMode}
+              onChange={(newMode) => {
+                console.log('[MessageInput] SearchMethodSelector onChange called with:', newMode);
+                // Update ref immediately for synchronous access
+                searchModeRef.current = newMode;
+                // Update state (triggers useEffect to save to localStorage)
+                setSearchMode(newMode);
+                // Also save to localStorage immediately for cross-tab sync
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem(SEARCH_MODE_STORAGE_KEY, newMode);
+                }
+              }}
             />
           </div>
         </div>

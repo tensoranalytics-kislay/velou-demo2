@@ -70,16 +70,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Validate and normalize searchMethods
+    let validatedSearchMethods: { lexical: boolean; semantic: boolean; concept: boolean } | undefined;
+    if (body.searchMethods) {
+      if (
+        typeof body.searchMethods === 'object' &&
+        typeof body.searchMethods.lexical === 'boolean' &&
+        typeof body.searchMethods.semantic === 'boolean' &&
+        typeof body.searchMethods.concept === 'boolean'
+      ) {
+        validatedSearchMethods = body.searchMethods;
+      } else {
+        logger.warn('assistant_api_stream_invalid_searchMethods', {
+          received: body.searchMethods,
+          defaultingTo: 'fast',
+        });
+        validatedSearchMethods = { lexical: false, semantic: true, concept: true }; // Default to fast
+      }
+    } else {
+      // No searchMethods provided, default to fast mode
+      validatedSearchMethods = { lexical: false, semantic: true, concept: true };
+    }
+
     logger.info('assistant_api_stream_request', {
       sessionId: body.sessionId,
       pageType: body.pageType,
       message: body.message,
       productContextId: body.productContextId,
+      hasProductContext: !!body.productContextId,
       hasPendingSuggestion: !!body.pendingSuggestion,
-      searchMethods: body.searchMethods,
-      searchMethodsLexical: body.searchMethods?.lexical,
-      searchMethodsSemantic: body.searchMethods?.semantic,
-      searchMethodsConcept: body.searchMethods?.concept,
+      searchMethodsReceived: body.searchMethods,
+      searchMethodsValidated: validatedSearchMethods,
+      searchMethodsLexical: validatedSearchMethods.lexical,
+      searchMethodsSemantic: validatedSearchMethods.semantic,
+      searchMethodsConcept: validatedSearchMethods.concept,
     });
 
     // Use fast path (L'Occitane optimized pipeline) for all queries
@@ -117,13 +141,29 @@ export async function POST(request: NextRequest) {
               sendProgress(stage, progress);
             };
             
+            // Get default merchant for product queries and metrics
+            // Handle database errors gracefully - don't fail the whole request if merchant lookup fails
+            let defaultMerchant = null;
+            let merchantId: string | undefined = undefined;
+            try {
+              defaultMerchant = await prisma.merchant.findUnique({ where: { slug: 'default' } });
+              merchantId = defaultMerchant?.id;
+            } catch (dbError) {
+              logger.warn('assistant_api_stream_merchant_lookup_failed', {
+                error: dbError instanceof Error ? dbError.message : String(dbError),
+              });
+              // Continue without merchantId - some queries may still work
+            }
+            
             const loccitaneResult = await handleLoccitaneQuery({
               sessionId: body.sessionId,
               message: body.message,
               lastConstraints,
               lastShownProductIds: lastEvent?.productIds || body.conversationContext?.lastShownProductIds,
               onProgress,
-              searchMethods: body.searchMethods, // Pass through as-is, let handleLoccitaneQuery handle defaults
+              searchMethods: validatedSearchMethods, // Use validated searchMethods
+              productContextId: body.productContextId, // Pass product context for product-specific queries
+              merchantId, // Pass merchantId for product loading (may be undefined if DB lookup failed)
             });
             
             // Convert to expected format
@@ -132,7 +172,7 @@ export async function POST(request: NextRequest) {
               productCards: loccitaneResult.productCards,
               noExactMatch: loccitaneResult.noExactMatch,
               followupText: loccitaneResult.followupText,
-              intent: 'discovery' as const,
+              intent: body.productContextId ? 'pdp_suitability' as const : 'discovery' as const, // Set intent based on product context
               resolvedConstraints: lastConstraints,
               usedFollowUpContext: false,
             };
@@ -143,20 +183,28 @@ export async function POST(request: NextRequest) {
               productCount: result.productCards.length,
               noExactMatch: result.noExactMatch,
               pipeline: 'loccitane_optimized',
+              hasProductContext: !!body.productContextId,
+              intent: result.intent,
             });
             
-            // Get default merchant for now
-            const defaultMerchant = await prisma.merchant.findUnique({ where: { slug: 'default' } });
+            // Record conversation event (non-blocking - don't fail if this fails)
             if (defaultMerchant) {
-              await recordConversationEvent({
-                merchantId: defaultMerchant.id,
-                sessionId: body.sessionId,
-                pageType: body.pageType,
-                userQuery: body.message,
-                assistantReply: result.replyText,
-                productIds: result.productCards.map((card) => card.id),
-                hadExactMatch: !result.noExactMatch,
-              });
+              try {
+                await recordConversationEvent({
+                  merchantId: defaultMerchant.id,
+                  sessionId: body.sessionId,
+                  pageType: body.pageType,
+                  userQuery: body.message,
+                  assistantReply: result.replyText,
+                  productIds: result.productCards.map((card) => card.id),
+                  hadExactMatch: !result.noExactMatch,
+                });
+              } catch (metricsError) {
+                // Log but don't fail the request if metrics recording fails
+                logger.warn('assistant_api_stream_metrics_failed', {
+                  error: metricsError instanceof Error ? metricsError.message : String(metricsError),
+                });
+              }
             }
 
             // Send final result

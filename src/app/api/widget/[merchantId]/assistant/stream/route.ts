@@ -26,6 +26,11 @@ type AssistantApiRequest = {
     candidateIds: string[];
   };
   conversationContext?: ConversationContext;
+  searchMethods?: {
+    lexical: boolean;
+    semantic: boolean;
+    concept: boolean;
+  };
 };
 
 /**
@@ -132,6 +137,29 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     }
 
+    // Validate and normalize searchMethods
+    let validatedSearchMethods: { lexical: boolean; semantic: boolean; concept: boolean } | undefined;
+    if (body.searchMethods) {
+      if (
+        typeof body.searchMethods === 'object' &&
+        typeof body.searchMethods.lexical === 'boolean' &&
+        typeof body.searchMethods.semantic === 'boolean' &&
+        typeof body.searchMethods.concept === 'boolean'
+      ) {
+        validatedSearchMethods = body.searchMethods;
+      } else {
+        logger.warn('widget_assistant_stream_invalid_searchMethods', {
+          merchantId,
+          received: body.searchMethods,
+          defaultingTo: 'fast',
+        });
+        validatedSearchMethods = { lexical: false, semantic: true, concept: true }; // Default to fast
+      }
+    } else {
+      // No searchMethods provided, default to fast mode
+      validatedSearchMethods = { lexical: false, semantic: true, concept: true };
+    }
+
     logger.info('widget_assistant_stream_request', {
       merchantId,
       sessionId: body.sessionId,
@@ -139,6 +167,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       messageLength: body.message.length,
       hasHistory: !!body.history,
       hasPendingSuggestion: !!body.pendingSuggestion,
+      searchMethodsReceived: body.searchMethods,
+      searchMethodsValidated: validatedSearchMethods,
     });
 
     // Create a readable stream for SSE
@@ -170,6 +200,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             history: body.history,
             conversationContext: body.conversationContext,
             onProgress,
+            searchMethods: validatedSearchMethods, // Use validated searchMethods
           });
 
     logger.info('widget_assistant_stream_response', {

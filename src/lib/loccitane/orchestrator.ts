@@ -46,6 +46,7 @@ type LoccitaneQueryInput = {
     semantic: boolean;
     concept: boolean;
   };
+  productContextId?: string; // Product ID for product-specific queries
 };
 
 /**
@@ -134,6 +135,8 @@ export async function handleLoccitaneQuery(
     message: input.message,
     sessionId: input.sessionId,
     merchantId: input.merchantId,
+    productContextId: input.productContextId,
+    hasProductContext: !!input.productContextId,
   });
   
   // Step 1: Safety gate
@@ -192,10 +195,50 @@ export async function handleLoccitaneQuery(
     }
   }
   
-  // Step 2: Query classification
-  onProgress?.('classifying', STAGE_PROGRESS.classifying);
+  // Step 2: Load product context if provided (for product-specific queries)
+  // This must happen BEFORE classification so we can use isProductSpecificQuery
+  let productContextProduct: ProductWithLoccitaneAttributes | null = null;
+  let isProductSpecificQuery = false;
+  if (input.productContextId) {
+    // Use Q&A-specific progress stage for product-specific queries
+    onProgress?.('loading_product', STAGE_PROGRESS.loading_product);
+    const contextProducts = await loadLoccitaneProducts([input.productContextId], input.merchantId);
+    if (contextProducts.length > 0) {
+      productContextProduct = contextProducts[0];
+      isProductSpecificQuery = true;
+      logger.debug('handleLoccitaneQuery: product context loaded - product-specific query', {
+        productId: input.productContextId,
+        productTitle: productContextProduct.title,
+      });
+    } else {
+      logger.warn('handleLoccitaneQuery: product context not found', {
+        productId: input.productContextId,
+      });
+    }
+  }
+  
+  // Step 3: Query classification
+  // For product-specific queries, skip classification and use a simple classification
   const classifyStart = Date.now();
-  const classification = await classifyQuery(input.message, input.history);
+  let classification: QueryClassification;
+  
+  if (isProductSpecificQuery && productContextProduct) {
+    // For product-specific queries, skip classification and move to analyzing
+    classification = {
+      type: 'direct_product_search' as const,
+      constraints: {},
+    };
+    // Move to analyzing stage (processing product information)
+    onProgress?.('analyzing', STAGE_PROGRESS.analyzing);
+    logger.debug('handleLoccitaneQuery: product-specific query - using simplified classification', {
+      productId: input.productContextId,
+      message: input.message,
+    });
+  } else {
+    // Normal classification for discovery queries
+    onProgress?.('classifying', STAGE_PROGRESS.classifying);
+    classification = await classifyQuery(input.message, input.history);
+  }
   const classifyDuration = Date.now() - classifyStart;
   
   logger.debug('handleLoccitaneQuery: classification complete', {
@@ -301,32 +344,70 @@ export async function handleLoccitaneQuery(
     };
   }
   
-  // Step 3: Multi-view retrieval
-  onProgress?.('retrieving', STAGE_PROGRESS.retrieving);
-  const retrievalStart = Date.now();
-  // Use frontend-provided searchMethods, or default to fast mode if not provided
-  // No auto-selection - purely user choice. Frontend should always send based on user's selection.
-  const searchMethodsToUse = input.searchMethods !== undefined && input.searchMethods !== null
-    ? input.searchMethods  // Use frontend preference (user's choice)
-    : { lexical: false, semantic: true, concept: true };  // Default to fast mode if not provided
-  logger.debug('handleLoccitaneQuery: using searchMethods', {
-    received: input.searchMethods,
-    isDefault: input.searchMethods === undefined || input.searchMethods === null,
-    applied: searchMethodsToUse,
-    lexical: searchMethodsToUse.lexical,
-    semantic: searchMethodsToUse.semantic,
-    concept: searchMethodsToUse.concept,
-    queryLength: input.message.length,
-    queryWords: input.message.trim().split(/\s+/).length,
-    queryType: classification.type,
-  });
-  const retrievalResult = await multiViewRetrieval(
-    input.message,
-    classification,
-    input.merchantId,
-    searchMethodsToUse
-  );
-  const retrievalDuration = Date.now() - retrievalStart;
+  // Step 4: Multi-view retrieval (SKIP for product-specific queries)
+  let retrievalResult: Awaited<ReturnType<typeof multiViewRetrieval>>;
+  let retrievalDuration = 0;
+  
+  if (isProductSpecificQuery && productContextProduct) {
+    // For product-specific queries, skip retrieval and use empty results
+    // We'll use only the product context product
+    logger.debug('handleLoccitaneQuery: skipping retrieval for product-specific query', {
+      productId: input.productContextId,
+    });
+    retrievalResult = {
+      candidateIds: [productContextProduct.id],
+      lexicalScores: new Map([[productContextProduct.id, 1.0]]),
+      semanticScores: new Map([[productContextProduct.id, 1.0]]),
+      conceptMatches: new Map(),
+    };
+    retrievalDuration = 0;
+  } else {
+    // Normal retrieval for discovery queries
+    onProgress?.('retrieving', STAGE_PROGRESS.retrieving);
+    const retrievalStart = Date.now();
+    // Validate and use frontend-provided searchMethods, or default to fast mode if not provided
+    // No auto-selection - purely user choice. Frontend should always send based on user's selection.
+    let searchMethodsToUse: { lexical: boolean; semantic: boolean; concept: boolean };
+    if (
+      input.searchMethods !== undefined &&
+      input.searchMethods !== null &&
+      typeof input.searchMethods === 'object' &&
+      typeof input.searchMethods.lexical === 'boolean' &&
+      typeof input.searchMethods.semantic === 'boolean' &&
+      typeof input.searchMethods.concept === 'boolean'
+    ) {
+      // Use frontend preference (user's choice) - validated
+      searchMethodsToUse = input.searchMethods;
+    } else {
+      // Default to fast mode if not provided or invalid
+      searchMethodsToUse = { lexical: false, semantic: true, concept: true };
+      if (input.searchMethods !== undefined && input.searchMethods !== null) {
+        logger.warn('handleLoccitaneQuery: invalid searchMethods received', {
+          received: input.searchMethods,
+          defaultingTo: searchMethodsToUse,
+        });
+      }
+    }
+    logger.debug('handleLoccitaneQuery: using searchMethods', {
+      received: input.searchMethods,
+      isValid: input.searchMethods !== undefined && input.searchMethods !== null && typeof input.searchMethods === 'object',
+      isDefault: input.searchMethods === undefined || input.searchMethods === null,
+      applied: searchMethodsToUse,
+      lexical: searchMethodsToUse.lexical,
+      semantic: searchMethodsToUse.semantic,
+      concept: searchMethodsToUse.concept,
+      queryLength: input.message.length,
+      queryWords: input.message.trim().split(/\s+/).length,
+      queryType: classification.type,
+    });
+    retrievalResult = await multiViewRetrieval(
+      input.message,
+      classification,
+      input.merchantId,
+      searchMethodsToUse
+    );
+    retrievalDuration = Date.now() - retrievalStart;
+  }
   
   logger.debug('handleLoccitaneQuery: retrieval complete', {
     candidateCount: retrievalResult.candidateIds.length,
@@ -335,22 +416,35 @@ export async function handleLoccitaneQuery(
     retrievalDuration,
   });
   
-  // Step 4: Load full product objects (filter for L'Occitane products with structured attributes)
+  // Step 5: Load full product objects (filter for L'Occitane products with structured attributes)
   // Progress update is part of retrieving stage
   const loadStart = Date.now();
-  const candidateProducts = await loadLoccitaneProducts(
-    retrievalResult.candidateIds,
-    input.merchantId
-  );
-  const loadDuration = Date.now() - loadStart;
+  let candidateProducts: ProductWithLoccitaneAttributes[];
+  let filteredProducts: ProductWithLoccitaneAttributes[];
   
-  // Exclude previously shown products
-  let filteredProducts = candidateProducts;
-  if (input.lastShownProductIds && input.lastShownProductIds.length > 0) {
-    filteredProducts = candidateProducts.filter(
-      p => !input.lastShownProductIds!.includes(p.id)
+  if (isProductSpecificQuery && productContextProduct) {
+    // For product-specific queries, use only the product context product
+    candidateProducts = [productContextProduct];
+    filteredProducts = [productContextProduct];
+    logger.debug('handleLoccitaneQuery: using product context only (product-specific query)', {
+      productId: productContextProduct.id,
+    });
+  } else {
+    // Normal flow: load products from retrieval results
+    candidateProducts = await loadLoccitaneProducts(
+      retrievalResult.candidateIds,
+      input.merchantId
     );
+    
+    // Exclude previously shown products
+    filteredProducts = candidateProducts;
+    if (input.lastShownProductIds && input.lastShownProductIds.length > 0) {
+      filteredProducts = candidateProducts.filter(
+        p => !input.lastShownProductIds!.includes(p.id)
+      );
+    }
   }
+  const loadDuration = Date.now() - loadStart;
   
   // Step 4.5: Apply productType filter for direct_product_search
   const { type, constraints } = classification;
@@ -477,44 +571,74 @@ export async function handleLoccitaneQuery(
     }
   }
   
-  // Step 5: Ranking
-  onProgress?.('ranking', STAGE_PROGRESS.ranking);
+  // Step 6: Ranking
   const rankingStart = Date.now();
-  const rankedProducts = sortProductsByScore(
-    input.message,
-    classification,
-    filteredProducts,
-    {
-      lexicalScores: retrievalResult.lexicalScores,
-      semanticScores: retrievalResult.semanticScores,
-    }
-  );
-  const rankingDuration = Date.now() - rankingStart;
   
-  const topProducts = rankedProducts.slice(0, 20);
+  let topProducts: ProductWithLoccitaneAttributes[];
+  
+  if (isProductSpecificQuery && productContextProduct) {
+    // For product-specific queries, skip ranking and use only the product context
+    // Stay on analyzing stage (we're still processing the product information)
+    topProducts = [productContextProduct];
+    logger.debug('handleLoccitaneQuery: skipping ranking for product-specific query', {
+      productId: productContextProduct.id,
+    });
+  } else {
+    // Normal ranking flow for discovery queries
+    onProgress?.('ranking', STAGE_PROGRESS.ranking);
+    const rankedProducts = sortProductsByScore(
+      input.message,
+      classification,
+      filteredProducts,
+      {
+        lexicalScores: retrievalResult.lexicalScores,
+        semanticScores: retrievalResult.semanticScores,
+      }
+    );
+    topProducts = rankedProducts.slice(0, 20);
+  }
+  
+  const rankingDuration = Date.now() - rankingStart;
   
   logger.debug('handleLoccitaneQuery: ranking complete', {
     rankedCount: topProducts.length,
     rankingDuration,
   });
   
-  // Step 6: RAG reply generation
-  // Use only top 4 products for reply context to match what will be displayed
-  // This ensures the LLM response is focused on the products the user will see
-  const displayProducts = topProducts.slice(0, 4);
+  // Step 7: RAG reply generation
+  // For product-specific queries, use only the product context
+  let displayProducts: ProductWithLoccitaneAttributes[];
+  if (isProductSpecificQuery && productContextProduct) {
+    // For product-specific queries, show only the product context
+    displayProducts = [productContextProduct];
+    // Use Q&A-specific progress stage for product-specific queries
+    onProgress?.('answering', STAGE_PROGRESS.answering);
+    logger.debug('handleLoccitaneQuery: product-specific query - using only product context', {
+      productId: productContextProduct.id,
+    });
+  } else {
+    // Normal flow: use top 4 products
+    displayProducts = topProducts.slice(0, 4);
+    // Use discovery progress stage for normal queries
+    onProgress?.('generating_reply', STAGE_PROGRESS.generating_reply);
+  }
   
-  onProgress?.('generating_reply', STAGE_PROGRESS.generating_reply);
   const replyStart = Date.now();
   const replyResult = await generateReplyWithRag(
     input.message,
     classification,
     displayProducts, // Pass only the 4 products that will be displayed
-    input.merchantId
+    input.merchantId,
+    productContextProduct // Pass product context for product-specific queries
   );
   const replyDuration = Date.now() - replyStart;
   
-  // Step 7: Build product cards (using the same 4 products used for reply context)
-  const productCards: ProductCard[] = displayProducts.map((product) => {
+  // Step 8: Build product cards
+  // For product-specific queries, return empty array (no cards - user is asking questions, not browsing)
+  // For discovery queries, return product cards for browsing
+  const productCards: ProductCard[] = isProductSpecificQuery && productContextProduct
+    ? [] // No product cards for product-specific Q&A - user already selected the product
+    : displayProducts.map((product) => {
     // Build reason using existing template-based function
     const reason = buildProductReason(
       product,

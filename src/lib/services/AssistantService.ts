@@ -20,6 +20,11 @@ export type AssistantQueryInput = {
   productContextId?: string;
   conversationContext?: ConversationContext;
   onProgress?: ProgressCallback;
+  searchMethods?: {
+    lexical: boolean;
+    semantic: boolean;
+    concept: boolean;
+  };
 };
 
 export type AssistantQueryResult = {
@@ -88,6 +93,7 @@ export async function handleAssistantQuery(
       merchantId,
       history: input.history,
       onProgress: input.onProgress,
+      searchMethods: input.searchMethods, // Pass through searchMethods
     });
     
     logger.debug('assistant_query_complete', {

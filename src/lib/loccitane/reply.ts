@@ -60,7 +60,8 @@ export async function generateReplyWithRag(
   query: string,
   classification: QueryClassification,
   topProducts: ProductWithLoccitaneAttributes[],
-  merchantId?: string
+  merchantId?: string,
+  productContext?: ProductWithLoccitaneAttributes | null
 ): Promise<LocciReplyResult> {
   try {
     // Serialize products for prompt
@@ -68,13 +69,48 @@ export async function generateReplyWithRag(
     
     // Build prompt with classification and products
     const systemPrompt = LOCCITANE_RAG_REPLY_PROMPT;
+    
+    // Add product context information if this is a product-specific query
+    let contextNote = '';
+    if (productContext) {
+      // Find the product context in the serialized products
+      const contextProductIndex = topProducts.findIndex(tp => tp.id === productContext.id);
+      if (contextProductIndex >= 0 && contextProductIndex < serializedProducts.length) {
+        const contextProduct = serializedProducts[contextProductIndex];
+        contextNote = `\n\n⚠️ CRITICAL: This is a PRODUCT-SPECIFIC Q&A session. The user has selected a specific product and is asking questions about it.
+
+SELECTED PRODUCT: "${contextProduct.title}" (ID: ${productContext.id})
+
+Your reply MUST:
+1. Answer the user's question DIRECTLY using ONLY the information from the selected product above
+2. Reference the product by name: "${contextProduct.title}"
+3. Use ALL available product details to answer:
+   - Ingredients (mustHaveIngredients, featuredIngredients, allIngredients)
+   - Benefits and concerns addressed (concerns, benefits)
+   - Skin/hair types (skinTypes, hairTypes)
+   - Application areas and usage instructions
+   - Product type, format, size, SPF, etc.
+   - Any other attributes present in the product data
+4. Be detailed and informative - use the full product information to provide comprehensive answers
+5. Do NOT suggest other products
+6. Do NOT do product discovery or show alternatives
+7. If the user asks "what is this?", provide a detailed description using all product attributes
+8. If the user asks "is this good for X?", check the product's concerns, skinTypes, ingredients, etc. and answer based on that data
+9. If the user asks about ingredients, list them from the product data
+10. If the user asks about usage, explain based on applicationAreas, productType, format, etc.
+
+The user's question: "${query}"
+Answer this question about "${contextProduct.title}" using the complete product information provided above.`;
+      }
+    }
+    
     const userContent = `User query: "${query}"
 
 Query classification:
 ${JSON.stringify(classification, null, 2)}
 
 Retrieved products (only reference these):
-${JSON.stringify(serializedProducts, null, 2)}
+${JSON.stringify(serializedProducts, null, 2)}${contextNote}
 
 Generate a helpful reply that references only the products above.`;
 

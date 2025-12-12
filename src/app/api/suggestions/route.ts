@@ -31,40 +31,18 @@ export async function GET(request: NextRequest) {
       });
 
       if (!selectedProduct) {
-        return NextResponse.json({ suggestions: ['Ask about this product', 'Similar items?', 'Any other scents?'] });
+        return NextResponse.json({ suggestions: ['What are the ingredients?', 'How do I use this?', 'What are the benefits?'] });
       }
 
-      const similarProducts = await prisma.product.findMany({
-        where: {
-          id: { not: productId },
-          stockStatus: { in: ['in_stock', 'low_stock'] },
-          OR: [
-            { category: selectedProduct.category || undefined },
-            { subcategory: selectedProduct.subcategory || undefined },
-            { brand: selectedProduct.brand || undefined },
-          ].filter(Boolean) as any[],
-        },
-        select: {
-          id: true,
-          title: true,
-          category: true,
-          subcategory: true,
-          brand: true,
-          priceCents: true,
-          attributes: true,
-        },
-        take: 20,
-      });
+      // No need to fetch similar products - we only want questions about the selected product
 
       const systemPrompt = `
 You are a shopping assistant that suggests follow-up QUESTION prompts
 about a single selected product.
 
 You will be given:
-- userQuery: the shopper’s last message.
+- userQuery: the shopper's last message.
 - selectedProduct: the product the shopper clicked on.
-- similarProducts: up to 20 other catalog products that are related
-  (same category / productType / brand or similar attributes).
 
 Each product may contain:
 id, title, category, subcategory, productTypes, brand, priceCents,
@@ -72,41 +50,56 @@ and attributes such as ingredients, concerns, skinTypes, scents,
 applicationAreas, formats, SPF, size, etc.
 
 YOUR GOAL
-Generate 3 short question-style prompts the shopper might click to learn
-more about this product or close alternatives.
+Generate 3 concise, specific question-style prompts that help the shopper learn
+more about THIS SPECIFIC PRODUCT ONLY.
 
 These prompts must:
-- be directly related to the selectedProduct,
-- help clarify fit, usage, benefits, variants, or alternatives,
-- be answerable using the catalog data for selectedProduct and/or similarProducts.
+- be directly about the selectedProduct (not other products)
+- ask specific questions about the product's attributes, usage, benefits, or suitability
+- be answerable using ONLY the selectedProduct's data
+- be concise (4-8 words, question format)
 
 EXAMPLES OF GOOD ANGLES
-(Only use angles actually supported by the data you see.)
+(Only use angles actually supported by the selectedProduct data.)
 
-- FIT & SUITABILITY
-  - skinTypes, concerns, applicationAreas, ingredients
-- USAGE & ROUTINE
-  - frequency, layering, daytime vs nighttime
-- VARIANTS & ALTERNATIVES
-  - different SPF, scent, size, format, concern, price band
+- INGREDIENTS & COMPOSITION
+  - "What are the main ingredients?"
+  - "Is this fragrance-free?"
+  - "Does this contain [specific ingredient]?"
+
+- SUITABILITY & FIT
+  - "Is this good for [skinType/concern]?"
+  - "Can I use this if I have [condition]?"
+  - "Is this suitable for [applicationArea]?"
+
+- USAGE & APPLICATION
+  - "How do I use this?"
+  - "When should I apply this?"
+  - "Can I use this daily?"
+
 - BENEFITS & RESULTS
-  - hydration, anti-aging, brightening, oil control, etc.
+  - "What does this help with?"
+  - "What are the benefits?"
+  - "Will this help with [concern]?"
 
-RULES
-1. Dataset-driven only; use only values present in selectedProduct or similarProducts.
-2. Product-focused and non-redundant; avoid shipping/returns/account/order topics.
-3. Style: natural-language QUESTION, 6–14 words, no numbering/labels.
-4. Output ONLY:
+CRITICAL RULES
+1. ONLY ask questions about the selectedProduct - NEVER suggest other products, alternatives, or similar items
+2. NEVER generate discovery prompts like "show me similar products" or "what else do you have"
+3. Dataset-driven only; use only values present in selectedProduct
+4. Product-focused questions only; avoid shipping/returns/account/order topics
+5. Style: concise natural-language QUESTIONS, 4-8 words, question format
+6. Each prompt must be a direct question about the selected product's attributes, usage, or benefits
+7. Output ONLY:
 {
   "prompts": ["...", "...", "..."]
 }
-If you cannot create 3 distinct data-backed prompts, return 2 or 1.
+If you cannot create 3 distinct data-backed prompts about the selected product, return 2 or 1.
 Return the JSON object only (this message includes the word JSON).`;
 
+      // Only send selectedProduct - don't send similarProducts to avoid suggesting alternatives
       const payload = {
         userQuery: lastMessage,
         selectedProduct,
-        similarProducts,
       };
 
       const result = await callLLM({
@@ -133,7 +126,7 @@ Return the JSON object only (this message includes the word JSON).`;
         return NextResponse.json({ suggestions: prompts });
       }
 
-      const fallback = buildProductFallback(selectedProduct, similarProducts);
+      const fallback = buildProductFallback(selectedProduct);
       return NextResponse.json({ suggestions: fallback });
     }
 
@@ -296,9 +289,7 @@ function buildFallback(
 
 function buildProductFallback(
   selected: { title: string | null; category: string | null; subcategory: string | null; attributes: any },
-  similar: Array<{ title: string | null; category: string | null; subcategory: string | null; attributes: any }>,
 ): string[] {
-  const category = selected.category || selected.subcategory || 'this product';
   const attrs = selected.attributes as Record<string, any> | null;
 
   const skinType =
@@ -307,47 +298,39 @@ function buildProductFallback(
   const concern =
     (attrs?.concerns && Array.isArray(attrs.concerns) && attrs.concerns[0]) ||
     (attrs?.concern as string | undefined);
-  const scent =
-    (attrs?.scents && Array.isArray(attrs.scents) && attrs.scents[0]) ||
-    (attrs?.scent as string | undefined);
-  const spf =
-    (attrs?.SPF && (Array.isArray(attrs.SPF) ? attrs.SPF[0] : attrs.SPF)) as string | number | undefined;
-  const format =
-    (attrs?.formats && Array.isArray(attrs.formats) && attrs.formats[0]) ||
-    (attrs?.format as string | undefined);
-  const size =
-    (attrs?.size as string | undefined) ||
-    ((attrs?.sizes && Array.isArray(attrs.sizes) && attrs.sizes[0]) as string | undefined);
-
-  const similarHas = (key: string, value: string) =>
-    similar.some((p) => {
-      const pa = p.attributes as any;
-      if (!pa) return false;
-      const v = pa[key];
-      if (Array.isArray(v)) return v.some((x) => typeof x === 'string' && x.toLowerCase() === value.toLowerCase());
-      if (typeof v === 'string') return v.toLowerCase() === value.toLowerCase();
-      return false;
-    });
+  const ingredients =
+    (attrs?.ingredients && Array.isArray(attrs.ingredients) && attrs.ingredients.length > 0) ||
+    (attrs?.featuredIngredients && Array.isArray(attrs.featuredIngredients) && attrs.featuredIngredients.length > 0) ||
+    (attrs?.mustHaveIngredients && Array.isArray(attrs.mustHaveIngredients) && attrs.mustHaveIngredients.length > 0);
+  const applicationArea =
+    (attrs?.applicationAreas && Array.isArray(attrs.applicationAreas) && attrs.applicationAreas[0]) ||
+    (attrs?.applicationArea as string | undefined);
 
   const prompts: string[] = [];
+  
+  // Focus on product-specific questions only
   if (skinType) {
     prompts.push(`Is this good for ${skinType}?`);
   } else if (concern) {
     prompts.push(`Does this help with ${concern}?`);
   }
 
-  if (format && similarHas('formats', format as string)) {
-    prompts.push(`Is there a ${format} version?`);
-  } else if (scent && similarHas('scents', scent as string)) {
-    prompts.push(`Other scents like ${scent}?`);
+  if (ingredients) {
+    prompts.push(`What are the ingredients?`);
   }
 
-  if (spf) {
-    prompts.push(`Do you have this with SPF ${spf}?`);
-  } else if (size) {
-    prompts.push(`Is there a travel-size option?`);
+  if (applicationArea) {
+    prompts.push(`How do I use this?`);
   } else {
-    prompts.push(`Any similar ${category} under $50?`);
+    prompts.push(`What are the benefits?`);
+  }
+
+  // Fill remaining slots with generic product questions
+  if (prompts.length < 3) {
+    prompts.push(`What is this product?`);
+  }
+  if (prompts.length < 3) {
+    prompts.push(`How should I apply this?`);
   }
 
   return prompts

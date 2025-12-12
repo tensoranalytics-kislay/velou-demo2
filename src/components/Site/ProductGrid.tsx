@@ -10,40 +10,59 @@ const formatCurrency = (value: number, currency: string) =>
 export default async function ProductGrid() {
   let products: Product[] = [];
   let brandName = 'our store';
+  let merchantId: string | null = null;
   
-  // Fetch brand name from database
+  // Fetch merchant and brand name from database
   try {
     const merchant = await prisma.merchant.findUnique({
       where: { slug: 'default' },
-      select: { brandName: true },
+      select: { id: true, brandName: true },
     });
-    if (merchant?.brandName) {
-      brandName = merchant.brandName;
+    if (merchant) {
+      merchantId = merchant.id;
+      if (merchant.brandName) {
+        brandName = merchant.brandName;
+      }
     }
   } catch (error) {
     // Use default if brand config fetch fails
+    // This could be a database connection error - we'll handle it gracefully
+    // Don't log to console.error as React treats it as an error
+    // The page will still render with default values
+    if (process.env.NODE_ENV === 'development') {
+      // Use console.warn instead of console.error to avoid React error reporting
+      console.warn('ProductGrid: Database unavailable, using defaults', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    // Continue with default values (merchantId = null, brandName = 'our store')
   }
   
-  try {
-    products = await prisma.product.findMany({
-      where: {
-        stockStatus: {
-          not: 'out_of_stock',
+  // Only fetch products if we have a merchantId and database is accessible
+  if (merchantId) {
+    try {
+      products = await prisma.product.findMany({
+        where: {
+          merchantId, // REQUIRED: Multi-tenant isolation
+          stockStatus: {
+            not: 'out_of_stock',
+          },
+          isActive: true, // Only show active products
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: 12,
-    });
-  } catch (error) {
-    // Gracefully handle database connection errors
-    // Log error in development but don't break the page
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Failed to fetch products:', error instanceof Error ? error.message : String(error));
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 12,
+      });
+    } catch (error) {
+      // Gracefully handle database connection errors
+      // Log error in development but don't break the page
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to fetch products:', error instanceof Error ? error.message : String(error));
+      }
+      // Return empty array so the page still renders with the "No products found" message
+      products = [];
     }
-    // Return empty array so the page still renders with the "No products found" message
-    products = [];
   }
 
   return (
