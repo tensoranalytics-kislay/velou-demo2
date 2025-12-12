@@ -31,22 +31,21 @@ class LLMError extends Error {
 /**
  * Model Selection by Purpose:
  * 
- * - intent: Requires structured JSON output and complex reasoning about user queries.
- *   Uses: o3-mini (reasoning model) for best logical analysis, or GPT-5 as fallback.
+ * - intent: Requires structured JSON output. Uses lightweight model (gpt-4.1-mini) for speed.
  * 
  * - final_reply: Natural language generation for conversational responses.
  *   Uses: GPT-5 for best quality and naturalness, or GPT-4.1 as fallback.
  * 
- * - pdp_suitability: Complex reasoning about product fit and user needs.
- *   Uses: o3-mini (reasoning model) for best logical analysis, or GPT-5 as fallback.
+ * - pdp_suitability: Analysis of product fit and user needs.
+ *   Uses: Primary model (gpt-4.1) for quality, or lightweight model as fallback.
  * 
  * - card_reason: Lightweight task generating short product card explanations.
  *   Uses: GPT-4.1-mini for cost-effectiveness while maintaining quality.
  */
 const REASONING_PURPOSES: Record<LlmCallOptions['purpose'], boolean> = {
-  intent: true,         // Complex reasoning about user intent
+  intent: false,        // Use lightweight model for speed (gpt-4.1-mini)
   final_reply: false,   // Natural language generation
-  pdp_suitability: true,// Complex reasoning about product fit
+  pdp_suitability: false, // Use primary model, not reasoning model
   card_reason: false,   // Simple text generation
   greeting: false,      // Lightweight, stylistic text generation
   followup_prompts: false, // Simple prompt generation
@@ -54,7 +53,7 @@ const REASONING_PURPOSES: Record<LlmCallOptions['purpose'], boolean> = {
 };
 
 const PRIMARY_PURPOSES: Record<LlmCallOptions['purpose'], boolean> = {
-  intent: true,
+  intent: false, // Use lightweight model (gpt-4.1-mini) for fast classification
   final_reply: true,
   pdp_suitability: true,
   card_reason: false,
@@ -74,7 +73,8 @@ const TEMPERATURE_BY_PURPOSE: Record<LlmCallOptions['purpose'], number> = {
 };
 
 function resolveModel(purpose: LlmCallOptions['purpose']) {
-  // Use reasoning model for complex logical tasks
+  // Reasoning models are no longer used (removed o3-mini for performance)
+  // This check is kept for backward compatibility but will never match now
   if (REASONING_PURPOSES[purpose] && env.reasoningLlmModel) {
     return env.reasoningLlmModel;
   }
@@ -85,17 +85,17 @@ function resolveModel(purpose: LlmCallOptions['purpose']) {
     return env.primaryLlmModel;
   }
   
-  // Use lightweight model for simple tasks
+  // Use lightweight model for simple tasks (including intent classification)
   return env.lightLlmModel;
 }
 
 /**
  * Check if a model supports the temperature parameter.
- * Reasoning models (o3-mini, gpt-5) don't support temperature.
+ * Some models don't support temperature.
  */
 function modelSupportsTemperature(model: string): boolean {
   // Models that don't support temperature
-  const noTemperatureModels = ['o3-mini', 'o3', 'gpt-5'];
+  const noTemperatureModels = ['gpt-5'];
   return !noTemperatureModels.some((m) => model.toLowerCase().includes(m.toLowerCase()));
 }
 

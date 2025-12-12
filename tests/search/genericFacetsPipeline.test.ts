@@ -26,7 +26,7 @@ vi.mock('../../src/lib/config', () => ({
     llmProvider: 'mock',
     primaryLlmModel: 'gpt-5',
     lightLlmModel: 'gpt-4.1-mini',
-    reasoningLlmModel: 'o3-mini',
+    reasoningLlmModel: 'gpt-4.1-mini', // No longer used, but kept for backward compatibility
   },
 }));
 

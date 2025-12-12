@@ -190,7 +190,7 @@ function normalizeConstraints(constraints: QueryClassification['constraints']): 
 /**
  * Classify query and extract constraints using LLM
  * 
- * Uses a small, fast model (gpt-4.1-mini) with temperature 0.0 for deterministic output.
+ * Uses lightweight model (gpt-4.1-mini) for fast classification with low temperature for deterministic output.
  * Post-processes constraints to normalize concerns and ingredients using canonicalization rules.
  * 
  * @param message - User query message
@@ -214,12 +214,11 @@ export async function classifyQuery(
       },
     ];
     
-    // Call LLM with intent purpose (uses reasoning model) but we want fast, so override
-    // Actually, let's use the light model for speed. The provider will use lightLlmModel for intent.
+    // Call LLM with intent purpose (uses lightweight model gpt-4.1-mini for speed)
     // Use low max_tokens since classification JSON responses are small (~200-500 tokens max)
     const result = await callLLM({
       messages,
-      purpose: 'intent', // This will use reasoning model, but we can't override easily
+      purpose: 'intent', // Uses lightweight model (gpt-4.1-mini) for fast classification
       expectJson: true,
       schema: LOCCITANE_QUERY_CLASSIFIER_SCHEMA,
       maxTokens: 500, // JSON classification responses are small, limit tokens for speed

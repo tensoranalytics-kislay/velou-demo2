@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Lucky Brand Concierge",
-  description: "Lucky Brand's personal shopping assistant and curated catalog preview.",
+  title: "Shopping Assistant",
+  description: "Personal shopping assistant and curated catalog preview.",
 };
 
 export default function RootLayout({

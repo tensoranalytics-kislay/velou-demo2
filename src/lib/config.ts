@@ -27,17 +27,17 @@ const openaiApiKey = process.env.OPENAI_API_KEY;
  * Model Selection Strategy:
  *
  * - GPT-4.1: Strong general model for conversational replies and most tasks
- * - o3-mini: Specialized reasoning model, best for complex logical tasks
  * - GPT-4.1-mini: Lightweight version, cost-effective for helper/boilerplate tasks
  *
  * Default models (can be overridden via env vars):
  * - PRIMARY_LLM_MODEL: gpt-4.1 (used for final replies and richer text)
- * - LIGHT_LLM_MODEL: gpt-4.1-mini (cost-effective for lightweight tasks)
- * - REASONING_LLM_MODEL: o3-mini (for complex reasoning tasks such as intent/suitability)
+ * - LIGHT_LLM_MODEL: gpt-4.1-mini (used for intent classification and lightweight tasks)
+ * - REASONING_LLM_MODEL: Not used (removed o3-mini for performance)
  */
 const primaryLlmModel = process.env.PRIMARY_LLM_MODEL ?? 'gpt-4.1';
 const lightLlmModel = process.env.LIGHT_LLM_MODEL ?? 'gpt-4.1-mini';
-const reasoningLlmModel = process.env.REASONING_LLM_MODEL ?? 'o3-mini';
+// Reasoning model is no longer used - kept for backward compatibility but defaults to light model
+const reasoningLlmModel = process.env.REASONING_LLM_MODEL ?? lightLlmModel;
 
 // Embedding model for vector search (pgvector)
 const embeddingModel = process.env.EMBEDDING_MODEL ?? 'text-embedding-3-small';
