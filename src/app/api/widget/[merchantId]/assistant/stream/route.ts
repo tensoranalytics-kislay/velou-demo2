@@ -11,9 +11,9 @@ import { widgetCorsHeaders } from '@/middleware/widgetCors';
 import { handleAssistantQuery } from '@/lib/services/AssistantService';
 import { trackEvent } from '@/lib/services/AnalyticsService';
 import { logger } from '@/lib/telemetry/logger';
-import type { ConversationContext } from '@/lib/llm/orchestrator';
+import type { ConversationContext } from '@/lib/llm/types';
+import type { ProgressCallback } from '@/lib/llm/types';
 import type { SearchConstraints } from '@/lib/search/types';
-import type { ProgressCallback } from '@/lib/llm/orchestrator/progress';
 
 type AssistantApiRequest = {
   sessionId: string;
@@ -168,7 +168,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             productContextId: body.productContextId,
             message: body.message,
             history: body.history,
-            pendingSuggestion: body.pendingSuggestion,
             conversationContext: body.conversationContext,
             onProgress,
           });

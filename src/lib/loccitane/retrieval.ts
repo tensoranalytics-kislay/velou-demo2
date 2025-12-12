@@ -210,9 +210,52 @@ export async function multiViewRetrieval(
             madeWithout: classification.constraints.madeWithout,
             productTypes: classification.constraints.productTypes,
           };
+          
+          // Log constraints being used for concept search
+          logger.debug('multiViewRetrieval: concept search constraints', {
+            query: query.substring(0, 100),
+            constraints: {
+              concerns: constraints.concerns,
+              skinTypes: constraints.skinTypes,
+              applicationAreas: constraints.applicationAreas,
+              ingredients: constraints.ingredients,
+              madeWithout: constraints.madeWithout,
+              productTypes: constraints.productTypes,
+            },
+            hasAnyConstraints: !!(
+              constraints.concerns?.length ||
+              constraints.skinTypes?.length ||
+              constraints.applicationAreas?.length ||
+              constraints.ingredients?.length ||
+              constraints.madeWithout?.length ||
+              constraints.productTypes?.length
+            ),
+            conceptIndexStats: {
+              concernsCount: conceptIndex.concerns.size,
+              skinTypesCount: conceptIndex.skinTypes.size,
+              applicationAreasCount: conceptIndex.applicationAreas.size,
+              ingredientsCount: conceptIndex.ingredients.size,
+              madeWithoutCount: conceptIndex.madeWithout.size,
+              productTypesCount: conceptIndex.productTypes.size,
+            },
+          });
+          
           const productIds = searchConceptIndex(conceptIndex, constraints);
           const searchDuration = Date.now() - searchStart;
           const conceptDuration = Date.now() - conceptStart;
+          
+          logger.debug('multiViewRetrieval: concept search results', {
+            query: query.substring(0, 100),
+            productIdsFound: productIds.length,
+            constraintsUsed: {
+              concerns: constraints.concerns?.length || 0,
+              skinTypes: constraints.skinTypes?.length || 0,
+              applicationAreas: constraints.applicationAreas?.length || 0,
+              ingredients: constraints.ingredients?.length || 0,
+              madeWithout: constraints.madeWithout?.length || 0,
+              productTypes: constraints.productTypes?.length || 0,
+            },
+          });
           
           return { 
             type: 'concept' as const, 

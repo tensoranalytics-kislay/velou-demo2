@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { prisma } from '../src/lib/db';
-import { handleAssistantQuery } from '../src/lib/llm/orchestrator';
+// This test is for the legacy orchestrator which has been removed
+// TODO: Remove or rewrite this test for the fast path
+// import { handleLoccitaneQuery } from '../src/lib/loccitane/orchestrator';
 
 // Mock Prisma
 vi.mock('../src/lib/db', () => ({

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { ProductCard } from '../src/lib/llm/orchestrator';
+import type { ProductCard } from '../src/lib/llm/orchestrator/cards';
 
 describe('Frontend card visibility logic with noExactMatch', () => {
   it('should show cards when productCards.length > 0 even if noExactMatch=true', () => {

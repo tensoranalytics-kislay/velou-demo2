@@ -1,20 +1,36 @@
 /**
  * AssistantService
  * 
- * Wraps the assistant/orchestrator functionality with merchantId.
+ * Wraps the fast path (L'Occitane orchestrator) with merchantId.
  * This ensures all assistant queries are scoped to a specific merchant.
- * 
- * The underlying orchestration logic remains unchanged - we just pass merchantId through.
  */
 
-import { handleAssistantQuery as handleAssistantQueryCore } from '../llm/orchestrator';
+import { handleLoccitaneQuery } from '../loccitane/orchestrator';
 import { prisma } from '../db';
 import { logger } from '../telemetry/logger';
-import type {
-  AssistantQueryInput,
-  AssistantQueryResult,
-} from '../llm/orchestrator';
-import type { DatasetContext } from '../catalog/datasetInspector';
+import type { SearchConstraints } from '../search/types';
+import type { ConversationContext, QueryStage, ProgressCallback } from '../llm/types';
+import type { ProductCard } from '../llm/orchestrator/cards';
+
+export type AssistantQueryInput = {
+  sessionId: string;
+  pageType: 'HOME' | 'PLP' | 'PDP';
+  message: string;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  productContextId?: string;
+  conversationContext?: ConversationContext;
+  onProgress?: ProgressCallback;
+};
+
+export type AssistantQueryResult = {
+  replyText: string;
+  productCards: ProductCard[];
+  noExactMatch: boolean;
+  intent?: string;
+  resolvedConstraints?: SearchConstraints;
+  usedFollowUpContext?: boolean;
+  followupText?: string;
+};
 
 /**
  * Handle assistant query for a merchant
@@ -47,38 +63,47 @@ export async function handleAssistantQuery(
       throw new Error('Merchant not found');
     }
 
-    // Load datasetContext from merchant if not provided
-    let datasetContext: DatasetContext | null = null;
-    if (merchant.datasetContext) {
-      datasetContext = merchant.datasetContext as unknown as DatasetContext;
+    // Get last conversation context from DB for follow-up detection
+    const lastEvent = await prisma.conversationEvent.findFirst({
+      where: { sessionId: input.sessionId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        productIds: true,
+        userQuery: true,
+      },
+    });
+    
+    // Extract last constraints from previous query
+    let lastConstraints: SearchConstraints | null = null;
+    if (input.conversationContext?.lastConstraints) {
+      lastConstraints = input.conversationContext.lastConstraints;
     }
 
-    // Merge datasetContext into conversationContext
-    const enrichedInput: AssistantQueryInput = {
-      ...input,
-      conversationContext: {
-        ...input.conversationContext,
-        datasetContext: datasetContext || input.conversationContext?.datasetContext || null,
-      },
-    };
-
-    // Call the core orchestrator function
-    // Note: We need to pass merchantId to the orchestrator so it can filter search calls
-    // For now, we'll need to update the orchestrator to accept merchantId
-    // This is a temporary solution - the orchestrator should be updated to accept merchantId
-    const result = await handleAssistantQueryCore(enrichedInput);
+    // Call the fast path orchestrator
+    const result = await handleLoccitaneQuery({
+      sessionId: input.sessionId,
+      message: input.message,
+      lastConstraints,
+      lastShownProductIds: lastEvent?.productIds || input.conversationContext?.lastShownProductIds,
+      merchantId,
+      history: input.history,
+      onProgress: input.onProgress,
+    });
     
-    // TODO: Update handleAssistantQueryCore to accept merchantId and pass it to search calls
-    // For now, search calls will filter by merchantId if the SearchService is used
-
     logger.debug('assistant_query_complete', {
       merchantId,
       sessionId: input.sessionId,
-      intent: result.intent,
       productCount: result.productCards.length,
     });
 
-    return result;
+    return {
+      replyText: result.replyText,
+      productCards: result.productCards,
+      noExactMatch: result.noExactMatch,
+      followupText: result.followupText,
+      resolvedConstraints: lastConstraints ?? undefined,
+      usedFollowUpContext: false,
+    };
   } catch (error) {
     logger.error('assistant_query_failed', {
       merchantId,

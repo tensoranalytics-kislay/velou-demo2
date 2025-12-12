@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { STAGE_LABELS, type QueryStage, type QueryType } from '@/lib/llm/orchestrator/progress';
+import { STAGE_LABELS, type QueryStage, type QueryType } from '@/lib/llm/types';
 
 type QueryProgressBarProps = {
   isLoading: boolean;

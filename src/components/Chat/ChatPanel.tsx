@@ -1,11 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import type {
-  ConversationContext,
-  PendingSuggestionResult,
-  ProductCard,
-} from '@/lib/llm/orchestrator';
+import type { ConversationContext, PendingSuggestionResult } from '@/lib/llm/types';
+import type { ProductCard } from '@/lib/llm/orchestrator/cards';
 import type { SearchConstraints } from '@/lib/search/types';
 import MessageInput from './MessageInput';
 import MessageList, { type ChatMessage } from './MessageList';
@@ -559,6 +556,7 @@ export default function ChatPanel() {
   };
 
   const handleSendMessage = async (message: string, overrideProductContextId?: string, searchMethods?: { lexical: boolean; semantic: boolean; concept: boolean }) => {
+    console.log('[ChatPanel] handleSendMessage called with searchMethods:', searchMethods);
     const userMessage: ChatMessage = {
       id: createId(),
       role: 'user',
@@ -610,7 +608,8 @@ export default function ChatPanel() {
           history: historyPayload,
           pendingSuggestion: pendingPayload,
           conversationContext: contextPayload,
-          searchMethods: searchMethods || { lexical: true, semantic: true, concept: true },
+          // Always include searchMethods - use user's choice, or default to fast mode
+          searchMethods: searchMethods || { lexical: false, semantic: true, concept: true },
         }),
       });
 

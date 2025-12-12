@@ -1,7 +1,14 @@
 /**
- * Progress tracking types for query pipeline stages
+ * Shared types for LLM orchestration
+ * These types are used by both the fast path (L'Occitane) and API routes
  */
 
+import type { SearchConstraints } from '../search/types';
+import type { DatasetContext } from '../catalog/datasetInspector';
+
+/**
+ * Progress tracking types for query pipeline stages
+ */
 export type QueryStage = 
   | 'understanding'      // Intent & Constraints Extraction
   | 'searching'          // Database Search & Ranking
@@ -61,4 +68,27 @@ export const STAGE_LABELS: Record<QueryStage, string> = {
 
 // Helper export to force tree-shaking-safe named exports recognition
 export const STAGE_LABEL_KEYS = Object.keys(STAGE_LABELS) as QueryStage[];
+
+/**
+ * Conversation context for maintaining state across queries
+ */
+export type ConversationContext = {
+  lastIntent?: string | null;
+  lastConstraints?: SearchConstraints | null;
+  lastShownProductIds?: string[];
+  lastUserQuery?: string | null;
+  datasetContext?: DatasetContext | null;
+};
+
+/**
+ * Pending suggestion types (legacy, kept for type compatibility)
+ */
+export type PendingSuggestionInput = {
+  constraints: SearchConstraints;
+  candidateIds: string[];
+};
+
+export type PendingSuggestionResult = PendingSuggestionInput & {
+  summary: string;
+};
 

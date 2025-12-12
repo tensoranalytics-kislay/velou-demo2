@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import SearchMethodSelector, { type SearchMethodPreferences } from './SearchMethodSelector';
+import SearchMethodSelector, { type SearchMethodPreferences, type SearchMode, modeToPreferences } from './SearchMethodSelector';
 
 type ProductContext = {
   id: string;
@@ -17,15 +17,29 @@ type MessageInputProps = {
   onProductContextHeightChange?: (height: number) => void;
 };
 
+const SEARCH_MODE_STORAGE_KEY = 'velou_search_mode';
+
 export default function MessageInput({ onSend, disabled, productContext, onClearProductContext, onProductContextHeightChange }: MessageInputProps) {
   const productContextRef = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState('');
   const [placeholder, setPlaceholder] = useState('Ask for products...');
-  const [searchMethods, setSearchMethods] = useState<SearchMethodPreferences>({
-    lexical: true,
-    semantic: true,
-    concept: true,
+  
+  // Load search mode from localStorage, default to 'fast'
+  const [searchMode, setSearchMode] = useState<SearchMode>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(SEARCH_MODE_STORAGE_KEY);
+      return (saved === 'fast' || saved === 'advanced') ? saved : 'fast';
+    }
+    return 'fast';
   });
+
+  // Save search mode to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(SEARCH_MODE_STORAGE_KEY, searchMode);
+      console.log('[MessageInput] Search mode updated to:', searchMode, 'preferences:', modeToPreferences(searchMode), '(saved to localStorage)');
+    }
+  }, [searchMode]);
 
   useEffect(() => {
     // Fetch LLM-driven placeholder text
@@ -46,6 +60,11 @@ export default function MessageInput({ onSend, disabled, productContext, onClear
     if (!value.trim() || disabled) return;
     const message = value.trim();
     setValue('');
+    // Capture current mode at submission time to ensure we use the latest value
+    const currentMode = searchMode;
+    // Always send searchMethods based on user's choice - no auto-selection
+    const searchMethods = modeToPreferences(currentMode);
+    console.log('[MessageInput] Sending message with mode:', currentMode, 'searchMethods:', searchMethods);
     await onSend(message, searchMethods);
     // Don't clear product context - user can ask multiple questions
   };
@@ -57,6 +76,11 @@ export default function MessageInput({ onSend, disabled, productContext, onClear
       if (value.trim() && !disabled) {
         const message = value.trim();
         setValue('');
+        // Capture current mode at submission time to ensure we use the latest value
+        const currentMode = searchMode;
+        // Always send searchMethods based on user's choice - no auto-selection
+        const searchMethods = modeToPreferences(currentMode);
+        console.log('[MessageInput] Sending message (Enter key) with mode:', currentMode, 'searchMethods:', searchMethods);
         onSend(message, searchMethods);
         // Don't clear product context - user can ask multiple questions
       }
@@ -149,8 +173,8 @@ export default function MessageInput({ onSend, disabled, productContext, onClear
           />
           <div className="flex items-center justify-end relative overflow-visible">
             <SearchMethodSelector
-              preferences={searchMethods}
-              onChange={setSearchMethods}
+              mode={searchMode}
+              onChange={setSearchMode}
             />
           </div>
         </div>

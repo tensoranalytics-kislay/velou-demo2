@@ -1,6 +1,6 @@
 'use client';
 
-import type { ProductCard } from '@/lib/llm/orchestrator';
+import type { ProductCard } from '@/lib/llm/orchestrator/cards';
 import ProductCarousel from '@/components/ProductCarousel/ProductCarousel';
 import MarkdownText from './MarkdownText';
 import AssistantAvatar from './AssistantAvatar';

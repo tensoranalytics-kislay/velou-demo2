@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { handleAssistantQuery } from '@/lib/llm/orchestrator';
-import type { ConversationContext } from '@/lib/llm/orchestrator';
+import type { ConversationContext } from '@/lib/llm/types';
 import type { SearchConstraints } from '@/lib/search/types';
 import { recordConversationEvent } from '@/lib/telemetry/metrics';
 import { logger } from '@/lib/telemetry/logger';
@@ -54,8 +53,8 @@ export async function POST(request: NextRequest) {
       hasPendingSuggestion: !!body.pendingSuggestion,
     });
 
-    // Use optimized L'Occitane pipeline if enabled
-    if (env.useLoccitaneOptimizedPipeline && !body.productContextId && body.pageType !== 'PDP') {
+    // Use fast path (L'Occitane optimized pipeline) for all queries
+    {
       // Get last conversation context from DB for follow-up detection
       const lastEvent = await prisma.conversationEvent.findFirst({
         where: { sessionId: body.sessionId },
@@ -114,54 +113,6 @@ export async function POST(request: NextRequest) {
       
       return NextResponse.json(result);
     }
-    
-    // Original pipeline (for PDP pages, product Q&A, or when flag is disabled)
-    // Retrieve DatasetContext from Merchant if not provided in conversationContext
-    const datasetContext = body.conversationContext?.datasetContext ?? (await getDatasetContext());
-    
-    // Merge DatasetContext into conversationContext
-    const enrichedConversationContext: ConversationContext | undefined = body.conversationContext
-      ? {
-          ...body.conversationContext,
-          datasetContext: datasetContext ?? body.conversationContext.datasetContext ?? null,
-        }
-      : datasetContext
-        ? { datasetContext }
-        : undefined;
-
-    const result = await handleAssistantQuery({
-      sessionId: body.sessionId,
-      pageType: body.pageType,
-      productContextId: body.productContextId,
-      message: body.message,
-      history: body.history,
-      pendingSuggestion: body.pendingSuggestion,
-      conversationContext: enrichedConversationContext,
-    });
-
-    logger.info('assistant_api_response', {
-      sessionId: body.sessionId,
-      replyLength: result.replyText.length,
-      productCount: result.productCards.length,
-      noExactMatch: result.noExactMatch,
-      pipeline: 'original',
-    });
-
-    // Get default merchant for now (TODO: get from session/auth)
-    const defaultMerchant = await prisma.merchant.findUnique({ where: { slug: 'default' } });
-    if (defaultMerchant) {
-      await recordConversationEvent({
-        merchantId: defaultMerchant.id,
-        sessionId: body.sessionId,
-        pageType: body.pageType,
-        userQuery: body.message,
-        assistantReply: result.replyText,
-        productIds: result.productCards.map((card) => card.id),
-        hadExactMatch: !result.noExactMatch,
-      });
-    }
-
-    return NextResponse.json(result);
   } catch (error) {
     logger.error('assistant_api_error', {
       error: error instanceof Error ? error.message : String(error),

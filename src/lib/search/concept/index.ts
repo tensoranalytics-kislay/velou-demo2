@@ -168,44 +168,91 @@ export function searchConceptIndex(
   }
 ): string[] {
   const candidateIds = new Set<string>();
+  const lookupResults: Array<{ type: string; key: string; normalizedKey: string; found: boolean; productCount: number }> = [];
   
   // Helper to add products from a map entry
-  const addFromIndex = (map: Map<string, Set<string>>, keys: string[]) => {
+  const addFromIndex = (map: Map<string, Set<string>>, keys: string[], constraintType: string) => {
     for (const key of keys) {
       const normalizedKey = key.toLowerCase().trim();
       const productIds = map.get(normalizedKey);
+      const found = !!productIds;
+      const productCount = productIds?.size || 0;
+      
+      lookupResults.push({
+        type: constraintType,
+        key,
+        normalizedKey,
+        found,
+        productCount,
+      });
+      
       if (productIds) {
         for (const productId of productIds) {
           candidateIds.add(productId);
         }
+      } else {
+        // Log when key not found - show sample keys from index for debugging
+        const sampleKeys = Array.from(map.keys()).slice(0, 10);
+        // Find closest matches (keys that contain the normalized key or vice versa)
+        const closeMatches = Array.from(map.keys())
+          .filter(k => 
+            k.includes(normalizedKey) || 
+            normalizedKey.includes(k) ||
+            k.replace(/[_\s-]/g, '') === normalizedKey.replace(/[_\s-]/g, '')
+          )
+          .slice(0, 5);
+        
+        logger.debug('searchConceptIndex: key not found in index', {
+          constraintType,
+          originalKey: key,
+          normalizedKey,
+          indexSize: map.size,
+          sampleKeysInIndex: sampleKeys,
+          closeMatches: closeMatches.length > 0 ? closeMatches : 'none',
+          allKeysForType: constraintType === 'productTypes' ? Array.from(map.keys()).sort() : undefined, // Show all productTypes for debugging
+        });
       }
     }
   };
   
   // Collect product IDs from all matching constraints
   if (constraints.concerns?.length) {
-    addFromIndex(index.concerns, constraints.concerns);
+    addFromIndex(index.concerns, constraints.concerns, 'concerns');
   }
   
   if (constraints.skinTypes?.length) {
-    addFromIndex(index.skinTypes, constraints.skinTypes);
+    addFromIndex(index.skinTypes, constraints.skinTypes, 'skinTypes');
   }
   
   if (constraints.applicationAreas?.length) {
-    addFromIndex(index.applicationAreas, constraints.applicationAreas);
+    addFromIndex(index.applicationAreas, constraints.applicationAreas, 'applicationAreas');
   }
   
   if (constraints.ingredients?.length) {
-    addFromIndex(index.ingredients, constraints.ingredients);
+    addFromIndex(index.ingredients, constraints.ingredients, 'ingredients');
   }
   
   if (constraints.madeWithout?.length) {
-    addFromIndex(index.madeWithout, constraints.madeWithout);
+    addFromIndex(index.madeWithout, constraints.madeWithout, 'madeWithout');
   }
   
   if (constraints.productTypes?.length) {
-    addFromIndex(index.productTypes, constraints.productTypes);
+    addFromIndex(index.productTypes, constraints.productTypes, 'productTypes');
   }
+  
+  // Log summary of lookups
+  const totalLookups = lookupResults.length;
+  const successfulLookups = lookupResults.filter(r => r.found).length;
+  const totalProductsFound = lookupResults.reduce((sum, r) => sum + r.productCount, 0);
+  
+  logger.debug('searchConceptIndex: lookup summary', {
+    totalLookups,
+    successfulLookups,
+    failedLookups: totalLookups - successfulLookups,
+    totalProductsFound,
+    uniqueProductsAfterUnion: candidateIds.size,
+    lookupDetails: lookupResults,
+  });
   
   // Return sorted array for deterministic order
   return Array.from(candidateIds).sort();

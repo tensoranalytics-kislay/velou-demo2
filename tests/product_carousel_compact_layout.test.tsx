@@ -4,7 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
 import ProductCarousel from '../src/components/ProductCarousel/ProductCarousel';
-import type { ProductCard } from '../src/lib/llm/orchestrator';
+import type { ProductCard } from '../src/lib/llm/orchestrator/cards';
 
 // Mock window.open
 beforeEach(() => {

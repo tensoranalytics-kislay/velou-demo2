@@ -1,4 +1,27 @@
 import type { SearchConstraints } from '../../search/types';
+import { logger } from '../../telemetry/logger';
+
+/**
+ * Safely parses JSON from LLM responses, handling code fences and malformed JSON
+ * Returns an object with success, data, and optional error fields
+ */
+export function safeParseLlmJson<T>(raw: string, fallback: T): { success: boolean; data?: T; error?: string } {
+  try {
+    const cleaned = stripJsonFences(raw);
+    const parsed = JSON.parse(cleaned) as T;
+    return { success: true, data: parsed };
+  } catch (error) {
+    logger.warn('safeParseLlmJson: parse failed', {
+      error: error instanceof Error ? error.message : String(error),
+      raw: raw.substring(0, 200),
+    });
+    return { 
+      success: false, 
+      data: fallback,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
 
 export const stripJsonFences = (raw: string) => {
   const trimmed = raw.trim();

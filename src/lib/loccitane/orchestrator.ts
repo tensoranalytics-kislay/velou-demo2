@@ -9,11 +9,12 @@
 
 import { logger } from '../telemetry/logger';
 import type { SearchConstraints, SearchResultItem } from '../search/types';
+// ProductCard type and utilities - moved from legacy orchestrator
 import type { ProductCard } from '../llm/orchestrator/cards';
 import { productToResultItem, fetchProductsByIds } from '../llm/orchestrator/cards';
 import { prisma } from '../db';
 import { checkQuerySafety } from './safety';
-import { classifyQuery } from './classifier';
+import { classifyQuery, type QueryClassification } from './classifier';
 import { multiViewRetrieval } from './retrieval';
 import { sortProductsByScore } from './ranking/ranker';
 import type { ProductWithLoccitaneAttributes } from './ranking/ranker';
@@ -22,8 +23,8 @@ import { buildProductReason } from './reasons';
 import type { StructuredLoccitaneAttributes } from './attributeParser';
 import type { ProductAttributes } from '../search/types';
 import { normalizeProductType, normalizeIngredient, normalizeAvoidIngredients } from './normalization';
-import type { ProgressCallback } from '../llm/orchestrator/progress';
-import { STAGE_PROGRESS } from '../llm/orchestrator/progress';
+import type { ProgressCallback } from '../llm/types';
+import { STAGE_PROGRESS } from '../llm/types';
 
 export type LoccitaneQueryResult = {
   replyText: string;
@@ -197,6 +198,73 @@ export async function handleLoccitaneQuery(
   const classification = await classifyQuery(input.message, input.history);
   const classifyDuration = Date.now() - classifyStart;
   
+  logger.debug('handleLoccitaneQuery: classification complete', {
+    query: input.message.substring(0, 100),
+    type: classification.type,
+    constraints: {
+      concerns: classification.constraints.concerns,
+      skinTypes: classification.constraints.skinTypes,
+      applicationAreas: classification.constraints.applicationAreas,
+      productTypes: classification.constraints.productTypes,
+      ingredients: classification.constraints.mustHaveIngredients,
+      madeWithout: classification.constraints.madeWithout,
+      collections: classification.constraints.collections,
+    },
+    constraintsKeys: Object.keys(classification.constraints).filter(
+      key => {
+        const value = classification.constraints[key as keyof typeof classification.constraints];
+        return Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined;
+      }
+    ),
+  });
+  
+  // Auto-select search method based on query characteristics if not provided
+  const autoSelectSearchMethod = (
+    query: string,
+    classification: QueryClassification
+  ): { lexical: boolean; semantic: boolean; concept: boolean } => {
+    const queryLength = query.trim().length;
+    const queryWords = query.trim().split(/\s+/).length;
+    
+    // Count total constraints
+    const constraintCount = 
+      (classification.constraints.concerns?.length || 0) +
+      (classification.constraints.skinTypes?.length || 0) +
+      (classification.constraints.hairTypes?.length || 0) +
+      (classification.constraints.applicationAreas?.length || 0) +
+      (classification.constraints.productTypes?.length || 0) +
+      (classification.constraints.collections?.length || 0) +
+      (classification.constraints.mustHaveIngredients?.length || 0) +
+      (classification.constraints.avoidIngredients?.length || 0) +
+      (classification.constraints.madeWithout?.length || 0) +
+      (classification.constraints.ageGroups?.length || 0) +
+      (classification.constraints.genders?.length || 0) +
+      (classification.constraints.priceMinCents ? 1 : 0) +
+      (classification.constraints.priceMaxCents ? 1 : 0);
+    
+    // Default to fast mode (semantic + concept), only use advanced for truly complex queries
+    // Use advanced mode (all methods) for:
+    // 1. Very complex queries (very long or many words)
+    // 2. Vague/gift queries (need broader search)
+    // 3. Many constraints (5+ indicates complex multi-faceted query)
+    // 4. Symptom/concern queries (may need lexical for exact matches)
+    // 5. Price range queries (complex filtering)
+    const useAdvanced = 
+      queryLength > 80 ||                    // Very long queries (was 50)
+      queryWords > 12 ||                      // Many words (was 8)
+      classification.type === 'gift_or_vague' || // Vague queries need all methods
+      classification.type === 'symptom_concern' || // Symptom queries may need lexical
+      constraintCount >= 5 ||                 // Many constraints (was 3) - only for complex multi-faceted queries
+      (classification.constraints.priceMinCents && classification.constraints.priceMaxCents); // Price range
+    
+    if (useAdvanced) {
+      return { lexical: true, semantic: true, concept: true };
+    } else {
+      // Fast mode: semantic + concept (skip lexical for speed)
+      return { lexical: false, semantic: true, concept: true };
+    }
+  };
+  
   if (classification.type === 'unrelated') {
     logger.debug('handleLoccitaneQuery: unrelated query', {
       message: input.message.substring(0, 100),
@@ -204,9 +272,6 @@ export async function handleLoccitaneQuery(
     });
     
     // Generate a witty, smart response that redirects to beauty/personal care
-    // Check if safety check already identified it as non-shopping (for consistency)
-    const isNonShopping = !safetyCheck.safe && 'reason' in safetyCheck && safetyCheck.reason === 'non_shopping';
-    
     // Create engaging responses that pivot to beauty products
     const wittyResponses = [
       "I appreciate your question, but I'm specialized in helping you discover beauty and personal care products! Think of me as your skincare and wellness guide.\n\nI can help you find products for specific needs—like a hand cream for dry hands, a shampoo for dandruff, or something with your favorite scent like lavender or shea butter. What would you like to explore?",
@@ -239,11 +304,27 @@ export async function handleLoccitaneQuery(
   // Step 3: Multi-view retrieval
   onProgress?.('retrieving', STAGE_PROGRESS.retrieving);
   const retrievalStart = Date.now();
+  // Use frontend-provided searchMethods, or default to fast mode if not provided
+  // No auto-selection - purely user choice. Frontend should always send based on user's selection.
+  const searchMethodsToUse = input.searchMethods !== undefined && input.searchMethods !== null
+    ? input.searchMethods  // Use frontend preference (user's choice)
+    : { lexical: false, semantic: true, concept: true };  // Default to fast mode if not provided
+  logger.debug('handleLoccitaneQuery: using searchMethods', {
+    received: input.searchMethods,
+    isDefault: input.searchMethods === undefined || input.searchMethods === null,
+    applied: searchMethodsToUse,
+    lexical: searchMethodsToUse.lexical,
+    semantic: searchMethodsToUse.semantic,
+    concept: searchMethodsToUse.concept,
+    queryLength: input.message.length,
+    queryWords: input.message.trim().split(/\s+/).length,
+    queryType: classification.type,
+  });
   const retrievalResult = await multiViewRetrieval(
     input.message,
     classification,
     input.merchantId,
-    input.searchMethods || { lexical: true, semantic: true, concept: true }
+    searchMethodsToUse
   );
   const retrievalDuration = Date.now() - retrievalStart;
   
@@ -434,16 +515,16 @@ export async function handleLoccitaneQuery(
   
   // Step 7: Build product cards (using the same 4 products used for reply context)
   const productCards: ProductCard[] = displayProducts.map((product) => {
-      // Build reason using existing template-based function
-      const reason = buildProductReason(
-        product,
-        input.message,
-        {
-          productType: classification.constraints.productTypes?.[0] || undefined,
-          collection: classification.constraints.collections?.[0] || undefined,
-          concern: classification.constraints.concerns?.[0] || undefined,
-        },
-      );
+    // Build reason using existing template-based function
+    const reason = buildProductReason(
+      product,
+      input.message,
+      {
+        productType: classification.constraints.productTypes?.[0] || undefined,
+        collection: classification.constraints.collections?.[0] || undefined,
+        concern: classification.constraints.concerns?.[0] || undefined,
+      },
+    );
     
     // Extract key attributes from structured attributes
     const structured = product.attributes.loccitaneStructured;
@@ -492,7 +573,6 @@ export async function handleLoccitaneQuery(
     replyLength: replyResult.replyText.length,
     productCount: productCards.length,
     rankedCount: topProducts.length,
-    // Latency breakdown
     classifyDuration,
     retrievalDuration,
     loadDuration,
@@ -500,13 +580,14 @@ export async function handleLoccitaneQuery(
     replyDuration,
   });
   
-  // Step 7: Complete
   onProgress?.('complete', STAGE_PROGRESS.complete);
   
-  return {
+  const result: LoccitaneQueryResult = {
     replyText: replyResult.replyText,
     productCards,
     noExactMatch: topProducts.length === 0,
     followupText: replyResult.followupText,
   };
+  
+  return result;
 }

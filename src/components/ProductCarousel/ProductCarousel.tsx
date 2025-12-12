@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ProductCard } from '@/lib/llm/orchestrator';
+import type { ProductCard } from '@/lib/llm/orchestrator/cards';
 
 type ProductCarouselProps = {
   products: ProductCard[];

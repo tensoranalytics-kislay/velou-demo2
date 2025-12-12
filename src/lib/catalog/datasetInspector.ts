@@ -4,7 +4,7 @@
  */
 
 import { callLLM, LLMError } from '../llm/provider';
-import { safeParseLlmJson } from '../llm/orchestrator/json-parse';
+import { safeParseLlmJson } from '../llm/orchestrator/utils';
 import { logger } from '../telemetry/logger';
 import type { DatasetCoreStats, UnifiedVendorCatalogRow } from './types';
 

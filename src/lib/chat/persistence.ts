@@ -1,4 +1,5 @@
-import type { PendingSuggestionResult, ProductCard, ConversationContext } from '@/lib/llm/orchestrator';
+import type { PendingSuggestionResult, ConversationContext } from '@/lib/llm/types';
+import type { ProductCard } from '@/lib/llm/orchestrator/cards';
 
 export type StoredChatMessage = {
   role: 'user' | 'assistant';
