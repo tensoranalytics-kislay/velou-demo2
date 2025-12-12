@@ -2,15 +2,15 @@
 
 import { useState } from 'react';
 
-type BrandConfig = {
-  id: number;
+type MerchantVoice = {
+  id: string;
   brandName: string;
   voiceInstructions: string;
   toneFormal: number;
   tonePlayful: number;
 };
 
-export default function BrandVoiceForm({ initialData }: { initialData: BrandConfig }) {
+export default function BrandVoiceForm({ initialData }: { initialData: MerchantVoice }) {
   const [formData, setFormData] = useState({
     brandName: initialData.brandName,
     voiceInstructions: initialData.voiceInstructions,
@@ -30,6 +30,7 @@ export default function BrandVoiceForm({ initialData }: { initialData: BrandConf
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
+        credentials: 'include', // Include HttpOnly cookies
       });
 
       if (!response.ok) throw new Error('Failed to save');

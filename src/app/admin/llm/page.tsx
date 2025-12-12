@@ -2,26 +2,20 @@ import { env } from '@/lib/config';
 import { prisma } from '@/lib/db';
 import LLMConfigDisplay from './LLMConfigDisplay';
 
-async function getBrandConfig() {
-  return prisma.brandConfig.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
-      id: 1,
-      brandName: 'Velou Atelier',
-      primaryColor: '#3b82f6',
-      accentColor: '#8b5cf6',
-      voiceInstructions: 'Be helpful and warm.',
-      toneFormal: 5,
-      tonePlayful: 5,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
+async function getMerchant() {
+  const merchant = await prisma.merchant.findUnique({
+    where: { slug: 'default' },
   });
+
+  if (!merchant) {
+    throw new Error('Default merchant not found. Please run the migration first.');
+  }
+
+  return merchant;
 }
 
 export default async function LLMConfigPage() {
-  const config = await getBrandConfig();
+  const config = await getMerchant();
   const currentProvider = env.llmProvider;
   const hasOpenAIKey = Boolean(env.openaiApiKey);
 

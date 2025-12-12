@@ -1,11 +1,9 @@
 import AdminNav from './AdminNav';
+import ConditionalAdminLayout from './ConditionalAdminLayout';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen bg-white">
-      <AdminNav />
-      <main className="flex-1 p-8">{children}</main>
-    </div>
-  );
+  // Use a client component to conditionally render based on pathname
+  // This allows us to check the current route and hide the navbar on login page
+  return <ConditionalAdminLayout>{children}</ConditionalAdminLayout>;
 }
 

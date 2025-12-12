@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/telemetry/logger';
+import { requireAuth, createAuthErrorResponse } from '@/middleware/auth';
 
 type ProductClickFilters = {
   category?: string;
@@ -15,6 +16,8 @@ type SortOption = 'clicks_desc' | 'clicks_asc' | 'title_asc' | 'title_desc' | 'p
 
 export async function GET(request: NextRequest) {
   try {
+    // Require authentication (any authenticated user can view metrics)
+    const session = await requireAuth(request);
     const searchParams = request.nextUrl.searchParams;
     const category = searchParams.get('category') || undefined;
     const subcategory = searchParams.get('subcategory') || undefined;
@@ -34,9 +37,10 @@ export async function GET(request: NextRequest) {
       dateFilter = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     }
 
-    // Get all clicked products with their click counts
+    // Get all clicked products with their click counts (filtered by merchantId)
     const clickedEvents = await prisma.conversationEvent.findMany({
       where: {
+        merchantId: session.merchantId,
         clicked: true,
         clickedProductId: { not: null },
         ...(dateFilter ? { createdAt: { gte: dateFilter } } : {}),
@@ -59,7 +63,10 @@ export async function GET(request: NextRequest) {
     // This ensures filter options are always available
     // Use distinct queries to get unique values efficiently
     const allProductsForFilters = await prisma.product.findMany({
-      where: { isActive: true },
+      where: {
+        merchantId: session.merchantId,
+        isActive: true,
+      },
       select: {
         category: true,
         subcategory: true,
@@ -89,8 +96,9 @@ export async function GET(request: NextRequest) {
     // Get product details for clicked products
     const productIds = Array.from(clickCounts.keys());
     
-    // Build where clause for filters
+    // Build where clause for filters (include merchantId)
     const whereClause: any = {
+      merchantId: session.merchantId,
       id: { in: productIds },
       isActive: true,
     };
@@ -191,6 +199,10 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.name === 'AuthError') {
+      return createAuthErrorResponse(error);
+    }
+
     logger.error('product_clicks_metrics_failed', {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,

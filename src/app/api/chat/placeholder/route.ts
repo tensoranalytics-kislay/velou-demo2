@@ -11,12 +11,12 @@ import { logger } from '@/lib/telemetry/logger';
  */
 export async function GET() {
   try {
-    const [brandConfig, datasetContext] = await Promise.all([
-      prisma.brandConfig.findUnique({ where: { id: 1 } }),
+    const [merchant, datasetContext] = await Promise.all([
+      prisma.merchant.findUnique({ where: { slug: 'default' } }),
       getDatasetContext(),
     ]);
 
-    const brandName = brandConfig?.brandName || 'our store';
+    const brandName = merchant?.brandName || 'our store';
     const vertical = datasetContext?.vertical ?? 'products';
     const primaryFacets = datasetContext?.primaryFacets ?? [];
     const sampleCategories = datasetContext?.sampleCategories ?? [];

@@ -15,11 +15,18 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "migrate:deploy": "prisma migrate deploy",
-    "seed:catalog": "tsx scripts/importCatalogFromCsv.ts"
+    "seed:catalog": "tsx scripts/importCatalogFromCsv.ts",
+    "backfill:embeddings": "tsx scripts/backfillProductEmbeddings.ts",
+    "backfill:loccitane-structured": "tsx scripts/backfillLoccitaneStructured.ts"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",
+    "@upstash/ratelimit": "^2.0.7",
+    "@upstash/redis": "^1.35.7",
+    "bcryptjs": "^3.0.3",
     "csv-parse": "^6.1.0",
+    "jose": "^6.1.3",
+    "jsonwebtoken": "^9.0.3",
     "next": "16.0.7",
     "react": "19.2.1",
     "react-dom": "19.2.1"
@@ -28,6 +35,8 @@
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

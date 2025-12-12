@@ -7,13 +7,14 @@ export type LlmMessage = {
 
 export type LlmCallOptions = {
   messages: LlmMessage[];
-  purpose: 'intent' | 'final_reply' | 'pdp_suitability' | 'card_reason' | 'greeting';
+  purpose: 'intent' | 'final_reply' | 'pdp_suitability' | 'card_reason' | 'greeting' | 'followup_prompts' | 'followup_prompts_product';
   expectJson?: boolean;
   signal?: AbortSignal;
   schema?: {
     name: string;
     schema: Record<string, unknown>;
   };
+  maxTokens?: number; // Optional max tokens limit (useful for short JSON responses)
 };
 
 export type LlmCallResult = {
@@ -48,6 +49,8 @@ const REASONING_PURPOSES: Record<LlmCallOptions['purpose'], boolean> = {
   pdp_suitability: true,// Complex reasoning about product fit
   card_reason: false,   // Simple text generation
   greeting: false,      // Lightweight, stylistic text generation
+  followup_prompts: false, // Simple prompt generation
+  followup_prompts_product: false, // Simple product-specific prompt generation
 };
 
 const PRIMARY_PURPOSES: Record<LlmCallOptions['purpose'], boolean> = {
@@ -56,6 +59,8 @@ const PRIMARY_PURPOSES: Record<LlmCallOptions['purpose'], boolean> = {
   pdp_suitability: true,
   card_reason: false,
   greeting: false, // greetings should use lightweight model when available
+  followup_prompts: false, // lightweight prompt generation
+  followup_prompts_product: false, // lightweight product-specific prompt generation
 };
 
 const TEMPERATURE_BY_PURPOSE: Record<LlmCallOptions['purpose'], number> = {
@@ -64,6 +69,8 @@ const TEMPERATURE_BY_PURPOSE: Record<LlmCallOptions['purpose'], number> = {
   pdp_suitability: 0.4, // Moderate temperature for balanced reasoning
   card_reason: 0.55,    // Moderate temperature for concise explanations
   greeting: 0.75,       // Encourage friendly, varied greetings
+  followup_prompts: 0.6, // Moderate temperature for creative but focused prompts
+  followup_prompts_product: 0.5, // Lower temperature for product-specific accuracy
 };
 
 function resolveModel(purpose: LlmCallOptions['purpose']) {
@@ -118,6 +125,11 @@ async function callOpenAI(options: LlmCallOptions): Promise<LlmCallResult> {
     // Only include temperature if the model supports it
     if (supportsTemperature) {
       requestBody.temperature = temperature;
+    }
+    
+    // Include max_tokens if specified (useful for short JSON responses like classification)
+    if (options.maxTokens !== undefined) {
+      requestBody.max_tokens = options.maxTokens;
     }
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {

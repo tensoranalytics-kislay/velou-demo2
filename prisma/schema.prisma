@@ -7,34 +7,200 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model BrandConfig {
-  id                Int      @id @default(1)
-  brandName         String
-  /// Primary brand color (used for main buttons, highlights)
-  primaryColor      String   @default("#e11d48")
-  /// Secondary / accent color (chips, secondary buttons, etc.)
-  accentColor       String   @default("#f97373")
-  /// Page background behind hero and content
-  backgroundColor   String   @default("#ffffff")
-  /// Soft surface background (cards, hero panels, chat window)
-  surfaceColor      String   @default("#fff7f7")
-  /// Default border color for cards and UI chrome
-  borderColor       String   @default("#ffe4e6")
-  /// Optional URL to the brand logo image (e.g. /brand-logo.png or https URL)
-  logoUrl           String?
-  voiceInstructions String
-  toneFormal        Int
-  tonePlayful       Int
-  useMerchantKey    Boolean  @default(false)
-  merchantOpenAIKey String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime
-  datasetContext    Json?
+// ============================================================================
+// MERCHANT & AUTHENTICATION MODELS
+// ============================================================================
+
+/// Merchant model replaces BrandConfig - represents a single merchant/tenant
+/// All branding, configuration, and integration settings are stored here
+model Merchant {
+  id                String      @id @default(cuid())
+  
+  // Identification
+  slug              String      @unique  // URL-friendly identifier: "acme-corp"
+  name              String                // Display name: "Acme Corporation"
+  
+  // Branding (migrated from BrandConfig)
+  brandName         String                // Brand name for assistant
+  primaryColor      String      @default("#e11d48")
+  accentColor       String      @default("#f97373")
+  backgroundColor   String      @default("#ffffff")
+  surfaceColor      String      @default("#fff7f7")
+  borderColor       String      @default("#ffe4e6")
+  logoUrl           String?               // Optional URL to brand logo
+  
+  // Voice & Tone (migrated from BrandConfig)
+  voiceInstructions String                // Brand voice instructions for LLM
+  toneFormal        Int                   // 0-10 scale
+  tonePlayful       Int                   // 0-10 scale
+  
+  // LLM Configuration (migrated from BrandConfig)
+  useMerchantKey    Boolean     @default(false)
+  merchantOpenAIKey  String?               // ENCRYPTED: Merchant's OpenAI API key (if useMerchantKey=true)
+  datasetContext    Json?                 // Vertical, primaryFacets, sampleCategories, etc.
+  
+  // Shopify Integration
+  shopifyStore      String?              // Store domain: "acme.myshopify.com"
+  shopifyAccessToken String?              // ENCRYPTED: Shopify OAuth access token
+  shopifySyncEnabled Boolean     @default(false)
+  shopifySyncedAt    DateTime?
+  
+  // Review Integration
+  reviewProvider    String?               // "trustpilot" | "reviews.io" | "yotpo" | "sitejabber" | "custom"
+  reviewApiKey      String?               // ENCRYPTED: Review platform API key
+  reviewSyncEnabled Boolean     @default(false)
+  
+  // Relations
+  products          Product[]
+  merchRules        MerchRule[]
+  apiKeys           ApiKey[]
+  users             MerchantUser[]
+  reviewConfig      ReviewConfig?
+  analyticsEvents   AnalyticsEvent[]
+  conversationEvents ConversationEvent[]
+  catalogIngestionRuns CatalogIngestionRun[]
+  
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  
+  @@index([slug])
+  @@index([createdAt])
 }
 
+/// Merchant user accounts for authentication and authorization
+/// Supports role-based access control (ADMIN, EDITOR, VIEWER)
+model MerchantUser {
+  id                String      @id @default(cuid())
+  merchantId        String
+  merchant          Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  
+  email             String                // User email (unique per merchant)
+  passwordHash      String                // ENCRYPTED: bcrypt hashed password
+  role              UserRole              // ADMIN | EDITOR | VIEWER
+  isActive          Boolean     @default(true)
+  lastLogin         DateTime?
+  
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  
+  @@unique([merchantId, email])
+  @@index([merchantId])
+  @@index([email])
+}
+
+/// API keys for widget embedding and public API access
+/// Each key has allowed origins for CORS validation
+model ApiKey {
+  id                String      @id @default(cuid())
+  merchantId        String
+  merchant          Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  
+  name              String                // Human-readable name: "Production Widget Key"
+  token             String      @unique @db.Text  // Public API key token (pk_live_xxx)
+  allowedOrigins    String[]              // CORS whitelist: ["acme.com", "www.acme.com"]
+  isActive          Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  
+  @@index([merchantId])
+  @@index([token])
+}
+
+/// Review platform configuration and sync settings
+/// One-to-one relationship with Merchant
+model ReviewConfig {
+  id                String      @id @default(cuid())
+  merchantId        String      @unique
+  merchant          Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  
+  provider          ReviewProvider        // TRUSTPILOT | REVIEWS_IO | YOTPO | SITEJABBER | CUSTOM
+  businessId        String               // Business ID in review platform
+  apiKey            String                // ENCRYPTED: Review platform API key
+  apiUrl            String?               // Custom API URL (for CUSTOM provider)
+  
+  // Aggregated company-level review data
+  companyReviewScore Float?
+  companyReviewCount Int?
+  
+  syncEnabled       Boolean     @default(true)
+  lastSyncedAt      DateTime?
+  
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  
+  @@index([merchantId])
+}
+
+// ============================================================================
+// PRODUCT & CATALOG MODELS
+// ============================================================================
+
+/// Product model - now multi-tenant with merchantId
+/// Extended with Shopify and review integration fields
+model Product {
+  /// Core product data. All flexible / vendor-specific attributes must be stored
+  /// in the JSON `attributes` field (e.g. "new", "is_featured", custom tags).
+  /// Do NOT add ad-hoc columns such as `new` – those belong in `attributes`.
+  id                String      @id
+  merchantId        String                // REQUIRED: Multi-tenant isolation
+  merchant          Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  
+  // Core product fields
+  title             String
+  description       String
+  imageUrl          String
+  priceCents        Int
+  currency          String
+  category          String
+  subcategory       String?
+  brand             String?
+  attributes        Json                 // Unified schema attributes (usage_contexts, style_tags, benefits, etc.)
+  stockStatus       StockStatus @default(in_stock)
+  productUrl        String
+  salePriceCents    Int?
+  vendorId          String?
+  sourceId          String?
+  isActive          Boolean     @default(true)
+  lastIngestBatchId String?
+  
+  // Shopify Integration
+  shopifyProductId  String?              // Shopify product ID (if synced from Shopify)
+  shopifyHandle     String?              // Shopify product handle (URL slug)
+  shopifyVariantIds String[]             // Array of Shopify variant IDs
+  shopifyBestseller Boolean     @default(false)  // Is this a bestseller?
+  shopifyTrending   Boolean     @default(false)  // Is this trending?
+  shopifySalesRank  Int?                 // Bestseller rank (1 = #1 bestseller)
+  
+  // Review Integration
+  reviewScore       Float?               // Aggregated review rating (0-5)
+  reviewCount       Int?                 // Number of reviews
+  reviewsJson       Json?                // Top review snippets and metadata
+  
+  // Vector embedding for semantic search (pgvector)
+  // See: docs/loccitane_multiview_retrieval.md (Phase 1.2)
+  embedding         Unsupported("vector(1536)")? @db.Vector(1536)
+  
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  
+  @@index([merchantId])
+  @@index([merchantId, category])
+  @@index([merchantId, stockStatus])
+  @@index([merchantId, isActive])
+  @@index([category])
+  @@index([stockStatus])
+  @@index([shopifyProductId])
+  @@index([shopifyBestseller])
+  @@index([shopifyTrending])
+  @@index([vendorId, isActive])
+  @@index([vendorId, sourceId])
+}
+
+/// Catalog ingestion tracking - now multi-tenant
 model CatalogIngestionRun {
   id          String        @id
-  vendorId    String
+  merchantId  String                // REQUIRED: Multi-tenant isolation
+  merchant    Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  vendorId    String                // Legacy field (may be same as merchantId or different)
   createdAt   DateTime      @default(now())
   totalRows   Int
   inserted    Int
@@ -43,12 +209,69 @@ model CatalogIngestionRun {
   deactivated Int?
   mode        IngestionMode
 
+  @@index([merchantId])
+  @@index([merchantId, createdAt])
   @@index([createdAt])
   @@index([vendorId, createdAt])
 }
 
+// ============================================================================
+// MERCHANDISING & RULES
+// ============================================================================
+
+/// Merchandising rules - now multi-tenant
+/// Rules for boosting/excluding categories, hiding out-of-stock items
+model MerchRule {
+  id        Int           @id @default(autoincrement())
+  merchantId String                // REQUIRED: Multi-tenant isolation
+  merchant  Merchant      @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  ruleType  MerchRuleType
+  value     String
+  weight    Int           @default(0)
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  
+  @@index([merchantId])
+  @@index([merchantId, ruleType])
+  @@index([merchantId, isActive])
+}
+
+// ============================================================================
+// ANALYTICS & EVENTS
+// ============================================================================
+
+/// Analytics events for behavior tracking - NEW model
+/// Tracks user interactions, product views, clicks, etc.
+model AnalyticsEvent {
+  id                String      @id @default(cuid())
+  merchantId        String                // REQUIRED: Multi-tenant isolation
+  merchant          Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  
+  sessionId         String                // Cross-domain session identifier
+  eventType         String                // "message_sent" | "product_viewed" | "product_clicked" | "purchase" | etc.
+  payload           Json                  // Dynamic event data (query, productId, position, etc.)
+  
+  // User Context (First-party data, non-PII)
+  userDevice        String?               // "mobile" | "tablet" | "desktop"
+  userPage          String?               // Merchant's page URL where event occurred
+  userReferer       String?               // Where user came from
+  
+  createdAt         DateTime    @default(now())
+  
+  @@index([merchantId])
+  @@index([merchantId, createdAt])
+  @@index([merchantId, eventType])
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+/// Conversation events - now multi-tenant
+/// Legacy model for conversation tracking (may be merged with AnalyticsEvent later)
 model ConversationEvent {
   id                    String   @id
+  merchantId            String                // REQUIRED: Multi-tenant isolation
+  merchant              Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
   sessionId             String
   pageType              PageType
   productContextId      String?
@@ -60,48 +283,28 @@ model ConversationEvent {
   assistantReplySnippet String?  @db.VarChar(256)
   clicked               Boolean  @default(false)
 
+  @@index([merchantId])
+  @@index([merchantId, createdAt])
   @@index([createdAt])
   @@index([sessionId])
 }
 
-model MerchRule {
-  id        Int           @id @default(autoincrement())
-  ruleType  MerchRuleType
-  value     String
-  weight    Int           @default(0)
-  isActive  Boolean       @default(true)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  ADMIN
+  EDITOR
+  VIEWER
 }
 
-model Product {
-  /// Core product data. All flexible / vendor-specific attributes must be stored
-  /// in the JSON `attributes` field (e.g. "new", "is_featured", custom tags).
-  /// Do NOT add ad-hoc columns such as `new` – those belong in `attributes`.
-  id                String      @id
-  title             String
-  description       String
-  imageUrl          String
-  priceCents        Int
-  currency          String
-  category          String
-  subcategory       String?
-  brand             String?
-  attributes        Json
-  stockStatus       StockStatus @default(in_stock)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime
-  productUrl        String
-  salePriceCents    Int?
-  vendorId          String?
-  sourceId          String?
-  isActive          Boolean     @default(true)
-  lastIngestBatchId String?
-
-  @@index([category])
-  @@index([stockStatus])
-  @@index([vendorId, isActive])
-  @@index([vendorId, sourceId])
+enum ReviewProvider {
+  TRUSTPILOT
+  REVIEWS_IO
+  YOTPO
+  SITEJABBER
+  CUSTOM
 }
 
 enum IngestionMode {

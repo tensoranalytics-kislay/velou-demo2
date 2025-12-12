@@ -32,6 +32,19 @@ export type SearchConstraints = {
   expandedKeywords?: string[];
 };
 
+import type { StructuredLoccitaneAttributes } from '../loccitane/attributeParser';
+
+/**
+ * TODO: Enhanced attribute structure for multi-view retrieval
+ * See: docs/loccitane_multiview_retrieval.md
+ * 
+ * Future: Add StructuredLoccitaneAttributes to support concept-based retrieval:
+ * - concerns: string[]
+ * - skinTypes: string[]
+ * - applicationAreas: string[]
+ * - canonicalIngredients: string[]
+ * - etc.
+ */
 export type ProductAttributes = {
   // Apparel-specific (existing)
   fabric?: string;
@@ -74,6 +87,10 @@ export type ProductAttributes = {
   
   // Extensible attributes from attribute_blob
   extensible?: Record<string, unknown>;
+  
+  // L'Occitane structured attributes (from parsed product_details)
+  // Optional to maintain backward compatibility with non-L'Occitane products
+  loccitaneStructured?: StructuredLoccitaneAttributes;
   
   // Additional fields that may exist
   [key: string]: unknown;

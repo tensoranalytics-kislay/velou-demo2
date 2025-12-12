@@ -1,5 +1,5 @@
 /**
- * Helper to retrieve DatasetContext from BrandConfig
+ * Helper to retrieve DatasetContext from Merchant
  * This context is inferred during catalog ingestion and used to adapt
  * LLM prompts and search behavior to the catalog's vertical and available facets.
  */
@@ -9,35 +9,35 @@ import { logger } from '../telemetry/logger';
 import type { DatasetContext } from './datasetInspector';
 
 /**
- * Retrieve DatasetContext from BrandConfig (non-blocking, returns null if not available)
+ * Retrieve DatasetContext from Merchant (non-blocking, returns null if not available)
  */
 export async function getDatasetContext(): Promise<DatasetContext | null> {
   try {
-    const config = await prisma.brandConfig.findUnique({
-      where: { id: 1 },
+    const merchant = await prisma.merchant.findUnique({
+      where: { slug: 'default' },
       select: { datasetContext: true },
     });
 
-    if (!config || !config.datasetContext) {
+    if (!merchant || !merchant.datasetContext) {
       logger.debug('dataset_context_not_found', {
-        message: 'No DatasetContext in BrandConfig, prompts will use generic language',
-        hasConfig: !!config,
-        hasDatasetContext: !!config?.datasetContext,
+        message: 'No DatasetContext in Merchant, prompts will use generic language',
+        hasMerchant: !!merchant,
+        hasDatasetContext: !!merchant?.datasetContext,
       });
       console.log('[getDatasetContext] No DatasetContext found:', {
-        hasConfig: !!config,
-        hasDatasetContext: !!config?.datasetContext,
+        hasMerchant: !!merchant,
+        hasDatasetContext: !!merchant?.datasetContext,
       });
       return null;
     }
 
     // Prisma returns JSON as unknown, so we need to validate/cast it
-    const context = config.datasetContext as unknown as DatasetContext;
+    const context = merchant.datasetContext as unknown as DatasetContext;
 
     // Basic validation
     if (typeof context !== 'object' || context === null) {
       logger.warn('dataset_context_invalid', {
-        message: 'DatasetContext in BrandConfig is not a valid object',
+        message: 'DatasetContext in Merchant is not a valid object',
       });
       return null;
     }

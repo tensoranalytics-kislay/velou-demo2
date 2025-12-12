@@ -1,27 +1,20 @@
 import { prisma } from '@/lib/db';
 import BrandVoiceForm from './BrandVoiceForm';
 
-async function getBrandConfig() {
-  return prisma.brandConfig.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
-      id: 1,
-      brandName: 'Velou Atelier',
-      primaryColor: '#3b82f6',
-      accentColor: '#8b5cf6',
-      voiceInstructions:
-        'Be helpful, warm, and knowledgeable about your products. Use a conversational tone that feels like a personal Product Advisor.',
-      toneFormal: 5,
-      tonePlayful: 5,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
+async function getMerchant() {
+  const merchant = await prisma.merchant.findUnique({
+    where: { slug: 'default' },
   });
+
+  if (!merchant) {
+    throw new Error('Default merchant not found. Please run the migration first.');
+  }
+
+  return merchant;
 }
 
 export default async function BrandVoicePage() {
-  const config = await getBrandConfig();
+  const config = await getMerchant();
 
   return (
     <div className="max-w-3xl">

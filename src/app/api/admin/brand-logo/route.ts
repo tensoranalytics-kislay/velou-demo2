@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { requireAuth, createAuthErrorResponse } from '@/middleware/auth';
+import { requireRoleForRequest } from '@/middleware/requireRole';
+import { updateMerchantProfile } from '@/lib/services/MerchantService';
+import { logger } from '@/lib/telemetry/logger';
+import { validateFile, ALLOWED_IMAGE_TYPES } from '@/lib/fileValidator';
 
 /**
  * POST /api/admin/brand-logo
@@ -9,14 +13,19 @@ import path from 'path';
  * Accepts multipart/form-data with:
  * - file: image file to use as the brand logo
  *
- * Saves the file into /public and updates BrandConfig.logoUrl
+ * Saves the file into /public and updates Merchant.logoUrl
  * so the rest of the app can reference it.
  *
  * NOTE: This is a simple demo implementation using local filesystem storage.
  * In production, you may want to upload to object storage (S3, GCS, etc.).
+ *
+ * Requires authentication (ADMIN or EDITOR can upload logos)
  */
 export async function POST(request: NextRequest) {
   try {
+    // SECURITY: Require ADMIN or EDITOR role for logo uploads
+    const session = await requireRoleForRequest(request, ['ADMIN', 'EDITOR']);
+    
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
 
@@ -24,9 +33,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Basic validation on file type
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'File must be an image' }, { status: 400 });
+    // SECURITY: Validate file with security checks (blocks SVG, enforces size limits)
+    const fileValidation = validateFile(file, ALLOWED_IMAGE_TYPES);
+    if (!fileValidation.valid) {
+      return NextResponse.json(
+        { error: fileValidation.error || 'File validation failed' },
+        { status: 400 }
+      );
     }
 
     const arrayBuffer = await file.arrayBuffer();
@@ -35,9 +48,10 @@ export async function POST(request: NextRequest) {
     const uploadsDir = path.join(process.cwd(), 'public');
 
     // Derive extension from original file name (fallback to .png)
+    // SECURITY: Only allow safe image extensions (SVG already blocked by validateFile)
     const origName = file.name || 'brand-logo.png';
     const ext = path.extname(origName) || '.png';
-    const safeExt = ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'].includes(ext.toLowerCase())
+    const safeExt = ['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(ext.toLowerCase())
       ? ext
       : '.png';
 
@@ -48,32 +62,28 @@ export async function POST(request: NextRequest) {
 
     const logoUrl = `/${fileName}`;
 
-    await prisma.brandConfig.upsert({
-      where: { id: 1 },
-      update: {
-        logoUrl,
-        updatedAt: new Date(),
-      },
-      create: {
-        id: 1,
-        brandName: 'Velou Atelier',
-        primaryColor: '#e11d48',
-        accentColor: '#f97373',
-        backgroundColor: '#ffffff',
-        surfaceColor: '#fff7f7',
-        borderColor: '#ffe4e6',
-        logoUrl,
-        voiceInstructions: 'Be helpful and warm.',
-        toneFormal: 5,
-        tonePlayful: 5,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
+    // Use MerchantService to update logo
+    const { updateMerchantProfile } = await import('@/lib/services/MerchantService');
+    await updateMerchantProfile(session.merchantId, {
+      logoUrl,
+    });
+
+    logger.info('brand_logo_uploaded', {
+      userId: session.userId,
+      merchantId: session.merchantId,
+      logoUrl,
     });
 
     return NextResponse.json({ logoUrl });
   } catch (error) {
-    console.error('Failed to upload brand logo:', error);
+    if (error instanceof Error && error.name === 'AuthError') {
+      return createAuthErrorResponse(error);
+    }
+
+    logger.error('brand_logo_upload_failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+
     return NextResponse.json({ error: 'Failed to upload logo' }, { status: 500 });
   }
 }

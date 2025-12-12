@@ -7,17 +7,22 @@ This repo implements the **Velou Shopping Assistant** as a fully functional **de
 The assistant is:
 - A **ChatGPT/Grok/Gemini-style on-site chat UI** embedded on a **single-page placeholder website**.
 - Powered by a **unified catalog schema** that works across multiple verticals (apparel, skincare, home goods, electronics, etc.) as long as data conforms to the unified CSV format.
+- **Persistent chat sessions** that survive page reloads, tab closes, and browser restarts via localStorage with cross-tab synchronization.
+- **Real-time progress tracking** via Server-Sent Events (SSE) showing query stages (understanding, searching, evaluating, generating).
 - Able to answer:
   - "What should I buy?" – natural language product discovery.
-  - "Is this right for me?" – PDP-context suitability questions.
+  - "Is this right for me?" – PDP-context suitability questions via product-specific Q&A.
+  - General questions with dataset-aware, LLM-driven responses.
 - Always responds with:
   - A short conversational answer.
   - A **professionally-designed product carousel** (cards) showing product details + attribute tags.
+  - Follow-up questions to refine the search.
 
 The core engine is **industry-agnostic** and **schema-driven**:
 - LLM prompts and search behavior adapt to the catalog's vertical and available attributes via `datasetContext`.
 - The unified schema supports classification fields (category, vertical, taxon_path), descriptive fields (benefits, claims, sensory_profile), and experiential fields (usage_contexts, style_tags, compatibility) that work across industries.
 - Search heuristics and canonicalization are vertical-aware, applying industry-specific logic only when the catalog profile suggests it (e.g., fashion-specific category mapping for apparel catalogs).
+- **Sophisticated keyword search** with hierarchical ranking across product fields (identity, type, needs, specs, price/availability).
 
 For this demo, you can import your own unified catalog CSV through the admin interface. The system automatically adapts to your catalog's vertical and attributes.
 
@@ -56,20 +61,20 @@ The schema is designed to accommodate:
 To import your own catalog:
 
 1. **Format your CSV** according to the unified schema (see `src/lib/catalog/unifiedSchemaConfig.ts`).
-2. **Run the import script**:
-   ```bash
-   npm run seed:catalog
-   ```
-   This will:
-   - Read from your CSV file (defaults to the path configured in the script).
-   - Map columns to the unified schema.
-   - Infer `datasetContext` (vertical, primary facets, sample categories) from your data.
-   - Store products in PostgreSQL with attributes preserved in JSON.
+2. **Upload via Admin Interface**:
+   - Navigate to `/admin/catalog`
+   - Click "Upload CSV" and select your file
+   - The system will:
+     - Map columns to the unified schema
+     - Infer `datasetContext` (vertical, primary facets, sample categories) from your data
+     - Store products in PostgreSQL with attributes preserved in JSON
+     - Display ingestion progress and results
 
 3. **The system automatically adapts**:
-   - LLM prompts use `datasetContext` to describe the catalog's vertical and available facets.
-   - Search heuristics detect the catalog profile (e.g., "fashion" vs generic) and apply vertical-specific logic only when appropriate.
-   - Attribute filtering works with any unified schema fields (useCases, benefits, styleTags, compatibility, etc.).
+   - LLM prompts use `datasetContext` to describe the catalog's vertical and available facets
+   - Search heuristics detect the catalog profile (e.g., "fashion" vs generic) and apply vertical-specific logic only when appropriate
+   - Attribute filtering works with any unified schema fields (useCases, benefits, styleTags, compatibility, etc.)
+   - Chat greeting, placeholder text, and suggested prompts become dataset-aware
 
 ---
 
@@ -78,39 +83,55 @@ To import your own catalog:
 ### 2.1 In Scope (Demo)
 
 - **Single-page site** (Next.js):
-  - Hero section (brand feel).
+  - Hero section (brand feel, dataset-aware).
   - Main panel with **chat assistant** and product card responses.
+  - Floating chat widget with animated bot avatar.
+
 - **Chat assistant features:**
-  - Free-form discovery queries:
+  - **Persistent sessions**: Chat history, conversation context, and session ID persist across page reloads, tab closes, and browser restarts via localStorage with cross-tab synchronization.
+  - **Real-time progress tracking**: Visual progress bar showing query stages (understanding → searching → evaluating → generating).
+  - **Free-form discovery queries**:
     - e.g. "almond-scented body scrub under $50", "minimalist bathroom towels", "beach wedding dress under $200".
-  - Refinement:
+  - **Refinement**:
     - "cheaper", "more colorful", "only size M", "for sensitive skin".
-  - PDP-style suitability questions (simulated via context):
+    - Follow-up queries exclude previously shown products.
+  - **PDP-style suitability questions** (via product context):
+    - Click "Ask about product" on any card to ask questions specific to that product.
     - "Is this good for humid weather?", "Will this work for dry skin?", "Is this suitable for a guest bathroom?"
-  - Always:
+  - **Non-product queries**:
+    - Dataset-aware, LLM-driven responses for general questions.
+    - Handles sensitive topics appropriately.
+  - **Always**:
     - short conversational reply.
     - 3–8 product cards with:
       - image
       - title
       - price
       - key attribute tags (chips)
-      - one-line “Chosen because…” reason
-      - CTA: “View product”.
+      - one-line "Chosen because…" reason
+      - CTA: "View product" and "Ask about product"
+    - Follow-up questions to refine search.
 
 - **Admin-style configuration (single-merchant, simple UI):**
-  - Brand voice instructions (tone + style).
+  - **Brand voice** instructions (tone + style).
   - Tone sliders: formal/casual, playful/serious.
+  - **Appearance customization**:
+    - Logo upload
+    - Brand colors (primary, accent, background, surface, border)
   - Simple merchandising rules:
     - hide out-of-stock items.
     - boost/exclude categories.
-  - LLM configuration:
-    - Provider: **OpenAI** (gpt-4.1 stack) or fully mocked for tests.
-    - Toggle: “use Velou key” vs “use merchant key”.
+  - **LLM configuration**:
+    - Provider: **OpenAI** (gpt-4.1, o3-mini, gpt-4.1-mini) or fully mocked for tests.
+    - Toggle: "use Velou key" vs "use merchant key".
 
 - **Catalog ingestion:**
   - CSV upload through admin interface with automatic schema mapping and dataset context inference.
+  - Progress tracking during ingestion.
+  - Full replace or incremental update modes.
+  - Catalog clearing functionality.
   - Each product includes:
-    - ID, title, description, image URL (placeholder), price, currency.
+    - ID, title, description, image URL, price, currency.
     - Category/subcategory/brand/vertical.
     - Attributes JSON using unified schema fields:
       - For apparel: fabric, fit, length, pattern, season, occasion, style_tags, usage_contexts.
@@ -122,7 +143,8 @@ To import your own catalog:
   - # of conversations.
   - # of messages.
   - CTR from assistant → product (card click).
-  - # of “no exact match” responses.
+  - # of "no exact match" responses.
+  - **Product click analytics**: Track and display how many times each product has been clicked, with filtering and sorting options.
 
 ### 2.2 Out of Scope (Demo)
 
@@ -137,14 +159,17 @@ To import your own catalog:
 
 ## 3. Tech Stack
 
-- **Framework:** Next.js (App Router) + TypeScript.
+- **Framework:** Next.js 16.0.7 (App Router) + TypeScript.
+- **React:** 19.2.1 (patched for CVE-2025-55182).
 - **Styling:** Tailwind CSS + modern UI patterns (glassmorphism, soft gradients).
-- **DB:** PostgreSQL (e.g. Neon or similar) via Prisma.
+- **DB:** PostgreSQL (e.g. Neon or similar) via Prisma 5.19.1.
 - **LLM providers:**
-  - Primary: **OpenAI API** (default `gpt-5` for highest quality tasks).
+  - Primary: **OpenAI API** (default `gpt-4.1` for highest quality tasks).
   - Reasoning: **OpenAI `o3-mini`** for complex logical analysis (intent parsing, suitability).
   - Lightweight: **OpenAI `gpt-4.1-mini`** for cost-effective simple tasks.
-  - Optional local/mock provider for development.
+  - Optional mock provider for development.
+- **Real-time:** Server-Sent Events (SSE) for progress tracking.
+- **Persistence:** localStorage for chat sessions with cross-tab synchronization.
 
 - **Hosting (demo):**
   - Next.js app on Vercel or similar.
@@ -154,16 +179,14 @@ To import your own catalog:
 
 The assistant supports two modes via the `LLM_PROVIDER` environment variable:
 
-- **`openai`** (default): Uses OpenAI Chat Completions with a dual-model routing strategy.
+- **`openai`** (default): Uses OpenAI Chat Completions with a multi-model routing strategy.
 - **`mock`**: Deterministic, rule-based parsing for development or automated tests (no API calls).
 
 **Key environment variables:**
 - `OPENAI_API_KEY` – required when `LLM_PROVIDER=openai`
-- `PRIMARY_LLM_MODEL` – defaults to `gpt-5`, used for final replies and dataset analysis
+- `PRIMARY_LLM_MODEL` – defaults to `gpt-4.1`, used for final replies and dataset analysis
 - `REASONING_LLM_MODEL` – defaults to `o3-mini`, used for intent parsing and suitability analysis (complex reasoning)
 - `LIGHT_LLM_MODEL` – defaults to `gpt-4.1-mini`, used for inexpensive helper tasks (card reasons, lightweight transforms)
-
-See `docs/llm_model_selection.md` for detailed model selection strategy.
 
 The system always falls back to rule-based parsing if LLM calls fail, ensuring the assistant remains functional even when external APIs are unavailable.
 
@@ -175,31 +198,44 @@ The system always falls back to rule-based parsing if LLM calls fail, ensuring t
 
 1. **Next.js App (Single Codebase)**
    - `/` – single-page placeholder website with:
-     - brand hero section.
-     - chat assistant panel.
+     - brand hero section (dataset-aware).
+     - floating chat widget with animated bot avatar.
+     - product grid.
    - `/admin/*` – simple admin console:
-     - BrandVoice
-     - Appearance
+     - Brand Voice
+     - Appearance (logo, colors)
+     - Catalog (upload, clear)
      - MerchRules
      - LLMConfig
-     - Metrics
+     - Metrics (conversations, product clicks)
 
-2. **Assistant API (Next.js API Route)**
-   - `POST /api/assistant` – main chat endpoint:
-     - Input: sessionId, pageType (HOME/PLP/PDP), productContextId (optional), message, brief history.
-     - Output: replyText, productCards[], noExactMatch.
+2. **Assistant API (Next.js API Routes)**
+   - `POST /api/assistant/stream` – main chat endpoint with SSE progress tracking:
+     - Input: sessionId, pageType (HOME/PLP/PDP), productContextId (optional), message, brief history, conversationContext.
+     - Output: Streaming progress events + final result (replyText, productCards[], noExactMatch, followupText).
+   - `POST /api/assistant` – legacy non-streaming endpoint (redirects to stream).
    - `POST /api/metrics/product-click` – track card → PDP clicks.
+   - `GET /api/chat/greeting` – dataset-aware initial greeting.
+   - `GET /api/chat/placeholder` – dataset-aware chat input placeholder.
+   - `GET /api/suggestions` – context-aware suggested prompts.
    - `GET /api/health` – health check.
 
 3. **Search / Index Layer (Internal library)**
    - `searchProducts(constraints: SearchConstraints)`.
    - Backed by Prisma + PostgreSQL.
+   - **Sophisticated keyword search** with hierarchical ranking:
+     - Primary identity (title, brand, product_id) – very high importance
+     - Type & category (category, subcategory, vertical) – high importance
+     - Needs & benefits (description, benefits, claims, usage_contexts) – high importance
+     - Specs & ingredients (ingredients, materials, dimensions) – medium-high importance
+     - Price & availability (filters & tie-breakers) – medium importance
    - Supports unified schema attributes:
      - Classification: category, subcategory, vertical, price range.
      - Industry-agnostic facets: colors, sizes, materials, useCases, styleTags, benefits, compatibility, sensoryProfile.
      - Vertical-specific facets (when applicable): fabric, fit, occasion, season (for fashion), claims (for beauty).
    - Applies merchandising rules (boost/exclude).
    - Attribute filtering is schema-driven and vertical-aware via `datasetContext`.
+   - Hard filter for in-stock products (configurable).
 
 4. **LLM Orchestration Layer**
    - All LLM calls go through a **single adapter**:
@@ -207,17 +243,34 @@ The system always falls back to rule-based parsing if LLM calls fail, ensuring t
    - Orchestrator:
      - step 1: parse intent + constraints from user query and lightweight context (uses `datasetContext` to adapt prompts to catalog vertical).
      - step 2: call search module to get candidate products.
-     - step 3: generate final conversational answer + "Chosen because…" reasons, grounded in product JSON (uses `datasetContext` to guide attribute explanations).
+     - step 3: evaluate product relevance and filter if needed.
+     - step 4: generate final conversational answer + "Chosen because…" reasons, grounded in product JSON (uses `datasetContext` to guide attribute explanations).
+     - step 5: generate follow-up questions based on shown products.
    - Prompts are **industry-agnostic** and **vertical-aware**:
      - `buildIntentAndConstraintsPrompt(datasetContext)` adapts examples and facet guidance based on the catalog's vertical.
      - `buildFinalResponsePrompt(datasetContext)` describes the assistant's role and available attributes based on the catalog profile.
+     - `buildPostCardsFollowupPrompt(datasetContext)` generates contextual follow-up questions.
    - Guardrails:
      - Only reference attributes from product JSON.
      - No invented discounts/stock/shipping claims.
+     - Handles out-of-catalog queries with dataset-aware responses.
+     - Relevance checking to prevent force-fitting irrelevant products.
 
 5. **CSV Catalog Importer**
-   - Script (`scripts/importCatalogFromCsv.ts`) ingests unified catalog CSV files conforming to the unified schema and writes normalized products into Postgres with all attributes preserved for intent/search.
-   - During import, the system infers `datasetContext` (vertical, primary facets, sample categories) from the data to parameterize LLM prompts and search heuristics.
+   - Admin interface (`/admin/catalog`) for CSV upload with progress tracking.
+   - Ingests unified catalog CSV files conforming to the unified schema and writes normalized products into Postgres with all attributes preserved for intent/search.
+   - During import, the system infers `datasetContext` (vertical, primary facets, sample categories, recommended search examples) from the data to parameterize LLM prompts and search heuristics.
+   - Supports full replace and incremental update modes.
+
+6. **Chat Persistence Layer**
+   - `src/lib/chat/persistence.ts` – localStorage-based persistence:
+     - Chat messages (including productCards, followupText, noExactMatch flags)
+     - Session ID (consistent across reloads/tabs)
+     - Conversation context (lastIntent, lastConstraints, lastShownProductIds, lastUserQuery)
+     - Pending suggestions
+   - Cross-tab synchronization via storage events.
+   - Auto-saves messages with debouncing (300ms).
+   - Clears only when user explicitly clicks "Clear chat".
 
 ---
 
@@ -227,80 +280,116 @@ Using Prisma-style notation:
 
 ```ts
 model Product {
-  id           String   @id
-  title        String
-  description  String
-  imageUrl     String
-  productUrl   String
-  priceCents   Int
-  salePriceCents Int?
-  currency     String
-  category     String
-  subcategory  String?
-  brand        String?
-  attributes   Json     // unified schema attrs: usage_contexts, style_tags, benefits, claims, sensory_profile, compatibility, materials, colors, sizes, etc. (industry-agnostic)
-  stockStatus  String   // 'in_stock' | 'out_of_stock' | 'low_stock'
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                String      @id
+  title             String
+  description       String
+  imageUrl          String
+  productUrl        String
+  priceCents        Int
+  salePriceCents    Int?
+  currency          String
+  category          String
+  subcategory       String?
+  brand             String?
+  attributes        Json        // unified schema attrs: usage_contexts, style_tags, benefits, claims, sensory_profile, compatibility, materials, colors, sizes, etc. (industry-agnostic)
+  stockStatus       StockStatus @default(in_stock)
+  vendorId          String?
+  sourceId          String?
+  isActive          Boolean     @default(true)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 }
 
 model BrandConfig {
   id                Int      @id @default(1)
   brandName         String
-  primaryColor      String
-  accentColor       String
+  primaryColor      String   @default("#e11d48")
+  accentColor       String   @default("#f97373")
+  backgroundColor   String   @default("#ffffff")
+  surfaceColor      String   @default("#fff7f7")
+  borderColor       String   @default("#ffe4e6")
+  logoUrl           String?
   voiceInstructions String
   toneFormal        Int      // 0-10
   tonePlayful       Int      // 0-10
-  useMerchantKey    Boolean  @default(false)
-  merchantOpenAIKey String?
+  useMerchantKey     Boolean  @default(false)
+  merchantOpenAIKey  String?
+  datasetContext     Json?   // vertical, primaryFacets, sampleCategories, recommendedSearchExamples, etc.
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 }
 
 model MerchRule {
-  id       Int    @id @default(autoincrement())
-  ruleType String // 'boost_category' | 'exclude_category' | 'hide_out_of_stock'
-  value    String // category or tag
-  weight   Int
-  isActive Boolean @default(true)
+  id        Int           @id @default(autoincrement())
+  ruleType  MerchRuleType // 'boost_category' | 'exclude_category' | 'hide_out_of_stock'
+  value     String
+  weight    Int           @default(0)
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 }
 
 model ConversationEvent {
-  id               String   @id @default(cuid())
-  sessionId        String
-  pageType         String   // 'HOME' | 'PLP' | 'PDP'
-  productContextId String?
-  userQuery        String
-  assistantReply   String?
-  productIds       String[]
-  hadExactMatch    Boolean?
-  clickedProductId String?
-  createdAt        DateTime @default(now())
+  id                    String   @id
+  sessionId             String
+  pageType              PageType // 'HOME' | 'PLP' | 'PDP'
+  productContextId      String?
+  userQuery             String   @db.VarChar(256)
+  productIds            String[]
+  hadExactMatch         Boolean  @default(false)
+  clickedProductId      String?
+  assistantReplySnippet String?  @db.VarChar(256)
+  clicked               Boolean  @default(false)
+  createdAt             DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([sessionId])
 }
+
+model CatalogIngestionRun {
+  id          String        @id
+  vendorId    String
+  createdAt   DateTime      @default(now())
+  totalRows   Int
+  inserted    Int
+  updated     Int
+  invalidRows Int           @default(0)
+  deactivated Int?
+  mode        IngestionMode // 'FULL_REPLACE' | 'INCREMENTAL'
+
+  @@index([createdAt])
+  @@index([vendorId, createdAt])
+}
+```
 
 ### CSV Catalog Import
 
-- `npm run seed:catalog` ingests unified catalog CSV files conforming to the schema defined in `src/lib/catalog/unifiedSchemaConfig.ts`.
+- Upload via `/admin/catalog` interface.
 - Column mapping follows the unified schema:
   - **Identity fields**: `product_id` → `id`, `product_url` → `productUrl`, `image_url_primary` → `imageUrl`.
   - **Commercial fields**: `price` → `priceCents`, `sale_price` → `salePriceCents`, `availability` + `inventory` → `stockStatus`.
   - **Classification fields**: `category`, `subcategory`, `vertical`, `brand`, `google_product_category`, `product_type` → direct columns or `attributes`.
   - **Unified attributes**: `usage_contexts`, `style_tags`, `benefits`, `claims`, `sensory_profile`, `compatibility`, `materials`, `colors`, `sizes`, etc. → stored in `attributes` JSON for flexible, industry-agnostic search.
 - The importer:
-  - Clears the `Product` table first.
-  - Inserts rows in batches of 500.
-  - Infers `datasetContext` (vertical, primary facets, sample categories) from the imported data to parameterize LLM prompts and search behavior.
+  - Supports full replace and incremental update modes.
+  - Inserts rows in batches with progress tracking.
+  - Infers `datasetContext` (vertical, primary facets, sample categories, recommended search examples) from the imported data to parameterize LLM prompts and search behavior.
+  - Validates and sanitizes data to prevent schema errors.
 
-### 6. Assistant Behaviour (End-to-End Flow)
+---
+
+## 6. Assistant Behaviour (End-to-End Flow)
 
 1. **User sends a message from the single-page UI**
 
    The frontend supplies:
 
-   - `sessionId`
+   - `sessionId` (persisted in localStorage, consistent across reloads/tabs)
    - `pageType` (for the demo, mostly `HOME`; `PDP` / `PLP` can be simulated)
-   - `productContextId` (if simulating PDP)
+   - `productContextId` (if asking about a specific product)
    - `message`
-   - brief `history` array
+   - brief `history` array (last 5 messages)
+   - `conversationContext` (lastIntent, lastConstraints, lastShownProductIds, lastUserQuery)
 
 2. **Backend – Intent & Constraints Extraction**
 
@@ -312,17 +401,27 @@ model ConversationEvent {
 
    LLM returns JSON with:
 
-   - `intent`: `"discovery"` or `"pdp_suitability"`
+   - `intent`: `"discovery"`, `"pdp_suitability"`, or `"other"`
    - `constraints`: normalized `SearchConstraints` (using unified schema fields: useCases, benefits, styleTags, compatibility, etc.)
+   - `expandedKeywords`: semantic synonyms and related searchable terms
 
 3. **Backend – Search**
 
    - Call `searchProducts(constraints)`.
    - Apply:
+     - sophisticated keyword ranking (identity → type → needs → specs → price)
      - merchandising rules
-     - stock filters
+     - stock filters (hard filter for in-stock)
+     - attribute filtering (schema-driven, vertical-aware)
+   - If no results, relax constraints in tiers (drop attributes → drop category/price → drop brand).
 
-4. **Backend – Final Response**
+4. **Backend – Product Evaluation & Relevance Check**
+
+   - Evaluate product fit using attribute matching and keyword relevance.
+   - Check if top products actually match the user's core intent keywords.
+   - If less than 50% relevant, return "no relevant products" response (LLM-driven, dataset-aware).
+
+5. **Backend – Final Response**
 
    Call LLM with:
 
@@ -334,44 +433,56 @@ model ConversationEvent {
 
    LLM produces:
 
-   - `replyText` (industry-agnostic, vertical-aware)
+   - `replyText` (industry-agnostic, vertical-aware, opener style)
    - reasons per product (`"Chosen because..."`), grounded in unified schema attributes only
+   - `followupText` (two paragraphs: conclusion + follow-up questions)
 
-5. **Backend – Response & Logging**
+6. **Backend – Response & Logging**
 
+   - Stream progress updates via SSE (understanding → searching → evaluating → generating).
    - Persist `ConversationEvent`.
    - Return:
      - `replyText`
      - `productCards` (`id`, `title`, `priceLabel`, `keyAttributes[]`, `reason`, `url`)
      - `noExactMatch` boolean
+     - `followupText`
+     - `intent`
 
-6. **Frontend – Render**
+7. **Frontend – Render**
 
-   - Append assistant message bubble.
+   - Append assistant message bubble with animated avatar.
    - Render product cards in a modern carousel layout (responsive, like ChatGPT Plugins / Gemini cards):
      - large product image
      - title + price
      - horizontal attribute tag chips
-     - CTA button **“View product”**
+     - CTA buttons: **"View product"** and **"Ask about product"**
+   - Display follow-up text below cards.
+   - Auto-scroll to bottom.
+   - Persist all messages to localStorage.
 
 ---
 
-### 7. UI/UX Requirements
+## 7. UI/UX Features
 
 1. **Overall look & feel**
 
-   - Dark or light theme with soft gradients.
+   - Light theme with soft gradients and rose accents.
    - Rounded corners, subtle shadows.
    - Minimalist typography similar in feel to ChatGPT / Grok / Gemini.
    - Smooth transitions and hover states.
+   - Customizable brand colors via admin interface.
 
 2. **Chat panel**
 
+   - **Persistent sessions**: Chat history persists across reloads, tab closes, and browser restarts.
+   - **Cross-tab sync**: Changes in one tab automatically sync to other tabs.
    - Message bubbles:
-     - user (right-aligned), assistant (left-aligned)
+     - user (right-aligned), assistant (left-aligned with animated avatar)
      - clearly distinguish roles
-   - Loading state:
-     - skeleton or animated “thinking” indicator
+   - **Progress tracking**: Visual progress bar showing current query stage.
+   - **Suggested prompts**: Context-aware prompt suggestions above input (disappear when chat opens).
+   - **Product context**: When asking about a product, shows product thumbnail and title above input.
+   - **Dynamic placeholder**: LLM-generated, dataset-aware placeholder text.
 
 3. **Product cards**
 
@@ -381,76 +492,164 @@ model ConversationEvent {
      - title + price
      - row of attribute tags (top 3–5 relevant attributes from unified schema: e.g., benefits, useCases, styleTags, materials, colors, compatibility)
      - reason text: small, muted, starting with **"Chosen because…"**
-     - primary CTA button
+     - primary CTA button: "View product"
+     - secondary CTA: "Ask about product" (floating icon)
 
-4. **Single-page site**
+4. **Floating chat widget**
 
-   - Simple hero section with brand name and a tagline.
+   - Animated bot avatar (synchronized across all instances).
+   - Draggable and resizable window.
+   - Position and size persist in localStorage.
+   - Vertical suggestion pills when closed.
+
+5. **Single-page site**
+
+   - Simple hero section with brand name and dataset-aware tagline.
+   - Product grid showing featured products.
    - The assistant panel anchored in the main content on desktop; full-screen overlay on mobile.
 
 ---
 
-### 9. LLM Provider Strategy
+## 8. Setup & Development
 
-- **Environment variables:**
-- `LLM_PROVIDER`: `"openai"` | `"mock"`
-- `PRIMARY_LLM_MODEL`: defaults to `gpt-4.1`
-- `LIGHT_LLM_MODEL`: defaults to `gpt-4.1-mini`
-  - `OPENAI_API_KEY`: optional
+### 8.1 Prerequisites
 
-- **Single adapter module:**
+- Node.js 18+ and npm
+- PostgreSQL database (local or cloud, e.g., Neon)
+- OpenAI API key (optional, for LLM features)
 
-  - `src/lib/llm/provider.ts`:
-    - `callLLM(options): Promise<LLMResult>`
+### 8.2 Installation
 
-  - Switch implementation based on `LLM_PROVIDER` and merchant config.
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/tensoranalytics-kislay/Velou-shopping-assistant.git
+   cd velou-shopping-assistant
+   ```
 
-- **Behavior:**
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-  - If merchant config says **“use my key”** and key is valid → use that.
-  - Else → use Velou key for selected provider.
-  - If provider/API key missing → return a graceful error that the assistant can render as **“temporarily unavailable.”**
+3. **Set up environment variables**:
+   Create a `.env` file in the root directory:
+   ```env
+   DATABASE_URL="postgresql://user:password@localhost:5432/velou"
+   LLM_PROVIDER="openai"
+   OPENAI_API_KEY="your-openai-api-key"
+   PRIMARY_LLM_MODEL="gpt-4.1"
+   REASONING_LLM_MODEL="o3-mini"
+   LIGHT_LLM_MODEL="gpt-4.1-mini"
+   ```
+
+4. **Set up the database**:
+   ```bash
+   npx prisma migrate dev
+   npx prisma generate
+   ```
+
+5. **Run the development server**:
+   ```bash
+   npm run dev
+   ```
+
+6. **Access the application**:
+   - Main site: http://localhost:3000
+   - Admin: http://localhost:3000/admin
+
+### 8.3 Uploading Your Catalog
+
+1. Navigate to `/admin/catalog`
+2. Click "Upload CSV"
+3. Select your CSV file (must conform to unified schema)
+4. Choose ingestion mode (Full Replace or Incremental)
+5. Monitor progress and review results
+
+### 8.4 Development Scripts
+
+- `npm run dev` – Start development server
+- `npm run build` – Build for production
+- `npm run start` – Start production server
+- `npm run lint` – Run ESLint
+- `npm test` – Run tests
+- `npm run test:watch` – Run tests in watch mode
+- `npx prisma migrate dev` – Create and apply migrations
+- `npx prisma generate` – Generate Prisma client
 
 ---
 
-### 10. Development Phases (Recommended)
+## 9. Key Features
 
-1. **Phase 1 – Setup & Schema**
+### 9.1 Chat Persistence
 
-   - Next.js + Tailwind + Prisma + PostgreSQL.
-   - Schema defined and migrated.
-   - Health check endpoint.
+- **Session persistence**: Chat messages, conversation context, and session ID are stored in localStorage.
+- **Cross-tab synchronization**: Changes in one tab automatically sync to other tabs via storage events.
+- **Auto-save**: Messages are automatically saved with 300ms debouncing.
+- **Clear chat**: User can explicitly clear all persisted data via "Clear chat" button.
 
-2. **Phase 2 – Catalog Ingestion & Search**
+### 9.2 Real-Time Progress Tracking
 
-   - Implement CSV catalog ingestion and import.
-   - Implement search module with simple filters + merchandising rules.
-   - Build a dev-only `/debug/catalog` view.
+- **Server-Sent Events (SSE)**: Streaming API provides real-time progress updates.
+- **Visual progress bar**: Shows current query stage (understanding → searching → evaluating → generating).
+- **Stage-specific labels**: Different labels for discovery, product Q&A, and non-contextual queries.
 
-3. **Phase 3 – LLM Orchestration & API**
+### 9.3 Product Q&A
 
-   - Implement LLM provider adapter.
-   - Implement:
-     - intent + constraints call
-     - discovery and PDP-like flows
-     - final reply generation
-   - Wire `/api/assistant`.
+- **Product-specific questions**: Click "Ask about product" on any card to ask questions about that specific product.
+- **Text-only responses**: Product Q&A returns text-only answers (no product cards).
+- **Context-aware**: Uses product attributes, highlights, and description to answer questions.
 
-4. **Phase 4 – Chat UI & Product Cards**
+### 9.4 Sophisticated Keyword Search
 
-   - Implement single-page UI with:
-     - hero section
-     - chat panel
-     - modern product cards
-   - Connect to `/api/assistant`.
+- **Hierarchical ranking**: Products are ranked based on field importance:
+  - Primary identity (title, brand, product_id) – very high
+  - Type & category (category, subcategory) – high
+  - Needs & benefits (description, benefits, claims) – high
+  - Specs & ingredients (ingredients, materials) – medium-high
+  - Price & availability – medium (filters & tie-breakers)
+- **Multi-word keyword expansion**: Preserves multi-word phrases, expands to combinations and individual words.
+- **Category/subcategory matching**: Checks both category and subcategory fields for broader matching.
 
-5. **Phase 5 – Admin & Metrics**
+### 9.5 Dataset-Aware Prompts
 
-   - Implement simple admin layout and forms.
-   - Wire `BrandConfig`, `MerchRule`, `LLMConfig`.
-   - Track `ConversationEvent` + product click metrics.
+- **Dynamic greetings**: Initial greeting adapts to catalog vertical and available facets.
+- **Context-aware suggestions**: Suggested prompts are generated based on last user message and catalog context.
+- **Dynamic placeholder**: Chat input placeholder is LLM-generated and dataset-aware.
+- **Vertical-specific language**: All prompts adapt to the catalog's vertical (skincare, apparel, home, etc.).
 
-6. **Phase 6 – Polish & Demo Script**
+### 9.6 Appearance Customization
 
-   - UX polishing (animations, transitions).
-   - Seed realistic unified catalog data across multiple verticals and test end-to-end demo scenarios.
+- **Brand logo**: Upload custom logo via admin interface.
+- **Brand colors**: Customize primary, accent, background, surface, and border colors.
+- **Live preview**: See color changes in real-time.
+
+---
+
+## 10. Security & Performance
+
+- **React Server Components**: Using patched versions (React 19.2.1, Next.js 16.0.7) to address CVE-2025-55182.
+- **Input validation**: All API endpoints validate input payloads.
+- **Error handling**: Graceful fallbacks if LLM calls fail.
+- **Connection pooling**: Prisma manages database connections efficiently.
+- **Debounced persistence**: Chat messages are saved with 300ms debouncing to reduce localStorage writes.
+
+---
+
+## 11. Testing
+
+- **Test framework**: Vitest
+- **Test files**: Located in `tests/` directory
+- **Run tests**: `npm test` or `npm run test:watch`
+- **Test UI**: `npm run test:ui`
+
+---
+
+## 12. License
+
+Private project – All rights reserved.
+
+---
+
+## 13. Support
+
+For issues, questions, or contributions, please contact the development team.

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ingestUnifiedCsvStream } from '@/lib/catalog/ingestUnifiedCsv';
 import { logger } from '@/lib/telemetry/logger';
-import { prisma } from '@/lib/db';
-import { Readable } from 'stream';
-import type { DatasetContext } from '@/lib/catalog/datasetInspector';
-import type { Prisma } from '@prisma/client';
+import { requireAuth, createAuthErrorResponse } from '@/middleware/auth';
+import { requireRoleForRequest } from '@/middleware/requireRole';
+import { importCatalogCSV } from '@/lib/services/CatalogService';
+import { validateFile, validateCsvStructure, ALLOWED_CSV_TYPES } from '@/lib/fileValidator';
 
 /**
  * POST /api/admin/catalog/upload
@@ -13,10 +12,13 @@ import type { Prisma } from '@prisma/client';
  * - file: CSV file
  * - vendorId: string
  * 
- * TODO: Add authentication middleware to restrict to admin users
+ * Requires authentication (ADMIN or EDITOR role)
  */
 export async function POST(request: NextRequest) {
   try {
+    // SECURITY: Require ADMIN or EDITOR role for catalog uploads
+    const session = await requireRoleForRequest(request, ['ADMIN', 'EDITOR']);
+    
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const vendorId = formData.get('vendorId') as string | null;
@@ -33,20 +35,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'vendorId is required' }, { status: 400 });
     }
 
-    // Validate file type
-    if (!file.name.endsWith('.csv') && file.type !== 'text/csv') {
+    // SECURITY: Validate file with security checks
+    const fileValidation = validateFile(file, ALLOWED_CSV_TYPES);
+    if (!fileValidation.valid) {
       return NextResponse.json(
-        { error: 'File must be a CSV file' },
+        { error: fileValidation.error || 'File validation failed' },
         { status: 400 }
       );
     }
 
-    // Convert File to Node.js ReadableStream
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const stream = Readable.from(buffer);
+    // Additional CSV-specific validation
+    if (!file.name.endsWith('.csv')) {
+      return NextResponse.json(
+        { error: 'File must have .csv extension' },
+        { status: 400 }
+      );
+    }
 
     logger.info('Starting catalog ingestion', {
+      userId: session.userId,
+      merchantId: session.merchantId,
       vendorId,
       fileName: file.name,
       fileSize: file.size,
@@ -54,73 +62,35 @@ export async function POST(request: NextRequest) {
       mode,
     });
 
-    const summary = await ingestUnifiedCsvStream(stream, vendorId.trim(), {
-      adminHints: {
+    // Convert File to Buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // SECURITY: Validate CSV structure before processing
+    const csvValidation = await validateCsvStructure(buffer);
+    if (!csvValidation.valid) {
+      return NextResponse.json(
+        { error: csvValidation.error || 'Invalid CSV structure' },
+        { status: 400 }
+      );
+    }
+
+    // Use CatalogService to import catalog (automatically handles merchantId and datasetContext)
+    const summary = await importCatalogCSV(
+      session.merchantId,
+      buffer,
+      mode,
+      {
+        vendorId: vendorId.trim(),
         vertical: vertical || undefined,
         currency: currency || undefined,
-      },
-      enableContextInference,
-      mode,
-    });
+        enableContextInference,
+      }
+    );
 
     // Truncate issues list to first 100 for response
     const truncatedIssues = summary.issues.slice(0, 100);
     const hasMoreIssues = summary.issues.length > 100;
-
-    logger.info('Catalog ingestion complete', {
-      vendorId,
-      batchId: summary.batchId,
-      mode,
-      totalRows: summary.totalRows,
-      inserted: summary.inserted,
-      updated: summary.updated,
-      invalidRows: summary.invalidRows,
-      deactivated: summary.deactivated ?? 0,
-      totalIssues: summary.issues.length,
-      hasDatasetContext: Boolean(summary.datasetContext),
-    });
-
-    // Persist DatasetContext to BrandConfig for use in orchestrator
-    if (summary.datasetContext) {
-      try {
-        await prisma.brandConfig.upsert({
-          where: { id: 1 },
-          update: {
-            datasetContext: summary.datasetContext as unknown as Prisma.InputJsonValue,
-          },
-          create: {
-            id: 1,
-            brandName: 'Default Brand',
-            primaryColor: '#000000',
-            accentColor: '#000000',
-            voiceInstructions: 'Be helpful and friendly.',
-            toneFormal: 5,
-            tonePlayful: 5,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            datasetContext: summary.datasetContext as unknown as Prisma.InputJsonValue,
-          },
-        });
-        logger.info('DatasetContext persisted to BrandConfig', {
-          vertical: summary.datasetContext.vertical,
-          primaryFacets: summary.datasetContext.primaryFacets,
-          recommendedSearchExamples: summary.datasetContext.recommendedSearchExamples,
-          sampleCategories: summary.datasetContext.sampleCategories,
-        });
-        
-        // Console log for immediate visibility
-        console.log('[upload] DatasetContext persisted:', {
-          vertical: summary.datasetContext.vertical,
-          recommendedSearchExamples: summary.datasetContext.recommendedSearchExamples,
-          sampleCategories: summary.datasetContext.sampleCategories,
-        });
-      } catch (error) {
-        logger.warn('Failed to persist DatasetContext to BrandConfig', {
-          error: error instanceof Error ? error.message : String(error),
-        });
-        // Don't fail the upload if context persistence fails
-      }
-    }
 
     return NextResponse.json({
       summary: {
@@ -133,6 +103,10 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    if (error instanceof Error && error.name === 'AuthError') {
+      return createAuthErrorResponse(error);
+    }
+
     logger.error('Catalog upload failed', {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,

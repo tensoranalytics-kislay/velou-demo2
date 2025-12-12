@@ -109,6 +109,8 @@ export default function ChatPanel() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputContainerRef = useRef<HTMLDivElement>(null);
+  const productContextCardHeightRef = useRef<number>(0);
+  const [inputContainerHeight, setInputContainerHeight] = useState<number>(240);
 
   const scrollToBottom = useCallback(
     (behavior: ScrollBehavior = 'smooth') => {
@@ -117,44 +119,18 @@ export default function ChatPanel() {
         const container = scrollContainerRef.current;
         const inputContainer = inputContainerRef.current;
         const messagesEnd = messagesEndRef.current;
-        
+
         if (!container) return;
-        
-        // Measure the actual height of the input container (pills + input box)
-        const inputContainerHeight = inputContainer?.offsetHeight ?? 0;
-        
-        // Calculate scroll position so the last message appears right above the input container
-        // We want messagesEnd to be positioned at: container height - input container height
-        if (messagesEnd && inputContainer) {
-          const containerRect = container.getBoundingClientRect();
-          const messagesEndRect = messagesEnd.getBoundingClientRect();
-          
-          // Calculate the desired position for messagesEnd relative to container top
-          const targetMessagesEndTop = containerRect.height - inputContainerHeight - 10; // 10px buffer above input
-          
-          // Current position of messagesEnd relative to container top (accounting for scroll)
-          const currentMessagesEndTop = messagesEndRect.top - containerRect.top + container.scrollTop;
-          
-          // Calculate how much we need to scroll
-          const scrollOffset = currentMessagesEndTop - targetMessagesEndTop;
-          const newScrollTop = container.scrollTop + scrollOffset;
-          
-          container.scrollTo({
-            top: Math.max(0, newScrollTop),
-            behavior,
-          });
-        } else {
-          // Fallback: scroll to bottom minus input container height
-          const maxScroll = container.scrollHeight - container.clientHeight;
-          const targetScroll = inputContainerHeight > 0 
-            ? Math.max(0, maxScroll - inputContainerHeight + 20)
-            : maxScroll;
-          
-          container.scrollTo({
-            top: targetScroll,
-            behavior,
-          });
-        }
+
+        // Scroll to absolute bottom, even if part of the latest message sits behind overlays.
+        // This favors showing the newest content over preserving previous messages in view.
+        const buffer = 16; // tiny nudge to ensure we hit the end
+        const targetScroll = Math.max(0, container.scrollHeight - container.clientHeight + buffer);
+
+        container.scrollTo({
+          top: targetScroll,
+          behavior,
+        });
       };
       
       // Immediate attempt
@@ -162,11 +138,93 @@ export default function ChatPanel() {
       
       // Retry after a short delay to account for DOM updates
       setTimeout(attemptScroll, 50);
-      // One more retry for slow renders (e.g., product cards)
-      setTimeout(attemptScroll, 200);
+      // Retry for slow renders (e.g., product cards, progress bar, recommendation pills)
+      setTimeout(attemptScroll, 150);
+      // One more retry for very slow renders (e.g., when product context card appears)
+      setTimeout(attemptScroll, 300);
+      // Final retry for all elements to be fully rendered (progress bar, pills, product card)
+      setTimeout(attemptScroll, 500);
+      // Extra retry for very slow dynamic content (especially when product card appears)
+      setTimeout(attemptScroll, 700);
+      // One more retry for product context card specifically
+      if (productContext) {
+        setTimeout(attemptScroll, 900);
+      }
     },
-    [],
+    [productContext],
   );
+
+  // Track the dynamic height of the input container (pills, input, product card)
+  useEffect(() => {
+    const element = inputContainerRef.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const height = entry.contentRect.height;
+        setInputContainerHeight((prev) => {
+          if (Math.abs(prev - height) < 1) return prev;
+          return height;
+        });
+      }
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  // Re-scroll when the input container height changes to keep latest message visible
+  useEffect(() => {
+    scrollToBottom('smooth');
+  }, [inputContainerHeight, scrollToBottom]);
+
+  const bottomPadding = useMemo(() => {
+    // Add buffer so the last message clears overlays (input, pills, product card)
+    return Math.max(0, inputContainerHeight + 48 - 50);
+  }, [inputContainerHeight]);
+
+  // Handle product context card height changes for scroll calculations
+  const handleProductContextHeightChange = useCallback((height: number) => {
+    const previousHeight = productContextCardHeightRef.current;
+    productContextCardHeightRef.current = height;
+    
+    // If height changed (card appeared or disappeared), scroll to adjust
+    // Multiple attempts with longer delays to ensure all elements have rendered
+    if (previousHeight !== height) {
+      // Card appeared - need extra time for full render
+      if (height > 0) {
+        setTimeout(() => scrollToBottom('smooth'), 100);
+        setTimeout(() => scrollToBottom('smooth'), 300);
+        setTimeout(() => scrollToBottom('smooth'), 600);
+      } else {
+        // Card disappeared
+        setTimeout(() => scrollToBottom('smooth'), 50);
+        setTimeout(() => scrollToBottom('smooth'), 200);
+      }
+    }
+  }, [scrollToBottom]);
+  
+  // Auto-scroll when product context changes (product selected/deselected)
+  useEffect(() => {
+    // Multiple attempts with increasing delays to ensure all DOM updates are complete
+    // This accounts for product context card, progress bar, and recommendation pills rendering
+    if (productContext) {
+      // Product selected - scroll immediately and then retry with longer delays to account for card rendering
+      // The card height is measured by ResizeObserver in MessageInput, which triggers handleProductContextHeightChange
+      // But we also want to scroll here to ensure proper positioning
+      scrollToBottom('smooth');
+      setTimeout(() => scrollToBottom('smooth'), 100);
+      setTimeout(() => scrollToBottom('smooth'), 250);
+      setTimeout(() => scrollToBottom('smooth'), 400);
+      setTimeout(() => scrollToBottom('smooth'), 600);
+      setTimeout(() => scrollToBottom('smooth'), 800);
+      setTimeout(() => scrollToBottom('smooth'), 1000);
+    } else {
+      // Product context cleared - scroll to adjust (card removed, need less space)
+      setTimeout(() => scrollToBottom('smooth'), 50);
+      setTimeout(() => scrollToBottom('smooth'), 200);
+    }
+  }, [productContext, scrollToBottom]);
 
   // Load session data (conversationContext) on mount
   useEffect(() => {
@@ -494,11 +552,13 @@ export default function ChatPanel() {
     setProductContextId(productId);
     setProductContext({ id: productId, title: productTitle, imageUrl: productImageUrl });
     
-    // Don't auto-send - let user ask their own question
-    // Just show the product context above input
+    // Scroll immediately and again after DOM updates to ensure messages are visible above the product card
+    setTimeout(() => scrollToBottom('smooth'), 50);
+    setTimeout(() => scrollToBottom('smooth'), 200);
+    setTimeout(() => scrollToBottom('smooth'), 400);
   };
 
-  const handleSendMessage = async (message: string, overrideProductContextId?: string) => {
+  const handleSendMessage = async (message: string, overrideProductContextId?: string, searchMethods?: { lexical: boolean; semantic: boolean; concept: boolean }) => {
     const userMessage: ChatMessage = {
       id: createId(),
       role: 'user',
@@ -507,9 +567,13 @@ export default function ChatPanel() {
 
     setMessages((prev) => [...prev, userMessage]);
     // Scroll to bottom immediately after user message is added
+    // Multiple attempts to account for progress bar and recommendation pills appearing
     setTimeout(() => scrollToBottom('smooth'), 50);
+    setTimeout(() => scrollToBottom('smooth'), 150);
     setIsLoading(true);
     setQueryProgress(null);
+    // Scroll again after loading state changes (progress bar may appear)
+    setTimeout(() => scrollToBottom('smooth'), 200);
     // Determine initial query type based on whether productContextId is set
     // Will be updated based on actual intent from API response
     setQueryType(overrideProductContextId ?? productContextId ? 'product_qa' : 'discovery');
@@ -546,6 +610,7 @@ export default function ChatPanel() {
           history: historyPayload,
           pendingSuggestion: pendingPayload,
           conversationContext: contextPayload,
+          searchMethods: searchMethods || { lexical: true, semantic: true, concept: true },
         }),
       });
 
@@ -618,7 +683,10 @@ export default function ChatPanel() {
 
       setMessages((prev) => [...prev, assistantMessage]);
       // Scroll to bottom after bot response is added
+      // Multiple attempts to account for progress bar, recommendation pills, and product context card
       setTimeout(() => scrollToBottom('smooth'), 100);
+      setTimeout(() => scrollToBottom('smooth'), 300);
+      setTimeout(() => scrollToBottom('smooth'), 500);
 
       setConversationContext({
         lastIntent: finalData.intent ?? conversationContext.lastIntent ?? null,
@@ -635,7 +703,9 @@ export default function ChatPanel() {
       };
       setMessages((prev) => [...prev, fallbackMessage]);
       // Scroll to bottom after error message is added
+      // Multiple attempts to account for progress bar, recommendation pills, and product context card
       setTimeout(() => scrollToBottom('smooth'), 100);
+      setTimeout(() => scrollToBottom('smooth'), 300);
     } finally {
       setIsLoading(false);
       setQueryProgress(null);
@@ -648,6 +718,11 @@ export default function ChatPanel() {
   const lastUserMessage = useMemo(() => {
     const userMessages = messages.filter((m) => m.role === 'user');
     return userMessages.length > 0 ? userMessages[userMessages.length - 1]?.content || null : null;
+  }, [messages]);
+
+  // Check if user has sent any messages (excluding initial welcome)
+  const hasUserMessages = useMemo(() => {
+    return messages.some((m) => m.role === 'user');
   }, [messages]);
 
   return (
@@ -663,7 +738,8 @@ export default function ChatPanel() {
       {/* Scrollable chat area - extends to bottom */}
       <div
         ref={scrollContainerRef}
-        className="chat-scrollbar absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-contain px-3 pt-6 pb-[190px] sm:px-4 sm:pt-8 sm:pb-[210px] md:px-6 md:pt-10 md:pb-[240px]"
+        className="chat-scrollbar absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-contain px-3 pt-6 sm:px-4 sm:pt-8 md:px-6 md:pt-10"
+        style={{ paddingBottom: bottomPadding }}
       >
         <MessageList messages={messages} onProductClick={handleProductClick} onProductAsk={handleProductAsk} />
         <div ref={messagesEndRef} />
@@ -671,7 +747,7 @@ export default function ChatPanel() {
       {/* Fixed suggestions above input - overlays at bottom */}
       <div 
         ref={inputContainerRef}
-        className="absolute bottom-0 left-0 right-0 z-40 bg-gradient-to-b from-transparent via-white to-white px-3 pt-3 pb-3 sm:px-4 sm:pt-4 sm:pb-4 md:px-6 md:pb-6"
+        className="absolute bottom-0 left-0 right-0 z-40 bg-gradient-to-b from-transparent via-white to-white px-3 pt-3 pb-3 sm:px-4 sm:pt-4 sm:pb-4 md:px-6 md:pb-6 overflow-visible"
       >
         {/* Query progress bar - shown only when loading */}
         <QueryProgressBar 
@@ -681,21 +757,24 @@ export default function ChatPanel() {
           queryType={queryType}
         />
         <SuggestedPrompts
-          key={lastUserMessage || 'initial'}
+          key={`${sessionId}-${productContext?.id || 'none'}-${hasUserMessages ? 'hasMessages' : 'noMessages'}-${lastUserMessage || 'initial'}`}
           onSelect={(prompt) => {
             handleSendMessage(prompt);
           }}
           lastUserMessage={lastUserMessage}
+          productContext={productContext}
+          hasUserMessages={hasUserMessages}
         />
         <div className="mt-3">
           <MessageInput 
-            onSend={handleSendMessage} 
+            onSend={(message, searchMethods) => handleSendMessage(message, undefined, searchMethods)} 
             disabled={isLoading}
             productContext={productContext}
             onClearProductContext={() => {
               setProductContextId(undefined);
               setProductContext(undefined);
             }}
+            onProductContextHeightChange={handleProductContextHeightChange}
           />
         </div>
       </div>

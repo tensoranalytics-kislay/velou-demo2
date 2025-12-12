@@ -32,9 +32,12 @@ const FALLBACK_CARD_WIDTH = 170;
 // Helper to extract single word from attribute value for keyword tags
 const getSingleWord = (attr: string): string => {
   const value = attr.split(':')[1]?.trim() || attr;
+  // Replace underscores with spaces first (before any splitting)
+  const normalizedValue = value.replace(/_/g, ' ');
   // Split by spaces/commas and take first meaningful word
-  const words = value.split(/[\s,]+/).filter(Boolean);
-  return words[0] || value;
+  const words = normalizedValue.split(/[\s,]+/).filter(Boolean);
+  const result = words[0] || normalizedValue;
+  return result;
 };
 
 // Generate a deterministic rating between 1 and 5 based on product ID
@@ -224,7 +227,7 @@ export default function ProductCarousel({ products, onProductClick, onProductAsk
                       .map((chip, idx) => (
                         <div key={`${product.id}-chip-${idx}`} className="relative">
                           <span className="peer inline-flex rounded-full border border-[#D61F2B]/30 bg-[#D61F2B]/10 px-1.5 py-0.5 text-[10px] font-medium text-[#D61F2B] max-w-full truncate">
-                            {chip.label}
+                            {chip.label.replace(/_/g, ' ')}
                           </span>
                           <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-[min(80vw,200px)] -translate-x-1/2 rounded-lg bg-neutral-900/90 px-3 py-2 text-left text-xs text-white opacity-0 shadow-lg transition peer-hover:opacity-100 peer-focus-visible:opacity-100">
                             {chip.why}

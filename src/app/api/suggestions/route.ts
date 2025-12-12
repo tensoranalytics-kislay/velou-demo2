@@ -1,597 +1,366 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCatalogOntology } from '@/lib/search/ontology';
 import { prisma } from '@/lib/db';
 import { callLLM } from '@/lib/llm/provider';
-import { getDatasetContext } from '@/lib/catalog/getDatasetContext';
 
 /**
- * GET /api/suggestions?lastMessage=...
- * Returns catalog-based suggested search prompts
- * If lastMessage is provided, generates follow-up prompts using the lightweight OpenAI helper model
- * Otherwise, returns random initial suggestions
+ * Lightweight, product-backed follow-up suggestions.
+ * Runs in parallel with retrieval/product load and only suggests queries
+ * guaranteed to match products we already have in hand.
  */
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-  const lastMessage = searchParams.get('lastMessage');
+  const lastMessage = (searchParams.get('lastMessage') || '').trim();
+  const productId = searchParams.get('productId')?.trim();
+
   try {
-    const [ontology, datasetContext] = await Promise.all([
-      getCatalogOntology(),
-      getDatasetContext(),
+    console.log('[suggestions] incoming params', { lastMessage, productId });
+
+    // Product-specific Q&A suggestions
+    if (productId) {
+      const selectedProduct = await prisma.product.findUnique({
+        where: { id: productId },
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          subcategory: true,
+          brand: true,
+          priceCents: true,
+          attributes: true,
+        },
+      });
+
+      if (!selectedProduct) {
+        return NextResponse.json({ suggestions: ['Ask about this product', 'Similar items?', 'Any other scents?'] });
+      }
+
+      const similarProducts = await prisma.product.findMany({
+        where: {
+          id: { not: productId },
+          stockStatus: { in: ['in_stock', 'low_stock'] },
+          OR: [
+            { category: selectedProduct.category || undefined },
+            { subcategory: selectedProduct.subcategory || undefined },
+            { brand: selectedProduct.brand || undefined },
+          ].filter(Boolean) as any[],
+        },
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          subcategory: true,
+          brand: true,
+          priceCents: true,
+          attributes: true,
+        },
+        take: 20,
+      });
+
+      const systemPrompt = `
+You are a shopping assistant that suggests follow-up QUESTION prompts
+about a single selected product.
+
+You will be given:
+- userQuery: the shopper’s last message.
+- selectedProduct: the product the shopper clicked on.
+- similarProducts: up to 20 other catalog products that are related
+  (same category / productType / brand or similar attributes).
+
+Each product may contain:
+id, title, category, subcategory, productTypes, brand, priceCents,
+and attributes such as ingredients, concerns, skinTypes, scents,
+applicationAreas, formats, SPF, size, etc.
+
+YOUR GOAL
+Generate 3 short question-style prompts the shopper might click to learn
+more about this product or close alternatives.
+
+These prompts must:
+- be directly related to the selectedProduct,
+- help clarify fit, usage, benefits, variants, or alternatives,
+- be answerable using the catalog data for selectedProduct and/or similarProducts.
+
+EXAMPLES OF GOOD ANGLES
+(Only use angles actually supported by the data you see.)
+
+- FIT & SUITABILITY
+  - skinTypes, concerns, applicationAreas, ingredients
+- USAGE & ROUTINE
+  - frequency, layering, daytime vs nighttime
+- VARIANTS & ALTERNATIVES
+  - different SPF, scent, size, format, concern, price band
+- BENEFITS & RESULTS
+  - hydration, anti-aging, brightening, oil control, etc.
+
+RULES
+1. Dataset-driven only; use only values present in selectedProduct or similarProducts.
+2. Product-focused and non-redundant; avoid shipping/returns/account/order topics.
+3. Style: natural-language QUESTION, 6–14 words, no numbering/labels.
+4. Output ONLY:
+{
+  "prompts": ["...", "...", "..."]
+}
+If you cannot create 3 distinct data-backed prompts, return 2 or 1.
+Return the JSON object only (this message includes the word JSON).`;
+
+      const payload = {
+        userQuery: lastMessage,
+        selectedProduct,
+        similarProducts,
+      };
+
+      const result = await callLLM({
+        messages: [
+          { role: 'system', content: systemPrompt.trim() },
+          { role: 'user', content: JSON.stringify(payload) },
+        ],
+        purpose: 'followup_prompts_product',
+        expectJson: true,
+      });
+
+      const parsed =
+        typeof result.rawText === 'string' ? safeParse(result.rawText) : null;
+
+      const prompts = Array.isArray(parsed?.prompts)
+        ? parsed.prompts
+            .map((p) => (p || '').trim())
+            .filter(Boolean)
+            .map((p) => truncateWords(p, 14))
+            .slice(0, 3)
+        : [];
+
+      if (prompts.length > 0) {
+        return NextResponse.json({ suggestions: prompts });
+      }
+
+      const fallback = buildProductFallback(selectedProduct, similarProducts);
+      return NextResponse.json({ suggestions: fallback });
+    }
+
+    // Pull a small, real product set the LLM can rely on.
+    // topProducts: newest 8 in-stock
+    // candidateProducts: next 40 in-stock
+    const [topProducts, candidateProducts] = await Promise.all([
+      prisma.product.findMany({
+        where: { stockStatus: { in: ['in_stock', 'low_stock'] } },
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          subcategory: true,
+          brand: true,
+          priceCents: true,
+          attributes: true,
+        },
+        take: 8,
+      }),
+      prisma.product.findMany({
+        where: { stockStatus: { in: ['in_stock', 'low_stock'] } },
+        orderBy: { updatedAt: 'desc' },
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          subcategory: true,
+          brand: true,
+          priceCents: true,
+          attributes: true,
+        },
+        skip: 8,
+        take: 40,
+      }),
     ]);
-    
-    // Debug logging to check DatasetContext
-    console.log('[suggestions] DatasetContext loaded:', {
-      hasContext: !!datasetContext,
-      vertical: datasetContext?.vertical,
-      hasRecommendedExamples: !!datasetContext?.recommendedSearchExamples?.length,
-      recommendedExamples: datasetContext?.recommendedSearchExamples,
-      hasSampleCategories: !!datasetContext?.sampleCategories?.length,
-      sampleCategories: datasetContext?.sampleCategories,
-      hasPrimaryFacets: !!datasetContext?.primaryFacets?.length,
-      primaryFacets: datasetContext?.primaryFacets,
+
+    const payload = {
+      userQuery: lastMessage,
+      topProducts,
+      candidateProducts,
+    };
+
+    const systemPrompt = `
+You are a shopping assistant that suggests follow-up search queries.
+
+You will be given:
+- userQuery: the shopper’s last message.
+- topProducts: up to 8 products currently shown in the product card.
+- candidateProducts: up to 40 additional relevant products from the catalog.
+
+Each product may contain:
+id, title, category, subcategory, productTypes, brand, priceCents,
+and attributes such as ingredients, concerns, skinTypes, scents,
+applicationAreas, formats, SPF, etc.
+
+YOUR GOAL
+Suggest 3 short follow-up search queries that:
+- are GUARANTEED to match at least one product in (topProducts ∪ candidateProducts),
+- stay in broadly the same category / productTypes as the products already shown,
+- surface something NEW compared to the current top 8 products (different filters, facets, or angles).
+
+RULES
+1) Dataset-driven only: build suggestions only from values present in the provided products.
+2) Similar family, not duplicates; introduce a new facet/angle present in candidates.
+3) Style: concise 4–6 words, natural-language search phrases, no trailing punctuation.
+4) Output ONLY JSON:
+{
+  "prompts": ["...", "...", "..."]
+}
+If you cannot find 3 distinct valid suggestions without guessing, return 2 or 1.
+`;
+
+    const result = await callLLM({
+      messages: [
+        { role: 'system', content: systemPrompt.trim() },
+        {
+          role: 'user',
+          content: JSON.stringify(payload),
+        },
+      ],
+      purpose: 'followup_prompts',
+      expectJson: true,
     });
 
-    const recommendedExamples = datasetContext?.recommendedSearchExamples ?? [];
+    const parsed =
+      typeof result.rawText === 'string'
+        ? safeParse(result.rawText)
+        : null;
 
-    // If this is an initial request (no lastMessage) and we have
-    // high-quality recommended examples from DatasetContext, prefer
-    // returning those directly. This keeps the chat pills aligned
-    // with the Dataset Profile card in the admin UI.
-    if (!lastMessage && recommendedExamples.length > 0) {
-      const cleaned = recommendedExamples.map(stripFillerPhrases).filter(p => p.length > 0);
-      const unique = Array.from(new Set(cleaned)).slice(0, 5);
-      
-      // Debug logging
-      console.log('[suggestions] Cleaning recommended examples:', {
-        original: recommendedExamples.slice(0, 3),
-        cleaned: unique.slice(0, 3),
-      });
-      
-      return NextResponse.json({ suggestions: unique });
-    }
-    
-    // If lastMessage is provided, always attempt LLM generation first
-    // Only skip if we can definitively prove it's irrelevant by checking actual product data
-    if (lastMessage) {
-      const keywords = stripFillerPhrases(lastMessage)
-        .toLowerCase()
-        .split(/\s+/)
-        .filter(Boolean)
-        .filter(kw => !['under', 'below', 'over', 'above', '$'].includes(kw)); // Remove price-related filler words
-      
-      // Check against ontology terms
-      const catalogTerms = new Set(
-        [
-          ...(ontology.categories || []),
-          ...(ontology.productTypes || []),
-          ...(ontology.brands || []),
-          ...(datasetContext?.sampleCategories || []),
-        ]
+    const prompts = Array.isArray(parsed?.prompts)
+      ? parsed!.prompts
+          .map((p) => (p || '').trim())
           .filter(Boolean)
-          .map((t) => t.toLowerCase()),
-      );
-      
-      // Also check against actual product data (titles, descriptions, subcategories)
-      // This is more lenient and catches product types that might not be in ontology
-      const hasOntologyMatch = keywords.some((kw) =>
-        Array.from(catalogTerms).some((ct) => {
-          const kwLower = kw.toLowerCase();
-          const ctLower = ct.toLowerCase();
-          return kwLower.includes(ctLower) || ctLower.includes(kwLower) || kwLower === ctLower;
-        }),
-      );
-      
-      // Quick check against product titles/subcategories if ontology check fails
-      let hasProductMatch = false;
-      if (!hasOntologyMatch && keywords.length > 0) {
-        const searchTerm = keywords.slice(0, 2).join(' '); // Use first 2 keywords for quick check
-        const productCheck = await prisma.product.findFirst({
-          where: {
-            OR: [
-              { title: { contains: searchTerm, mode: 'insensitive' } },
-              { subcategory: { contains: searchTerm, mode: 'insensitive' } },
-              { description: { contains: searchTerm, mode: 'insensitive' } },
-            ],
-          },
-          select: { id: true },
-        });
-        hasProductMatch = !!productCheck;
-      }
-      
-      const isRelevant = hasOntologyMatch || hasProductMatch;
-      
-      console.log('[suggestions] Catalog relevance check:', {
-        lastMessage,
-        keywords,
-        catalogTermsCount: catalogTerms.size,
-        hasOntologyMatch,
-        hasProductMatch,
-        isRelevant,
-      });
-      
-      // Always proceed to LLM generation - don't block based on relevance check
-      // The LLM can handle edge cases and generate relevant prompts even if keyword matching fails
-      console.log('[suggestions] Proceeding with prompt generation', {
-        isRelevant,
-        willAttemptLLM: true,
-      });
-    }
-
-    // Get price ranges from catalog
-    const priceStats = await prisma.product.aggregate({
-      where: {
-        stockStatus: { in: ['in_stock', 'low_stock'] },
-      },
-      _min: { priceCents: true },
-      _max: { priceCents: true },
-      _avg: { priceCents: true },
-    });
-
-    const minPrice = priceStats._min.priceCents ?? 0;
-    const maxPrice = priceStats._max.priceCents ?? 0;
-    const avgPrice = priceStats._avg.priceCents ?? 0;
-
-    // Calculate price tiers
-    const priceTiers = [
-      { label: 'under $50', max: 5000 },
-      { label: 'under $100', max: 10000 },
-      { label: 'under $200', max: 20000 },
-    ].filter(tier => tier.max <= maxPrice);
-
-    // Get popular categories (most common in catalog)
-    // Note: groupBy doesn't support filtering nulls directly, so we'll filter after
-    const allCategoryCounts = await prisma.product.groupBy({
-      by: ['category'],
-      where: {
-        stockStatus: { in: ['in_stock', 'low_stock'] },
-      },
-      _count: { category: true },
-    });
-
-    // Filter out null categories and sort by count descending
-    const categoryCounts = allCategoryCounts
-      .filter(c => c.category !== null)
-      .sort((a, b) => (b._count.category ?? 0) - (a._count.category ?? 0))
-      .slice(0, 10);
-
-    const popularCategories = categoryCounts
-      .map(c => c.category)
-      .filter((cat): cat is string => Boolean(cat))
-      .slice(0, 6);
-
-    // Get popular colors
-    const popularColors = ontology.colors.slice(0, 8);
-
-    // Get popular genders
-    const genders = ontology.genders.filter(g => 
-      ['mens', 'womens', 'male', 'female', 'unisex'].includes(g.toLowerCase())
-    );
-
-    const vertical = datasetContext?.vertical;
-    // Only treat as apparel if explicitly set to apparel/fashion
-    // If vertical is null/undefined, we don't know, so use generic logic
-    const isApparel = vertical === 'apparel' || vertical === 'fashion';
-    const isKnownVertical = Boolean(vertical);
-    
-    // Only extract fit/occasion if vertical is apparel/fashion
-    const popularFits = new Set<string>();
-    const popularOccasions = new Set<string>();
-    
-    if (isApparel) {
-      // Get fit/styles from product attributes (apparel-specific)
-      const fitSamples = await prisma.product.findMany({
-        where: {
-          stockStatus: { in: ['in_stock', 'low_stock'] },
-        },
-        select: { attributes: true },
-        take: 200,
-      });
-
-      fitSamples.forEach(p => {
-        const attrs = p.attributes as any;
-        if (attrs?.fit) {
-          const fit = String(attrs.fit).toLowerCase();
-          // Include common fit terms
-          if (['skinny', 'slim', 'straight', 'relaxed', 'wide', 'flare', 'flared', 'bootcut', 'boyfriend', 'mom', 'high rise', 'mid rise', 'low rise'].some(term => fit.includes(term))) {
-            popularFits.add(fit);
-          }
-        }
-      });
-
-      // Get occasions from product attributes (apparel-specific)
-      const occasionSamples = await prisma.product.findMany({
-        where: {
-          stockStatus: { in: ['in_stock', 'low_stock'] },
-        },
-        select: { attributes: true },
-        take: 200,
-      });
-
-      occasionSamples.forEach(p => {
-        const attrs = p.attributes as any;
-        if (attrs?.occasion) {
-          const occasion = String(attrs.occasion).toLowerCase();
-          popularOccasions.add(occasion);
-        }
-      });
-    } else {
-      // For non-apparel, extract usage_contexts or style_tags if available
-      const contextSamples = await prisma.product.findMany({
-        where: {
-          stockStatus: { in: ['in_stock', 'low_stock'] },
-        },
-        select: { attributes: true },
-        take: 200,
-      });
-
-      contextSamples.forEach(p => {
-        const attrs = p.attributes as any;
-        // Extract usage_contexts (for skincare, home, etc.)
-        if (Array.isArray(attrs?.usage_contexts)) {
-          attrs.usage_contexts.forEach((ctx: string) => {
-            if (typeof ctx === 'string' && ctx.trim()) {
-              popularOccasions.add(ctx.toLowerCase().trim());
-            }
-          });
-        }
-        // Extract style_tags
-        if (Array.isArray(attrs?.style_tags)) {
-          attrs.style_tags.forEach((tag: string) => {
-            if (typeof tag === 'string' && tag.trim()) {
-              popularOccasions.add(tag.toLowerCase().trim());
-            }
-          });
-        }
-      });
-    }
-
-    const primaryFacets = datasetContext?.primaryFacets || [];
-    
-    // Only use apparel-specific logic if vertical is apparel/fashion
-    let fitArray: string[] = [];
-    let occasionArray: string[] = [];
-    
-    if (isApparel) {
-      // Common occasions if not in DB (apparel-specific)
-      const commonOccasions = ['date night', 'office', 'beach wedding', 'casual', 'formal', 'party', 'vacation', 'work'];
-      commonOccasions.forEach(occ => popularOccasions.add(occ));
-
-      // Common fit terms (apparel-specific)
-      const commonFits = ['flare', 'skinny', 'straight', 'wide leg', 'bootcut', 'relaxed', 'slim'];
-      commonFits.forEach(fit => popularFits.add(fit));
-
-      fitArray = Array.from(popularFits).slice(0, 10);
-      occasionArray = Array.from(popularOccasions).slice(0, 10);
-    } else {
-      // For non-apparel, use usage_contexts or style_tags from attributes if available
-      // This would require querying products, but for now we'll skip fit/occasion logic
-    }
-
-    // Generate suggestions based on actual catalog data and dataset context
-    const suggestions: string[] = [];
-    
-    // First, check if we have recommendedSearchExamples from DatasetContext
-    // These are LLM-generated examples based on the actual catalog
-    if (datasetContext?.recommendedSearchExamples?.length) {
-      // Use the recommended examples as primary suggestions, stripping filler phrases
-      suggestions.push(
-        ...datasetContext.recommendedSearchExamples
-          .map(stripFillerPhrases)
-          .filter(p => p.length > 0)
           .slice(0, 3)
-      );
+      : [];
+
+    if (prompts.length > 0) {
+      const concise = prompts.map((p) => truncateWords(p, 12));
+      return NextResponse.json({ suggestions: concise });
     }
 
-    // If we don't have enough suggestions yet, generate from catalog data
-    if (suggestions.length < 3) {
-      // Only generate apparel-specific suggestions if vertical is explicitly apparel/fashion
-      if (isApparel) {
-      // Apparel-specific suggestions
-      // Style + Category + Gender + Price (e.g., "flare jeans under $50")
-      if (fitArray.length > 0 && popularCategories.length > 0 && genders.length > 0 && priceTiers.length > 0) {
-        const fit = fitArray[0];
-        const category = popularCategories.find(cat => 
-          ['jeans', 'pants', 'dress', 'dresses'].some(term => cat.toLowerCase().includes(term))
-        ) || popularCategories[0];
-        const priceTier = priceTiers[0];
-        suggestions.push(`${fit} ${category} ${priceTier.label}`);
-      }
-
-      // Category + Occasion + Price (e.g., "dresses date night under $200")
-      const occasionCategories = popularCategories.filter(cat => 
-        ['dress', 'dresses', 'blazer', 'blazers', 'jacket', 'jackets', 'top', 'tops'].some(term => 
-          cat.toLowerCase().includes(term)
-        )
-      );
-      if (occasionCategories.length > 0 && occasionArray.length > 0 && priceTiers.length > 0) {
-        const category = occasionCategories[0];
-        const occasion = occasionArray[0];
-        const priceTier = priceTiers[priceTiers.length - 1];
-        suggestions.push(`${category} ${occasion} ${priceTier.label}`);
-      }
-
-      // Style + Category + Gender (e.g., "skinny jeans women")
-      if (fitArray.length > 1 && popularCategories.length > 1 && genders.length > 0) {
-        const fit = fitArray[1];
-        const category = popularCategories.find(cat => 
-          ['jeans', 'pants'].some(term => cat.toLowerCase().includes(term))
-        ) || popularCategories[1];
-        const gender = genders.length > 1 && (genders[1] === 'mens' || genders[1] === 'male') ? 'men' : 'women';
-        suggestions.push(`${fit} ${category} ${gender}`);
-      }
-
-      // Category + Color + Occasion (e.g., "dresses navy office")
-      if (popularCategories.length > 0 && popularColors.length > 0 && occasionArray.length > 1) {
-        const category = popularCategories[0];
-        const color = popularColors[0];
-        const occasion = occasionArray[1];
-        suggestions.push(`${category} ${color} ${occasion}`);
-      }
-
-      // Style + Category + Price (e.g., "straight leg jeans under $100")
-      if (fitArray.length > 2 && popularCategories.length > 0 && priceTiers.length > 1) {
-        const fit = fitArray[2];
-        const category = popularCategories.find(cat => 
-          ['jeans', 'pants'].some(term => cat.toLowerCase().includes(term))
-        ) || popularCategories[0];
-        const priceTier = priceTiers[1];
-        suggestions.push(`${fit} ${category} ${priceTier.label}`);
-      }
-
-      // Category + Gender + Occasion (e.g., "tops women office")
-      if (popularCategories.length > 1 && genders.length > 0 && occasionArray.length > 2) {
-        const category = popularCategories[1];
-        const gender = genders[0] === 'mens' || genders[0] === 'male' ? 'men' : 'women';
-        const occasion = occasionArray[2];
-        suggestions.push(`${category} ${gender} ${occasion}`);
-      }
-
-      // Style + Category + Occasion (e.g., "wide leg pants casual")
-      if (fitArray.length > 0 && popularCategories.length > 2 && occasionArray.length > 0) {
-        const fit = fitArray[0];
-        const category = popularCategories[2];
-        const occasion = occasionArray[0];
-        suggestions.push(`${fit} ${category} ${occasion}`);
-      }
-      }
-    } else {
-      // Non-apparel or unknown vertical - generate suggestions from actual catalog data
-      // Use sampleCategories from DatasetContext if available, otherwise use popularCategories
-      const categoriesToUse = datasetContext?.sampleCategories?.length 
-        ? datasetContext.sampleCategories.slice(0, 6)
-        : popularCategories;
-      
-      // Use primaryFacets from DatasetContext
-      const facetsToUse = datasetContext?.primaryFacets || [];
-      
-      // Query products to get actual attribute values from the catalog
-      const attributeSamples = await prisma.product.findMany({
-        where: {
-          stockStatus: { in: ['in_stock', 'low_stock'] },
-        },
-        select: { attributes: true },
-        take: 100,
-      });
-      
-      // Extract actual attribute values from products
-      const actualAttributes: Record<string, Set<string>> = {};
-      attributeSamples.forEach(p => {
-        const attrs = p.attributes as any;
-        if (attrs) {
-          // Extract usage_contexts, style_tags, benefits, compatibility, etc.
-          if (Array.isArray(attrs.usage_contexts)) {
-            if (!actualAttributes['usage_contexts']) actualAttributes['usage_contexts'] = new Set();
-            attrs.usage_contexts.forEach((ctx: string) => {
-              if (typeof ctx === 'string' && ctx.trim()) {
-                actualAttributes['usage_contexts'].add(ctx.toLowerCase().trim());
-              }
-            });
-          }
-          if (Array.isArray(attrs.style_tags)) {
-            if (!actualAttributes['style_tags']) actualAttributes['style_tags'] = new Set();
-            attrs.style_tags.forEach((tag: string) => {
-              if (typeof tag === 'string' && tag.trim()) {
-                actualAttributes['style_tags'].add(tag.toLowerCase().trim());
-              }
-            });
-          }
-          if (Array.isArray(attrs.benefits)) {
-            if (!actualAttributes['benefits']) actualAttributes['benefits'] = new Set();
-            attrs.benefits.forEach((benefit: string) => {
-              if (typeof benefit === 'string' && benefit.trim()) {
-                actualAttributes['benefits'].add(benefit.toLowerCase().trim());
-              }
-            });
-          }
-          if (attrs.compatibility && Array.isArray(attrs.compatibility)) {
-            if (!actualAttributes['compatibility']) actualAttributes['compatibility'] = new Set();
-            attrs.compatibility.forEach((comp: string) => {
-              if (typeof comp === 'string' && comp.trim()) {
-                actualAttributes['compatibility'].add(comp.toLowerCase().trim());
-              }
-            });
-          }
-        }
-      });
-      
-      // Generate suggestions using actual catalog data
-      // Category + Attribute + Price
-      if (categoriesToUse.length > 0 && priceTiers.length > 0) {
-        const category = categoriesToUse[0];
-        const priceTier = priceTiers[0];
-        
-        // Try to add a relevant attribute if available
-        if (facetsToUse.length > 0 && actualAttributes[facetsToUse[0]]?.size > 0) {
-          const attributeValue = Array.from(actualAttributes[facetsToUse[0]])[0];
-          suggestions.push(`${category} ${attributeValue} ${priceTier.label}`);
-        } else if (actualAttributes['usage_contexts']?.size > 0) {
-          const usageContext = Array.from(actualAttributes['usage_contexts'])[0];
-          suggestions.push(`${category} for ${usageContext} ${priceTier.label}`);
-        } else {
-          suggestions.push(`${category} ${priceTier.label}`);
-        }
-      }
-      
-      // Category + Primary Facet (from DatasetContext)
-      if (categoriesToUse.length > 0 && facetsToUse.length > 0) {
-        const category = categoriesToUse[0];
-        const facet = facetsToUse[0].toLowerCase();
-        if (actualAttributes[facet]?.size > 0) {
-          const facetValue = Array.from(actualAttributes[facet])[0];
-          suggestions.push(`${category} ${facetValue}`);
-        } else {
-          suggestions.push(`${category} ${facet}`);
-        }
-      }
-      
-      // Category + Color + Price (if colors available)
-      if (categoriesToUse.length > 0 && popularColors.length > 0 && priceTiers.length > 0) {
-        const category = categoriesToUse.length > 1 ? categoriesToUse[1] : categoriesToUse[0];
-        const color = popularColors[0];
-        const priceTier = priceTiers[0];
-        suggestions.push(`${category} ${color} ${priceTier.label}`);
-      }
-      
-      // Category + Benefit/Compatibility (for skincare, etc.)
-      if (categoriesToUse.length > 0) {
-        const category = categoriesToUse.length > 2 ? categoriesToUse[2] : categoriesToUse[0];
-        if (actualAttributes['benefits']?.size > 0) {
-          const benefit = Array.from(actualAttributes['benefits'])[0];
-          suggestions.push(`${category} for ${benefit}`);
-        } else if (actualAttributes['compatibility']?.size > 0) {
-          const compatibility = Array.from(actualAttributes['compatibility'])[0];
-          suggestions.push(`${category} for ${compatibility}`);
-        } else if (actualAttributes['usage_contexts']?.size > 0) {
-          const usageContext = Array.from(actualAttributes['usage_contexts'])[0];
-          suggestions.push(`${category} for ${usageContext}`);
-        }
-      }
-    }
-
-    // Generate dataset-aware default suggestions
-    const defaultSuggestions = getDefaultSuggestions(datasetContext, popularCategories, priceTiers);
-
-    // If lastMessage is provided, generate follow-up prompts via the lightweight OpenAI helper
-    if (lastMessage && lastMessage.trim()) {
-      console.log('[suggestions] ===== STARTING PROMPT GENERATION =====');
-      console.log('[suggestions] Generating follow-up prompts for:', lastMessage);
-      console.log('[suggestions] Dataset context:', {
-        vertical: datasetContext?.vertical,
-        hasPrimaryFacets: !!datasetContext?.primaryFacets?.length,
-        hasSampleCategories: !!datasetContext?.sampleCategories?.length,
-      });
-      try {
-        const followUpPrompts = await generateFollowUpPrompts(lastMessage, ontology, popularCategories, popularColors, fitArray, occasionArray, genders, priceTiers, datasetContext);
-        console.log('[suggestions] Generated follow-up prompts:', {
-          count: followUpPrompts.length,
-          prompts: followUpPrompts,
-        });
-        if (followUpPrompts.length > 0) {
-          console.log('[suggestions] ===== RETURNING LLM PROMPTS =====');
-          return NextResponse.json({ suggestions: followUpPrompts.slice(0, 3) });
-        }
-        // Fall through to generate dataset-aware prompts based on lastMessage
-        console.log('[suggestions] LLM returned empty prompts, generating dataset-aware prompts from lastMessage');
-      } catch (error) {
-        console.error('[suggestions] Error generating follow-up prompts:', error);
-        console.error('[suggestions] Error details:', error instanceof Error ? error.message : String(error));
-        // Fall through to generate dataset-aware prompts based on lastMessage
-      }
-      
-      // Generate dataset-aware prompts based on lastMessage when LLM fails
-      const messageBasedPrompts = await generateMessageBasedPrompts(
-        lastMessage,
-        ontology,
-        popularCategories,
-        popularColors,
-        fitArray,
-        occasionArray,
-        genders,
-        priceTiers,
-        datasetContext,
-        suggestions, // Pass existing catalog suggestions as context
-      );
-      if (messageBasedPrompts.length > 0) {
-        console.log('[suggestions] Generated message-based prompts:', messageBasedPrompts);
-        return NextResponse.json({ suggestions: messageBasedPrompts.slice(0, 3) });
-      }
-    }
-
-    // Combine suggestions and defaults, prioritizing dataset-specific suggestions
-    // If we have recommendedSearchExamples, they're already in suggestions
-    // Otherwise, use catalog-generated suggestions + defaults as fallback
-    let finalSuggestions = suggestions;
-    
-    // If we have catalog-generated suggestions, use them (even if vertical is unknown)
-    // Only use generic defaults if we have NO suggestions from catalog data
-    if (finalSuggestions.length === 0) {
-      // No suggestions from catalog - use dataset-aware defaults
-      if (defaultSuggestions.length > 0) {
-        finalSuggestions = defaultSuggestions;
-      } else {
-        // Last resort: try to generate from actual categories if available
-        if (popularCategories.length > 0 && priceTiers.length > 0) {
-          finalSuggestions = [
-            `${popularCategories[0]} ${priceTiers[0].label}`,
-            popularCategories.length > 1 ? `${popularCategories[1]} ${priceTiers[0].label}` : 'popular items',
-            popularCategories.length > 2 ? `${popularCategories[2]} ${priceTiers[0].label}` : 'best sellers',
-          ].filter(Boolean).slice(0, 3);
-        } else {
-          // Absolute last resort: generic fallback
-          finalSuggestions = ['popular items', 'best sellers', 'featured products'];
-        }
-      }
-    } else if (finalSuggestions.length < 3) {
-      // We have some suggestions but need more - add defaults
-      if (defaultSuggestions.length > 0) {
-        finalSuggestions = [...finalSuggestions, ...defaultSuggestions].slice(0, 3);
-      }
-    }
-    
-    // Filter out any apparel-specific suggestions if vertical is known and NOT apparel
-    if (isKnownVertical && !isApparel && finalSuggestions.length > 0) {
-      const apparelTerms = ['jeans', 'pants', 'dress', 'dresses', 'flare', 'skinny', 'straight leg', 'wide leg', 'bootcut', 'date night', 'tops', 'shirts'];
-      const hasApparelTerms = finalSuggestions.some(s => {
-        const sLower = s.toLowerCase();
-        return apparelTerms.some(term => sLower.includes(term));
-      });
-      
-      if (hasApparelTerms) {
-        // Remove apparel-specific suggestions and fill with defaults
-        finalSuggestions = finalSuggestions.filter(s => {
-          const sLower = s.toLowerCase();
-          return !apparelTerms.some(term => sLower.includes(term));
-        });
-        
-        // Fill remaining slots with defaults
-        if (finalSuggestions.length < 3 && defaultSuggestions.length > 0) {
-          finalSuggestions = [...finalSuggestions, ...defaultSuggestions].slice(0, 3);
-        }
-      }
-    }
-    
-    // Strip filler phrases, format for proper capitalization and grammar
-    const cleaned = finalSuggestions.map(stripFillerPhrases).filter(p => p.length > 0);
-    const formatted = cleaned.map(formatPrompt);
-    const uniqueSuggestions = Array.from(new Set(formatted)).slice(0, 3);
-
-    return NextResponse.json({ suggestions: uniqueSuggestions });
+    // Fallback: derive quick, deterministic prompts from products (no LLM assumptions).
+    const fallback = buildFallback(topProducts, candidateProducts).slice(0, 3);
+    return NextResponse.json({ suggestions: fallback });
   } catch (error) {
-    console.error('Error generating suggestions:', error);
-    // Return dataset-aware default suggestions on error
-    const datasetContext = await getDatasetContext().catch(() => null);
-    const defaultSuggestions = getDefaultSuggestions(datasetContext, [], []);
-    return NextResponse.json({
-      suggestions: defaultSuggestions.slice(0, 3),
-    });
+    console.error('[suggestions] error:', error);
+    return NextResponse.json({ suggestions: ['popular picks', 'top rated', 'new arrivals'] });
   }
+}
+
+function truncateWords(str: string, maxWords: number): string {
+  const words = str.split(/\s+/).filter(Boolean);
+  return words.slice(0, maxWords).join(' ');
+}
+
+function safeParse(text: string): { prompts?: string[] } | null {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function buildFallback(
+  top: Array<{ title: string | null; category: string | null; subcategory: string | null; attributes: any }>,
+  candidates: Array<{ title: string | null; category: string | null; subcategory: string | null; attributes: any }>,
+): string[] {
+  const products = [...top, ...candidates];
+  const categories = new Set<string>();
+  const facets = new Set<string>();
+
+  products.forEach((p) => {
+    if (p.category) categories.add(p.category);
+    if (p.subcategory) categories.add(p.subcategory);
+    const attrs = p.attributes as Record<string, any> | null;
+    if (attrs) {
+      ['ingredients', 'concerns', 'skinTypes', 'scents', 'applicationAreas', 'formats', 'SPF'].forEach((key) => {
+        const val = (attrs as any)[key];
+        if (Array.isArray(val)) val.forEach((v) => typeof v === 'string' && facets.add(v));
+        else if (typeof val === 'string') facets.add(val);
+      });
+    }
+  });
+
+  const cat = Array.from(categories).filter(Boolean).slice(0, 3);
+  const facet = Array.from(facets).filter(Boolean).slice(0, 3);
+
+  const suggestions: string[] = [];
+  if (cat[0] && facet[0]) suggestions.push(`${cat[0]} with ${facet[0]}`);
+  if (cat[1] && facet[1]) suggestions.push(`${cat[1]} for ${facet[1]}`);
+  if (cat[0]) suggestions.push(`${cat[0]} under $100`);
+
+  return suggestions
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+function buildProductFallback(
+  selected: { title: string | null; category: string | null; subcategory: string | null; attributes: any },
+  similar: Array<{ title: string | null; category: string | null; subcategory: string | null; attributes: any }>,
+): string[] {
+  const category = selected.category || selected.subcategory || 'this product';
+  const attrs = selected.attributes as Record<string, any> | null;
+
+  const skinType =
+    (attrs?.skinTypes && Array.isArray(attrs.skinTypes) && attrs.skinTypes[0]) ||
+    (attrs?.skinType as string | undefined);
+  const concern =
+    (attrs?.concerns && Array.isArray(attrs.concerns) && attrs.concerns[0]) ||
+    (attrs?.concern as string | undefined);
+  const scent =
+    (attrs?.scents && Array.isArray(attrs.scents) && attrs.scents[0]) ||
+    (attrs?.scent as string | undefined);
+  const spf =
+    (attrs?.SPF && (Array.isArray(attrs.SPF) ? attrs.SPF[0] : attrs.SPF)) as string | number | undefined;
+  const format =
+    (attrs?.formats && Array.isArray(attrs.formats) && attrs.formats[0]) ||
+    (attrs?.format as string | undefined);
+  const size =
+    (attrs?.size as string | undefined) ||
+    ((attrs?.sizes && Array.isArray(attrs.sizes) && attrs.sizes[0]) as string | undefined);
+
+  const similarHas = (key: string, value: string) =>
+    similar.some((p) => {
+      const pa = p.attributes as any;
+      if (!pa) return false;
+      const v = pa[key];
+      if (Array.isArray(v)) return v.some((x) => typeof x === 'string' && x.toLowerCase() === value.toLowerCase());
+      if (typeof v === 'string') return v.toLowerCase() === value.toLowerCase();
+      return false;
+    });
+
+  const prompts: string[] = [];
+  if (skinType) {
+    prompts.push(`Is this good for ${skinType}?`);
+  } else if (concern) {
+    prompts.push(`Does this help with ${concern}?`);
+  }
+
+  if (format && similarHas('formats', format as string)) {
+    prompts.push(`Is there a ${format} version?`);
+  } else if (scent && similarHas('scents', scent as string)) {
+    prompts.push(`Other scents like ${scent}?`);
+  }
+
+  if (spf) {
+    prompts.push(`Do you have this with SPF ${spf}?`);
+  } else if (size) {
+    prompts.push(`Is there a travel-size option?`);
+  } else {
+    prompts.push(`Any similar ${category} under $50?`);
+  }
+
+  return prompts
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 3);
 }
 
 /**
  * Generate dataset-aware default suggestions based on vertical and available facets
  */
 function getDefaultSuggestions(
-  datasetContext: Awaited<ReturnType<typeof getDatasetContext>>,
+  datasetContext: { vertical?: string | null } | null,
   popularCategories: string[],
   priceTiers: Array<{ label: string; max: number }>,
 ): string[] {
@@ -753,14 +522,14 @@ function formatPrompt(prompt: string): string {
  */
 async function generateMessageBasedPrompts(
   lastMessage: string,
-  ontology: Awaited<ReturnType<typeof getCatalogOntology>>,
+  ontology: { categories?: string[] },
   popularCategories: string[],
   popularColors: string[],
   popularFits: string[],
   popularOccasions: string[],
   genders: string[],
   priceTiers: Array<{ label: string; max: number }>,
-  datasetContext: Awaited<ReturnType<typeof getDatasetContext>>,
+  datasetContext: { vertical?: string | null; sampleCategories?: string[]; primaryFacets?: string[] } | null,
   existingSuggestions: string[],
 ): Promise<string[]> {
   const prompts: string[] = [];
@@ -907,14 +676,14 @@ async function generateMessageBasedPrompts(
  */
 async function generateFollowUpPrompts(
   lastMessage: string,
-  ontology: Awaited<ReturnType<typeof getCatalogOntology>>,
+  ontology: { categories?: string[] },
   popularCategories: string[],
   popularColors: string[],
   popularFits: string[],
   popularOccasions: string[],
   genders: string[],
   priceTiers: Array<{ label: string; max: number }>,
-  datasetContext: Awaited<ReturnType<typeof getDatasetContext>>,
+  datasetContext: { vertical?: string | null; sampleCategories?: string[]; primaryFacets?: string[]; recommendedSearchExamples?: string[] } | null,
 ): Promise<string[]> {
   // Build comprehensive catalog context
   const catalogContext = `

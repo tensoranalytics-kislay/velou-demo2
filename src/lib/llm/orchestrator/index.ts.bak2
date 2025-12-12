@@ -1,0 +1,647 @@
+import { prisma } from '../../db';
+import { deriveAttributeConstraintMeta } from '../../search';
+import type { SearchConstraints } from '../../search/types';
+import { logger } from '../../telemetry/logger';
+import type { DatasetContext } from '../../catalog/datasetInspector';
+import type { ProductCard } from './cards';
+import {
+  inferIntentAndConstraints,
+  mergeConstraints,
+  type AssistantIntent,
+} from './intent';
+import { callVelouRouter } from './intent-router';
+import { getCatalogOntology } from '../../search/ontology';
+import { detectFollowUpType } from './followup-detector';
+import type { ProgressCallback } from './progress';
+import { STAGE_PROGRESS } from './progress';
+// Import flows
+import { runDiscoveryFlow } from './flows/discovery';
+import { runPdpFlow } from './flows/pdp';
+import { runPendingSuggestionFlow } from './flows/pending';
+import { runProductQaFlow } from './flows/productQa';
+// Import helpers
+import { buildNonProductChatReply } from './helpers';
+
+// Export all types used by API/UI
+export type ChatHistoryItem = {
+  role: 'user' | 'assistant';
+  content: string;
+};
+
+export type ConversationContext = {
+  lastIntent?: AssistantIntent | null;
+  lastConstraints?: SearchConstraints | null;
+  lastShownProductIds?: string[];
+  lastUserQuery?: string | null;
+  datasetContext?: DatasetContext | null;
+};
+
+export type AssistantQueryInput = {
+  sessionId: string;
+  pageType: 'HOME' | 'PLP' | 'PDP';
+  message: string;
+  history?: ChatHistoryItem[];
+  productContextId?: string;
+  pendingSuggestion?: PendingSuggestionInput;
+  conversationContext?: ConversationContext;
+  onProgress?: ProgressCallback;
+};
+
+// Re-export types from cards
+export type { QueryChip, ProductCard } from './cards';
+
+export type AssistantQueryResult = {
+  replyText: string;
+  productCards: ProductCard[];
+  noExactMatch: boolean;
+  pendingSuggestion?: PendingSuggestionResult;
+  intent?: AssistantIntent;
+  resolvedConstraints?: SearchConstraints;
+  usedFollowUpContext?: boolean;
+  followupText?: string;
+};
+
+export type PendingSuggestionInput = {
+  constraints: SearchConstraints;
+  candidateIds: string[];
+};
+
+export type PendingSuggestionResult = PendingSuggestionInput & {
+  summary: string;
+};
+
+// Re-export AssistantIntent for convenience
+export type { AssistantIntent } from './intent';
+
+export async function handleAssistantQuery(input: AssistantQueryInput): Promise<AssistantQueryResult> {
+  logger.debug('handleAssistantQuery start', {
+    message: input.message,
+    pageType: input.pageType,
+    productContextId: input.productContextId,
+    hasPendingSuggestion: !!input.pendingSuggestion,
+    hasConversationContext: !!input.conversationContext,
+  });
+
+  // DB fallback: if conversationContext is missing, load last constraints from ConversationEvent
+  let effectiveContext = input.conversationContext;
+  const datasetContext = input.conversationContext?.datasetContext ?? null;
+  if (!effectiveContext) {
+    try {
+      const lastEvent = await prisma.conversationEvent.findFirst({
+        where: {
+          sessionId: input.sessionId,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        select: {
+          userQuery: true,
+          createdAt: true,
+        },
+      });
+
+      if (lastEvent) {
+        // Try to reconstruct minimal context from last query
+        // Note: We don't store full constraints in ConversationEvent, so we'll use the query as a hint
+        // For now, we'll just log that we found a previous event
+        logger.debug('db_fallback_context_loaded', {
+          sessionId: input.sessionId,
+          lastQuery: lastEvent.userQuery,
+          lastEventTime: lastEvent.createdAt,
+        });
+        // We can't fully reconstruct constraints from just the query, but we can use it as a hint
+        // The gatekeeper will handle this as a new_search but with potential sticky carry
+      }
+    } catch (error) {
+      logger.warn('db_fallback_context_failed', {
+        error: error instanceof Error ? error.message : String(error),
+        sessionId: input.sessionId,
+      });
+    }
+  }
+
+  if (input.pendingSuggestion) {
+    // Use VelouRouter LLM to decide how to handle pending suggestions
+    const ontology = await getCatalogOntology();
+    const conversationSummary = input.conversationContext?.lastUserQuery
+      ? `User was looking for: ${input.conversationContext.lastUserQuery}`
+      : 'No previous context';
+
+    // Extract categories from pending suggestion constraints
+    const pendingCategories: string[] = [];
+    if (input.pendingSuggestion.constraints.category) {
+      const category = input.pendingSuggestion.constraints.category;
+      if (Array.isArray(category)) {
+        pendingCategories.push(...category);
+      } else {
+        pendingCategories.push(category);
+      }
+    }
+    if (input.pendingSuggestion.constraints.productTypes?.length) {
+      pendingCategories.push(...input.pendingSuggestion.constraints.productTypes);
+    }
+
+    const routerResult = await callVelouRouter({
+      last_user_message: input.message,
+      conversation_summary: conversationSummary,
+      previous_constraints: input.conversationContext?.lastConstraints ?? null,
+      has_pending_suggestion: true,
+      pending_suggestion_categories: pendingCategories,
+      taxonomy_categories: [
+        ...ontology.categories,
+        ...ontology.productTypes,
+        'tshirt',
+        't-shirt',
+        'tee',
+        'tees',
+        'skirt',
+        'skirts',
+        'jeans',
+        'pants',
+        'top',
+        'tops',
+        'shirt',
+        'shirts',
+        'shoes',
+        'belt',
+        'belts',
+        'jacket',
+        'jackets',
+        'dress',
+        'dresses',
+        'shorts',
+        'sweater',
+        'sweaters',
+        'blazer',
+        'blazers',
+      ],
+    });
+
+    logger.debug('velou_router_result', {
+      action: routerResult.action,
+      new_category: routerResult.new_category,
+      keep_previous_constraints: routerResult.keep_previous_constraints,
+      reason: routerResult.reason,
+    });
+
+    // E) Fix pending suggestion gating: Only confirm if followUpType == CONFIRM_SUGGESTION
+    // Check if user included a canonical category noun - if so, always run discovery
+    const followUpDetection = detectFollowUpType(
+      input.message,
+      input.conversationContext?.lastConstraints ?? null,
+      true, // hasPendingSuggestion
+      ontology,
+    );
+
+    if (routerResult.action === 'confirm_pending_suggestion' && followUpDetection.followUpType === 'CONFIRM_SUGGESTION') {
+      logger.debug('pending_suggestion_confirmed', {
+        candidateCount: input.pendingSuggestion.candidateIds.length,
+        reason: routerResult.reason,
+        followUpType: followUpDetection.followUpType,
+      });
+      const confirmed = await runPendingSuggestionFlow(
+        input.pendingSuggestion,
+        input.message,
+        datasetContext,
+      );
+      return {
+        ...confirmed,
+        intent: input.conversationContext?.lastIntent ?? 'discovery',
+        resolvedConstraints: input.pendingSuggestion.constraints,
+        usedFollowUpContext: true,
+      };
+    }
+
+    // E) If user includes a canonical category noun, always run discovery and override suggestion
+    if (followUpDetection.followUpType === 'SWITCH' && followUpDetection.overrideCategory) {
+      logger.debug('pending_suggestion_overridden_by_category', {
+        overrideCategory: followUpDetection.overrideCategory,
+        reason: 'User explicitly requested new category',
+      });
+      // Fall through to normal discovery flow below
+    }
+
+    // For override_search or refine_search, we need to merge router refinements with constraints
+    if (routerResult.action === 'override_search' || routerResult.action === 'refine_search') {
+      logger.debug('pending_suggestion_overridden_by_router', {
+        action: routerResult.action,
+        candidateCount: input.pendingSuggestion.candidateIds.length,
+        reason: routerResult.reason,
+      });
+
+      // Build constraints from router result
+      const routerConstraints: SearchConstraints = {
+        inStockOnly: true,
+      };
+
+      // Apply new category if provided
+      if (routerResult.new_category) {
+        routerConstraints.category = routerResult.new_category;
+      } else if (routerResult.keep_previous_constraints && input.conversationContext?.lastConstraints?.category) {
+        routerConstraints.category = input.conversationContext.lastConstraints.category;
+      }
+
+      // Apply refinements from router
+      if (routerResult.refinements.colors) {
+        routerConstraints.colors = routerResult.refinements.colors;
+      }
+      if (routerResult.refinements.fabrics) {
+        routerConstraints.fabrics = routerResult.refinements.fabrics;
+      }
+      if (routerResult.refinements.materials) {
+        routerConstraints.materials = routerResult.refinements.materials;
+      }
+      if (routerResult.refinements.seasons) {
+        routerConstraints.seasons = routerResult.refinements.seasons;
+      }
+      if (routerResult.refinements.occasions) {
+        routerConstraints.occasions = routerResult.refinements.occasions;
+      }
+      if (routerResult.refinements.sizes) {
+        routerConstraints.sizes = routerResult.refinements.sizes;
+      }
+      if (routerResult.refinements.fit) {
+        routerConstraints.fit = routerResult.refinements.fit;
+      }
+      if (routerResult.refinements.priceMinCents !== null && routerResult.refinements.priceMinCents !== undefined) {
+        routerConstraints.priceMinCents = routerResult.refinements.priceMinCents;
+      }
+      if (routerResult.refinements.priceMaxCents !== null && routerResult.refinements.priceMaxCents !== undefined) {
+        routerConstraints.priceMaxCents = routerResult.refinements.priceMaxCents;
+      }
+
+      // Merge with previous constraints if keep_previous_constraints is true
+      let finalConstraints = routerConstraints;
+      if (routerResult.keep_previous_constraints && input.conversationContext?.lastConstraints) {
+        finalConstraints = mergeConstraints(
+          input.conversationContext.lastConstraints,
+          routerConstraints,
+          input.message,
+        );
+      }
+
+      // Continue to normal LLM + search flow with router-provided constraints as base
+      // The LLM will further refine these constraints
+      const { intent, constraints, usedFollowUpContext } = await inferIntentAndConstraints(
+        input.message,
+        input.pageType,
+        input.productContextId,
+        input.conversationContext,
+        input.history,
+      );
+
+      // Merge router constraints with LLM constraints (router takes precedence for category)
+      const mergedConstraints = routerResult.new_category
+        ? { ...constraints, category: routerResult.new_category }
+        : constraints;
+
+      let result: AssistantQueryResult;
+      
+      // If productContextId is set, always route to Q&A flow (text-only, no product cards)
+      if (input.productContextId) {
+        result = await runProductQaFlow(input.productContextId, input.message, datasetContext, input.onProgress);
+      } else {
+        result = await runDiscoveryFlow(mergedConstraints, input.message, intent, datasetContext, input.onProgress, input.conversationContext);
+      }
+
+      return {
+        ...result,
+        intent,
+        resolvedConstraints: mergedConstraints,
+        usedFollowUpContext,
+      };
+    }
+
+    // For non_product_chat, return a dataset-aware LLM reply that
+    // re-centers the conversation on product discovery.
+    if (routerResult.action === 'non_product_chat') {
+      // Stage 1: Understanding (already done before router check)
+      input.onProgress?.('understanding', STAGE_PROGRESS.understanding);
+      // Stage 2: Generating response
+      const clarifyingReply = await buildNonProductChatReply(
+        input.message,
+        datasetContext,
+        input.onProgress,
+      );
+      return {
+        replyText: clarifyingReply,
+        productCards: [],
+        noExactMatch: false,
+        intent: 'other' as AssistantIntent, // Mark as non-contextual
+        resolvedConstraints: input.pendingSuggestion.constraints,
+        usedFollowUpContext: false,
+      };
+    }
+  }
+
+  // D) Check for confirm_to_show before calling inferIntentAndConstraints
+  // This handles cases where user says "yes/show/anything" to pending suggestions
+  if (input.pendingSuggestion && !input.pendingSuggestion.candidateIds.length) {
+    // Pending suggestion with no candidates - treat as new search
+  } else if (input.pendingSuggestion) {
+    const normalized = input.message.toLowerCase();
+    const confirmKeywords = ['yes', 'yeah', 'ok', 'sure', 'show', 'anything', 'whatever', 'nothing else', 'go ahead'];
+    const isPureConfirmation = confirmKeywords.some(kw => 
+      normalized === kw || normalized === `${kw} show` || normalized.startsWith(`${kw} `)
+    );
+    
+    // Check if message is ONLY confirmation keywords (no new product type)
+    if (isPureConfirmation) {
+      logger.debug('confirm_to_show_detected', {
+        message: input.message,
+        candidateCount: input.pendingSuggestion.candidateIds.length,
+      });
+      const confirmed = await runPendingSuggestionFlow(
+        input.pendingSuggestion,
+        input.message,
+        datasetContext,
+      );
+      return {
+        ...confirmed,
+        intent: input.conversationContext?.lastIntent ?? 'discovery',
+        resolvedConstraints: input.pendingSuggestion.constraints,
+        usedFollowUpContext: true,
+      };
+    }
+  }
+
+  // Stage 1: Understanding request (Intent & Constraints Extraction)
+  input.onProgress?.('understanding', STAGE_PROGRESS.understanding);
+
+  const { intent, constraints, usedFollowUpContext } = await inferIntentAndConstraints(
+    input.message,
+    input.pageType,
+    input.productContextId,
+    input.conversationContext,
+    input.history,
+    !!input.pendingSuggestion,
+  );
+
+  // If the LLM decides this is not a discovery/PDP query, route to a
+  // dataset-aware non-product reply instead of forcing rule-based text.
+  if (intent !== 'discovery' && intent !== 'pdp_suitability') {
+    // Stage 2: Generating response (understanding already done)
+    input.onProgress?.('generating', STAGE_PROGRESS.generating);
+    const nonProductReply = await buildNonProductChatReply(
+      input.message,
+      datasetContext,
+      input.onProgress,
+    );
+    return {
+      replyText: nonProductReply,
+      productCards: [],
+      noExactMatch: false,
+      intent: 'other' as AssistantIntent, // Mark as non-contextual for frontend
+      resolvedConstraints: undefined,
+      usedFollowUpContext,
+    };
+  }
+
+  const attributeMeta = deriveAttributeConstraintMeta(constraints);
+
+  logger.debug('handleAssistantQuery intent resolved', {
+    intent,
+    constraints: {
+      category: constraints.category,
+      priceMaxCents: constraints.priceMaxCents,
+      hasAttributeFilters: attributeMeta.hasHardAttributeConstraints,
+      hardFacetFields: attributeMeta.hardFacetFields,
+      ignoredDerivedFacetFields: attributeMeta.ignoredDerivedFacetFields,
+    },
+  });
+
+  let result: AssistantQueryResult;
+  
+  // If productContextId is set, always route to Q&A flow (text-only, no product cards)
+  if (input.productContextId) {
+    result = await runProductQaFlow(input.productContextId, input.message, datasetContext, input.onProgress);
+  } else {
+    result = await runDiscoveryFlow(constraints, input.message, intent, datasetContext, input.onProgress, input.conversationContext);
+  }
+
+  return {
+    ...result,
+    intent,
+    resolvedConstraints: constraints,
+    usedFollowUpContext,
+  };
+}
+
+async function buildPostCardsFollowupText(
+  userMessage: string,
+  constraints: SearchConstraints,
+  datasetContext?: DatasetContext | null,
+  ontology?: CatalogOntology,
+  requestedCategoryExists?: boolean,
+  mainReplyText?: string,
+  productSummaries?: string[],
+): Promise<string | undefined> {
+  try {
+    const constraintSummary = describeConstraints(constraints);
+    const prompt = buildPostCardsFollowupPrompt(
+      datasetContext,
+      ontology,
+      requestedCategoryExists,
+      constraints.category,
+      mainReplyText,
+      productSummaries,
+    );
+
+    const messages: LlmMessage[] = [
+      {
+        role: 'system',
+        content: prompt,
+      },
+      {
+        role: 'user',
+        content: `userMessage: "${userMessage}"
+
+constraintSummary: "${constraintSummary || 'general preferences'}"`,
+      },
+    ];
+
+    const result = await callLLM({
+      messages,
+      purpose: 'final_reply',
+      expectJson: false,
+    });
+
+    const text = result.rawText.trim();
+    if (text.length) {
+      return text;
+    }
+  } catch (error) {
+    logger.error('post_cards_followup_failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  // Deterministic fallback if LLM is unavailable or returned empty text
+  const vertical = datasetContext?.vertical?.toLowerCase();
+  const hasBudget = Boolean(constraints.priceMaxCents);
+  const hasUseCases = Boolean(constraints.useCases?.length);
+
+  if (vertical && vertical.includes('beauty')) {
+    if (hasUseCases) {
+      return "Want something lighter, richer, or for a different concern? Tell me what you'd like to tweak.";
+    }
+    return "If you'd like a different texture, concern focus, or price range, tell me and I'll adjust these picks.";
+  }
+
+  if (vertical && (vertical.includes('home') || vertical.includes('decor'))) {
+    return 'Need a different room, style, or budget? Tell me and I can pivot these suggestions.';
+  }
+
+  // Generic catalog fallback
+  if (hasBudget) {
+    return "Want to go lighter, more premium, or switch categories? Tell me and I'll refine these results.";
+  }
+
+  return "If you'd like a different category, style, or price range, tell me and I'll tweak these options.";
+}
+
+/**
+ * Build a dataset-aware clarifying reply when the user has given a
+ * product-ish but underspecified request (no clear category/price/facets),
+ * using an LLM first and falling back to the older rule-based copy.
+ */
+async function buildClarifyingReply(
+  userMessage: string,
+  datasetContext?: DatasetContext | null,
+): Promise<string> {
+  try {
+    const prompt = buildClarifyingReplyPrompt(datasetContext);
+    const messages: LlmMessage[] = [
+      {
+        role: 'system',
+        content: prompt,
+      },
+      {
+        role: 'user',
+        content: `userMessage: "${userMessage}"`,
+      },
+    ];
+
+    const result = await callLLM({
+      messages,
+      purpose: 'final_reply',
+      expectJson: false,
+    });
+
+    const text = result.rawText.trim();
+    if (text.length) {
+      return text;
+    }
+  } catch (error) {
+    logger.error('clarifying_reply_llm_failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  // Deterministic, brand-voiced fallback if LLM is unavailable
+  let fallback = CLARIFYING_REPLY;
+  fallback = await applyBrandVoiceToReply(fallback);
+  return fallback;
+}
+
+/**
+ * Build a dataset-aware LLM reply when products were found but are not relevant to the user's query.
+ * This is used when search returns products that don't actually match the user's intent.
+ */
+async function buildNoRelevantProductsReply(
+  userMessage: string,
+  constraints: SearchConstraints,
+  datasetContext?: DatasetContext | null,
+  ontology?: CatalogOntology | null,
+): Promise<string> {
+  try {
+    const prompt = buildNoRelevantProductsPrompt(datasetContext, ontology);
+    const messages: LlmMessage[] = [
+      {
+        role: 'system',
+        content: prompt,
+      },
+      {
+        role: 'user',
+        content: `userMessage: "${userMessage}"
+constraints: ${JSON.stringify(constraints)}
+expandedKeywords: ${JSON.stringify(constraints.expandedKeywords || [])}`,
+      },
+    ];
+
+    const result = await callLLM({
+      messages,
+      purpose: 'final_reply',
+      expectJson: false,
+    });
+
+    const text = result.rawText.trim();
+    if (text.length) {
+      return await applyBrandVoiceToReply(text);
+    }
+  } catch (error) {
+    logger.error('no_relevant_products_reply_llm_failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  // Deterministic, brand-voiced fallback if LLM is unavailable
+  let fallback = "I couldn't find products that match what you're looking for. Try adjusting your search terms or browse by category.";
+  fallback = await applyBrandVoiceToReply(fallback);
+  return fallback;
+}
+
+/**
+ * Build a dataset-aware LLM reply for non-product or out-of-scope chat.
+ * This is used as a richer fallback when the router or intent detector
+ * classifies the message as "non_product_chat" or "other/qa".
+ */
+async function buildNonProductChatReply(
+  userMessage: string,
+  datasetContext?: DatasetContext | null,
+  onProgress?: ProgressCallback,
+): Promise<string> {
+  // Stage 2: Generating response (understanding already done before this function is called)
+  onProgress?.('generating', STAGE_PROGRESS.generating);
+  
+  try {
+    const prompt = buildOutOfScopeReplyPrompt(datasetContext);
+    const messages: LlmMessage[] = [
+      {
+        role: 'system',
+        content: prompt,
+      },
+      {
+        role: 'user',
+        content: `userMessage: "${userMessage}"`,
+      },
+    ];
+
+    const result = await callLLM({
+      messages,
+      purpose: 'final_reply',
+      expectJson: false,
+    });
+
+    const text = result.rawText.trim();
+    if (text.length) {
+      onProgress?.('completing', STAGE_PROGRESS.completing);
+      const finalText = await applyBrandVoiceToReply(text);
+      onProgress?.('complete', STAGE_PROGRESS.complete);
+      return finalText;
+    }
+  } catch (error) {
+    logger.error('non_product_chat_llm_failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  // Deterministic, brand-voiced fallback if LLM is unavailable
+  onProgress?.('completing', STAGE_PROGRESS.completing);
+  let fallback =
+    "I'm here to help you find products in this catalog. Tell me a category, concern, or price range and I'll pull options that fit.";
+  fallback = await applyBrandVoiceToReply(fallback);
+  onProgress?.('complete', STAGE_PROGRESS.complete);
+  return fallback;
+}
+

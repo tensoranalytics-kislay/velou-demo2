@@ -8,13 +8,13 @@ import { getDatasetContext } from '@/lib/catalog/getDatasetContext';
  */
 export async function GET() {
   try {
-    const [brandConfig, datasetContext] = await Promise.all([
-      prisma.brandConfig.findUnique({ where: { id: 1 } }),
+    const [merchant, datasetContext] = await Promise.all([
+      prisma.merchant.findUnique({ where: { slug: 'default' } }),
       getDatasetContext(),
     ]);
 
     return NextResponse.json({
-      brandName: brandConfig?.brandName || 'our store',
+      brandName: merchant?.brandName || 'our store',
       vertical: datasetContext?.vertical,
     });
   } catch (error) {

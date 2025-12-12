@@ -30,6 +30,7 @@ export default function LLMConfigDisplay({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ useMerchantKey: !useMerchantKey }),
+        credentials: 'include', // Include HttpOnly cookies
       });
 
       if (!response.ok) throw new Error('Failed to update');

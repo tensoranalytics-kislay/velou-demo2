@@ -2,6 +2,7 @@ import { prisma } from '../db';
 import { logger } from './logger';
 
 export type ConversationEventPayload = {
+  merchantId: string;
   sessionId: string;
   pageType: 'HOME' | 'PLP' | 'PDP';
   userQuery: string;
@@ -25,6 +26,7 @@ export async function recordConversationEvent(payload: ConversationEventPayload)
     await prisma.conversationEvent.create({
       data: {
         id: crypto.randomUUID(),
+        merchant: { connect: { id: payload.merchantId } },
         sessionId: payload.sessionId,
         pageType: payload.pageType,
         userQuery: truncatedQuery,

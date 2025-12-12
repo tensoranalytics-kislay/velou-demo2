@@ -95,12 +95,10 @@ export default function QueryProgressBar({ isLoading, currentStage, currentProgr
       return STAGE_LABELS[stage] || STAGE_LABELS.understanding;
     }
     
-    // For discovery, use discovery-specific labels
-    if (stage === 'understanding' || stage === 'searching' || stage === 'evaluating' || stage === 'generating') {
-      return STAGE_LABELS[stage];
-    }
-    
-    // Fallback
+    // For discovery (including L'Occitane optimized pipeline), use all available labels
+    // L'Occitane stages: safety_check, classifying, retrieving, ranking, generating_reply, handling_unrelated
+    // Original discovery stages: understanding, searching, evaluating, generating
+    // All stages are now supported via STAGE_LABELS
     return STAGE_LABELS[stage] || STAGE_LABELS.understanding;
   };
 

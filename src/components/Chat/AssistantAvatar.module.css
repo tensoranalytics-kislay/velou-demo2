@@ -1,0 +1,195 @@
+/* From Uiverse.io by andrew-manzyk */ 
+.loader {
+  --color-one: red;
+  --color-two: blue;
+  --color-three: yellow;
+  --color-fore: cyan;
+  --color-five: white;
+  --time-animation: 1s;
+  --size: 100px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+}
+
+.loader .sphere {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  border-radius: 50%;
+  width: var(--size);
+  height: var(--size);
+  background: radial-gradient(
+    circle at 80% 20%,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(255, 255, 255, 0.8) 20%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0) 70%
+  );
+}
+
+.loader .sphere::before {
+  content: "";
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  box-shadow:
+    inset calc(var(--size) / -20) calc(var(--size) / -20) calc(var(--size) / 10)
+      var(--color-fore),
+    inset calc(var(--size) / 10) 0 calc(var(--size) / 5) var(--color-three);
+  animation:
+    rotation calc(var(--time-animation) * 2) linear infinite,
+    colorize calc(var(--time-animation) * 2) ease-in-out infinite;
+}
+
+.loader .sphere::after {
+  content: "";
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  z-index: -1;
+  background: radial-gradient(
+      circle at 80% 20%,
+      rgba(255, 255, 255, 0.7) 0%,
+      rgba(255, 255, 255, 0.5) 30%,
+      rgba(255, 255, 255, 0) 70%
+    ),
+    linear-gradient(120deg, var(--color-one) 20%, var(--color-two) 80%);
+  animation:
+    rotation calc(var(--time-animation) * 2) linear infinite,
+    colorblur calc(var(--time-animation) * 2) ease-in-out infinite;
+}
+
+.loader svg {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: var(--size);
+  height: var(--size);
+  animation: rotation calc(var(--time-animation) * 3)
+    cubic-bezier(0.7, 0.6, 0.3, 0.4) infinite;
+}
+
+.loader svg #shapes circle {
+  fill: var(--color-five);
+}
+
+.loader svg #blurriness g,
+.loader svg #clipping ellipse,
+.loader svg #shapes g:nth-of-type(2),
+.loader svg #fade ellipse {
+  filter: blur(7px);
+}
+
+.loader svg #waves g path {
+  will-change: d;
+  stroke-width: 7px;
+}
+
+.loader svg #waves g path:nth-of-type(1) {
+  animation: wave-one var(--time-animation) cubic-bezier(0.7, 0.6, 0.3, 0.4)
+    infinite;
+}
+
+.loader svg #waves g path:nth-of-type(2) {
+  animation: wave-two var(--time-animation) cubic-bezier(0.7, 0.6, 0.3, 0.4)
+    calc(var(--time-animation) / -2) infinite reverse;
+}
+
+.loader svg #waves g path:nth-of-type(3) {
+  animation: wave-one var(--time-animation) cubic-bezier(0.7, 0.6, 0.3, 0.4)
+    calc(var(--time-animation) / -2) infinite;
+}
+
+.loader svg #waves g path:nth-of-type(4) {
+  animation: wave-two var(--time-animation) cubic-bezier(0.7, 0.6, 0.3, 0.4)
+    infinite reverse;
+}
+
+@keyframes wave-one {
+  0% {
+    d: path("M5,50 C10,50 15,50 20,50 C25,50 30,50 95,50");
+  }
+  50% {
+    d: path("M5,50 C25,50 30,20 50,20 C70,20 75,50 95,50");
+  }
+  100% {
+    d: path("M5,50 C70,50 75,50 80,50 C85,50 90,50 95,50");
+  }
+}
+
+@keyframes wave-two {
+  0% {
+    d: path("M5,50 C10,50 15,50 20,50 C25,50 30,50 95,50");
+  }
+  50% {
+    d: path("M5,50 C25,50 30,80 50,80 C70,80 75,50 95,50");
+  }
+  100% {
+    d: path("M5,50 C70,50 75,50 80,50 C85,50 90,50 95,50");
+  }
+}
+
+@keyframes rotation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes colorize {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  20% {
+    filter: hue-rotate(-30deg);
+  }
+  40% {
+    filter: hue-rotate(-60deg);
+  }
+  60% {
+    filter: hue-rotate(-90deg);
+  }
+  80% {
+    filter: hue-rotate(-45deg);
+  }
+  100% {
+    filter: hue-rotate(0deg);
+  }
+}
+
+@keyframes colorblur {
+  0% {
+    filter: hue-rotate(0deg) blur(calc(var(--size) / 15));
+  }
+  20% {
+    filter: hue-rotate(-30deg) blur(calc(var(--size) / 15));
+  }
+  40% {
+    filter: hue-rotate(-60deg) blur(calc(var(--size) / 15));
+  }
+  60% {
+    filter: hue-rotate(-90deg) blur(calc(var(--size) / 15));
+  }
+  80% {
+    filter: hue-rotate(-45deg) blur(calc(var(--size) / 15));
+  }
+  100% {
+    filter: hue-rotate(0deg) blur(calc(var(--size) / 15));
+  }
+}

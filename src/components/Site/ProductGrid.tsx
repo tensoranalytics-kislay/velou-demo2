@@ -13,12 +13,12 @@ export default async function ProductGrid() {
   
   // Fetch brand name from database
   try {
-    const brandConfig = await prisma.brandConfig.findUnique({
-      where: { id: 1 },
+    const merchant = await prisma.merchant.findUnique({
+      where: { slug: 'default' },
       select: { brandName: true },
     });
-    if (brandConfig?.brandName) {
-      brandName = brandConfig.brandName;
+    if (merchant?.brandName) {
+      brandName = merchant.brandName;
     }
   } catch (error) {
     // Use default if brand config fetch fails

@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 
-type BrandConfig = {
-  id: number;
+type MerchantAppearance = {
+  id: string;
   primaryColor: string;
   accentColor: string;
   backgroundColor?: string | null;
@@ -12,7 +12,7 @@ type BrandConfig = {
   logoUrl?: string | null;
 };
 
-export default function AppearanceForm({ initialData }: { initialData: BrandConfig }) {
+export default function AppearanceForm({ initialData }: { initialData: MerchantAppearance }) {
   const [formData, setFormData] = useState({
     primaryColor: initialData.primaryColor,
     accentColor: initialData.accentColor,
@@ -39,6 +39,7 @@ export default function AppearanceForm({ initialData }: { initialData: BrandConf
         const uploadRes = await fetch('/api/admin/brand-logo', {
           method: 'POST',
           body: fd,
+          credentials: 'include', // Include HttpOnly cookies
         });
         if (!uploadRes.ok) {
           throw new Error('Failed to upload logo');
@@ -52,6 +53,7 @@ export default function AppearanceForm({ initialData }: { initialData: BrandConf
       const response = await fetch('/api/admin/brand-config', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include HttpOnly cookies
         body: JSON.stringify({
           primaryColor: formData.primaryColor,
           accentColor: formData.accentColor,

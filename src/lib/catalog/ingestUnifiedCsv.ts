@@ -23,6 +23,7 @@ import {
 import { UNIFIED_CATALOG_SCHEMA } from './unifiedSchemaConfig';
 import { logger } from '../telemetry/logger';
 import { inferDatasetContextFromRows, type DatasetContext } from './datasetInspector';
+import { parseLoccitaneAttributes } from '../loccitane/attributeParser';
 
 const MAX_SAMPLE_ROWS = 50;
 
@@ -74,6 +75,13 @@ function normalizeStockStatus(
 
 /**
  * Parse product_details pipe_list into key:value object
+ * 
+ * TODO: Enhanced attribute parsing
+ * See: docs/loccitane_multiview_retrieval.md
+ * 
+ * Future enhancement: Parse "velou_attribute:Key:Value" entries into structured
+ * attributes (concerns, skinTypes, ingredients, etc.) for concept-based retrieval.
+ * Will be implemented in: src/lib/loccitane/attributeParser.ts
  */
 function parseProductDetails(details: string[] | null | undefined): Record<string, string> | null {
   if (!details || details.length === 0) return null;
@@ -146,7 +154,8 @@ function generateProductId(vendorId: string, productId: string): string {
 function mapRowToProduct(
   row: UnifiedVendorCatalogRow,
   vendorId: string,
-  batchId: string
+  batchId: string,
+  merchantId: string
 ): Prisma.ProductUpsertArgs {
   const productId = generateProductId(vendorId, row.product_id!);
   
@@ -208,6 +217,28 @@ function mapRowToProduct(
   
   const productDetails = parseProductDetails(row.product_details);
   if (productDetails) attributes.product_details = productDetails;
+  
+  // Parse L'Occitane structured attributes from product_details
+  // This enables multi-view retrieval (concept-based search)
+  if (row.product_details && row.product_details.length > 0) {
+    const structuredAttrs = parseLoccitaneAttributes(row.product_details, attributes);
+    // Only add if we found any structured data (non-empty arrays or non-null values)
+    if (
+      structuredAttrs.concerns.length > 0 ||
+      structuredAttrs.skinTypes.length > 0 ||
+      structuredAttrs.hairTypes.length > 0 ||
+      structuredAttrs.applicationAreas.length > 0 ||
+      structuredAttrs.productType ||
+      structuredAttrs.formula ||
+      structuredAttrs.featuredIngredients.length > 0 ||
+      structuredAttrs.allIngredients.length > 0 ||
+      structuredAttrs.madeWithout.length > 0 ||
+      structuredAttrs.ageGroups.length > 0 ||
+      structuredAttrs.genders.length > 0
+    ) {
+      attributes.loccitaneStructured = structuredAttrs;
+    }
+  }
   
   if (row.care_instructions) attributes.care_instructions = row.care_instructions;
   
@@ -340,6 +371,7 @@ function mapRowToProduct(
   // Use Object.create(null) to ensure no prototype pollution
   const createObj: Prisma.ProductCreateInput = {
     id: productId,
+    merchant: { connect: { id: merchantId } },
     title: row.title || row.short_title || 'Untitled Product',
     description: finalDescription,
     imageUrl: row.image_url_primary || '',
@@ -471,7 +503,8 @@ export async function* parseUnifiedCsv(
 export async function upsertProductFromUnifiedRow(
   row: UnifiedVendorCatalogRow,
   vendorId: string,
-  batchId: string
+  batchId: string,
+  merchantId: string
 ): Promise<{ created: boolean }> {
   // First, sanitize the row object to remove any unexpected fields
   // This prevents CSV columns like "new" from leaking through
@@ -510,7 +543,7 @@ export async function upsertProductFromUnifiedRow(
     }
   }
   
-  const upsertArgs = mapRowToProduct(sanitizedRow, vendorId, batchId);
+  const upsertArgs = mapRowToProduct(sanitizedRow, vendorId, batchId, merchantId);
   
   // Double-check: ensure the create and update objects don't have any unexpected fields
   // Filter out any field that's not in our whitelist
@@ -534,6 +567,7 @@ export async function upsertProductFromUnifiedRow(
     'lastIngestBatchId',
     'createdAt',
     'updatedAt',
+    'merchant',
   ]);
   
   // Build sanitized objects using explicit property access - no object spread or iteration
@@ -543,6 +577,7 @@ export async function upsertProductFromUnifiedRow(
   
   const sanitizedCreate: Prisma.ProductCreateInput = {
     id: upsertArgs.create.id,
+    merchant: { connect: { id: merchantId } },
     title: upsertArgs.create.title,
     description: upsertArgs.create.description,
     imageUrl: upsertArgs.create.imageUrl,
@@ -696,6 +731,7 @@ export async function upsertProductFromUnifiedRow(
 export async function ingestUnifiedCsvStream(
   stream: NodeJS.ReadableStream,
   vendorId: string,
+  merchantId: string,
   options?: {
     adminHints?: { vertical?: string; currency?: string };
     enableContextInference?: boolean;
@@ -724,6 +760,7 @@ export async function ingestUnifiedCsvStream(
     ingestionRun = await prisma.catalogIngestionRun.create({
       data: {
         id: batchId,
+        merchant: { connect: { id: merchantId } },
         vendorId,
         mode: mode === 'FULL_REPLACE' ? IngestionMode.FULL_REPLACE : IngestionMode.INCREMENTAL,
         totalRows: 0, // Will be updated after processing
@@ -745,6 +782,165 @@ export async function ingestUnifiedCsvStream(
   const sampleRows: UnifiedVendorCatalogRow[] = [];
   const SAMPLE_THRESHOLD = 200; // Start inference after processing 200 rows
 
+  // Batch processing for faster ingestion
+  const BATCH_SIZE = 500; // Process 500 products at a time
+  const productBatch: Array<{ rowIndex: number; normalized: UnifiedVendorCatalogRow; validation: CatalogRowValidationResult }> = [];
+
+  const processBatch = async () => {
+    if (productBatch.length === 0) return;
+
+    const validProducts = productBatch.filter(item => item.validation.isValid);
+    
+    if (validProducts.length > 0) {
+      try {
+        // Use Prisma.sql for bulk upsert (much faster than individual upserts)
+        // This uses PostgreSQL's INSERT ... ON CONFLICT which can handle hundreds of rows in one query
+
+        // Bulk upsert using PostgreSQL INSERT ... ON CONFLICT
+        // Build SQL with proper JSONB casting
+        const valuesParts: string[] = [];
+        const allParams: any[] = [];
+        let paramCounter = 1;
+
+        for (const { normalized: row } of validProducts) {
+          const productId = generateProductId(vendorId, row.product_id!);
+          const productData = mapRowToProduct(row, vendorId, batchId, merchantId);
+          const now = new Date();
+          
+          const placeholders = [
+            `$${paramCounter++}`, // id
+            `$${paramCounter++}`, // merchantId
+            `$${paramCounter++}`, // title
+            `$${paramCounter++}`, // description
+            `$${paramCounter++}`, // imageUrl
+            `$${paramCounter++}`, // productUrl
+            `$${paramCounter++}`, // priceCents
+            `$${paramCounter++}`, // salePriceCents
+            `$${paramCounter++}`, // currency
+            `$${paramCounter++}`, // category
+            `$${paramCounter++}`, // subcategory
+            `$${paramCounter++}`, // brand
+            `$${paramCounter++}::jsonb`, // attributes (cast to jsonb)
+            `$${paramCounter++}::text::"StockStatus"`, // stockStatus (cast to enum)
+            `$${paramCounter++}`, // vendorId
+            `$${paramCounter++}`, // sourceId
+            `$${paramCounter++}`, // isActive
+            `$${paramCounter++}`, // lastIngestBatchId
+            `$${paramCounter++}`, // createdAt
+            `$${paramCounter++}`, // updatedAt
+          ];
+          
+          allParams.push(
+            productId,
+            merchantId,
+            productData.create.title,
+            productData.create.description || '',
+            productData.create.imageUrl,
+            productData.create.productUrl,
+            productData.create.priceCents,
+            productData.create.salePriceCents ?? null,
+            productData.create.currency,
+            productData.create.category,
+            productData.create.subcategory ?? null,
+            productData.create.brand ?? null,
+            JSON.stringify(productData.create.attributes), // Will be cast to jsonb
+            productData.create.stockStatus,
+            productData.create.vendorId ?? null,
+            productData.create.sourceId ?? null,
+            productData.create.isActive,
+            batchId,
+            now,
+            now,
+          );
+          
+          valuesParts.push(`(${placeholders.join(', ')})`);
+        }
+
+        const query = `
+          INSERT INTO "Product" (
+            "id", "merchantId", "title", "description", "imageUrl", "productUrl",
+            "priceCents", "salePriceCents", "currency", "category", "subcategory", "brand",
+            "attributes", "stockStatus", "vendorId", "sourceId", "isActive", "lastIngestBatchId",
+            "createdAt", "updatedAt"
+          )
+          VALUES ${valuesParts.join(', ')}
+          ON CONFLICT ("id") DO UPDATE SET
+            "title" = EXCLUDED."title",
+            "description" = EXCLUDED."description",
+            "imageUrl" = EXCLUDED."imageUrl",
+            "productUrl" = EXCLUDED."productUrl",
+            "priceCents" = EXCLUDED."priceCents",
+            "salePriceCents" = EXCLUDED."salePriceCents",
+            "currency" = EXCLUDED."currency",
+            "category" = EXCLUDED."category",
+            "subcategory" = EXCLUDED."subcategory",
+            "brand" = EXCLUDED."brand",
+            "attributes" = EXCLUDED."attributes",
+            "stockStatus" = EXCLUDED."stockStatus",
+            "vendorId" = EXCLUDED."vendorId",
+            "sourceId" = EXCLUDED."sourceId",
+            "isActive" = EXCLUDED."isActive",
+            "lastIngestBatchId" = EXCLUDED."lastIngestBatchId",
+            "updatedAt" = EXCLUDED."updatedAt"
+          RETURNING "id", "createdAt", "updatedAt"
+        `;
+
+        const results = await prisma.$queryRawUnsafe<any[]>(query, ...allParams);
+        
+        // Count inserts vs updates
+        for (const result of results) {
+          const productId = result.id;
+          const wasCreated = new Date(result.createdAt).getTime() === new Date(result.updatedAt).getTime();
+          if (wasCreated) {
+            summary.inserted++;
+          } else {
+            summary.updated++;
+          }
+          processedProductIds.add(productId);
+        }
+      } catch (error) {
+        // If batch fails, fall back to individual upserts for this batch
+        logger.warn('Batch upsert failed, falling back to individual upserts', {
+          error: error instanceof Error ? error.message : String(error),
+          batchSize: validProducts.length,
+        });
+        
+        for (const { normalized, rowIndex } of validProducts) {
+        try {
+          const { created } = await upsertProductFromUnifiedRow(normalized, vendorId, batchId, merchantId);
+          if (created) {
+            summary.inserted++;
+          } else {
+            summary.updated++;
+          }
+          const productId = generateProductId(vendorId, normalized.product_id!);
+          processedProductIds.add(productId);
+          } catch (err) {
+          summary.invalidRows++;
+          summary.issues.push({
+            level: 'error',
+            field: 'upsert',
+              message: `Failed to upsert product: ${err instanceof Error ? err.message : String(err)}`,
+            rowIndex,
+          });
+        }
+        }
+      }
+    }
+
+    // Handle invalid rows
+    const invalidRows = productBatch.filter(item => !item.validation.isValid);
+    for (const { rowIndex, validation } of invalidRows) {
+        summary.invalidRows++;
+        summary.issues.push(...validation.errors);
+      if (validation.warnings.length > 0) {
+        summary.issues.push(...validation.warnings);
+      }
+    }
+
+    productBatch.length = 0; // Clear batch
+  };
+
   try {
     for await (const { rowIndex, normalized, validation } of parseUnifiedCsv(stream)) {
       summary.totalRows++;
@@ -762,35 +958,27 @@ export async function ingestUnifiedCsvStream(
         sampleRows.push(normalized);
       }
 
-      if (validation.isValid) {
-        try {
-          const { created } = await upsertProductFromUnifiedRow(normalized, vendorId, batchId);
-          if (created) {
-            summary.inserted++;
-          } else {
-            summary.updated++;
-          }
-          // Track successfully processed product ID
-          const productId = generateProductId(vendorId, normalized.product_id!);
-          processedProductIds.add(productId);
-        } catch (error) {
-          summary.invalidRows++;
-          summary.issues.push({
-            level: 'error',
-            field: 'upsert',
-            message: `Failed to upsert product: ${error instanceof Error ? error.message : String(error)}`,
-            rowIndex,
-          });
-        }
-      } else {
-        summary.invalidRows++;
-        summary.issues.push(...validation.errors);
-      }
+      // Add to batch
+      productBatch.push({ rowIndex, normalized, validation });
 
-      // Add warnings to issues (but don't count as invalid)
+      // Add warnings to issues (but don't count as invalid yet)
       if (validation.warnings.length > 0) {
         summary.issues.push(...validation.warnings);
       }
+
+      // Process batch when it reaches BATCH_SIZE
+      if (productBatch.length >= BATCH_SIZE) {
+        await processBatch();
+        // Log progress
+        if (summary.totalRows % (BATCH_SIZE * 5) === 0) {
+          console.log(`   Processed ${summary.totalRows} rows... (${summary.inserted} inserted, ${summary.updated} updated)`);
+        }
+      }
+    }
+
+    // Process remaining batch
+    if (productBatch.length > 0) {
+      await processBatch();
     }
 
     // Infer dataset context (non-blocking, optional)
@@ -874,6 +1062,7 @@ export async function ingestUnifiedCsvStream(
       try {
         const deactivateResult = await prisma.product.updateMany({
           where: {
+            merchantId,
             vendorId,
             isActive: true,
             id: {

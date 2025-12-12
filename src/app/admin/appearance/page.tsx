@@ -1,27 +1,21 @@
 import { prisma } from '@/lib/db';
 import AppearanceForm from './AppearanceForm';
 
-async function getBrandConfig() {
-  return prisma.brandConfig.upsert({
-    where: { id: 1 },
-    update: {},
-    create: {
-      id: 1,
-      brandName: 'Velou Atelier',
-      primaryColor: '#3b82f6',
-      accentColor: '#8b5cf6',
-      voiceInstructions: 'Be helpful and warm.',
-      toneFormal: 5,
-      tonePlayful: 5,
-      // Explicitly provide timestamps to satisfy BrandConfigCreateInput
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
+async function getMerchant() {
+  // Get the default merchant (created during migration)
+  const merchant = await prisma.merchant.findUnique({
+    where: { slug: 'default' },
   });
+
+  if (!merchant) {
+    throw new Error('Default merchant not found. Please run the migration first.');
+  }
+
+  return merchant;
 }
 
 export default async function AppearancePage() {
-  const config = await getBrandConfig();
+  const config = await getMerchant();
 
   return (
     <div className="max-w-3xl">

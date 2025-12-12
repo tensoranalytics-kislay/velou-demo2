@@ -1,0 +1,13 @@
+src/
+tsconfig.json
+webpack.config.js
+node_modules/
+*.log
+.DS_Store
+.env
+.env.local
+*.test.ts
+*.test.tsx
+coverage/
+
+

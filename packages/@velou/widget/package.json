@@ -1,0 +1,62 @@
+{
+  "name": "@velou/widget",
+  "version": "1.0.0",
+  "description": "Velou shopping assistant widget - embeddable chat widget for any website",
+  "main": "./dist/index.js",
+  "module": "./dist/index.esm.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./cdn": "./dist/cdn/loader.js",
+    "./styles": "./dist/styles/widget.css"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc && webpack --mode production",
+    "build:dev": "tsc && webpack --mode development",
+    "dev": "tsc --watch & webpack --mode development --watch",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "chat",
+    "widget",
+    "shopping",
+    "assistant",
+    "ecommerce",
+    "ai"
+  ],
+  "author": "Velou",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "css-loader": "^6.8.0",
+    "mini-css-extract-plugin": "^2.7.0",
+    "style-loader": "^3.3.0",
+    "ts-loader": "^9.5.0",
+    "typescript": "^5.0.0",
+    "webpack": "^5.88.0",
+    "webpack-cli": "^6.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/velou/widget.git"
+  },
+  "bugs": {
+    "url": "https://github.com/velou/widget/issues"
+  },
+  "homepage": "https://velou.ai"
+}
+

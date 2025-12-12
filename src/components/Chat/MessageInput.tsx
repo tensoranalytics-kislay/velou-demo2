@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import SearchMethodSelector, { type SearchMethodPreferences } from './SearchMethodSelector';
 
 type ProductContext = {
   id: string;
@@ -9,15 +10,22 @@ type ProductContext = {
 };
 
 type MessageInputProps = {
-  onSend: (message: string) => Promise<void> | void;
+  onSend: (message: string, searchMethods?: SearchMethodPreferences) => Promise<void> | void;
   disabled?: boolean;
   productContext?: ProductContext | undefined;
   onClearProductContext?: () => void;
+  onProductContextHeightChange?: (height: number) => void;
 };
 
-export default function MessageInput({ onSend, disabled, productContext, onClearProductContext }: MessageInputProps) {
+export default function MessageInput({ onSend, disabled, productContext, onClearProductContext, onProductContextHeightChange }: MessageInputProps) {
+  const productContextRef = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState('');
   const [placeholder, setPlaceholder] = useState('Ask for products...');
+  const [searchMethods, setSearchMethods] = useState<SearchMethodPreferences>({
+    lexical: true,
+    semantic: true,
+    concept: true,
+  });
 
   useEffect(() => {
     // Fetch LLM-driven placeholder text
@@ -38,7 +46,7 @@ export default function MessageInput({ onSend, disabled, productContext, onClear
     if (!value.trim() || disabled) return;
     const message = value.trim();
     setValue('');
-    await onSend(message);
+    await onSend(message, searchMethods);
     // Don't clear product context - user can ask multiple questions
   };
 
@@ -49,18 +57,44 @@ export default function MessageInput({ onSend, disabled, productContext, onClear
       if (value.trim() && !disabled) {
         const message = value.trim();
         setValue('');
-        onSend(message);
+        onSend(message, searchMethods);
         // Don't clear product context - user can ask multiple questions
       }
     }
     // Shift+Enter will create a new line (default behavior)
   };
 
+  // Notify parent of product context card height changes
+  useEffect(() => {
+    if (onProductContextHeightChange) {
+      const updateHeight = () => {
+        if (productContextRef.current) {
+          onProductContextHeightChange(productContextRef.current.offsetHeight);
+        } else {
+          onProductContextHeightChange(0);
+        }
+      };
+      
+      // Initial measurement
+      updateHeight();
+      
+      // Use ResizeObserver for dynamic changes
+      if (productContextRef.current) {
+        const resizeObserver = new ResizeObserver(updateHeight);
+        resizeObserver.observe(productContextRef.current);
+        return () => resizeObserver.disconnect();
+      }
+    }
+  }, [productContext, onProductContextHeightChange]);
+
   return (
     <div className="space-y-2">
       {/* Product context display - matches screenshot style */}
       {productContext && (
-        <div className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200/60">
+        <div 
+          ref={productContextRef}
+          className="flex items-start gap-3 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200/60"
+        >
           {/* Product thumbnail */}
           <div className="flex-shrink-0">
             <div className="h-12 w-12 rounded border border-slate-200 bg-white overflow-hidden">
@@ -102,16 +136,24 @@ export default function MessageInput({ onSend, disabled, productContext, onClear
       )}
       <form
         onSubmit={handleSubmit}
-        className="flex items-end gap-2 sm:gap-3 rounded-2xl sm:rounded-3xl border border-rose-200/60 bg-[#FEEEED] p-3 sm:p-4 shadow-sm transition-shadow focus-within:border-rose-300/80 focus-within:shadow-md"
+        className="flex items-end gap-2 sm:gap-3 rounded-2xl sm:rounded-3xl border border-rose-200/60 bg-[#FEEEED] p-3 sm:p-4 shadow-sm transition-shadow focus-within:border-rose-300/80 focus-within:shadow-md relative overflow-visible"
       >
-        <textarea
-          className="h-14 sm:h-16 flex-1 resize-none bg-transparent text-xs sm:text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none"
-          placeholder={productContext ? `Ask about ${productContext.title}...` : placeholder}
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={disabled}
-        />
+        <div className="flex-1 flex flex-col gap-1 overflow-visible">
+          <textarea
+            className="h-14 sm:h-16 flex-1 resize-none bg-transparent text-xs sm:text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none"
+            placeholder={productContext ? `Ask about ${productContext.title}...` : placeholder}
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={disabled}
+          />
+          <div className="flex items-center justify-end relative overflow-visible">
+            <SearchMethodSelector
+              preferences={searchMethods}
+              onChange={setSearchMethods}
+            />
+          </div>
+        </div>
         <button
           type="submit"
           disabled={disabled}

@@ -1,20 +1,29 @@
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth, createAuthErrorResponse } from '@/middleware/auth';
+import { getProducts } from '@/lib/services/CatalogService';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    // Require authentication (any authenticated user can view products)
+    const session = await requireAuth(request);
     const { searchParams } = new URL(request.url);
     const limit = Number(searchParams.get('limit')) || 10;
 
-    const products = await prisma.product.findMany({
-      take: limit,
-      select: { id: true, title: true },
-    });
+    // Use CatalogService to get products (automatically filters by merchantId)
+    const products = await getProducts(session.merchantId, { limit });
 
-    return NextResponse.json({ products });
+    return NextResponse.json({
+      products: products.map((p) => ({
+        id: p.id,
+        title: p.title,
+      })),
+    });
   } catch (error) {
-    console.error('Failed to fetch products:', error);
-    return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
+    if (error instanceof Error && error.name === 'AuthError') {
+      return createAuthErrorResponse(error);
+    }
+
+    return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
   }
 }
 

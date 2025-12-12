@@ -46,6 +46,7 @@ export default function CatalogUploadPage() {
       const response = await fetch('/api/admin/catalog/upload', {
         method: 'POST',
         body: formData,
+        credentials: 'include', // Include HttpOnly cookies
       });
 
       if (!response.ok) {
@@ -80,6 +81,7 @@ export default function CatalogUploadPage() {
     try {
       const response = await fetch('/api/admin/catalog/clear', {
         method: 'DELETE',
+        credentials: 'include', // Include HttpOnly cookies
       });
 
       if (!response.ok) {

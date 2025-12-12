@@ -59,7 +59,9 @@ export default function ProductClicksTable() {
       params.set('sortBy', sortBy);
       params.set('limit', '200');
 
-      const response = await fetch(`/api/admin/metrics/product-clicks?${params.toString()}`);
+      const response = await fetch(`/api/admin/metrics/product-clicks?${params.toString()}`, {
+        credentials: 'include', // Include HttpOnly cookies
+      });
       if (!response.ok) {
         throw new Error(`Failed to fetch: ${response.statusText}`);
       }

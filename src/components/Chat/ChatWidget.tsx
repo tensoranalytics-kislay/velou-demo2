@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import ChatPanel from './ChatPanel';
 import SuggestedPrompts from './SuggestedPrompts';
+import AssistantAvatar from './AssistantAvatar';
 
 export default function ChatWidget() {
   // Load saved position and size from localStorage
@@ -242,17 +243,11 @@ export default function ChatWidget() {
           <button
             type="button"
             onClick={() => setIsOpen(true)}
-            className="fixed bottom-3 right-3 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg shadow-rose-300 transition hover:bg-rose-600 md:bottom-4 md:right-4 md:h-14 md:w-14"
+            className="fixed bottom-3 right-3 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm shadow-lg shadow-rose-300/50 transition hover:shadow-rose-400/70 hover:bg-white/90 md:bottom-4 md:right-4 md:h-14 md:w-14 overflow-visible p-0 border-0"
             aria-label={`Open ${assistantTitle}`}
           >
-            <svg className="h-6 w-6 md:h-7 md:w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              />
-            </svg>
+            <AssistantAvatar size={44} noTransform className="md:hidden" />
+            <AssistantAvatar size={52} noTransform className="hidden md:block" />
           </button>
         </>
       )}

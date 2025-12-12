@@ -16,6 +16,7 @@ export default function MerchRulesList({ initialRules }: { initialRules: MerchRu
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !currentActive }),
+        credentials: 'include', // Include HttpOnly cookies
       });
 
       if (!response.ok) throw new Error('Failed to update');
@@ -33,6 +34,7 @@ export default function MerchRulesList({ initialRules }: { initialRules: MerchRu
     try {
       const response = await fetch(`/api/admin/merch-rules/${id}`, {
         method: 'DELETE',
+        credentials: 'include', // Include HttpOnly cookies
       });
 
       if (!response.ok) throw new Error('Failed to delete');
@@ -59,6 +61,7 @@ export default function MerchRulesList({ initialRules }: { initialRules: MerchRu
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newRule),
+        credentials: 'include', // Include HttpOnly cookies
       });
 
       if (!response.ok) throw new Error('Failed to create');

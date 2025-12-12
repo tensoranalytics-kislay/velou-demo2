@@ -11,22 +11,22 @@ import type { CatalogOntology } from '../../search/ontology';
 
 async function getBrandVoiceContext(): Promise<string> {
   try {
-    const config = await prisma.brandConfig.findUnique({ where: { id: 1 } });
-    if (!config) {
-      logger.debug('brand_voice_not_configured', { message: 'No BrandConfig found, using default voice' });
+    const merchant = await prisma.merchant.findUnique({ where: { slug: 'default' } });
+    if (!merchant) {
+      logger.debug('brand_voice_not_configured', { message: 'No Merchant found, using default voice' });
       return '';
     }
 
-    const formality = config.toneFormal > 7 ? 'formal' : config.toneFormal < 3 ? 'casual' : 'balanced';
-    const playfulness = config.tonePlayful > 7 ? 'playful' : config.tonePlayful < 3 ? 'serious' : 'balanced';
+    const formality = merchant.toneFormal > 7 ? 'formal' : merchant.toneFormal < 3 ? 'casual' : 'balanced';
+    const playfulness = merchant.tonePlayful > 7 ? 'playful' : merchant.tonePlayful < 3 ? 'serious' : 'balanced';
 
-    const context = `You are the shopping assistant for ${config.brandName}. ${config.voiceInstructions} Your communication style should be ${formality} in formality and ${playfulness} in playfulness. Always incorporate the brand name "${config.brandName}" naturally when appropriate.`;
+    const context = `You are the shopping assistant for ${merchant.brandName}. ${merchant.voiceInstructions} Your communication style should be ${formality} in formality and ${playfulness} in playfulness. Always incorporate the brand name "${merchant.brandName}" naturally when appropriate.`;
 
     logger.debug('brand_voice_loaded', {
-      brandName: config.brandName,
-      formality: config.toneFormal,
-      playfulness: config.tonePlayful,
-      hasVoiceInstructions: !!config.voiceInstructions,
+      brandName: merchant.brandName,
+      formality: merchant.toneFormal,
+      playfulness: merchant.tonePlayful,
+      hasVoiceInstructions: !!merchant.voiceInstructions,
     });
 
     return context;
@@ -40,9 +40,9 @@ async function getBrandVoiceContext(): Promise<string> {
 
 export async function applyBrandVoiceToReply(baseReply: string): Promise<string> {
   try {
-    const config = await prisma.brandConfig.findUnique({ where: { id: 1 } });
-    if (!config) {
-      logger.debug('brand_voice_apply_skipped', { reason: 'No BrandConfig found' });
+    const merchant = await prisma.merchant.findUnique({ where: { slug: 'default' } });
+    if (!merchant) {
+      logger.debug('brand_voice_apply_skipped', { reason: 'No Merchant found' });
       return baseReply;
     }
 
@@ -51,17 +51,17 @@ export async function applyBrandVoiceToReply(baseReply: string): Promise<string>
     let personalizedReply = baseReply;
 
     // If the reply doesn't mention the brand and it's a greeting/intro, add it
-    if (!personalizedReply.toLowerCase().includes(config.brandName.toLowerCase())) {
+    if (!personalizedReply.toLowerCase().includes(merchant.brandName.toLowerCase())) {
       // Only add brand name if it's a natural place (beginning of reply)
       if (personalizedReply.startsWith('Hi') || personalizedReply.startsWith('I can') || personalizedReply.startsWith('We don')) {
-        personalizedReply = personalizedReply.replace(/^Hi/, `Hi! I'm ${config.brandName}'s assistant`);
-        personalizedReply = personalizedReply.replace(/^I can/, `I'm ${config.brandName}'s assistant and I can`);
-        personalizedReply = personalizedReply.replace(/^We don't/, `At ${config.brandName}, we don't`);
+        personalizedReply = personalizedReply.replace(/^Hi/, `Hi! I'm ${merchant.brandName}'s assistant`);
+        personalizedReply = personalizedReply.replace(/^I can/, `I'm ${merchant.brandName}'s assistant and I can`);
+        personalizedReply = personalizedReply.replace(/^We don't/, `At ${merchant.brandName}, we don't`);
       }
     }
 
     logger.debug('brand_voice_applied_to_reply', {
-      brandName: config.brandName,
+      brandName: merchant.brandName,
       originalLength: baseReply.length,
       personalizedLength: personalizedReply.length,
     });

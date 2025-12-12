@@ -80,12 +80,12 @@ function buildDeterministicGreeting(brandName: string, datasetContext: DatasetCo
 
 export async function getInitialGreeting(): Promise<string> {
   try {
-    const [brandConfig, datasetContext] = await Promise.all([
-      prisma.brandConfig.findUnique({ where: { id: 1 } }),
+    const [merchant, datasetContext] = await Promise.all([
+      prisma.merchant.findUnique({ where: { slug: 'default' } }),
       getDatasetContext(),
     ]);
 
-    const brandName = brandConfig?.brandName || 'our store';
+    const brandName = merchant?.brandName || 'our store';
 
     // 1) Try to generate the greeting via LLM for freshness + dataset-awareness
     try {
