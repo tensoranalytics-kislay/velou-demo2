@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 // Hardcoded initial suggestions shown before any user interaction
 const INITIAL_HARDCODED_SUGGESTIONS = [
@@ -34,11 +34,10 @@ export default function SuggestedPrompts({
   orientation = 'row',
   className,
 }: SuggestedPromptsProps) {
-  // Determine if we should use hardcoded initial prompts
-  // Use hardcoded when: no user messages AND no product context AND no last user message
-  // Treat empty strings as falsy (no message)
-  const hasValidLastMessage = lastUserMessage && typeof lastUserMessage === 'string' && lastUserMessage.trim().length > 0;
-  const shouldUseHardcoded = !hasUserMessages && !productContext && !hasValidLastMessage;
+  // Track previous product context to detect when it's cleared
+  const prevProductContextRef = useRef<string | undefined>(productContext?.id);
+  const wasProductContextClearedRef = useRef(false);
+  const lastMessageWhenClearedRef = useRef<string | null>(null);
   
   // Always start with hardcoded prompts - effect will immediately update if needed
   // This ensures hardcoded prompts show immediately on mount/remount (e.g., after clearing chat)
@@ -46,53 +45,92 @@ export default function SuggestedPrompts({
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Log all values at the start for debugging
-    const hasValidLastMsg = lastUserMessage && typeof lastUserMessage === 'string' && lastUserMessage.trim().length > 0;
+    // STEP 1: Detect when product context is cleared (goes from defined to undefined)
+    // This must happen FIRST, before any other logic
+    const hadProductContext = prevProductContextRef.current !== undefined;
+    const hasProductContext = productContext?.id !== undefined;
     const productContextId = productContext?.id;
+    
+    if (hadProductContext && !hasProductContext) {
+      // Product context was just cleared - mark for hardcoded reset
+      // Store the last message at the time of clearing so we can detect when a NEW message is sent
+      wasProductContextClearedRef.current = true;
+      lastMessageWhenClearedRef.current = lastUserMessage || null;
+    }
+    
+    // Update ref for next render
+    prevProductContextRef.current = productContextId;
+    
+    // STEP 2: Check if product context was cleared and user has sent a NEW message
+    // If so, reset the flag to allow dynamic prompts for the new query
+    // This must happen BEFORE determining shouldUseHardcoded
+    const hasValidLastMsg = lastUserMessage && typeof lastUserMessage === 'string' && lastUserMessage.trim().length > 0;
+    
+    // If flag is set and we have a valid message, check if it's a new message (different from when cleared)
+    if (wasProductContextClearedRef.current && hasValidLastMsg && !hasProductContext) {
+      const isNewMessage = lastUserMessage !== lastMessageWhenClearedRef.current;
+      if (isNewMessage) {
+        console.log('[SuggestedPrompts] New message after clearing product context - resetting flag for dynamic prompts', {
+          oldMessage: lastMessageWhenClearedRef.current,
+          newMessage: lastUserMessage,
+        });
+        wasProductContextClearedRef.current = false;
+        lastMessageWhenClearedRef.current = null;
+      }
+    }
+    
+    // STEP 3: Determine if we should use hardcoded prompts
+    // Use hardcoded when: 
+    // 1. No user messages AND no product context AND no last user message (initial state)
+    // 2. OR product context was just cleared (flag is true) - this means we haven't sent a new query yet
+    //    (if a new query was sent, the flag would have been reset above)
+    const shouldUseHardcoded = (!hasUserMessages && !productContext && !hasValidLastMsg) || wasProductContextClearedRef.current;
+    
     console.log('[SuggestedPrompts] Effect triggered with values:', {
-      hasUserMessages,
-      productContext: productContextId,
+      hadProductContext,
+      hasProductContext,
+      productContextId,
       lastUserMessage,
       hasValidLastMessage: hasValidLastMsg,
       shouldUseHardcoded,
-      currentSuggestions: suggestions,
+      wasProductContextCleared: wasProductContextClearedRef.current,
+      lastMessageWhenCleared: lastMessageWhenClearedRef.current,
     });
 
-    // ABSOLUTE FIRST CHECK: If we should use hardcoded, do it immediately and exit
-    // This MUST be the first check to prevent any possibility of API calls
+    // STEP 4: If we should use hardcoded, do it immediately and exit (NO API CALL)
     if (shouldUseHardcoded) {
       console.log('[SuggestedPrompts] shouldUseHardcoded=true - using hardcoded prompts (NO API CALL)', {
         hasUserMessages,
         productContext: productContextId,
         lastUserMessage,
         shouldUseHardcoded,
+        wasProductContextCleared: wasProductContextClearedRef.current,
+        lastMessageWhenCleared: lastMessageWhenClearedRef.current,
       });
       setSuggestions(INITIAL_HARDCODED_SUGGESTIONS);
       setIsLoading(false);
       return;
     }
 
-    // SECOND CHECK: Verify we have meaningful parameters before proceeding
+    // STEP 5: Verify we have meaningful parameters before proceeding
     // This is an additional safety net
     const hasLastMessage = lastUserMessage && typeof lastUserMessage === 'string' && lastUserMessage.trim().length > 0;
-    const hasProductContext = productContext?.id && typeof productContext.id === 'string';
+    const hasValidProductContext = productContext?.id && typeof productContext.id === 'string';
     
     // If no meaningful parameters, use hardcoded prompts and NEVER call API
-    if (!hasLastMessage && !hasProductContext) {
+    if (!hasLastMessage && !hasValidProductContext) {
       console.log('[SuggestedPrompts] No meaningful parameters - using hardcoded prompts (NO API CALL)', {
         hasUserMessages,
-        productContext: productContext?.id,
+        productContext: productContextId,
         lastUserMessage,
         hasLastMessage,
-        hasProductContext,
-        shouldUseHardcoded,
+        hasValidProductContext,
       });
       setSuggestions(INITIAL_HARDCODED_SUGGESTIONS);
       setIsLoading(false);
       return;
     }
-
-    // At this point, we have meaningful parameters, so fetch dynamic suggestions
+    
     // Reset state immediately on context change so UI shows loading for new scope
     setIsLoading(true);
     setSuggestions(DEFAULT_SUGGESTIONS);
@@ -102,7 +140,7 @@ export default function SuggestedPrompts({
     if (hasLastMessage && lastUserMessage) {
       params.set('lastMessage', lastUserMessage.trim());
     }
-    if (hasProductContext && productContext?.id) {
+    if (hasValidProductContext && productContext?.id) {
       params.set('productId', productContext.id);
     }
     const url = `/api/suggestions${params.toString() ? `?${params.toString()}` : ''}`;
@@ -115,7 +153,7 @@ export default function SuggestedPrompts({
         productContext: productContext?.id,
         shouldUseHardcoded,
         hasLastMessage,
-        hasProductContext,
+        hasValidProductContext,
         url,
       });
       setSuggestions(INITIAL_HARDCODED_SUGGESTIONS);
@@ -129,7 +167,7 @@ export default function SuggestedPrompts({
       productContextId: productContext?.id,
       shouldUseHardcoded,
       hasLastMessage,
-      hasProductContext,
+      hasValidProductContext,
       url,
     });
     
@@ -172,11 +210,16 @@ export default function SuggestedPrompts({
         }
       });
     
-    // Cleanup: cancel fetch if shouldUseHardcoded becomes true
+    // Cleanup: cancel fetch if dependencies change
     return () => {
       cancelled = true;
     };
-  }, [lastUserMessage, productContext?.id, shouldUseHardcoded, hasUserMessages]);
+  }, [lastUserMessage, productContext?.id, hasUserMessages]);
+
+  // Compute shouldUseHardcoded for render logic (used for loading state)
+  // This is a lightweight check that matches the logic in the effect
+  const hasValidLastMessage = lastUserMessage && typeof lastUserMessage === 'string' && lastUserMessage.trim().length > 0;
+  const shouldUseHardcoded = (!hasUserMessages && !productContext && !hasValidLastMessage) || wasProductContextClearedRef.current;
 
   const layoutClass =
     orientation === 'column'
