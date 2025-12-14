@@ -183,3 +183,4 @@ After switching from `o3-mini` (reasoning model) to `gpt-4.1-mini` (lightweight 
 
 The system is now **significantly faster** while maintaining quality. Further optimizations (vector index, candidate reduction) could bring total time down to the 7-8s range.
 
+
