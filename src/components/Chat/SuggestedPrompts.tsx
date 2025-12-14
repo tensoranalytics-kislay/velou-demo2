@@ -256,8 +256,26 @@ export default function SuggestedPrompts({
           <button
             key={`prompt-${index}-${prompt.slice(0, 20)}`}
             type="button"
-            onClick={() => onSelect(prompt)}
-            className={`group inline-flex rounded-full border border-rose-200/60 bg-white ${buttonBase} font-medium text-slate-700 shadow-sm transition-all hover:border-rose-300 hover:bg-rose-50 hover:shadow-md active:scale-[0.98] cursor-pointer whitespace-nowrap text-right`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onSelect(prompt);
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onSelect(prompt);
+            }}
+            style={{
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              pointerEvents: 'auto',
+              zIndex: 9999,
+            }}
+            className={`group inline-flex rounded-full border border-rose-200/60 bg-white ${buttonBase} font-medium text-slate-700 shadow-sm transition-all hover:border-rose-300 hover:bg-rose-50 hover:shadow-md active:scale-[0.98] cursor-pointer whitespace-nowrap text-right relative z-[9999]`}
           >
             {prompt}
           </button>

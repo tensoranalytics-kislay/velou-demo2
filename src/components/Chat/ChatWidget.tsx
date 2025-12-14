@@ -44,25 +44,10 @@ export default function ChatWidget() {
     } catch (e) {
       console.error('Failed to load chat widget state:', e);
     }
-    // Default: bottom right corner (desktop) or bottom full-width (mobile)
+    // Default: bottom right corner
     if (typeof window !== 'undefined') {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const isMobileDefault = vw < 768;
-      
-      if (isMobileDefault) {
-        // Mobile: default to 60% of viewport height
-        const initialHeight = Math.min(vh * 0.6, vh);
-        return {
-          width: vw,
-          height: initialHeight,
-          topPercent: null,
-          leftPercent: null,
-          widthPercent: null,
-          heightPercent: initialHeight / vh,
-        };
-      }
-      
       const initialWidth = Math.min(540, vw - 48);
       const initialHeight = Math.min(600, vh - 48);
       return {
@@ -77,25 +62,54 @@ export default function ChatWidget() {
     return { width: 540, height: 600, topPercent: null, leftPercent: null, widthPercent: null, heightPercent: null };
   };
 
+  // Detect mobile viewport
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768; // md breakpoint
+      setIsMobile(mobile);
+      // Use visualViewport if available (better for mobile keyboard), otherwise use innerHeight
+      const newHeight = window.visualViewport?.height || window.innerHeight;
+      setViewportHeight(newHeight);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    window.addEventListener('resize', checkMobile);
+    
+    // Use visualViewport API if available (better for mobile keyboard)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', checkMobile);
+      return () => {
+        window.removeEventListener('resize', checkMobile);
+        window.visualViewport?.removeEventListener('resize', checkMobile);
+      };
+    }
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Convert percentage-based state to pixel values based on current viewport
-  const getPixelState = (state: { width: number; height: number; topPercent: number | null; leftPercent: number | null; widthPercent: number | null; heightPercent: number | null }, mobile: boolean = false, vh: number = 0) => {
+  const getPixelState = (state: { width: number; height: number; topPercent: number | null; leftPercent: number | null; widthPercent: number | null; heightPercent: number | null }, mobile: boolean, vh: number) => {
     if (typeof window === 'undefined') {
       return { width: state.width, height: state.height, top: 0, left: 0 };
     }
     const vw = window.innerWidth;
-    const viewportH = vh > 0 ? vh : window.innerHeight;
+    const currentVh = vh || window.innerHeight;
     
     if (mobile) {
-      // Mobile: full width, bottom-aligned, vertically resizable from top
+      // Mobile: full width, bottom-aligned, vertically resizable from top only
       const height = state.heightPercent !== null
-        ? Math.max(320, Math.min(viewportH * state.heightPercent, viewportH))
-        : Math.max(320, Math.min(state.height, viewportH));
+        ? Math.max(320, Math.min(currentVh * state.heightPercent, currentVh))
+        : Math.max(320, Math.min(state.height, currentVh));
       
       return {
-        width: vw, // Full width on mobile
+        width: vw, // Full width
         height: height,
-        top: viewportH - height, // Bottom-aligned
-        left: 0, // Full width starts at 0
+        top: currentVh - height, // Bottom-aligned
+        left: 0, // Left-aligned
       };
     }
     
@@ -104,13 +118,13 @@ export default function ChatWidget() {
       ? Math.max(320, Math.min(vw * state.widthPercent, vw - 48))
       : Math.max(320, Math.min(state.width, vw - 48));
     const height = state.heightPercent !== null
-      ? Math.max(320, Math.min(viewportH * state.heightPercent, viewportH - 48))
-      : Math.max(320, Math.min(state.height, viewportH - 48));
+      ? Math.max(320, Math.min(currentVh * state.heightPercent, currentVh - 48))
+      : Math.max(320, Math.min(state.height, currentVh - 48));
     
     // Calculate top position - default to bottom if no percentage
     const top = state.topPercent !== null
-      ? Math.max(0, Math.min(viewportH * state.topPercent, viewportH - height - 24))
-      : Math.max(0, viewportH - height - 24);
+      ? Math.max(0, Math.min(currentVh * state.topPercent, currentVh - height - 24))
+      : Math.max(0, currentVh - height - 24);
     // Calculate left position - default to right if no percentage  
     const left = state.leftPercent !== null
       ? Math.max(0, Math.min(vw * state.leftPercent, vw - width - 24))
@@ -121,18 +135,20 @@ export default function ChatWidget() {
 
   const savedState = loadSavedState();
   
-  // Detect mobile viewport (Tailwind md breakpoint is 768px)
-  const [isMobile, setIsMobile] = useState(false);
-  const [viewportHeight, setViewportHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0);
-  
-  const initialPixelState = getPixelState(savedState, isMobile, viewportHeight);
-  
   const [isOpen, setIsOpen] = useState(false);
-  const [windowSize, setWindowSize] = useState({ width: initialPixelState.width, height: initialPixelState.height });
-  const [position, setPosition] = useState({ top: initialPixelState.top, left: initialPixelState.left });
   const [relativeState, setRelativeState] = useState(savedState);
   const [brandName, setBrandName] = useState('our store');
   const [vertical, setVertical] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0);
+  
+  // Initialize pixel state after mobile detection
+  const initialPixelState = typeof window !== 'undefined' 
+    ? getPixelState(savedState, window.innerWidth < 768, viewportHeight)
+    : { width: 540, height: 600, top: 0, left: 0 };
+  
+  const [windowSize, setWindowSize] = useState({ width: initialPixelState.width, height: initialPixelState.height });
+  const [position, setPosition] = useState({ top: initialPixelState.top, left: initialPixelState.left });
 
   useEffect(() => {
     fetch('/api/brand-info')
@@ -146,37 +162,6 @@ export default function ChatWidget() {
       });
   }, []);
 
-  // Detect mobile viewport and handle keyboard
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768; // Tailwind md breakpoint
-      setIsMobile(mobile);
-      setViewportHeight(window.innerHeight);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-
-    // Handle virtual keyboard on mobile
-    const handleViewportChange = () => {
-      setViewportHeight(window.innerHeight);
-    };
-
-    // Use visualViewport API if available (better for mobile keyboards)
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleViewportChange);
-    }
-
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleViewportChange);
-      }
-    };
-  }, []);
-
   const assistantTitle = `${brandName} Advisor`;
 
   const assistantSubtitle = vertical
@@ -187,11 +172,11 @@ export default function ChatWidget() {
   useEffect(() => {
     if (typeof window !== 'undefined' && isOpen) {
       const vw = window.innerWidth;
-      const vh = viewportHeight > 0 ? viewportHeight : window.innerHeight;
+      const vh = viewportHeight || window.innerHeight;
       
       if (vw > 0 && vh > 0) {
         if (isMobile) {
-          // Mobile: only store height percentage (width is always 100%, position is always bottom)
+          // Mobile: only save height percentage, position is always bottom-aligned
           setRelativeState({
             width: windowSize.width,
             height: windowSize.height,
@@ -201,7 +186,7 @@ export default function ChatWidget() {
             heightPercent: windowSize.height / vh,
           });
         } else {
-          // Desktop: store all percentages
+          // Desktop: save all percentages
           setRelativeState({
             width: windowSize.width,
             height: windowSize.height,
@@ -229,24 +214,47 @@ export default function ChatWidget() {
     }
   }, [relativeState]);
 
-  // Initialize position/size when chat opens (only when transitioning from closed to open)
+  // Track viewport height changes (for keyboard handling on mobile)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const handleViewportChange = () => {
+      // Use visualViewport if available (better for mobile keyboard), otherwise use innerHeight
+      const newHeight = window.visualViewport?.height || window.innerHeight;
+      setViewportHeight(newHeight);
+    };
+    
+    // Initial set
+    handleViewportChange();
+    
+    // Use visualViewport API if available (better for mobile keyboard)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      return () => window.visualViewport?.removeEventListener('resize', handleViewportChange);
+    } else {
+      window.addEventListener('resize', handleViewportChange);
+      return () => window.removeEventListener('resize', handleViewportChange);
+    }
+  }, []);
+
+  // Initialize position/size when chat opens or mobile state/viewport changes
   const prevIsOpenRef = useRef(false);
   useEffect(() => {
-    if (isOpen && !prevIsOpenRef.current && typeof window !== 'undefined') {
-      const newPixelState = getPixelState(relativeState, isMobile, viewportHeight);
+    if (isOpen && typeof window !== 'undefined') {
+      const newPixelState = getPixelState(relativeState, isMobile, viewportHeight || window.innerHeight);
       setWindowSize({ width: newPixelState.width, height: newPixelState.height });
       setPosition({ top: newPixelState.top, left: newPixelState.left });
     }
     prevIsOpenRef.current = isOpen;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, isMobile, viewportHeight]); // Include mobile and viewport height
+  }, [isOpen, isMobile, viewportHeight]); // Recalculate when mobile state or viewport changes
 
-  // Handle window resize - adjust position and size to maintain relative position
+  // Handle window resize and viewport changes - adjust position and size to maintain relative position
   useEffect(() => {
     if (!isOpen || typeof window === 'undefined') return;
 
     const handleResize = () => {
-      const newPixelState = getPixelState(relativeState, isMobile, viewportHeight);
+      const newPixelState = getPixelState(relativeState, isMobile, viewportHeight || window.innerHeight);
       setWindowSize({ width: newPixelState.width, height: newPixelState.height });
       setPosition({ top: newPixelState.top, left: newPixelState.left });
     };
@@ -259,37 +267,96 @@ export default function ChatWidget() {
     };
 
     window.addEventListener('resize', debouncedHandleResize);
+    
+    // Use visualViewport API if available (better for mobile keyboard)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', debouncedHandleResize);
+    }
+    
     return () => {
       window.removeEventListener('resize', debouncedHandleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', debouncedHandleResize);
+      }
       clearTimeout(timeoutId);
     };
   }, [isOpen, relativeState, isMobile, viewportHeight]);
 
   const windowRef = useRef<HTMLDivElement>(null);
+  const resizeHandleRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   const isResizingRef = useRef(false);
   const isDraggingRef = useRef(false);
   const resizeDirectionRef = useRef<string | null>(null);
   const startPosRef = useRef({ x: 0, y: 0, width: 0, height: 0, top: 0, left: 0 });
   const [showDragHint, setShowDragHint] = useState(false);
 
+  // Add non-passive touch listener for resize handle on mobile
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent | TouchEvent) => {
-      // Prevent default touch behavior to stop background scrolling
-      if ('touches' in e && isResizingRef.current) {
+    if (!isMobile || !resizeHandleRef.current) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!windowRef.current) return;
+
+      const touch = e.touches[0];
+      const rect = windowRef.current.getBoundingClientRect();
+      isResizingRef.current = true;
+      isDraggingRef.current = false;
+      resizeDirectionRef.current = 'n';
+      startPosRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        width: rect.width,
+        height: rect.height,
+        top: rect.top,
+        left: rect.left,
+      };
+    };
+
+    const element = resizeHandleRef.current;
+    element.addEventListener('touchstart', handleTouchStart, { passive: false });
+
+    return () => {
+      element.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, [isMobile]);
+
+
+  useEffect(() => {
+    const getClientPos = (e: MouseEvent | TouchEvent) => {
+      if ('touches' in e && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+      return { x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY };
+    };
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      // Prevent default scrolling when resizing on mobile
+      // BUT: Don't prevent default if clicking on close button
+      if (isResizingRef.current && 'touches' in e) {
+        // Check if the touch is on the close button
+        if (closeButtonRef.current) {
+          const buttonRect = closeButtonRef.current.getBoundingClientRect();
+          const touch = (e as TouchEvent).touches[0] || (e as TouchEvent).changedTouches[0];
+          if (touch) {
+            const touchX = touch.clientX;
+            const touchY = touch.clientY;
+            const isOnButton = touchX >= buttonRect.left && touchX <= buttonRect.right &&
+                              touchY >= buttonRect.top && touchY <= buttonRect.bottom;
+            if (isOnButton) {
+              return; // Don't prevent default, let the button handle it
+            }
+          }
+        }
         e.preventDefault();
       }
       
-      const currentIsMobile = window.innerWidth < 768;
-      const clientX = 'touches' in e ? e.touches[0]?.clientX : e.clientX;
-      const clientY = 'touches' in e ? e.touches[0]?.clientY : e.clientY;
+      const { x: clientX, y: clientY } = getClientPos(e);
       
-      if (clientX === undefined || clientY === undefined) return;
-      
-      if (isDraggingRef.current) {
-        // On mobile, disable dragging (only allow top edge resize)
-        if (currentIsMobile) return;
-        
-        // Handle dragging - move the window
+      if (isDraggingRef.current && !isMobile) {
+        // Handle dragging - move the window (desktop only)
         const deltaX = clientX - startPosRef.current.x;
         const deltaY = clientY - startPosRef.current.y;
         
@@ -315,16 +382,14 @@ export default function ChatWidget() {
       let newTop = startPosRef.current.top;
       let newLeft = startPosRef.current.left;
 
-      if (currentIsMobile) {
-        // Mobile: only allow top edge resizing, keep bottom edge fixed at viewport bottom
-        if (direction.includes('n')) {
-          const heightDelta = startPosRef.current.y - clientY;
-          newHeight = Math.max(320, Math.min(startPosRef.current.height + heightDelta, window.innerHeight));
-          // Adjust top position to keep bottom edge fixed at viewport bottom
-          newTop = window.innerHeight - newHeight;
-          newWidth = window.innerWidth; // Always full width on mobile
-          newLeft = 0; // Always at left edge on mobile
-        }
+      if (isMobile) {
+        // Mobile: only vertical resize from top, bottom always touches viewport bottom
+        const heightDelta = startPosRef.current.y - clientY;
+        newHeight = Math.max(320, Math.min(startPosRef.current.height + heightDelta, viewportHeight || window.innerHeight));
+        // Adjust top to keep bottom edge at viewport bottom
+        newTop = (viewportHeight || window.innerHeight) - newHeight;
+        newWidth = window.innerWidth; // Always full width
+        newLeft = 0; // Always left-aligned
       } else {
         // Desktop: original behavior
         // Handle horizontal resizing
@@ -350,11 +415,8 @@ export default function ChatWidget() {
           // Adjust top position to keep bottom edge fixed
           newTop = startPosRef.current.top + startPosRef.current.height - newHeight;
         }
-      }
 
-      // Constrain to viewport
-      if (!currentIsMobile) {
-        // Desktop constraints
+        // Constrain to viewport
         if (newLeft < 0) {
           newWidth += newLeft;
           newLeft = 0;
@@ -369,83 +431,55 @@ export default function ChatWidget() {
         if (newTop + newHeight > window.innerHeight) {
           newHeight = window.innerHeight - newTop;
         }
-      } else {
-        // Mobile: ensure full width and bottom alignment
-        newWidth = window.innerWidth;
-        newLeft = 0;
-        newTop = window.innerHeight - newHeight;
       }
 
       setWindowSize({ width: Math.max(320, newWidth), height: Math.max(320, newHeight) });
       setPosition({ top: Math.max(0, newTop), left: Math.max(0, newLeft) });
     };
 
-    const handleMouseUp = (e?: MouseEvent | TouchEvent) => {
-      // Prevent default on touch end to stop any remaining scroll
-      if (e && 'touches' in e) {
-        e.preventDefault();
-      }
-      
+    const handleEnd = () => {
       isResizingRef.current = false;
       isDraggingRef.current = false;
       resizeDirectionRef.current = null;
-      
-      // Re-enable body scroll when resizing stops
-      if (typeof document !== 'undefined') {
-        document.body.style.overflow = '';
-        document.body.style.touchAction = '';
-      }
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('touchmove', handleMouseMove, { passive: false });
-    document.addEventListener('touchend', handleMouseUp, { passive: false });
-    document.addEventListener('touchcancel', handleMouseUp, { passive: false });
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    // Use non-passive listeners for touch events to allow preventDefault
+    document.addEventListener('touchmove', handleMove, { passive: false });
+    document.addEventListener('touchend', handleEnd, { passive: false });
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('touchmove', handleMouseMove);
-      document.removeEventListener('touchend', handleMouseUp);
-      document.removeEventListener('touchcancel', handleMouseUp);
-      
-      // Clean up body styles
-      if (typeof document !== 'undefined') {
-        document.body.style.overflow = '';
-        document.body.style.touchAction = '';
-      }
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('touchend', handleEnd);
     };
-  }, []);
+  }, [isMobile, viewportHeight]);
+
+  const getEventPos = (e: React.MouseEvent | React.TouchEvent) => {
+    if ('touches' in e && e.touches.length > 0) {
+      return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    return { x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY };
+  };
 
   const handleResizeStart = (e: React.MouseEvent | React.TouchEvent, direction: string) => {
-    e.preventDefault();
+    // Only preventDefault for mouse events, not passive touch events
+    if (e.type === 'mousedown') {
+      e.preventDefault();
+    }
     e.stopPropagation();
     if (!windowRef.current) return;
 
-    // On mobile, only allow top edge resizing
-    if (isMobile && !direction.includes('n')) {
-      return;
-    }
-
-    // Prevent body scroll on mobile when resizing starts
-    if (isMobile && typeof document !== 'undefined') {
-      document.body.style.overflow = 'hidden';
-      document.body.style.touchAction = 'none';
-    }
-
+    const { x, y } = getEventPos(e);
     const rect = windowRef.current.getBoundingClientRect();
-    const clientX = 'touches' in e ? e.touches[0]?.clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0]?.clientY : e.clientY;
-    
-    if (clientX === undefined || clientY === undefined) return;
-
     isResizingRef.current = true;
     isDraggingRef.current = false; // Ensure we're not dragging
-    resizeDirectionRef.current = direction;
+    resizeDirectionRef.current = isMobile ? 'n' : direction; // Mobile: always vertical from top
     startPosRef.current = {
-      x: clientX,
-      y: clientY,
+      x,
+      y,
       width: rect.width,
       height: rect.height,
       top: rect.top,
@@ -453,25 +487,19 @@ export default function ChatWidget() {
     };
   };
 
-  const handleDragStart = (e: React.MouseEvent) => {
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!windowRef.current) return;
+    if (!windowRef.current || isMobile) return; // No dragging on mobile
 
-    // On mobile, disable dragging (only allow top edge resize)
-    if (isMobile) {
-      // On mobile, treat drag handle as top resize
-      handleResizeStart(e, 'n');
-      return;
-    }
-
+    const { x, y } = getEventPos(e);
     const rect = windowRef.current.getBoundingClientRect();
     isDraggingRef.current = true;
     isResizingRef.current = false; // Ensure we're not resizing
     resizeDirectionRef.current = null;
     startPosRef.current = {
-      x: e.clientX,
-      y: e.clientY,
+      x,
+      y,
       width: rect.width,
       height: rect.height,
       top: rect.top,
@@ -517,54 +545,41 @@ export default function ChatWidget() {
       {isOpen && (
         <div
           ref={windowRef}
-          className={`fixed z-50 ${isMobile ? 'md:static' : ''}`}
+          className={`fixed z-50 ${isMobile ? 'left-0 right-0' : ''}`}
           style={{
-            top: isMobile ? 'auto' : `${position.top}px`,
-            bottom: isMobile ? '0' : 'auto',
+            top: `${position.top}px`,
             left: isMobile ? '0' : `${position.left}px`,
-            right: isMobile ? '0' : 'auto',
             width: isMobile ? '100%' : `${windowSize.width}px`,
             height: `${windowSize.height}px`,
-            maxWidth: isMobile ? '100%' : '100vw',
+            maxWidth: '100vw',
             maxHeight: '100vh',
             minWidth: isMobile ? '100%' : '320px',
             minHeight: '320px',
+            bottom: isMobile ? '0' : 'auto',
           }}
         >
           {/* Visible drag/resize handle - positioned outside overflow container */}
-          <div
-            className={`absolute left-1/2 z-[70] ${isMobile ? 'cursor-ns-resize' : 'cursor-move'}`}
-            style={{
-              top: '-17px',
-              transform: 'translateX(-50%)',
-              touchAction: isMobile ? 'none' : 'auto', // Prevent default touch behaviors on mobile
-            }}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-              handleDragStart(e);
-            }}
-            onTouchStart={(e) => {
-              // Handle touch for mobile
-              if (isMobile) {
-                e.preventDefault();
+          {isMobile ? (
+            // Mobile: vertical resize handle (up/down arrows only)
+            <div
+              className="absolute left-1/2 z-[70] cursor-ns-resize touch-none"
+              style={{
+                top: '-20px',
+                transform: 'translateX(-50%)',
+              }}
+              onMouseDown={(e) => {
                 e.stopPropagation();
                 handleResizeStart(e, 'n');
-              }
-            }}
-            onTouchMove={(e) => {
-              // Prevent default to stop background scrolling
-              if (isMobile && isResizingRef.current) {
-                e.preventDefault();
+              }}
+              onTouchStart={(e) => {
                 e.stopPropagation();
-              }
-            }}
-          >
-            <div className="rounded-full border border-rose-200/60 bg-white p-2 shadow-sm pointer-events-none">
-              {isMobile ? (
-                // Mobile: only up/down arrows
+                handleResizeStart(e, 'n');
+              }}
+            >
+              <div className="rounded-full border border-rose-200/60 bg-white px-4 py-2 shadow-sm">
                 <svg
-                  width="16"
-                  height="16"
+                  width="20"
+                  height="20"
                   viewBox="0 0 24 24"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -575,8 +590,22 @@ export default function ChatWidget() {
                   {/* Down arrow */}
                   <path d="M12 21L9 17H15L12 21Z" fill="currentColor" />
                 </svg>
-              ) : (
-                // Desktop: omnidirectional arrows
+              </div>
+            </div>
+          ) : (
+            // Desktop: drag handle (omnidirectional)
+            <div
+              className="absolute left-1/2 z-[70] cursor-move"
+              style={{
+                top: '-17px',
+                transform: 'translateX(-50%)',
+              }}
+              onMouseDown={(e) => {
+                e.stopPropagation();
+                handleDragStart(e);
+              }}
+            >
+              <div className="rounded-full border border-rose-200/60 bg-white p-2 shadow-sm pointer-events-none">
                 <svg
                   width="16"
                   height="16"
@@ -596,22 +625,47 @@ export default function ChatWidget() {
                   {/* Center circle */}
                   <circle cx="12" cy="12" r="2" fill="currentColor" />
                 </svg>
-              )}
+              </div>
             </div>
-          </div>
+          )}
           {/* Chat window content container with overflow hidden */}
           <div
             className={`flex flex-col border border-rose-100 bg-white text-slate-900 shadow-2xl shadow-rose-100/80 backdrop-blur-xl overscroll-contain overflow-hidden h-full ${
               isMobile ? 'rounded-t-2xl' : 'rounded-2xl'
             }`}
           >
-          {/* Resize handles - all edges and corners (hidden on mobile) */}
-          {!isMobile && (
+          {/* Resize handles - mobile: only top edge, desktop: all edges and corners */}
+          {isMobile ? (
             <>
+              {/* Mobile: Top edge only for vertical resizing - center area only to avoid blocking close button */}
+              <div
+                ref={resizeHandleRef}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  handleResizeStart(e, 'n');
+                }}
+                className="absolute top-0 left-1/2 h-12 cursor-ns-resize z-30 touch-none"
+                style={{ 
+                  width: '60%',
+                  transform: 'translateX(-50%)',
+                  pointerEvents: 'auto',
+                  marginLeft: 'auto',
+                  marginRight: 'auto'
+                }}
+              />
+            </>
+          ) : (
+            <>
+              {/* Desktop: All resize handles */}
               {/* Top-left corner */}
               <div
                 onMouseDown={(e) => handleResizeStart(e, 'nw')}
                 className="absolute top-0 left-0 w-6 h-6 cursor-nwse-resize z-50"
+              />
+              {/* Top edge - entire edge allows resizing */}
+              <div
+                onMouseDown={(e) => handleResizeStart(e, 'n')}
+                className="absolute top-0 left-6 right-6 h-6 cursor-ns-resize z-50"
               />
               {/* Top-right corner */}
               <div
@@ -645,35 +699,15 @@ export default function ChatWidget() {
               />
             </>
           )}
-          {/* Top edge - entire edge allows resizing (works on both mobile and desktop) */}
-          <div
-            onMouseDown={(e) => handleResizeStart(e, 'n')}
-            onTouchStart={(e) => {
-              if (isMobile) {
-                e.preventDefault();
-                e.stopPropagation();
-                handleResizeStart(e, 'n');
-              }
-            }}
-            onTouchMove={(e) => {
-              // Prevent default to stop background scrolling
-              if (isMobile && isResizingRef.current) {
-                e.preventDefault();
-                e.stopPropagation();
-              }
-            }}
-            style={{
-              touchAction: isMobile ? 'none' : 'auto', // Prevent default touch behaviors on mobile
-            }}
-            className={`absolute top-0 left-0 right-0 h-6 cursor-ns-resize z-50 ${isMobile ? '' : 'md:left-6 md:right-6'}`}
-          />
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-rose-100 bg-rose-50 px-3 py-2 sm:px-4 sm:py-3 relative z-10 rounded-t-2xl">
+          <div className={`flex items-center justify-between border-b border-rose-100 bg-rose-50 px-3 py-2 sm:px-4 sm:py-3 relative z-50 ${
+            isMobile ? '' : 'rounded-t-2xl'
+          }`}>
             <div className="flex-1 min-w-0">
               <h3 className="text-xs sm:text-sm font-semibold text-rose-600 truncate">{assistantTitle}</h3>
               <p className="text-[10px] sm:text-xs text-slate-500 truncate">{assistantSubtitle}</p>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 relative z-[70]">
               <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-slate-400">
                 <span className="font-medium">powered by</span>
                 <img
@@ -683,9 +717,29 @@ export default function ChatWidget() {
                 />
               </div>
               <button
+                ref={closeButtonRef}
                 type="button"
-                onClick={() => setIsOpen(false)}
-                className="rounded-full p-1.5 text-slate-500 transition hover:bg-rose-100 hover:text-rose-600"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsOpen(false);
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsOpen(false);
+                }}
+                className="rounded-full p-1.5 text-slate-500 transition hover:bg-rose-100 hover:text-rose-600 relative z-[70]"
+                style={{ 
+                  WebkitTapHighlightColor: 'transparent',
+                  touchAction: 'manipulation',
+                  pointerEvents: 'auto',
+                  userSelect: 'none',
+                  cursor: 'pointer',
+                }}
                 aria-label="Close chat"
               >
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

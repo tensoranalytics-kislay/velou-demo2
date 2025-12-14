@@ -284,3 +284,4 @@ export function extractPrice(query: string): { min?: number; max?: number } | nu
 
 
 
+

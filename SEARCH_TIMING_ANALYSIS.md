@@ -206,3 +206,4 @@ The search itself is reasonable but has optimization opportunities:
 **Quick win**: Switch classification to lightweight model → **~7 seconds improvement** (39% faster overall).
 
 
+

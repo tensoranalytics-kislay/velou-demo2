@@ -74,3 +74,26 @@ body {
 .chat-window-resizable[style*="width"] {
   transform-origin: top left;
 }
+
+/* Ensure chat elements are always on top and clickable */
+[class*="chat-widget"],
+[class*="ChatWidget"],
+button[aria-label*="Open"],
+button[aria-label*="Advisor"] {
+  z-index: 10000 !important;
+  pointer-events: auto !important;
+  position: fixed !important;
+}
+
+/* Ensure main element doesn't create blocking stacking context */
+main {
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+}
+
+/* Ensure body and html don't block fixed elements */
+body, html {
+  position: relative;
+  overflow-x: hidden;
+}
