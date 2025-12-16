@@ -1,10 +1,12 @@
 'use client';
 
 import type { ProductCard } from '@/lib/llm/orchestrator/cards';
+import type { ActionProposal } from '@/lib/loccitane/actions';
 import ProductCarousel from '@/components/ProductCarousel/ProductCarousel';
 import MarkdownText from './MarkdownText';
 import AssistantAvatar from './AssistantAvatar';
 import UserAvatar from './UserAvatar';
+import ActionChips from './ActionChips';
 
 export type ChatMessage = {
   id: string;
@@ -13,15 +15,17 @@ export type ChatMessage = {
   productCards?: ProductCard[];
   noExactMatch?: boolean;
   followupText?: string;
+  actions?: ActionProposal[];
 };
 
 type MessageListProps = {
   messages: ChatMessage[];
   onProductClick?: (productId: string) => Promise<void> | void;
   onProductAsk?: (productId: string, productTitle: string, productImageUrl: string) => Promise<void> | void;
+  onActionClick?: (actionId: string) => void;
 };
 
-export default function MessageList({ messages, onProductClick, onProductAsk }: MessageListProps) {
+export default function MessageList({ messages, onProductClick, onProductAsk, onActionClick }: MessageListProps) {
   return (
     <div className="space-y-8 sm:space-y-10 pb-8 sm:pb-12 md:pb-16 overflow-x-hidden">
       {messages.map((message) => (
@@ -67,6 +71,23 @@ export default function MessageList({ messages, onProductClick, onProductAsk }: 
               <div className="flex-1 min-w-0 flex justify-start">
                 <div className="max-w-[95%] md:max-w-[80%] min-w-0">
                   <MarkdownText content={message.followupText} className="text-black" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Action chips (quick-reply buttons) */}
+          {message.role === 'assistant' && message.actions && message.actions.length > 0 && (
+            <div className="mt-4 flex items-center gap-3 pt-2 sm:pt-3">
+              <div className="flex-shrink-0">
+                <AssistantAvatar noTransform />
+              </div>
+              <div className="flex-1 min-w-0 flex items-center justify-start">
+                <div className="max-w-[95%] md:max-w-[80%] min-w-0">
+                  <ActionChips 
+                    actions={message.actions} 
+                    onActionClick={onActionClick || (() => {})}
+                  />
                 </div>
               </div>
             </div>

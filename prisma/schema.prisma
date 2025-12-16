@@ -26,6 +26,8 @@ model Merchant {
   useMerchantKey       Boolean               @default(false)
   merchantOpenAIKey    String?
   datasetContext       Json?
+  uiCopy               Json?  // Merchant voice + reusable copy blocks (tone, action labels, etc.)
+  faq                  Json?  // Q/A pairs or topics for brand/product info queries
   shopifyStore         String?
   shopifyAccessToken   String?
   shopifySyncEnabled   Boolean               @default(false)
@@ -39,6 +41,7 @@ model Merchant {
   apiKeys              ApiKey[]
   catalogIngestionRuns CatalogIngestionRun[]
   conversationEvents   ConversationEvent[]
+  conversationStates   ConversationState[]
   merchRules           MerchRule[]
   users                MerchantUser[]
   products             Product[]
@@ -231,12 +234,38 @@ model ConversationEvent {
   createdAt             DateTime @default(now())
   assistantReplySnippet String?  @db.VarChar(256)
   clicked               Boolean  @default(false)
+  route                 String?  // Dialogue route (DISCOVERY, ACTION_REQUEST, etc.)
+  actionType            String?  // Action type if ACTION_REQUEST (show_more, etc.)
+  hadActionClick        Boolean  @default(false) // Whether user clicked an action chip
+  hadTypedYesNo         Boolean  @default(false) // Whether user typed yes/no (mapped to action)
   merchant              Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@index([merchantId])
   @@index([merchantId, createdAt])
   @@index([createdAt])
   @@index([sessionId])
+}
+
+/// Conversation state - persistent state per (merchantId, sessionId)
+/// Supports: shown products, ranked list cursor, pending actions, preferences memory
+model ConversationState {
+  id                   String   @id @default(cuid())
+  merchantId           String
+  sessionId            String
+  shownProductIds      String[]
+  lastQueryFingerprint String?
+  lastRankedProductIds String[]
+  lastRankCursor       Int      @default(0)
+  pendingActions       Json     @default("[]")
+  memory               Json     @default("{}")
+  updatedAt            DateTime @updatedAt
+  merchant             Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+
+  @@unique([merchantId, sessionId])
+  @@index([merchantId])
+  @@index([merchantId, sessionId])
+  @@index([sessionId])
+  @@index([updatedAt])
 }
 
 enum UserRole {

@@ -9,6 +9,10 @@ export type ConversationEventPayload = {
   assistantReply: string;
   productIds: string[];
   hadExactMatch: boolean;
+  route?: string; // Dialogue route
+  actionType?: string; // Action type if ACTION_REQUEST
+  hadActionClick?: boolean; // Whether user clicked an action chip
+  hadTypedYesNo?: boolean; // Whether user typed yes/no (mapped to action)
 };
 
 const TRUNCATE_LENGTH = 256;
@@ -34,6 +38,10 @@ export async function recordConversationEvent(payload: ConversationEventPayload)
         productIds: payload.productIds,
         hadExactMatch: payload.hadExactMatch,
         clicked: false,
+        route: payload.route || null,
+        actionType: payload.actionType || null,
+        hadActionClick: payload.hadActionClick || false,
+        hadTypedYesNo: payload.hadTypedYesNo || false,
       },
     });
 

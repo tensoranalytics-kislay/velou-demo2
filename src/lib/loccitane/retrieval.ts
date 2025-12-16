@@ -15,6 +15,11 @@ import { logger } from '../telemetry/logger';
 import type { QueryClassification } from './classifier';
 import type { SearchConstraints } from '../search/types';
 
+// Initialize concept index cache on server startup (pre-warm)
+// This runs when the module is first imported, ensuring cache is ready
+// The init module handles server-side check internally
+import '../search/concept/init';
+
 const LEXICAL_LIMIT = 150;
 const SEMANTIC_LIMIT = 150;
 const MAX_CANDIDATES = 400;

@@ -37,6 +37,8 @@ const defaultInitialMessage: ChatMessage = {
   productCards: [],
 };
 
+import type { ActionProposal } from '@/lib/loccitane/actions';
+
 type AssistantApiResponse = {
   replyText: string;
   productCards: ProductCard[];
@@ -44,8 +46,24 @@ type AssistantApiResponse = {
   pendingSuggestion?: PendingSuggestionResult | null;
   intent?: 'discovery' | 'pdp_suitability' | 'other';
   resolvedConstraints?: SearchConstraints;
+  resolvedClassificationConstraints?: {
+    concerns?: string[];
+    skinTypes?: string[];
+    hairTypes?: string[];
+    applicationAreas?: string[];
+    productTypes?: string[];
+    collections?: string[];
+    priceMinCents?: number;
+    priceMaxCents?: number;
+    mustHaveIngredients?: string[];
+    avoidIngredients?: string[];
+    madeWithout?: string[];
+    ageGroups?: string[];
+    genders?: string[];
+  };
   usedFollowUpContext?: boolean;
-   followupText?: string;
+  followupText?: string;
+  actions?: ActionProposal[];
 };
 
 export default function ChatPanel() {
@@ -73,6 +91,7 @@ export default function ChatPanel() {
   const [conversationContext, setConversationContext] = useState<ConversationContext>({
     lastIntent: null,
     lastConstraints: null,
+    lastClassificationConstraints: null,
     lastShownProductIds: [],
     lastUserQuery: null,
   });
@@ -94,6 +113,7 @@ export default function ChatPanel() {
       conversationContext: {
         lastIntent: null,
         lastConstraints: null,
+        lastClassificationConstraints: null,
         lastShownProductIds: [],
         lastUserQuery: null,
       },
@@ -517,10 +537,21 @@ export default function ChatPanel() {
   const handleClearChat = () => {
     const shouldClear = window.confirm('Clear chat history?');
     if (!shouldClear) return;
+    const previousSessionId = sessionId;
     resetConversation();
     clearChatHistory(STORAGE_KEY);
     clearPendingSuggestionCache(STORAGE_KEY);
     clearSessionData(STORAGE_KEY);
+    // Best-effort server-side cleanup so no lingering follow-up context
+    if (previousSessionId) {
+      fetch('/api/assistant/clear', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: previousSessionId }),
+      }).catch(() => {
+        // Swallow errors; UI already reset locally
+      });
+    }
     // Generate new sessionId after clearing
     const newSessionId = createId();
     setSessionId(newSessionId);
@@ -529,6 +560,7 @@ export default function ChatPanel() {
       conversationContext: {
         lastIntent: null,
         lastConstraints: null,
+        lastClassificationConstraints: null,
         lastShownProductIds: [],
         lastUserQuery: null,
       },
@@ -555,7 +587,7 @@ export default function ChatPanel() {
     setTimeout(() => scrollToBottom('smooth'), 400);
   };
 
-  const handleSendMessage = async (message: string, overrideProductContextId?: string, searchMethods?: { lexical: boolean; semantic: boolean; concept: boolean }) => {
+  const handleSendMessage = async (message: string, overrideProductContextId?: string, searchMethods?: { lexical: boolean; semantic: boolean; concept: boolean }, actionId?: string) => {
     console.log('[ChatPanel] handleSendMessage called');
     console.log('[ChatPanel] searchMethods received:', searchMethods);
     console.log('[ChatPanel] searchMethods type:', typeof searchMethods);
@@ -607,6 +639,7 @@ export default function ChatPanel() {
       const contextPayload =
         conversationContext.lastIntent ||
         conversationContext.lastConstraints ||
+        conversationContext.lastClassificationConstraints ||
         conversationContext.lastShownProductIds?.length ||
         conversationContext.lastUserQuery
           ? conversationContext
@@ -631,6 +664,7 @@ export default function ChatPanel() {
           conversationContext: contextPayload,
           // Always include validated searchMethods - use user's choice, or default to fast mode
           searchMethods: validatedSearchMethods,
+          ...(actionId && { actionId }),
         }),
       });
 
@@ -699,6 +733,7 @@ export default function ChatPanel() {
           shouldShowCards && finalData.followupText && finalData.followupText.trim().length
             ? finalData.followupText
             : undefined,
+        actions: finalData.actions,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -711,6 +746,7 @@ export default function ChatPanel() {
       setConversationContext({
         lastIntent: finalData.intent ?? conversationContext.lastIntent ?? null,
         lastConstraints: finalData.resolvedConstraints ?? conversationContext.lastConstraints ?? null,
+        lastClassificationConstraints: finalData.resolvedClassificationConstraints ?? conversationContext.lastClassificationConstraints ?? null,
         lastShownProductIds: shouldShowCards ? finalData.productCards.map((card) => card.id) : [],
         lastUserQuery: message,
       });
@@ -761,7 +797,18 @@ export default function ChatPanel() {
         className="chat-scrollbar absolute inset-0 overflow-y-auto overflow-x-hidden overscroll-contain px-3 pt-6 sm:px-4 sm:pt-8 md:px-6 md:pt-10"
         style={{ paddingBottom: bottomPadding }}
       >
-        <MessageList messages={messages} onProductClick={handleProductClick} onProductAsk={handleProductAsk} />
+        <MessageList 
+          messages={messages} 
+          onProductClick={handleProductClick} 
+          onProductAsk={handleProductAsk}
+          onActionClick={(actionId) => {
+            // Find the action label from the last assistant message to show in UI
+            const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant' && m.actions);
+            const action = lastAssistantMessage?.actions?.find(a => a.id === actionId);
+            const actionLabel = action?.label || '';
+            handleSendMessage(actionLabel, undefined, undefined, actionId);
+          }}
+        />
         <div ref={messagesEndRef} />
       </div>
       {/* Fixed suggestions above input - overlays at bottom */}

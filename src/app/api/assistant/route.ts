@@ -20,6 +20,7 @@ type AssistantApiRequest = {
     candidateIds: string[];
   };
   conversationContext?: ConversationContext;
+  actionId?: string; // Optional action ID for action-based queries
 };
 
 export async function POST(request: NextRequest) {
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
         productCards: loccitaneResult.productCards,
         noExactMatch: loccitaneResult.noExactMatch,
         followupText: loccitaneResult.followupText,
+        actions: loccitaneResult.actions,
         intent: 'discovery' as const,
         resolvedConstraints: lastConstraints,
         usedFollowUpContext: false,

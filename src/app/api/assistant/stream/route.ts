@@ -6,7 +6,7 @@ import { logger } from '@/lib/telemetry/logger';
 import type { ProgressCallback } from '@/lib/llm/types';
 import { prisma } from '@/lib/db';
 import { rateLimitLlm } from '@/lib/rateLimit';
-import { handleLoccitaneQuery } from '@/lib/loccitane/orchestrator';
+import { handleAssistantQuery } from '@/lib/services/AssistantService';
 
 type AssistantApiRequest = {
   sessionId: string;
@@ -24,6 +24,7 @@ type AssistantApiRequest = {
     semantic: boolean;
     concept: boolean;
   };
+  actionId?: string; // Optional action ID for action-based queries
 };
 
 /**
@@ -123,6 +124,26 @@ export async function POST(request: NextRequest) {
       if (body.conversationContext?.lastConstraints) {
         lastConstraints = body.conversationContext.lastConstraints;
       }
+      
+      // Extract last classification constraints from previous query
+      let lastClassificationConstraints: {
+        concerns?: string[];
+        skinTypes?: string[];
+        hairTypes?: string[];
+        applicationAreas?: string[];
+        productTypes?: string[];
+        collections?: string[];
+        priceMinCents?: number;
+        priceMaxCents?: number;
+        mustHaveIngredients?: string[];
+        avoidIngredients?: string[];
+        madeWithout?: string[];
+        ageGroups?: string[];
+        genders?: string[];
+      } | null = null;
+      if (body.conversationContext?.lastClassificationConstraints) {
+        lastClassificationConstraints = body.conversationContext.lastClassificationConstraints;
+      }
 
       // Create a readable stream for SSE
       const stream = new ReadableStream({
@@ -155,27 +176,46 @@ export async function POST(request: NextRequest) {
               // Continue without merchantId - some queries may still work
             }
             
-            const loccitaneResult = await handleLoccitaneQuery({
+            if (!merchantId) {
+              throw new Error('Merchant not found');
+            }
+            
+            // Detect if this is an action click or typed yes/no
+            const hadActionClick = !!body.actionId;
+            const messageLower = (body.message || '').toLowerCase().trim();
+            const hadTypedYesNo = messageLower === 'yes' || messageLower === 'no' || messageLower === 'ok' || messageLower === 'sure';
+            
+            const assistantResult = await handleAssistantQuery(merchantId, {
               sessionId: body.sessionId,
-              message: body.message,
-              lastConstraints,
-              lastShownProductIds: lastEvent?.productIds || body.conversationContext?.lastShownProductIds,
+              message: body.message || '',
+              conversationContext: {
+                lastConstraints,
+                lastClassificationConstraints,
+                lastShownProductIds: lastEvent?.productIds || body.conversationContext?.lastShownProductIds,
+              },
+              history: body.history,
               onProgress,
-              searchMethods: validatedSearchMethods, // Use validated searchMethods
-              productContextId: body.productContextId, // Pass product context for product-specific queries
-              merchantId, // Pass merchantId for product loading (may be undefined if DB lookup failed)
+              searchMethods: validatedSearchMethods,
+              productContextId: body.productContextId,
+              actionId: body.actionId, // Pass actionId for action-based queries
             });
             
             // Convert to expected format
             const result = {
-              replyText: loccitaneResult.replyText,
-              productCards: loccitaneResult.productCards,
-              noExactMatch: loccitaneResult.noExactMatch,
-              followupText: loccitaneResult.followupText,
+              replyText: assistantResult.replyText,
+              productCards: assistantResult.productCards,
+              noExactMatch: assistantResult.noExactMatch,
+              followupText: assistantResult.followupText,
+              actions: assistantResult.actions,
               intent: body.productContextId ? 'pdp_suitability' as const : 'discovery' as const, // Set intent based on product context
-              resolvedConstraints: lastConstraints,
+              resolvedConstraints: assistantResult.resolvedConstraints ?? lastConstraints ?? undefined,
+              resolvedClassificationConstraints: assistantResult.resolvedClassificationConstraints,
               usedFollowUpContext: false,
             };
+            
+            // Extract route/actionType from result (if available from orchestrator)
+            const route = assistantResult.route;
+            const actionType = assistantResult.actionType;
 
             logger.info('assistant_api_stream_response', {
               sessionId: body.sessionId,
@@ -198,6 +238,10 @@ export async function POST(request: NextRequest) {
                   assistantReply: result.replyText,
                   productIds: result.productCards.map((card) => card.id),
                   hadExactMatch: !result.noExactMatch,
+                  route: route,
+                  actionType: actionType,
+                  hadActionClick,
+                  hadTypedYesNo,
                 });
               } catch (metricsError) {
                 // Log but don't fail the request if metrics recording fails

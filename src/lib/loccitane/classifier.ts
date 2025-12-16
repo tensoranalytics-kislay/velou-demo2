@@ -99,19 +99,39 @@ const INGREDIENT_CANONICAL_MAP: Record<string, string> = {
   'glycerol': 'glycerin',
   'lavender essential oil': 'lavender_oil',
   'lavender': 'lavender_oil',
+  'lavendar': 'lavender_oil', // Common misspelling
+  'lavander': 'lavender_oil', // Another common misspelling
   'rosemary': 'rosemary_oil',
   'verbena': 'verbena_oil',
   'immortelle': 'immortelle_oil',
 };
 
-function normalizeConcern(concern: string): string {
+/**
+ * Normalize concern to canonical form
+ * Handles misspellings and variations (e.g., "dry skin" -> "dryness")
+ * Exported for use in orchestrator to normalize preserved constraints
+ */
+export function normalizeConcernCanonical(concern: string): string {
   const normalized = concern.toLowerCase().trim();
   return CONCERN_CANONICAL_MAP[normalized] || normalized.replace(/\s+/g, '_');
 }
 
-function normalizeIngredient(ingredient: string): string {
+function normalizeConcern(concern: string): string {
+  return normalizeConcernCanonical(concern);
+}
+
+/**
+ * Normalize ingredient name to canonical form
+ * Handles misspellings and variations (e.g., "lavendar" -> "lavender_oil")
+ * Exported for use in orchestrator to normalize refinePatch values
+ */
+export function normalizeIngredientCanonical(ingredient: string): string {
   const normalized = ingredient.toLowerCase().trim();
   return INGREDIENT_CANONICAL_MAP[normalized] || normalized.replace(/\s+/g, '_').replace(/[()]/g, '');
+}
+
+function normalizeIngredient(ingredient: string): string {
+  return normalizeIngredientCanonical(ingredient);
 }
 
 /**

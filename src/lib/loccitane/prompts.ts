@@ -135,16 +135,19 @@ IMPORTANT RULES:
 
 FOLLOW-UP SUGGESTIONS:
 - Optionally provide 1-2 follow-up questions in followupText (extraction-friendly)
-- Keep follow-up questions short and actionable
+- Keep follow-up questions short and actionable (1-2 short lines max)
 - Examples: "Would you like to see options under $30?", "Do you prefer products for sensitive skin?"
 - For product-specific queries: Ask relevant follow-ups like "Would you like to know about similar products?" or "Do you have any other questions about this product?"
+- Keep followupText concise: 1-2 short lines only
 
 OUTPUT FORMAT:
 Return valid JSON with:
 {
   "replyText": "Your reply here (under 60 words for discovery queries, up to 150 words for product-specific Q&A)",
-  "followupText": "Optional follow-up question(s) (1-2 questions, keep short)"
-}`;
+  "followupText": "Optional follow-up question(s) (1-2 short lines, keep concise)"
+}
+
+Note: Action proposals are generated separately based on query context. You only need to provide followupText here.`;
 
 export const LOCCITANE_RAG_REPLY_SCHEMA = {
   name: 'LocciReplyResult',
@@ -192,6 +195,342 @@ export const LOCCITANE_QUERY_CLASSIFIER_SCHEMA = {
           ageGroups: { type: 'array', items: { type: 'string' } },
           genders: { type: 'array', items: { type: 'string' } },
         },
+      },
+    },
+  },
+} as const;
+
+/**
+ * Dialogue Router Prompt
+ * 
+ * Classifies user turns into dialogue routes before running discovery pipeline.
+ * Used with gpt-4.1-mini for fast, deterministic routing.
+ */
+/**
+ * LLM-First Turn Router Prompt (Lite)
+ * 
+ * Context-packed prompt for gpt-4.1-mini to route user turns without keyword enumeration.
+ * Uses conversation state (pendingActions, memory, last shown products) to make routing decisions.
+ */
+export const ROUTER_PROMPT_LITE = `You route user turns for a shopping assistant using conversation context.
+
+DECISION RULES (prioritize in this order):
+1. If pendingActions exist AND user message semantically selects one OR is yes/no → route YES_NO or ACTION with action.id
+2. If previousSearch exists AND user adds/modifies constraints (new ingredient, concern, product type, price, size, collection, etc.) → route REFINE with refinePatch
+3. If lastAssistantMessage asks a question (e.g., "What ingredients...", "What price range...") AND user provides an answer (ingredient, price, concern) → route REFINE or DISCOVERY (depending on if previousSearch exists)
+4. If user asks new product need without referencing prior results → route DISCOVERY
+5. If user asks about brand/company/policies/catalog broadly → route BRAND_INFO
+6. If unrelated to shopping → route UNRELATED
+7. If unclear intent → route AMBIGUOUS with clarification + 2-3 actions
+
+REFINE refinePatch EXTRACTION:
+- Extract ALL constraints mentioned in the user message (productTypes, concerns, ingredients, collections, applicationAreas, skinTypes, hairTypes, size, price, etc.)
+- CRITICAL: Extract IMPLICIT constraints from user message (e.g., "lavender creams" implies productTypes: ["Cream"] AND ingredients: ["lavender"])
+- CRITICAL: Analyze user intent carefully to determine if constraints REPLACE, ADD, or BROADEN previous constraints
+- Use "replace: true" when:
+  * User explicitly replaces with words like: "instead", "not that", "change to", "different", "no", "rather", "switch", "swap"
+  * User corrects/contradicts a previous constraint (e.g., "lavender ones instead" after showing shea butter products)
+  * User uses negation or correction language (e.g., "not shampoo, conditioner", "different ingredient", "not X, but Y")
+  * User uses phrases that indicate replacement: "actually", "on second thought", "nevermind", "nvm", "i meant"
+  * User broadens a constraint (e.g., "not just hand creams" means replace "Hand Cream" with broader "Cream" or remove productTypes constraint)
+  * User uses "not just X" or "not only X" to indicate they want a broader category
+- Use "replace: false" (or omit) when:
+  * User ADDS new constraints without negating previous ones (e.g., "travel size", "cheaper", "also", "and", "with", "plus")
+  * User refines price/size/other attributes (e.g., "under $30", "smaller size", "within budget")
+  * User adds additional constraints to existing search (e.g., "also with vitamin C", "and sensitive skin", "plus organic")
+  * User narrows filters without explicitly replacing (e.g., "more affordable", "better for sensitive skin")
+- IMPORTANT DECISION RULES:
+  * If user says "instead" or "not X, but Y", set replace: true for that constraint type ONLY
+  * If user mentions multiple constraint types with "instead", only those types should have replace: true
+  * Price refinements typically replace (e.g., "cheaper" replaces previous price max, "under $30" replaces previous price constraint)
+  * Size constraints are typically additive unless explicitly replacing (e.g., "travel size" adds, "not travel, regular size" replaces)
+  * When user says "not just X" or "not only X", they want to broaden that constraint - extract the broader category (e.g., "not just hand creams" → productTypes: ["Cream"] with replace: true)
+  * When user mentions a product type implicitly (e.g., "lavender creams"), extract BOTH the product type AND the ingredient
+  * Extract flavor/aroma/scented terms (e.g., "flavoured", "flavored", "scented", "with lavender scent", "lavender scented") as ingredients or collections - these indicate a specific scent/flavor preference
+  * Match constraint values using fuzzy matching when possible (e.g., "lavendar" → "lavender", "creme" → "cream", "flavoured" → extract underlying ingredient/collection)
+- Examples:
+  - "travel size please" → { size: "travel", replace: false } (adds size constraint)
+  - "cheaper options" → { priceMaxCents: <lower_price>, replace: false } (refines price, but keeps other constraints)
+  - "instead of shampoo, show me conditioner" → { productTypes: ["Conditioner"], replace: true } (replaces product type)
+  - "lavender ones instead" (after showing shea butter) → { ingredients: ["lavender"], replace: true } (replaces ingredient, preserves productTypes)
+  - "lavender creams, not just hand creams" → { ingredients: ["lavender"], productTypes: ["Cream"], replace: true } (replaces ingredient AND broadens productTypes from "Hand Cream" to "Cream")
+  - "something for sensitive skin instead" → { skinTypes: ["Sensitive"], replace: true } (replaces skin type)
+  - "almond body care for dry skin" followed by "under $30" → { priceMaxCents: 3000, replace: false } (adds price constraint)
+  - "nvm i want to see lavender ones instead" → { ingredients: ["lavender"], replace: true } (replaces ingredient, keeps productTypes)
+  - "hand creams with shea butter" followed by "actually, lavender ones" → { ingredients: ["lavender"], replace: true } (replaces ingredient)
+  - "show me creams in that flavour" (after showing hand creams) → { productTypes: ["Cream"], replace: true } (broadens from "Hand Cream" to "Cream", preserves ingredient)
+  - "not just shampoos, show me all hair care" → { productTypes: ["Hair Care"], replace: true } (broadens product type)
+
+ROUTES:
+- ACTION: User selects a pending action (e.g., clicks "Show more", "Compare", "Adjust price") OR message EXACTLY matches action label (not ingredient/concern mentions)
+- YES_NO: Pure yes/no response to assistant follow-up (yes=primary action, no=secondary or clarify)
+- REFINE: Modifies existing search constraints OR responds to a preference question with new constraint (e.g., "shea butter" after "What ingredients...", "cheaper", "different concern", "another ingredient")
+- DISCOVERY: New product search without referencing prior results AND no previousSearch context
+- PDP_QA: Question about a specific product (requires productContextId)
+- BRAND_INFO: Questions about company, brand, policies, catalog, product lines
+- UNRELATED: Not shopping-related (weather, random facts, off-topic)
+- AMBIGUOUS: Unclear intent → provide clarification text + 2-3 suggested actions
+- SAFETY_BLOCK: Unsafe content → route immediately
+
+OUTPUT: JSON only, no explanation.`;
+
+export const ROUTER_PROMPT = `You are a dialogue router for a shopping assistant. Classify each user turn into one of these routes:
+
+ROUTES:
+- DISCOVERY: Normal product discovery (e.g., "hand cream for dry hands", "serum with shea butter")
+- PDP_QA: Product-specific Q&A (e.g., "Is this suitable for sensitive skin?", "What are the ingredients?")
+- FOLLOWUP_REFINE: Tighten/modify constraints, continue discovery (e.g., "that's too expensive, cheaper options", "more options under $50", "something for sensitive skin instead")
+- AFFIRMATION: Yes/ok/do it/looks good (e.g., "yes", "ok", "sounds good", "looks great")
+- NEGATION: No/don't/nah (e.g., "no", "don't", "nah", "not interested")
+- ACTION_REQUEST: Show more / compare / swap / cheaper / similar to #2 (e.g., "show more", "compare these", "similar to #2", "cheaper options")
+- BRAND_OR_PRODUCT_INFO: Questions about company, catalog, product lines, ingredients, availability (e.g., "tell me about your company", "what's your return policy", "where can I buy this")
+- SMALLTALK_OR_RANDOM: Unrelated/random (e.g., "what's the weather", "write a poem", completely off-topic)
+- SAFETY_BLOCK: Unsafe content or crisis (e.g., self-harm, violence, hate speech) - route immediately to safety handler
+
+RULES:
+- Use DISCOVERY for initial product searches and new queries
+- Use FOLLOWUP_REFINE when user modifies previous constraints (price, ingredient, concern changes)
+- Use ACTION_REQUEST for explicit actions like "show more", "compare", "similar to #2"
+- Use BRAND_OR_PRODUCT_INFO for company/product information questions
+- Use SMALLTALK_OR_RANDOM for completely unrelated queries
+- For ACTION_REQUEST, extract referencedProductIndex (0-indexed) if user mentions "#2" or "number 2" => 1
+- For FOLLOWUP_REFINE, provide refinePatch with constraints to add/modify (e.g., { priceMaxCents: 5000 })
+- Be concise and deterministic
+
+OUTPUT FORMAT (JSON):
+{
+  "route": "DISCOVERY" | "PDP_QA" | "FOLLOWUP_REFINE" | "AFFIRMATION" | "NEGATION" | "ACTION_REQUEST" | "BRAND_OR_PRODUCT_INFO" | "SMALLTALK_OR_RANDOM" | "SAFETY_BLOCK",
+  "confidence": "high" | "medium" | "low",
+  "extractedSignals": string[],
+  "referencedProductIndex"?: number,  // For ACTION_REQUEST (0-indexed: "#2" => 1)
+  "actionType"?: "show_more" | "compare" | "swap" | "cheaper" | "similar" | "other",  // For ACTION_REQUEST
+  "refinePatch"?: {  // For FOLLOWUP_REFINE: partial SearchConstraints
+    "priceMaxCents"?: number,
+    "priceMinCents"?: number,
+    "concerns"?: string[],
+    "productTypes"?: string[],
+    // ... other constraint fields
+  },
+  "needsClarification"?: boolean,
+  "userTone"?: "positive" | "neutral" | "negative" | "frustrated"
+}`;
+
+/**
+ * LLM-First Turn Router JSON Schema
+ * 
+ * Strict schema for gpt-4.1-mini router output.
+ * Routes without keyword enumeration using context-aware decision making.
+ */
+export const ROUTER_JSON_SCHEMA = {
+  name: 'TurnRouterResult',
+  schema: {
+    type: 'object',
+    required: ['route', 'confidence'],
+    properties: {
+      route: {
+        type: 'string',
+        enum: ['ACTION', 'YES_NO', 'REFINE', 'DISCOVERY', 'PDP_QA', 'BRAND_INFO', 'UNRELATED', 'SAFETY_BLOCK', 'AMBIGUOUS'],
+        description: 'Route classification for this user turn',
+      },
+      confidence: {
+        type: 'number',
+        minimum: 0,
+        maximum: 1,
+        description: 'Confidence score (0-1) for the routing decision',
+      },
+      action: {
+        type: ['object', 'null'],
+        description: 'For ACTION route: action id and type from pendingActions',
+        properties: {
+          id: { type: 'string' },
+          type: { type: 'string' },
+        },
+      },
+      yesNo: {
+        type: ['string', 'null'],
+        enum: ['yes', 'no', null],
+        description: 'For YES_NO route: yes or no value',
+      },
+      refinePatch: {
+        type: ['object', 'null'],
+        description: 'For REFINE route: constraints to add/modify. Use "replace" flag to indicate if constraints should replace (true) or add to (false) previous constraints.',
+        properties: {
+          priceMaxCents: { type: 'number' },
+          priceMinCents: { type: 'number' },
+          productTypes: { type: 'array', items: { type: 'string' } },
+          concerns: { type: 'array', items: { type: 'string' } },
+          ingredients: { type: 'array', items: { type: 'string' } },
+          madeWithout: { type: 'array', items: { type: 'string' } },
+          collections: { type: 'array', items: { type: 'string' } },
+          applicationAreas: { type: 'array', items: { type: 'string' } },
+          skinTypes: { type: 'array', items: { type: 'string' } },
+          hairTypes: { type: 'array', items: { type: 'string' } },
+          ageGroups: { type: 'array', items: { type: 'string' } },
+          genders: { type: 'array', items: { type: 'string' } },
+          size: { type: 'string', description: 'Product size/format (e.g., "travel", "mini", "regular", "full size")' },
+          replace: { type: 'boolean', description: 'If true, replace previous constraints of these types. If false or omitted, add to previous constraints.' },
+        },
+      },
+      referencedProductIndex: {
+        type: ['number', 'null'],
+        description: '0-indexed product reference (e.g., "#2" => 1)',
+      },
+      needsClarification: {
+        type: 'boolean',
+        description: 'True if route is AMBIGUOUS and clarification is needed',
+      },
+      clarification: {
+        type: ['object', 'null'],
+        description: 'For AMBIGUOUS route: clarification text and suggested actions',
+        properties: {
+          text: { type: 'string' },
+          actions: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                type: { type: 'string' },
+                label: { type: 'string' },
+                payload: { type: 'object' },
+              },
+              required: ['id', 'type', 'label'],
+            },
+          },
+        },
+      },
+    },
+  },
+} as const;
+
+/**
+ * Legacy router schema (kept for backward compatibility)
+ * @deprecated Use ROUTER_JSON_SCHEMA for new LLM-first router
+ */
+export const ROUTER_JSON_SCHEMA_LEGACY = {
+  name: 'RouterResult',
+  schema: {
+    type: 'object',
+    required: ['route', 'confidence', 'extractedSignals'],
+    properties: {
+      route: {
+        type: 'string',
+        enum: [
+          'DISCOVERY',
+          'PDP_QA',
+          'FOLLOWUP_REFINE',
+          'AFFIRMATION',
+          'NEGATION',
+          'ACTION_REQUEST',
+          'BRAND_OR_PRODUCT_INFO',
+          'SMALLTALK_OR_RANDOM',
+          'SAFETY_BLOCK',
+        ],
+      },
+      confidence: {
+        type: 'string',
+        enum: ['high', 'medium', 'low'],
+      },
+      extractedSignals: {
+        type: 'array',
+        items: { type: 'string' },
+      },
+      referencedProductIndex: {
+        type: 'number',
+        description: '0-indexed product reference (e.g., "#2" => 1)',
+      },
+      actionType: {
+        type: 'string',
+        enum: ['show_more', 'compare', 'swap', 'cheaper', 'similar', 'other'],
+      },
+      refinePatch: {
+        type: 'object',
+        description: 'Partial SearchConstraints for FOLLOWUP_REFINE',
+        properties: {
+          priceMinCents: { type: 'number' },
+          priceMaxCents: { type: 'number' },
+          concerns: { type: 'array', items: { type: 'string' } },
+          productTypes: { type: 'array', items: { type: 'string' } },
+          collections: { type: 'array', items: { type: 'string' } },
+          mustHaveIngredients: { type: 'array', items: { type: 'string' } },
+          avoidIngredients: { type: 'array', items: { type: 'string' } },
+        },
+      },
+      needsClarification: {
+        type: 'boolean',
+      },
+      userTone: {
+        type: 'string',
+        enum: ['positive', 'neutral', 'negative', 'frustrated'],
+      },
+    },
+  },
+} as const;
+
+/**
+ * Micro Reply Prompt for Non-Discovery Queries
+ * 
+ * Used for BRAND_OR_PRODUCT_INFO and SMALLTALK_OR_RANDOM routes.
+ * Generates concise, ChatGPT-like responses without exposing internal details.
+ */
+export const MICRO_REPLY_PROMPT = `You are a helpful shopping assistant. Answer the user's question concisely and naturally.
+
+CONTEXT:
+{{CONTEXT}}
+
+CONSTRAINTS:
+- Maximum 60-90 tokens (2-5 lines, ideally 2 short paragraphs)
+- Use short sentences
+- Never mention: models, vector search, pipelines, databases, LLMs, AI, technical implementation details
+- If you don't have information, say so politely and offer 1-2 shopping actions
+- For random/unrelated queries, redirect to shopping with a witty, friendly question
+- Stay commerce-anchored (always tie back to shopping/products)
+- Maximum 1 question in your reply
+- Be conversational and natural, like ChatGPT
+
+OUTPUT FORMAT (JSON):
+{
+  "replyText": "Your concise, natural reply (2-5 lines max)",
+  "needsAction": boolean,  // true if you suggested shopping actions
+  "suggestedActionType": "ask_preferences" | null  // If needsAction is true
+}
+
+EXAMPLES:
+
+User: "What is your return policy?"
+→ If FAQ has it: {"replyText": "We offer a 30-day return policy on all products. Items must be unused and in original packaging.", "needsAction": false}
+→ If FAQ doesn't have it: {"replyText": "I don't have that information right now, but I can help you find products! What are you looking for?", "needsAction": true, "suggestedActionType": "ask_preferences"}
+
+User: "Tell me about your company"
+→ {"replyText": "We're a beauty and skincare brand focused on [vertical from context]. We offer [sample categories]. What products interest you?", "needsAction": true, "suggestedActionType": "ask_preferences"}
+
+User: "What is this product used for?"
+→ If product context exists: {"replyText": "[Brief usage description from product context]", "needsAction": false}
+→ If no context: {"replyText": "I'd be happy to help! Could you tell me which product you're asking about? Or I can show you our range of products.", "needsAction": true, "suggestedActionType": "ask_preferences"}
+
+User: "What's the weather today?"
+→ {"replyText": "I'm here to help you shop! What products are you looking for today?", "needsAction": true, "suggestedActionType": "ask_preferences"}
+
+Remember: Be concise, natural, and never expose technical details.`;
+
+export const MICRO_REPLY_SCHEMA = {
+  name: 'MicroReply',
+  schema: {
+    type: 'object',
+    required: ['replyText'],
+    properties: {
+      replyText: {
+        type: 'string',
+        description: 'Concise reply text (2-5 lines, 60-90 tokens max)',
+      },
+      needsAction: {
+        type: 'boolean',
+        description: 'Whether to suggest shopping actions',
+      },
+      suggestedActionType: {
+        type: ['string', 'null'],
+        enum: ['ask_preferences', null],
+        description: 'Type of action to suggest if needsAction is true',
       },
     },
   },

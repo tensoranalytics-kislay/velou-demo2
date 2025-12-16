@@ -16,10 +16,13 @@ import { stripJsonFences } from '../llm/orchestrator/utils';
 import type { QueryClassification } from './classifier';
 import type { ProductWithLoccitaneAttributes } from './ranking/features';
 import { LOCCITANE_RAG_REPLY_PROMPT, LOCCITANE_RAG_REPLY_SCHEMA } from './prompts';
+import type { ActionSpec } from './actions';
+import { generateActionSpecs } from './actions';
 
 export type LocciReplyResult = {
   replyText: string;
   followupText?: string;
+  actionSpecs?: ActionSpec[]; // Deterministic action specs (no labels)
 };
 
 /**
@@ -61,7 +64,9 @@ export async function generateReplyWithRag(
   classification: QueryClassification,
   topProducts: ProductWithLoccitaneAttributes[],
   merchantId?: string,
-  productContext?: ProductWithLoccitaneAttributes | null
+  productContextParam?: ProductWithLoccitaneAttributes | null,
+  hasMoreProducts?: boolean,
+  totalRankedCount?: number
 ): Promise<LocciReplyResult> {
   try {
     // Serialize products for prompt
@@ -72,14 +77,14 @@ export async function generateReplyWithRag(
     
     // Add product context information if this is a product-specific query
     let contextNote = '';
-    if (productContext) {
+    if (productContextParam) {
       // Find the product context in the serialized products
-      const contextProductIndex = topProducts.findIndex(tp => tp.id === productContext.id);
+      const contextProductIndex = topProducts.findIndex(tp => tp.id === productContextParam.id);
       if (contextProductIndex >= 0 && contextProductIndex < serializedProducts.length) {
         const contextProduct = serializedProducts[contextProductIndex];
         contextNote = `\n\n⚠️ CRITICAL: This is a PRODUCT-SPECIFIC Q&A session. The user has selected a specific product and is asking questions about it.
 
-SELECTED PRODUCT: "${contextProduct.title}" (ID: ${productContext.id})
+SELECTED PRODUCT: "${contextProduct.title}" (ID: ${productContextParam.id})
 
 Your reply MUST:
 1. Answer the user's question DIRECTLY using ONLY the information from the selected product above
@@ -134,16 +139,25 @@ Generate a helpful reply that references only the products above.`;
         throw new Error('Missing or invalid replyText in LLM response');
       }
       
+      // Generate action specs based on context
+      const shownCount = topProducts.length;
+      const hasMore = hasMoreProducts ?? (totalRankedCount ? totalRankedCount > shownCount : false);
+      const actionSpecs = productContextParam
+        ? [] // No actions for product-specific Q&A
+        : generateActionSpecs(classification, hasMore, shownCount);
+
       logger.debug('generateReplyWithRag: success', {
         queryType: classification.type,
         productCount: topProducts.length,
         hasFollowup: !!parsed.followupText,
+        actionCount: actionSpecs.length,
         replyLength: parsed.replyText.length,
       });
       
       return {
         replyText: parsed.replyText.trim(),
         followupText: parsed.followupText?.trim(),
+        actionSpecs,
       };
     } catch (parseError) {
       logger.warn('generateReplyWithRag: JSON parse error, using fallback', {
@@ -152,7 +166,7 @@ Generate a helpful reply that references only the products above.`;
       });
       
       // Fallback to template-based reply
-      return generateFallbackReply(query, classification, topProducts);
+      return generateFallbackReply(query, classification, topProducts, productContextParam);
     }
   } catch (error) {
     logger.error('generateReplyWithRag: LLM call failed', {
@@ -162,7 +176,7 @@ Generate a helpful reply that references only the products above.`;
     });
     
     // Fallback to template-based reply
-    return generateFallbackReply(query, classification, topProducts);
+    return generateFallbackReply(query, classification, topProducts, productContextParam);
   }
 }
 
@@ -172,7 +186,8 @@ Generate a helpful reply that references only the products above.`;
 function generateFallbackReply(
   query: string,
   classification: QueryClassification,
-  products: ProductWithLoccitaneAttributes[]
+  products: ProductWithLoccitaneAttributes[],
+  productContextParam?: ProductWithLoccitaneAttributes | null
 ): LocciReplyResult {
   if (products.length === 0) {
     return {
@@ -205,11 +220,18 @@ function generateFallbackReply(
       replyText = `I found ${products.length} product${products.length > 1 ? 's' : ''} for you: ${productNames}${moreCount > 0 ? `, and ${moreCount} more` : ''}.`;
   }
   
+  // Generate action specs for fallback
+  const shownCount = products.length;
+  const actionSpecs = productContextParam
+    ? []
+    : generateActionSpecs(classification, false, shownCount);
+
   return {
     replyText,
     followupText: products.length > 0
       ? "Would you like to know more about any specific product, or refine your search?"
       : undefined,
+    actionSpecs,
   };
 }
 
