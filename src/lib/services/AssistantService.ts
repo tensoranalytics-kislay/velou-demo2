@@ -1,17 +1,17 @@
 /**
  * AssistantService
  * 
- * Wraps the fast path (L'Occitane orchestrator) with merchantId.
+ * Wraps the LoveShackFancy orchestrator with merchantId.
  * This ensures all assistant queries are scoped to a specific merchant.
  */
 
-import { handleLoccitaneQuery } from '../loccitane/orchestrator';
+import { handleLoveshackfancyQuery } from '../loveshackfancy/orchestrator';
 import { prisma } from '../db';
 import { logger } from '../telemetry/logger';
 import type { SearchConstraints } from '../search/types';
 import type { ConversationContext, QueryStage, ProgressCallback } from '../llm/types';
 import type { ProductCard } from '../llm/orchestrator/cards';
-import type { QueryClassification } from '../loccitane/classifier';
+import type { QueryClassification } from '../loveshackfancy/classifier';
 import {
   getState,
   updateState,
@@ -22,7 +22,6 @@ import {
   setPendingActions,
   type ConversationStateData,
 } from '../chat/ConversationStateService';
-import { routeTurn } from '../loccitane/router';
 
 export type AssistantQueryInput = {
   sessionId: string;
@@ -40,10 +39,11 @@ export type AssistantQueryInput = {
   actionId?: string; // Optional action ID for action-based queries
 };
 
-import type { ActionProposal } from '../loccitane/actions';
+type ActionProposal = { id: string; type: string; label: string; payload?: any };
 
 export type AssistantQueryResult = {
-  replyText: string;
+  replyText: string; // First part (before product cards)
+  replyTextAfter?: string; // Second part (after product cards) - only when product cards are shown
   productCards: ProductCard[];
   noExactMatch: boolean;
   intent?: string;
@@ -244,8 +244,8 @@ export async function handleAssistantQuery(
       faq: (merchant.faq as Array<{ question: string; answer: string }> | null) || null,
     };
     
-    // Call the fast path orchestrator
-    const result = await handleLoccitaneQuery({
+    // Call the LoveShackFancy orchestrator
+    const result = await handleLoveshackfancyQuery({
       sessionId: input.sessionId,
       message: messageToProcess,
       lastConstraints,
@@ -256,9 +256,10 @@ export async function handleAssistantQuery(
       merchantId,
       history: input.history,
       onProgress: input.onProgress,
-      searchMethods: input.searchMethods, // Pass through searchMethods
-      conversationState, // Pass conversation state for action handling
-      merchantData, // Pass merchant data for non-discovery queries
+      productContextId: input.productContextId,
+      searchMethods: input.searchMethods,
+      conversationState,
+      merchantData,
     });
     
     // Update conversation state with results
@@ -290,6 +291,7 @@ export async function handleAssistantQuery(
 
     return {
       replyText: result.replyText,
+      replyTextAfter: result.replyTextAfter, // Second part (after product cards)
       productCards: result.productCards,
       noExactMatch: result.noExactMatch,
       followupText: result.followupText,

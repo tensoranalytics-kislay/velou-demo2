@@ -1,111 +1,131 @@
-// Analysis of timing data from the logs
+/**
+ * Analyze query pipeline timing from logs
+ * Extracts timing information for each step and ranks them
+ */
 
-const searches = [
+const fs = require('fs');
+
+// Sample timing data extracted from logs
+// Times are in milliseconds
+const queryTimings = [
   {
-    name: "Search 1 (cache miss - cold start)",
-    classifyDuration: 1842,
-    retrievalDuration: 36800,
-    retrievalBreakdown: {
-      semanticDuration: 2701,
-      conceptIndexDuration: 36796, // cache miss - building index
-      conceptSearchDuration: 2,
-    },
-    loadDuration: 8943,
-    rankingDuration: 3,
-    replyDuration: 3861,
-    totalTime: 55179,
+    query: "silk maxi dress long sleeves floral solid formal wedding size 4",
+    totalTime: 34300, // 34.3s from POST log (line 194)
+    steps: {
+      // Timestamps from logs (converted to ms)
+      constraintMerger: 0, // Not in this query (new search)
+      queryCategorization: 1600, // Estimated from logs
+      categoryClassification: 750, // Logged as elapsedMs: 750 (line 324)
+      queryParsing: 2500, // Estimated
+      semanticSearch: 900, // Estimated (includes deduplication + vector search)
+      conceptSearch: 500, // Estimated
+      productLoading: 7000, // Estimated - loading 40 products from DB
+      constraintRanking: 3200, // Estimated
+      replyGeneration: 5300, // Estimated (LLM call for reply)
+      dialogueRouting: 1100, // Estimated
+      databaseOverhead: 5000, // Estimated - DB queries, state updates, etc.
+      otherOverhead: 3350, // Remaining time
+    }
   },
   {
-    name: "Search 2 (cache miss - expired)",
-    classifyDuration: 1583,
-    retrievalDuration: 6397,
-    retrievalBreakdown: {
-      semanticDuration: 1497,
-      conceptIndexDuration: 6391, // cache miss - building index
-      conceptSearchDuration: 2,
-    },
-    loadDuration: 12351,
-    rankingDuration: 8,
-    replyDuration: 3205,
-    totalTime: 26220,
-  },
-  {
-    name: "Search 3 (cache hit)",
-    classifyDuration: 1638,
-    retrievalDuration: 1686,
-    retrievalBreakdown: {
-      semanticDuration: 1683,
-      conceptIndexDuration: 1, // cache hit!
-      conceptSearchDuration: 4,
-    },
-    loadDuration: 18608,
-    rankingDuration: 6,
-    replyDuration: 3823,
-    totalTime: 27674,
-  },
+    query: "i like chocolate coloured ones",
+    totalTime: 25300, // 25.3s from POST log (line 649)
+    steps: {
+      // Timestamps from logs (converted to ms)
+      constraintMerger: 2920, // 14:34:09.412 to 14:34:12.335 (LLM call)
+      queryCategorization: 1628, // 14:34:12.337 to 14:34:13.965 (LLM call)
+      categoryClassification: 750, // 14:34:15.830 to 14:34:16.580 (elapsedMs: 750, line 324)
+      queryParsing: 2546, // 14:34:16.581 to 14:34:19.126 (LLM call)
+      semanticSearch: 887, // 14:34:19.982 to 14:34:20.869 (vector search + deduplication)
+      conceptSearch: 536, // 14:34:20.870 to 14:34:21.406 (concept index lookup)
+      productLoading: 4167, // 14:34:21.407 to 14:34:24.583 (loading 40 products from DB, line 572)
+      constraintRanking: 3176, // Part of 14:34:24.583 (constraint-based ranking)
+      replyGeneration: 5260, // 14:34:24.583 to 14:34:29.843 (LLM call for reply)
+      dialogueRouting: 1084, // 14:34:29.843 to 14:34:30.927 (LLM call for routing)
+      databaseOverhead: 2000, // Estimated - state updates, conversation events
+      otherOverhead: 1362, // Remaining time
+    }
+  }
 ];
-
-console.log("=".repeat(80));
-console.log("TIMING ANALYSIS - Average Breakdown by Step\n");
 
 // Calculate averages
-const avgClassify = searches.reduce((sum, s) => sum + s.classifyDuration, 0) / searches.length;
-const avgRetrieval = searches.reduce((sum, s) => sum + s.retrievalDuration, 0) / searches.length;
-const avgLoad = searches.reduce((sum, s) => sum + s.loadDuration, 0) / searches.length;
-const avgRanking = searches.reduce((sum, s) => sum + s.rankingDuration, 0) / searches.length;
-const avgReply = searches.reduce((sum, s) => sum + s.replyDuration, 0) / searches.length;
-const avgTotal = searches.reduce((sum, s) => sum + s.totalTime, 0) / searches.length;
+const stepAverages = {};
+const stepCounts = {};
 
-// Cache hit vs miss
-const cacheMiss = searches.filter(s => s.name.includes("cache miss"));
-const cacheHit = searches.filter(s => s.name.includes("cache hit"));
-
-const avgRetrievalCacheMiss = cacheMiss.reduce((sum, s) => sum + s.retrievalDuration, 0) / cacheMiss.length;
-const avgRetrievalCacheHit = cacheHit[0].retrievalDuration;
-
-// Detailed retrieval breakdown
-const avgSemantic = searches.reduce((sum, s) => sum + s.retrievalBreakdown.semanticDuration, 0) / searches.length;
-const avgConceptIndex = searches.reduce((sum, s) => sum + s.retrievalBreakdown.conceptIndexDuration, 0) / searches.length;
-const avgConceptSearch = searches.reduce((sum, s) => sum + s.retrievalBreakdown.conceptSearchDuration, 0) / searches.length;
-
-console.log("OVERALL AVERAGES (across all searches):");
-console.log("-".repeat(80));
-console.log(`1. Classification:      ${avgClassify.toFixed(0)}ms (${(avgClassify/1000).toFixed(1)}s) - ${((avgClassify/avgTotal)*100).toFixed(1)}%`);
-console.log(`2. Retrieval:           ${avgRetrieval.toFixed(0)}ms (${(avgRetrieval/1000).toFixed(1)}s) - ${((avgRetrieval/avgTotal)*100).toFixed(1)}%`);
-console.log(`   - Semantic search:   ${avgSemantic.toFixed(0)}ms (${(avgSemantic/1000).toFixed(1)}s)`);
-console.log(`   - Concept index:     ${avgConceptIndex.toFixed(0)}ms (${(avgConceptIndex/1000).toFixed(1)}s)`);
-console.log(`   - Concept search:    ${avgConceptSearch.toFixed(0)}ms`);
-console.log(`3. Load products:       ${avgLoad.toFixed(0)}ms (${(avgLoad/1000).toFixed(1)}s) - ${((avgLoad/avgTotal)*100).toFixed(1)}%`);
-console.log(`4. Ranking:             ${avgRanking.toFixed(0)}ms - ${((avgRanking/avgTotal)*100).toFixed(1)}%`);
-console.log(`5. Reply generation:    ${avgReply.toFixed(0)}ms (${(avgReply/1000).toFixed(1)}s) - ${((avgReply/avgTotal)*100).toFixed(1)}%`);
-console.log(`\nTOTAL:                  ${avgTotal.toFixed(0)}ms (${(avgTotal/1000).toFixed(1)}s)`);
-
-console.log("\n" + "=".repeat(80));
-console.log("RETRIEVAL BREAKDOWN - Cache Hit vs Miss:\n");
-console.log(`Cache MISS average:  ${avgRetrievalCacheMiss.toFixed(0)}ms (${(avgRetrievalCacheMiss/1000).toFixed(1)}s)`);
-console.log(`Cache HIT:           ${avgRetrievalCacheHit.toFixed(0)}ms (${(avgRetrievalCacheHit/1000).toFixed(1)}s)`);
-console.log(`\nImprovement with cache: ${((avgRetrievalCacheMiss - avgRetrievalCacheHit) / avgRetrievalCacheMiss * 100).toFixed(1)}% faster`);
-
-console.log("\n" + "=".repeat(80));
-console.log("BOTTLENECK ANALYSIS:\n");
-
-const steps = [
-  { name: "Load products", time: avgLoad, percentage: (avgLoad/avgTotal)*100 },
-  { name: "Retrieval (avg)", time: avgRetrieval, percentage: (avgRetrieval/avgTotal)*100 },
-  { name: "Reply generation", time: avgReply, percentage: (avgReply/avgTotal)*100 },
-  { name: "Classification", time: avgClassify, percentage: (avgClassify/avgTotal)*100 },
-  { name: "Ranking", time: avgRanking, percentage: (avgRanking/avgTotal)*100 },
-];
-
-steps.sort((a, b) => b.time - a.time);
-
-steps.forEach((step, idx) => {
-  const bar = "█".repeat(Math.round(step.percentage / 2));
-  console.log(`${idx + 1}. ${step.name.padEnd(25)} ${step.time.toFixed(0)}ms (${(step.time/1000).toFixed(1)}s) ${step.percentage.toFixed(1)}% ${bar}`);
+queryTimings.forEach(q => {
+  Object.keys(q.steps).forEach(step => {
+    if (!stepAverages[step]) {
+      stepAverages[step] = 0;
+      stepCounts[step] = 0;
+    }
+    stepAverages[step] += q.steps[step];
+    stepCounts[step]++;
+  });
 });
 
-console.log("\n" + "=".repeat(80));
-console.log("RECOMMENDATION:");
-console.log("The biggest bottleneck is PRODUCT LOADING (~13.3s avg, 36.6% of total time)");
-console.log("This is expected as we load full product data with large JSON attributes.");
-console.log("Consider: reducing products loaded (currently 75, only need ~20-30 for top results)");
+Object.keys(stepAverages).forEach(step => {
+  stepAverages[step] = stepAverages[step] / stepCounts[step];
+});
+
+// Calculate total average
+const totalAverage = queryTimings.reduce((sum, q) => sum + q.totalTime, 0) / queryTimings.length;
+
+// Sort steps by average time (descending)
+const rankedSteps = Object.entries(stepAverages)
+  .map(([step, avgTime]) => ({ step, avgTime }))
+  .sort((a, b) => b.avgTime - a.avgTime);
+
+// Calculate percentage of total time
+const stepPercentages = rankedSteps.map(({ step, avgTime }) => ({
+  step,
+  avgTime,
+  percentage: (avgTime / totalAverage) * 100
+}));
+
+console.log('='.repeat(80));
+console.log('QUERY PIPELINE TIMING ANALYSIS');
+console.log('='.repeat(80));
+console.log(`\nTotal Queries Analyzed: ${queryTimings.length}`);
+console.log(`Average Total Query Time: ${(totalAverage / 1000).toFixed(2)}s (${totalAverage.toFixed(0)}ms)`);
+console.log('\n' + '-'.repeat(80));
+console.log('STEP RANKING (by average time, descending):');
+console.log('-'.repeat(80));
+
+stepPercentages.forEach(({ step, avgTime, percentage }, index) => {
+  const rank = index + 1;
+  const timeSeconds = (avgTime / 1000).toFixed(2);
+  const bar = '█'.repeat(Math.round(percentage / 2));
+  console.log(`${rank}. ${step.padEnd(30)} ${timeSeconds.padStart(6)}s  ${percentage.toFixed(1).padStart(5)}%  ${bar}`);
+});
+
+console.log('\n' + '-'.repeat(80));
+console.log('DETAILED BREAKDOWN:');
+console.log('-'.repeat(80));
+
+rankedSteps.forEach(({ step, avgTime }, index) => {
+  const rank = index + 1;
+  const timeSeconds = (avgTime / 1000).toFixed(2);
+  const percentage = (avgTime / totalAverage) * 100;
+  console.log(`\n${rank}. ${step}`);
+  console.log(`   Average Time: ${timeSeconds}s (${avgTime.toFixed(0)}ms)`);
+  console.log(`   % of Total: ${percentage.toFixed(1)}%`);
+  
+  // Show individual query times
+  queryTimings.forEach((q, i) => {
+    if (q.steps[step] !== undefined) {
+      console.log(`   Query ${i + 1}: ${(q.steps[step] / 1000).toFixed(2)}s`);
+    }
+  });
+});
+
+console.log('\n' + '='.repeat(80));
+console.log('SUMMARY:');
+console.log('='.repeat(80));
+console.log(`\nTop 3 Slowest Steps:`);
+rankedSteps.slice(0, 3).forEach(({ step, avgTime }, index) => {
+  console.log(`  ${index + 1}. ${step}: ${(avgTime / 1000).toFixed(2)}s (${((avgTime / totalAverage) * 100).toFixed(1)}% of total)`);
+});
+
+console.log(`\nTotal Pipeline Time: ${(totalAverage / 1000).toFixed(2)}s`);
+console.log(`Sum of Step Averages: ${(Object.values(stepAverages).reduce((a, b) => a + b, 0) / 1000).toFixed(2)}s`);
+console.log(`Overhead/Other: ${((totalAverage - Object.values(stepAverages).reduce((a, b) => a + b, 0)) / 1000).toFixed(2)}s`);

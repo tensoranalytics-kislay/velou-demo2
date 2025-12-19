@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       searchMethodsConcept: validatedSearchMethods.concept,
     });
 
-    // Use fast path (L'Occitane optimized pipeline) for all queries
+    // Use LoveShackFancy pipeline for all queries
     {
       // Get last conversation context from DB for follow-up detection
       const lastEvent = await prisma.conversationEvent.findFirst({
@@ -203,6 +203,7 @@ export async function POST(request: NextRequest) {
             // Convert to expected format
             const result = {
               replyText: assistantResult.replyText,
+              replyTextAfter: assistantResult.replyTextAfter, // Second part (after product cards)
               productCards: assistantResult.productCards,
               noExactMatch: assistantResult.noExactMatch,
               followupText: assistantResult.followupText,
@@ -222,33 +223,28 @@ export async function POST(request: NextRequest) {
               replyLength: result.replyText.length,
               productCount: result.productCards.length,
               noExactMatch: result.noExactMatch,
-              pipeline: 'loccitane_optimized',
+              pipeline: 'loveshackfancy',
               hasProductContext: !!body.productContextId,
               intent: result.intent,
             });
             
-            // Record conversation event (non-blocking - don't fail if this fails)
+            // Record conversation event (fire-and-forget - non-blocking)
             if (defaultMerchant) {
-              try {
-                await recordConversationEvent({
-                  merchantId: defaultMerchant.id,
-                  sessionId: body.sessionId,
-                  pageType: body.pageType,
-                  userQuery: body.message,
-                  assistantReply: result.replyText,
-                  productIds: result.productCards.map((card) => card.id),
-                  hadExactMatch: !result.noExactMatch,
-                  route: route,
-                  actionType: actionType,
-                  hadActionClick,
-                  hadTypedYesNo,
-                });
-              } catch (metricsError) {
-                // Log but don't fail the request if metrics recording fails
-                logger.warn('assistant_api_stream_metrics_failed', {
-                  error: metricsError instanceof Error ? metricsError.message : String(metricsError),
-                });
-              }
+              recordConversationEvent({
+                merchantId: defaultMerchant.id,
+                sessionId: body.sessionId,
+                pageType: body.pageType,
+                userQuery: body.message,
+                assistantReply: result.replyText,
+                productIds: result.productCards.map((card) => card.id),
+                hadExactMatch: !result.noExactMatch,
+                route: route,
+                actionType: actionType,
+                hadActionClick,
+                hadTypedYesNo,
+              }).catch(err => logger.warn('assistant_api_stream_metrics_failed', {
+                error: err instanceof Error ? err.message : String(err),
+              }));
             }
 
             // Send final result

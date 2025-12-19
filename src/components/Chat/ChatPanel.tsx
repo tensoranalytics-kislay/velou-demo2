@@ -40,7 +40,8 @@ const defaultInitialMessage: ChatMessage = {
 import type { ActionProposal } from '@/lib/loccitane/actions';
 
 type AssistantApiResponse = {
-  replyText: string;
+  replyText: string; // First part (before product cards)
+  replyTextAfter?: string; // Second part (after product cards) - only when product cards are shown
   productCards: ProductCard[];
   noExactMatch: boolean;
   pendingSuggestion?: PendingSuggestionResult | null;
@@ -729,8 +730,13 @@ export default function ChatPanel() {
         content: finalData.replyText,
         productCards: shouldShowCards ? finalData.productCards : [],
         noExactMatch: finalData.noExactMatch,
+        // For product recommendations: use replyTextAfter (last 2 paragraphs after cards)
+        // For other cases: use followupText (legacy support)
+        replyTextAfter: shouldShowCards && finalData.replyTextAfter && finalData.replyTextAfter.trim().length
+          ? finalData.replyTextAfter
+          : undefined,
         followupText:
-          shouldShowCards && finalData.followupText && finalData.followupText.trim().length
+          !shouldShowCards && finalData.followupText && finalData.followupText.trim().length
             ? finalData.followupText
             : undefined,
         actions: finalData.actions,

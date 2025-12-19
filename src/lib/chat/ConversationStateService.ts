@@ -21,6 +21,13 @@ export type PendingAction = {
   payload?: Record<string, unknown>;
 };
 
+export type PendingFollowups = {
+  originalQuery: string;
+  questions: string[];
+  responses: string[];
+  preliminaryProducts?: Array<{ productId: string; title: string; similarity: number }>;
+};
+
 export type ConversationMemory = {
   concerns?: string[];
   ingredients?: string[];
@@ -30,6 +37,7 @@ export type ConversationMemory = {
   };
   productTypes?: string[];
   lastIntent?: string;
+  pendingFollowups?: PendingFollowups;
 };
 
 export type ConversationStateData = {

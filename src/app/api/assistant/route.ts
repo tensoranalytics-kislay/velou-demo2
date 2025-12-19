@@ -7,7 +7,9 @@ import { getDatasetContext } from '@/lib/catalog/getDatasetContext';
 import { prisma } from '@/lib/db';
 import { rateLimitLlm } from '@/lib/rateLimit';
 import { env } from '@/lib/config';
-import { handleLoccitaneQuery } from '@/lib/loccitane/orchestrator';
+import { handleAssistantQuery } from '@/lib/services/AssistantService';
+// Pre-warm concept index cache on server startup
+import '@/lib/search/concept/init';
 
 type AssistantApiRequest = {
   sessionId: string;
@@ -54,67 +56,64 @@ export async function POST(request: NextRequest) {
       hasPendingSuggestion: !!body.pendingSuggestion,
     });
 
-    // Use fast path (L'Occitane optimized pipeline) for all queries
-    {
-      // Get last conversation context from DB for follow-up detection
-      const lastEvent = await prisma.conversationEvent.findFirst({
-        where: { sessionId: body.sessionId },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          productIds: true,
-          userQuery: true,
+    // Get default merchant for now (TODO: get from session/auth)
+    const defaultMerchant = await prisma.merchant.findUnique({ where: { slug: 'default' } });
+    if (!defaultMerchant) {
+      return NextResponse.json(
+        {
+          replyText: 'Merchant not found. Please configure a default merchant.',
+          productCards: [],
+          noExactMatch: true,
         },
-      });
-      
-      // Extract last constraints from previous query (simplified)
-      let lastConstraints: SearchConstraints | null = null;
-      if (body.conversationContext?.lastConstraints) {
-        lastConstraints = body.conversationContext.lastConstraints;
-      }
-      
-      const loccitaneResult = await handleLoccitaneQuery({
-        sessionId: body.sessionId,
-        message: body.message,
-        lastConstraints,
-        lastShownProductIds: lastEvent?.productIds || body.conversationContext?.lastShownProductIds,
-      });
-      
-      // Convert to expected format
-      const result = {
-        replyText: loccitaneResult.replyText,
-        productCards: loccitaneResult.productCards,
-        noExactMatch: loccitaneResult.noExactMatch,
-        followupText: loccitaneResult.followupText,
-        actions: loccitaneResult.actions,
-        intent: 'discovery' as const,
-        resolvedConstraints: lastConstraints,
-        usedFollowUpContext: false,
-      };
-      
-      logger.info('assistant_api_response', {
-        sessionId: body.sessionId,
-        replyLength: result.replyText.length,
-        productCount: result.productCards.length,
-        noExactMatch: result.noExactMatch,
-        pipeline: 'loccitane_optimized',
-      });
-      
-      // Get default merchant for now (TODO: get from session/auth)
-      const defaultMerchant = await prisma.merchant.findUnique({ where: { slug: 'default' } });
-      if (defaultMerchant) {
-        await recordConversationEvent({
-          merchantId: defaultMerchant.id,
-          sessionId: body.sessionId,
-          pageType: body.pageType,
-          userQuery: body.message,
-          assistantReply: result.replyText,
-          productIds: result.productCards.map((card) => card.id),
-          hadExactMatch: !result.noExactMatch,
-        });
-      }
-      
-      return NextResponse.json(result);
+        { status: 500 }
+      );
     }
+
+    // Use AssistantService which wraps the LoveShackFancy orchestrator
+    const result = await handleAssistantQuery(defaultMerchant.id, {
+      sessionId: body.sessionId,
+      pageType: body.pageType,
+      message: body.message,
+      history: body.history,
+      productContextId: body.productContextId,
+      conversationContext: body.conversationContext,
+      actionId: body.actionId,
+    });
+
+    logger.info('assistant_api_response', {
+      sessionId: body.sessionId,
+      replyLength: result.replyText.length,
+      productCount: result.productCards.length,
+      noExactMatch: result.noExactMatch,
+      pipeline: 'loveshackfancy',
+    });
+
+    // Record conversation event (fire-and-forget - non-blocking)
+    recordConversationEvent({
+      merchantId: defaultMerchant.id,
+      sessionId: body.sessionId,
+      pageType: body.pageType,
+      userQuery: body.message,
+      assistantReply: result.replyText,
+      productIds: result.productCards.map((card) => card.id),
+      hadExactMatch: !result.noExactMatch,
+    }).catch(err => {
+      // Log but don't fail the request if metrics recording fails
+      logger.warn('assistant_api_metrics_failed', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+
+    return NextResponse.json({
+      replyText: result.replyText,
+      productCards: result.productCards,
+      noExactMatch: result.noExactMatch,
+      followupText: result.followupText,
+      actions: result.actions,
+      intent: 'discovery' as const,
+      resolvedConstraints: result.resolvedConstraints,
+      usedFollowUpContext: result.usedFollowUpContext || false,
+    });
   } catch (error) {
     logger.error('assistant_api_error', {
       error: error instanceof Error ? error.message : String(error),

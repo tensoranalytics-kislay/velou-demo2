@@ -79,8 +79,12 @@ export default function QueryProgressBar({ isLoading, currentStage, currentProgr
       if (stage === 'loading_product' || stage === 'analyzing' || stage === 'answering') {
         return STAGE_LABELS[stage];
       }
+      // Map discovery stages to Q&A equivalents if needed
+      if (stage === 'safety_check') {
+        return STAGE_LABELS.loading_product;
+      }
       // Fallback for discovery stages if somehow used in Q&A
-      return STAGE_LABELS[stage];
+      return STAGE_LABELS[stage] || STAGE_LABELS.loading_product;
     }
     
     // For non-contextual queries, use simplified stages (understanding -> generating -> completing)
@@ -89,16 +93,27 @@ export default function QueryProgressBar({ isLoading, currentStage, currentProgr
         return STAGE_LABELS[stage];
       }
       // Map other stages to non-contextual equivalents
-      if (stage === 'searching' || stage === 'evaluating') {
+      if (stage === 'searching' || stage === 'evaluating' || stage === 'retrieving' || stage === 'ranking') {
         return STAGE_LABELS.generating; // Skip search/evaluate stages for non-contextual
+      }
+      if (stage === 'safety_check' || stage === 'classifying') {
+        return STAGE_LABELS.understanding;
       }
       return STAGE_LABELS[stage] || STAGE_LABELS.understanding;
     }
     
-    // For discovery (including L'Occitane optimized pipeline), use all available labels
-    // L'Occitane stages: safety_check, classifying, retrieving, ranking, generating_reply, handling_unrelated
-    // Original discovery stages: understanding, searching, evaluating, generating
-    // All stages are now supported via STAGE_LABELS
+    // For discovery queries (including all pipeline stages), use all available labels
+    // Supported stages:
+    // - safety_check: Safety & domain gate
+    // - understanding: Intent & constraints extraction, query parsing, constraint merging
+    // - classifying: Query categorization & category classification
+    // - retrieving: Multi-view retrieval
+    // - ranking: Constraint-based ranking
+    // - generating_reply: Reply generation
+    // - generating: Follow-up question generation (for vague queries)
+    // - handling_unrelated: Irrelevant queries
+    // - complete: All done
+    // All stages are now supported via STAGE_LABELS with proper fallbacks
     return STAGE_LABELS[stage] || STAGE_LABELS.understanding;
   };
 

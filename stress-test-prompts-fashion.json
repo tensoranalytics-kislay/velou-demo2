@@ -1,0 +1,469 @@
+{
+  "testSuites": [
+    {
+      "id": "1",
+      "name": "Discovery Queries - Multi-Attribute Product Search",
+      "description": "Tests natural language product discovery with multiple fashion-specific attributes",
+      "capability": "Discovery queries with complex attribute extraction",
+      "turns": [
+        {
+          "turn": 1,
+          "message": "Show me a floral maxi dress for a beach wedding under $400",
+          "expectedType": "new_search",
+          "expectedConstraints": {
+            "category": ["Women's Dresses", "Maxi Dress"],
+            "pattern": ["Floral"],
+            "occasion": ["Beach Wedding"],
+            "priceMaxCents": 40000
+          },
+          "notes": "Should extract multiple fashion attributes: pattern, occasion, length, price"
+        },
+        {
+          "turn": 2,
+          "message": "Make it more casual, like something I could wear to a daytime brunch",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "occasion": ["Daytime", "Casual"],
+            "category": ["Women's Dresses", "Maxi Dress"]
+          },
+          "notes": "Should update occasion while maintaining category and other constraints"
+        },
+        {
+          "turn": 3,
+          "message": "Actually, I prefer a mini dress instead",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "length": ["Mini"],
+            "category": ["Mini Dress"]
+          },
+          "notes": "Should update length/category while maintaining pattern, occasion, price"
+        },
+        {
+          "turn": 4,
+          "message": "Show me it in white or cream",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "colors": ["White", "Cream"]
+          },
+          "notes": "Should add color constraint to existing search"
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "name": "Context Carry-Over and Constraint Merging",
+      "description": "Tests maintaining conversation context across multiple refinements",
+      "capability": "Context management and constraint merging",
+      "turns": [
+        {
+          "turn": 1,
+          "message": "I need something elegant for a formal evening event",
+          "expectedType": "new_search",
+          "expectedConstraints": {
+            "occasion": ["Evening", "Formal"],
+            "styleTags": ["elegant"]
+          },
+          "notes": "Initial vague query with occasion and style"
+        },
+        {
+          "turn": 2,
+          "message": "Show me dresses",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "category": ["Women's Dresses"],
+            "occasion": ["Evening", "Formal"],
+            "styleTags": ["elegant"]
+          },
+          "notes": "Should merge category with existing constraints"
+        },
+        {
+          "turn": 3,
+          "message": "Under $500",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "priceMaxCents": 50000
+          },
+          "notes": "Should add price while maintaining all previous constraints"
+        },
+        {
+          "turn": 4,
+          "message": "Preferably silk or chiffon",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "materials": ["Silk", "Chiffon"]
+          },
+          "notes": "Should add material constraint, maintain all others"
+        },
+        {
+          "turn": 5,
+          "message": "Size 6",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "sizes": ["6"]
+          },
+          "notes": "Final refinement - all constraints should be maintained"
+        }
+      ]
+    },
+    {
+      "id": "3",
+      "name": "Category Switching Detection",
+      "description": "Tests distinguishing between follow-up refinements and new searches",
+      "capability": "Thread type detection (follow_up vs new_search)",
+      "turns": [
+        {
+          "turn": 1,
+          "message": "Show me tops under $200",
+          "expectedType": "new_search",
+          "expectedConstraints": {
+            "category": ["Tops"],
+            "priceMaxCents": 20000
+          },
+          "notes": "Initial search for tops"
+        },
+        {
+          "turn": 2,
+          "message": "Make it black",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "colors": ["Black"]
+          },
+          "notes": "Refinement - should maintain category and price"
+        },
+        {
+          "turn": 3,
+          "message": "Actually, show me swimsuits instead",
+          "expectedType": "new_search",
+          "expectedConstraints": {
+            "category": ["Swimsuits", "Bikini Sets"]
+          },
+          "notes": "Category change - should reset category, may keep price"
+        },
+        {
+          "turn": 4,
+          "message": "Under $150",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "priceMaxCents": 15000
+          },
+          "notes": "Refinement after category switch - should update price for swimsuits"
+        },
+        {
+          "turn": 5,
+          "message": "Now show me loungewear",
+          "expectedType": "new_search",
+          "expectedConstraints": {
+            "category": ["Loungewear"]
+          },
+          "notes": "Another category change - should reset again"
+        }
+      ]
+    },
+    {
+      "id": "4",
+      "name": "Vague and Underspecified Queries",
+      "description": "Tests handling unclear requests and asking clarifying questions",
+      "capability": "Vague query handling and clarification",
+      "turns": [
+        {
+          "turn": 1,
+          "message": "Something nice for summer",
+          "expectedType": "new_search",
+          "expectedConstraints": {
+            "seasons": ["Summer"]
+          },
+          "notes": "Very vague - may trigger clarifying questions or broad results"
+        },
+        {
+          "turn": 2,
+          "message": "Dresses",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "category": ["Women's Dresses"]
+          },
+          "notes": "Partial clarification - should add category, maintain season"
+        },
+        {
+          "turn": 3,
+          "message": "Something I can wear to the beach",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "occasion": ["Beach"],
+            "useCases": ["beach"]
+          },
+          "notes": "Still somewhat vague but adds occasion context"
+        },
+        {
+          "turn": 4,
+          "message": "Floral patterns, under $300",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "pattern": ["Floral"],
+            "priceMaxCents": 30000
+          },
+          "notes": "More specific - should add pattern and price constraints"
+        }
+      ]
+    },
+    {
+      "id": "5",
+      "name": "PDP Suitability Queries",
+      "description": "Tests product-specific Q&A and suitability assessment",
+      "capability": "PDP context queries and product evaluation",
+      "turns": [
+        {
+          "turn": 1,
+          "message": "Show me mini dresses",
+          "expectedType": "new_search",
+          "expectedConstraints": {
+            "category": ["Mini Dress"],
+            "length": ["Mini"]
+          },
+          "notes": "Initial discovery query"
+        },
+        {
+          "turn": 2,
+          "message": "Is the first one appropriate for a wedding?",
+          "expectedType": "pdp_suitability",
+          "expectedConstraints": {
+            "occasion": ["Wedding"]
+          },
+          "notes": "Product-specific question - should evaluate product attributes for wedding suitability"
+        },
+        {
+          "turn": 3,
+          "message": "What about for the office?",
+          "expectedType": "pdp_suitability",
+          "expectedConstraints": {
+            "occasion": ["Office"]
+          },
+          "notes": "Another product suitability question for different occasion"
+        },
+        {
+          "turn": 4,
+          "message": "Does it wrinkle easily?",
+          "expectedType": "pdp_suitability",
+          "expectedConstraints": {},
+          "notes": "Material/care question - should reference product's material and care attributes"
+        }
+      ]
+    },
+    {
+      "id": "6",
+      "name": "Constraint Relaxation and No-Results Handling",
+      "description": "Tests handling over-constrained queries and finding closest matches",
+      "capability": "Query relaxation and rescue search",
+      "turns": [
+        {
+          "turn": 1,
+          "message": "Show me a red silk maxi dress with long sleeves, v-neck, floral pattern, under $200, size 4, for a formal wedding",
+          "expectedType": "new_search",
+          "expectedConstraints": {
+            "category": ["Maxi Dress"],
+            "colors": ["Red"],
+            "materials": ["Silk"],
+            "sleeveLengths": ["Long"],
+            "necklines": ["V-Neck"],
+            "pattern": ["Floral"],
+            "priceMaxCents": 20000,
+            "sizes": ["4"],
+            "occasion": ["Formal", "Wedding"]
+          },
+          "notes": "Over-constrained query - may return no results, should trigger rescue search"
+        },
+        {
+          "turn": 2,
+          "message": "Show me close matches, price can be higher",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "priceMaxCents": null
+          },
+          "notes": "Explicit relaxation request - should remove or increase price constraint"
+        },
+        {
+          "turn": 3,
+          "message": "Actually, any neckline is fine",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "necklines": null
+          },
+          "notes": "Further relaxation - should remove neckline constraint"
+        },
+        {
+          "turn": 4,
+          "message": "Floral or solid is okay",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "pattern": ["Floral", "Solid"]
+          },
+          "notes": "Pattern flexibility - should expand pattern options"
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "name": "Complex Multi-Attribute Fashion Queries",
+      "description": "Tests handling fashion-specific attributes (style, fit, embellishments, collections)",
+      "capability": "Fashion-specific attribute extraction",
+      "turns": [
+        {
+          "turn": 1,
+          "message": "I'm looking for a fitted A-line dress with lace embellishments for a holiday party",
+          "expectedType": "new_search",
+          "expectedConstraints": {
+            "category": ["Women's Dresses"],
+            "fits": ["Fitted"],
+            "styles": ["A-Line"],
+            "embellishments": ["Lace"],
+            "occasion": ["Holiday", "Party"]
+          },
+          "notes": "Complex query with multiple fashion-specific attributes"
+        },
+        {
+          "turn": 2,
+          "message": "From the Holiday collection if available",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "collections": ["Holiday"]
+          },
+          "notes": "Should add collection constraint while maintaining all others"
+        },
+        {
+          "turn": 3,
+          "message": "In navy or burgundy, midi length",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "colors": ["Navy", "Burgundy"],
+            "length": ["Midi"]
+          },
+          "notes": "Should add color and length, maintain style, fit, embellishments, occasion, collection"
+        },
+        {
+          "turn": 4,
+          "message": "With sleeves, not sleeveless",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "sleeveLengths": ["Short", "Long", "Three Quarter"]
+          },
+          "notes": "Should add sleeve preference, exclude sleeveless"
+        }
+      ]
+    },
+    {
+      "id": "8",
+      "name": "Long Multi-Turn Conversation with Context Switches",
+      "description": "Tests maintaining and switching context through extended conversations",
+      "capability": "Extended conversation context management",
+      "turns": [
+        {
+          "turn": 1,
+          "message": "I need an outfit for a beach wedding",
+          "expectedType": "new_search",
+          "expectedConstraints": {
+            "occasion": ["Beach Wedding"]
+          },
+          "notes": "Initial vague query"
+        },
+        {
+          "turn": 2,
+          "message": "Show me dresses",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "category": ["Women's Dresses"]
+          },
+          "notes": "Category specification - should maintain occasion"
+        },
+        {
+          "turn": 3,
+          "message": "Something flowy and romantic",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "styleTags": ["romantic"]
+          },
+          "notes": "Style refinement - should maintain category and occasion"
+        },
+        {
+          "turn": 4,
+          "message": "Under $350",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "priceMaxCents": 35000
+          },
+          "notes": "Price constraint - should maintain all previous constraints"
+        },
+        {
+          "turn": 5,
+          "message": "Actually, I also need a swimsuit for the trip",
+          "expectedType": "new_search",
+          "expectedConstraints": {
+            "category": ["Swimsuits", "Bikini Sets"]
+          },
+          "notes": "Category switch - should reset to swimsuits, may keep price or reset"
+        },
+        {
+          "turn": 6,
+          "message": "One-piece, under $200",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "priceMaxCents": 20000
+          },
+          "notes": "Swimsuit refinement - should maintain swimsuit category"
+        },
+        {
+          "turn": 7,
+          "message": "Back to the dresses - show me maxi length",
+          "expectedType": "new_search",
+          "expectedConstraints": {
+            "category": ["Women's Dresses"],
+            "length": ["Maxi"]
+          },
+          "notes": "Return to dresses - may need to restore previous dress constraints"
+        },
+        {
+          "turn": 8,
+          "message": "In white or ivory",
+          "expectedType": "follow_up",
+          "expectedConstraints": {
+            "colors": ["White", "Ivory"]
+          },
+          "notes": "Final refinement - should maintain all dress constraints"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "catalog": "LoveShackFancy",
+    "vertical": "Fashion/Apparel",
+    "description": "Comprehensive stress test prompts for fashion shopping assistant covering all core capabilities",
+    "capabilities": [
+      "Discovery queries with multi-attribute extraction",
+      "Context carry-over and constraint merging",
+      "Category switching detection",
+      "Vague query handling",
+      "PDP suitability queries",
+      "Constraint relaxation",
+      "Fashion-specific attributes",
+      "Extended conversation management"
+    ]
+  },
+  "usage": {
+    "description": "Use this JSON file for automated testing of the fashion shopping assistant",
+    "fields": {
+      "expectedType": "Either 'new_search', 'follow_up', or 'pdp_suitability' - the expected threadType from context gatekeeper",
+      "message": "The user message to send to the assistant",
+      "expectedConstraints": "Partial constraint object showing what should be extracted/updated",
+      "notes": "Additional context about what to verify"
+    },
+    "testing": [
+      "Run each test suite sequentially with a fresh session",
+      "Verify that threadType matches expectedType",
+      "Check that constraints match expectedConstraints (partial match is acceptable)",
+      "Validate that category switches trigger new_search",
+      "Monitor response times (should be under 4 seconds)",
+      "Check error handling for edge cases",
+      "Verify product relevance to queries"
+    ]
+  }
+}
+

@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       });
 
       if (!selectedProduct) {
-        return NextResponse.json({ suggestions: ['What are the ingredients?', 'How do I use this?', 'What are the benefits?'] });
+        return NextResponse.json({ suggestions: ['What size should I get?', 'What occasions is this suitable for?', 'What material is this made from?'] });
       }
 
       // No need to fetch similar products - we only want questions about the selected product
@@ -45,9 +45,9 @@ You will be given:
 - selectedProduct: the product the shopper clicked on.
 
 Each product may contain:
-id, title, category, subcategory, productTypes, brand, priceCents,
-and attributes such as ingredients, concerns, skinTypes, scents,
-applicationAreas, formats, SPF, size, etc.
+id, title, category, subcategory, brand, priceCents,
+and attributes such as Style, Length, Occasion, Pattern, Material,
+Neckline, SleeveLength, Fit, Size, Color, Collection, Embellishment, etc.
 
 YOUR GOAL
 Generate 3 concise, specific question-style prompts that help the shopper learn
@@ -62,25 +62,25 @@ These prompts must:
 EXAMPLES OF GOOD ANGLES
 (Only use angles actually supported by the selectedProduct data.)
 
-- INGREDIENTS & COMPOSITION
-  - "What are the main ingredients?"
-  - "Is this fragrance-free?"
-  - "Does this contain [specific ingredient]?"
+- SIZE & FIT
+  - "What size should I get?"
+  - "Does this run true to size?"
+  - "What's the fit like?"
 
-- SUITABILITY & FIT
-  - "Is this good for [skinType/concern]?"
-  - "Can I use this if I have [condition]?"
-  - "Is this suitable for [applicationArea]?"
+- OCCASION & STYLING
+  - "What occasions is this suitable for?"
+  - "Can I wear this to a wedding?"
+  - "Is this appropriate for the office?"
 
-- USAGE & APPLICATION
-  - "How do I use this?"
-  - "When should I apply this?"
-  - "Can I use this daily?"
+- CARE & MATERIAL
+  - "Is this machine washable?"
+  - "How do I care for this?"
+  - "What material is this made from?"
 
-- BENEFITS & RESULTS
-  - "What does this help with?"
-  - "What are the benefits?"
-  - "Will this help with [concern]?"
+- STYLE & DESIGN
+  - "What style is this?"
+  - "What pattern does this have?"
+  - "What color options are available?"
 
 CRITICAL RULES
 1. ONLY ask questions about the selectedProduct - NEVER suggest other products, alternatives, or similar items
@@ -131,7 +131,7 @@ Return the JSON object only (this message includes the word JSON).`;
     }
 
     // Pull a small, real product set the LLM can rely on.
-    // topProducts: newest 8 in-stock
+    // topProducts: newest 4 in-stock
     // candidateProducts: next 40 in-stock
     const [topProducts, candidateProducts] = await Promise.all([
       prisma.product.findMany({
@@ -146,7 +146,7 @@ Return the JSON object only (this message includes the word JSON).`;
           priceCents: true,
           attributes: true,
         },
-        take: 8,
+        take: 4,
       }),
       prisma.product.findMany({
         where: { stockStatus: { in: ['in_stock', 'low_stock'] } },
@@ -160,7 +160,7 @@ Return the JSON object only (this message includes the word JSON).`;
           priceCents: true,
           attributes: true,
         },
-        skip: 8,
+        skip: 4,
         take: 40,
       }),
     ]);
@@ -175,20 +175,20 @@ Return the JSON object only (this message includes the word JSON).`;
 You are a shopping assistant that suggests follow-up search queries.
 
 You will be given:
-- userQuery: the shopper’s last message.
-- topProducts: up to 8 products currently shown in the product card.
+- userQuery: the shopper's last message.
+- topProducts: up to 4 products currently shown in the product card.
 - candidateProducts: up to 40 additional relevant products from the catalog.
 
 Each product may contain:
-id, title, category, subcategory, productTypes, brand, priceCents,
-and attributes such as ingredients, concerns, skinTypes, scents,
-applicationAreas, formats, SPF, etc.
+id, title, category, subcategory, brand, priceCents,
+and attributes such as Style, Length, Occasion, Pattern, Material,
+Neckline, SleeveLength, Fit, Size, Color, Collection, Embellishment, etc.
 
 YOUR GOAL
 Suggest 3 short follow-up search queries that:
 - are GUARANTEED to match at least one product in (topProducts ∪ candidateProducts),
 - stay in broadly the same category / productTypes as the products already shown,
-- surface something NEW compared to the current top 8 products (different filters, facets, or angles).
+- surface something NEW compared to the current top 4 products (different filters, facets, or angles).
 
 RULES
 1) Dataset-driven only: build suggestions only from values present in the provided products.
@@ -265,7 +265,10 @@ function buildFallback(
     if (p.subcategory) categories.add(p.subcategory);
     const attrs = p.attributes as Record<string, any> | null;
     if (attrs) {
-      ['ingredients', 'concerns', 'skinTypes', 'scents', 'applicationAreas', 'formats', 'SPF'].forEach((key) => {
+      // Fashion-specific attributes
+      ['Style', 'style', 'Length', 'length', 'Occasion', 'occasion', 'Pattern', 'pattern', 
+       'Material', 'material', 'Collection', 'collection', 'Color', 'color', 'Fit', 'fit',
+       'Neckline', 'neckline', 'SleeveLength', 'sleeveLength', 'Embellishment', 'embellishment'].forEach((key) => {
         const val = (attrs as any)[key];
         if (Array.isArray(val)) val.forEach((v) => typeof v === 'string' && facets.add(v));
         else if (typeof val === 'string') facets.add(val);
@@ -277,9 +280,9 @@ function buildFallback(
   const facet = Array.from(facets).filter(Boolean).slice(0, 3);
 
   const suggestions: string[] = [];
-  if (cat[0] && facet[0]) suggestions.push(`${cat[0]} with ${facet[0]}`);
+  if (cat[0] && facet[0]) suggestions.push(`${cat[0]} ${facet[0]}`);
   if (cat[1] && facet[1]) suggestions.push(`${cat[1]} for ${facet[1]}`);
-  if (cat[0]) suggestions.push(`${cat[0]} under $100`);
+  if (cat[0]) suggestions.push(`${cat[0]} under $500`);
 
   return suggestions
     .map((s) => s.trim())
@@ -292,45 +295,50 @@ function buildProductFallback(
 ): string[] {
   const attrs = selected.attributes as Record<string, any> | null;
 
-  const skinType =
-    (attrs?.skinTypes && Array.isArray(attrs.skinTypes) && attrs.skinTypes[0]) ||
-    (attrs?.skinType as string | undefined);
-  const concern =
-    (attrs?.concerns && Array.isArray(attrs.concerns) && attrs.concerns[0]) ||
-    (attrs?.concern as string | undefined);
-  const ingredients =
-    (attrs?.ingredients && Array.isArray(attrs.ingredients) && attrs.ingredients.length > 0) ||
-    (attrs?.featuredIngredients && Array.isArray(attrs.featuredIngredients) && attrs.featuredIngredients.length > 0) ||
-    (attrs?.mustHaveIngredients && Array.isArray(attrs.mustHaveIngredients) && attrs.mustHaveIngredients.length > 0);
-  const applicationArea =
-    (attrs?.applicationAreas && Array.isArray(attrs.applicationAreas) && attrs.applicationAreas[0]) ||
-    (attrs?.applicationArea as string | undefined);
+  // Fashion-specific attributes
+  const style = 
+    (attrs?.Style && Array.isArray(attrs.Style) && attrs.Style[0]) ||
+    (attrs?.style as string | undefined);
+  const occasion =
+    (attrs?.Occasion && Array.isArray(attrs.Occasion) && attrs.Occasion[0]) ||
+    (attrs?.occasion as string | undefined);
+  const material =
+    (attrs?.Material && Array.isArray(attrs.Material) && attrs.Material[0]) ||
+    (attrs?.material as string | undefined);
+  const length =
+    (attrs?.Length && Array.isArray(attrs.Length) && attrs.Length[0]) ||
+    (attrs?.length as string | undefined);
+  const fit =
+    (attrs?.Fit && Array.isArray(attrs.Fit) && attrs.Fit[0]) ||
+    (attrs?.fit as string | undefined);
 
   const prompts: string[] = [];
   
   // Focus on product-specific questions only
-  if (skinType) {
-    prompts.push(`Is this good for ${skinType}?`);
-  } else if (concern) {
-    prompts.push(`Does this help with ${concern}?`);
+  if (occasion) {
+    prompts.push(`What occasions is this suitable for?`);
+  } else if (style) {
+    prompts.push(`What style is this?`);
   }
 
-  if (ingredients) {
-    prompts.push(`What are the ingredients?`);
+  if (material) {
+    prompts.push(`What material is this made from?`);
   }
 
-  if (applicationArea) {
-    prompts.push(`How do I use this?`);
+  if (length) {
+    prompts.push(`What length is this?`);
+  } else if (fit) {
+    prompts.push(`What's the fit like?`);
   } else {
-    prompts.push(`What are the benefits?`);
+    prompts.push(`What size should I get?`);
   }
 
   // Fill remaining slots with generic product questions
   if (prompts.length < 3) {
-    prompts.push(`What is this product?`);
+    prompts.push(`Is this machine washable?`);
   }
   if (prompts.length < 3) {
-    prompts.push(`How should I apply this?`);
+    prompts.push(`What color options are available?`);
   }
 
   return prompts
@@ -357,23 +365,18 @@ function getDefaultSuggestions(
   );
   const topCategory = (vertical ? popularCategories[0] : nonApparelCategories[0]) || 'products';
 
-  if (vertical === 'skincare' || vertical === 'beauty') {
+  // Fashion vertical (LoveShackFancy)
+  if (vertical === 'apparel' || vertical === 'fashion') {
     return [
-      `moisturizer ${priceLabel}`,
-      'serum for dry skin',
-      'night routine products',
+      `dresses ${priceLabel}`,
+      'floral maxi dresses',
+      'casual day dresses',
     ];
   } else if (vertical === 'home' || vertical === 'home decor' || vertical === 'furniture') {
     return [
       `${topCategory} ${priceLabel}`,
       'bathroom essentials',
       'bedroom decor',
-    ];
-  } else if (vertical === 'apparel' || vertical === 'fashion') {
-    return [
-      'flare jeans under $50',
-      'dresses date night under $200',
-      'skinny jeans under $100',
     ];
   } else {
     // Generic fallback - avoid using apparel categories when vertical is unknown
@@ -563,7 +566,10 @@ async function generateMessageBasedPrompts(
   attributeSamples.forEach(p => {
     const attrs = p.attributes as any;
     if (attrs) {
-      ['usage_contexts', 'benefits', 'compatibility', 'style_tags'].forEach(attrKey => {
+      // Fashion-specific attributes
+      ['Style', 'style', 'Length', 'length', 'Occasion', 'occasion', 'Pattern', 'pattern', 
+       'Material', 'material', 'Collection', 'collection', 'Color', 'color', 'Fit', 'fit',
+       'Neckline', 'neckline', 'SleeveLength', 'sleeveLength', 'Embellishment', 'embellishment'].forEach(attrKey => {
         if (Array.isArray(attrs[attrKey])) {
           if (!actualAttributes[attrKey]) actualAttributes[attrKey] = new Set();
           attrs[attrKey].forEach((val: string) => {
@@ -589,12 +595,15 @@ async function generateMessageBasedPrompts(
     });
   });
   
-  // Also check for common attribute keywords
+  // Also check for common attribute keywords (fashion-focused)
   const attributeKeywords = [
-    'dry', 'oily', 'sensitive', 'normal', 'combination',
-    'moisturizing', 'hydrating', 'anti-aging', 'brightening',
-    'fragrance-free', 'vegan', 'organic', 'natural',
-    'casual', 'formal', 'office', 'beach', 'winter', 'summer',
+    'casual', 'formal', 'office', 'beach', 'wedding', 'vacation',
+    'winter', 'summer', 'spring', 'fall',
+    'fitted', 'oversized', 'regular', 'relaxed',
+    'floral', 'striped', 'solid', 'polka dot',
+    'cotton', 'silk', 'linen', 'chiffon',
+    'mini', 'maxi', 'midi', 'knee-length',
+    'sleeveless', 'short sleeve', 'long sleeve',
   ];
   
   attributeKeywords.forEach(keyword => {
@@ -701,12 +710,10 @@ Price ranges: ${priceTiers.map(t => t.label).join(', ')}
 
   // Build industry-agnostic assistant description
   let assistantDescription = 'a shopping assistant helping users find products';
-  if (vertical === 'skincare' || vertical === 'beauty' || vertical === 'health & beauty') {
-    assistantDescription = 'a beauty assistant helping users find skincare and beauty products';
+  if (vertical === 'apparel' || vertical === 'fashion') {
+    assistantDescription = 'a fashion assistant helping users find clothing and accessories';
   } else if (vertical === 'home' || vertical === 'home decor') {
     assistantDescription = 'a home assistant helping users find home decor and furnishings';
-  } else if (vertical === 'apparel' || vertical === 'fashion') {
-    assistantDescription = 'a shopping assistant helping users find fashion items';
   }
 
   const prompt = `You are ${assistantDescription}. Based on the user's last message, generate 3 detailed and specific follow-up search prompts that would help them refine or explore related items.
@@ -737,27 +744,23 @@ CRITICAL RULES:
 
 ${examplesContext ? `Use these example patterns as inspiration: ${recommendedExamples.slice(0, 3).map(ex => `"${ex}"`).join(', ')}` : ''}
 
-${vertical === 'skincare' || vertical === 'beauty' || vertical === 'health & beauty'
-  ? 'Examples: "moisturizer for dry skin under $40", "night routine serum with hyaluronic acid", "sensitive skin cleanser fragrance-free"'
-  : vertical === 'home' || vertical === 'home decor'
-  ? 'Examples: "bathroom towels under $50 soft and absorbent", "minimalist bedroom decor neutral colors", "spa-like essentials for relaxation"'
-  : vertical === 'apparel' || vertical === 'fashion'
-  ? 'Examples: "flare jeans under $50 high-waisted", "black straight leg jeans for casual wear", "wide leg pants in neutral colors"'
-  : popularCategories.length > 0
-  ? `Examples: "${popularCategories[0]} ${primaryFacets.length > 0 ? `for ${primaryFacets[0]}` : ''} ${priceTiers.length > 0 ? priceTiers[0].label : ''}", "${popularCategories.length > 1 ? popularCategories[1] : popularCategories[0]} ${primaryFacets.length > 1 ? `with ${primaryFacets[1]}` : ''}", "${popularCategories[0]} ${popularColors.length > 0 ? popularColors[0] : ''} ${priceTiers.length > 0 ? priceTiers[0].label : ''}"`
-  : 'Examples: "popular items with great reviews", "best sellers under $100", "featured products for daily use"'
+${vertical === 'apparel' || vertical === 'fashion'
+    ? 'Examples: "floral maxi dresses for beach wedding", "casual day dresses under $400", "elegant evening dresses with lace"'
+    : vertical === 'home' || vertical === 'home decor'
+    ? 'Examples: "bathroom towels under $50 soft and absorbent", "minimalist bedroom decor neutral colors", "spa-like essentials for relaxation"'
+    : popularCategories.length > 0
+    ? `Examples: "${popularCategories[0]} ${primaryFacets.length > 0 ? `for ${primaryFacets[0]}` : ''} ${priceTiers.length > 0 ? priceTiers[0].label : ''}", "${popularCategories.length > 1 ? popularCategories[1] : popularCategories[0]} ${primaryFacets.length > 1 ? `with ${primaryFacets[1]}` : ''}", "${popularCategories[0]} ${popularColors.length > 0 ? popularColors[0] : ''} ${priceTiers.length > 0 ? priceTiers[0].label : ''}"`
+    : 'Examples: "popular items with great reviews", "best sellers under $100", "featured products for daily use"'
 }
 
 Format: Return ONLY a JSON array of exactly 3 strings, no other text.
-${vertical === 'skincare' || vertical === 'beauty' || vertical === 'health & beauty'
-  ? 'Example: ["moisturizer for dry skin under $40", "night routine serum with hyaluronic acid", "sensitive skin cleanser fragrance-free"]'
-  : vertical === 'home' || vertical === 'home decor'
-  ? 'Example: ["bathroom towels under $50 soft and absorbent", "minimalist bedroom decor neutral colors", "spa-like essentials for relaxation"]'
-  : vertical === 'apparel' || vertical === 'fashion'
-  ? 'Example: ["flare jeans under $50 high-waisted", "black straight leg jeans for casual wear", "wide leg pants in neutral colors"]'
-  : popularCategories.length > 0
-  ? `Example: ["${popularCategories[0]} ${primaryFacets.length > 0 ? `for ${primaryFacets[0]}` : ''} ${priceTiers.length > 0 ? priceTiers[0].label : ''}", "${popularCategories.length > 1 ? popularCategories[1] : popularCategories[0]} ${primaryFacets.length > 1 ? `with ${primaryFacets[1]}` : ''}", "${popularCategories[0]} ${popularColors.length > 0 ? popularColors[0] : ''} ${priceTiers.length > 0 ? priceTiers[0].label : ''}"]`
-  : 'Example: ["popular items with great reviews", "best sellers under $100", "featured products for daily use"]'
+${vertical === 'apparel' || vertical === 'fashion'
+    ? 'Example: ["floral maxi dresses for beach wedding", "casual day dresses under $400", "elegant evening dresses with lace"]'
+    : vertical === 'home' || vertical === 'home decor'
+    ? 'Example: ["bathroom towels under $50 soft and absorbent", "minimalist bedroom decor neutral colors", "spa-like essentials for relaxation"]'
+    : popularCategories.length > 0
+    ? `Example: ["${popularCategories[0]} ${primaryFacets.length > 0 ? `for ${primaryFacets[0]}` : ''} ${priceTiers.length > 0 ? priceTiers[0].label : ''}", "${popularCategories.length > 1 ? popularCategories[1] : popularCategories[0]} ${primaryFacets.length > 1 ? `with ${primaryFacets[1]}` : ''}", "${popularCategories[0]} ${popularColors.length > 0 ? popularColors[0] : ''} ${priceTiers.length > 0 ? priceTiers[0].label : ''}"]`
+    : 'Example: ["popular items with great reviews", "best sellers under $100", "featured products for daily use"]'
 }
 
 Return the JSON array:`;

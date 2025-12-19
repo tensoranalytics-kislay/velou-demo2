@@ -14,7 +14,8 @@ export type ChatMessage = {
   content: string;
   productCards?: ProductCard[];
   noExactMatch?: boolean;
-  followupText?: string;
+  followupText?: string; // Legacy - for non-product follow-ups
+  replyTextAfter?: string; // Second part of reply (after product cards) - for product recommendations
   actions?: ActionProposal[];
 };
 
@@ -63,14 +64,15 @@ export default function MessageList({ messages, onProductClick, onProductAsk, on
           )}
 
           {/* Optional follow-up text that appears after product cards, aligned as an assistant message */}
-          {message.role === 'assistant' && message.followupText && (
+          {/* Prioritize replyTextAfter for product recommendations, fallback to followupText for other cases */}
+          {message.role === 'assistant' && (message.replyTextAfter || message.followupText) && (
             <div className="mt-6 sm:mt-8 flex items-start gap-3 pt-2 sm:pt-3">
               <div className="flex-shrink-0">
                 <AssistantAvatar />
               </div>
               <div className="flex-1 min-w-0 flex justify-start">
                 <div className="max-w-[95%] md:max-w-[80%] min-w-0">
-                  <MarkdownText content={message.followupText} className="text-black" />
+                  <MarkdownText content={message.replyTextAfter || message.followupText || ''} className="text-black" />
                 </div>
               </div>
             </div>

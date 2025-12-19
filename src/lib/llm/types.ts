@@ -32,21 +32,21 @@ export type QueryType = 'discovery' | 'product_qa' | 'non_contextual';
 export type ProgressCallback = (stage: QueryStage, progress: number) => void;
 
 export const STAGE_PROGRESS: Record<QueryStage, number> = {
-  understanding: 20,
+  understanding: 20, // Covers classification, parsing, constraint merging
   searching: 45,
   evaluating: 70,
-  generating: 90,
-  loading_product: 25,
-  analyzing: 60,
-  answering: 90,
+  generating: 60, // Follow-up generation for vague queries
+  loading_product: 10, // PDP: Loading product details
+  analyzing: 40, // PDP: Analyzing product information
+  answering: 80, // PDP: Generating answer
   completing: 95, // Non-contextual: finalizing response
-  safety_check: 10,
+  safety_check: 5, // Safety & domain gate
   routing: 15,
-  classifying: 25,
-  retrieving: 50,
-  ranking: 70,
-  generating_reply: 90,
-  handling_unrelated: 30,
+  classifying: 25, // Category classification
+  retrieving: 50, // Multi-view retrieval
+  ranking: 70, // Constraint-based ranking
+  generating_reply: 90, // Reply generation
+  handling_unrelated: 30, // Irrelevant queries
   complete: 100,
 };
 
@@ -58,14 +58,14 @@ export const STAGE_LABELS: Record<QueryStage, string> = {
   loading_product: 'Loading product details...',
   analyzing: 'Analyzing product information...',
   answering: 'Generating answer...',
-  completing: 'Finalizing response...', // Non-contextual: finalizing response
+  completing: 'Finalizing response...',
   safety_check: 'Checking query...',
   routing: 'Understanding your intent...',
   classifying: 'Understanding what you\'re looking for...',
   retrieving: 'Searching our catalog...',
   ranking: 'Finding the best matches...',
   generating_reply: 'Crafting recommendations...',
-  handling_unrelated: 'Preparing a helpful response...', // For unrelated/non-shopping/unsafe queries
+  handling_unrelated: 'Preparing a helpful response...',
   complete: 'Almost done...',
 };
 
