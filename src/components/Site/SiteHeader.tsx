@@ -1,7 +1,7 @@
 const navLinks = [
-  { label: 'Moisturizers', href: '#' },
-  { label: 'Hand creams', href: '#' },
-  { label: 'Shower gels', href: '#' },
+  { label: 'Dresses', href: '#' },
+  { label: 'Tops', href: '#' },
+  { label: 'Accessories', href: '#' },
 ];
 
 export default function SiteHeader() {
