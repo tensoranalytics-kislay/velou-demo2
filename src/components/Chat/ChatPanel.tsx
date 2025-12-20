@@ -588,6 +588,88 @@ export default function ChatPanel() {
     setTimeout(() => scrollToBottom('smooth'), 400);
   };
 
+  const handleProductFindSimilar = async (productId: string, productTitle: string, productImageUrl: string) => {
+    try {
+      // Call API to get similar products
+      const response = await fetch(`/api/products/${productId}/similar`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        let errorDetails: any = { status: response.status, statusText: response.statusText };
+        try {
+          const errorData = await response.json();
+          errorDetails = { ...errorDetails, ...errorData };
+        } catch {
+          // If response body can't be parsed, use status text
+        }
+        throw new Error(`API returned ${response.status}: ${JSON.stringify(errorDetails)}`);
+      }
+
+      const data = await response.json();
+      const productCards: ProductCard[] = data.productCards || [];
+
+      // Create assistant message with similar products
+      const assistantMessage: ChatMessage = {
+        id: createId(),
+        role: 'assistant',
+        content: productCards.length > 0 
+          ? `Here are similar products to ${productTitle}:`
+          : `I couldn't find similar products to ${productTitle} at this time.`,
+        productCards: productCards,
+      };
+
+      // Add message to chat
+      setMessages((prev) => [...prev, assistantMessage]);
+      
+      // Scroll to bottom after message is added
+      setTimeout(() => scrollToBottom('smooth'), 50);
+      setTimeout(() => scrollToBottom('smooth'), 200);
+      setTimeout(() => scrollToBottom('smooth'), 400);
+    } catch (error) {
+      // Safely extract error information
+      let errorDetails: Record<string, unknown> = {
+        productId,
+        productTitle,
+      };
+      
+      if (error instanceof Error) {
+        errorDetails = {
+          ...errorDetails,
+          message: error.message,
+          name: error.name,
+          stack: error.stack,
+        };
+      } else if (typeof error === 'object' && error !== null) {
+        // Try to extract properties from the error object
+        try {
+          errorDetails = {
+            ...errorDetails,
+            ...Object.fromEntries(Object.entries(error).filter(([_, v]) => v !== undefined)),
+          };
+        } catch {
+          // If we can't extract properties, use string representation
+          errorDetails.errorString = String(error);
+        }
+      } else {
+        errorDetails.error = String(error);
+      }
+      
+      console.error('find_similar_products_error', errorDetails);
+      
+      // Show error message to user
+      const userErrorMessage: ChatMessage = {
+        id: createId(),
+        role: 'assistant',
+        content: 'I encountered an error finding similar products. Please try again.',
+      };
+      
+      setMessages((prev) => [...prev, userErrorMessage]);
+      setTimeout(() => scrollToBottom('smooth'), 50);
+    }
+  };
+
   const handleSendMessage = async (message: string, overrideProductContextId?: string, searchMethods?: { lexical: boolean; semantic: boolean; concept: boolean }, actionId?: string) => {
     console.log('[ChatPanel] handleSendMessage called');
     console.log('[ChatPanel] searchMethods received:', searchMethods);
@@ -807,6 +889,7 @@ export default function ChatPanel() {
           messages={messages} 
           onProductClick={handleProductClick} 
           onProductAsk={handleProductAsk}
+          onProductFindSimilar={handleProductFindSimilar}
           onActionClick={(actionId) => {
             // Find the action label from the last assistant message to show in UI
             const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant' && m.actions);

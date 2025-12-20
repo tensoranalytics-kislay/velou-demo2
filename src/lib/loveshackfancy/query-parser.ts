@@ -71,6 +71,42 @@ export async function parseQuery(
 
     const parsed = JSON.parse(result.rawText) as QueryParseResult;
     
+    // CRITICAL: Post-process to fix misclassified colors
+    // Move color terms that were incorrectly classified as patterns to colors
+    const colorTerms = ['Cherry', 'Crimson', 'Scarlet', 'Burgundy', 'Maroon', 'Rose', 'Coral', 'Salmon', 'Rust', 'Terracotta'];
+    if (parsed.constraints.patterns && parsed.constraints.patterns.length > 0) {
+      const misclassifiedColors: string[] = [];
+      const remainingPatterns: string[] = [];
+      
+      for (const pattern of parsed.constraints.patterns) {
+        const patternLower = pattern.toLowerCase();
+        const isColorTerm = colorTerms.some(color => color.toLowerCase() === patternLower);
+        
+        if (isColorTerm) {
+          misclassifiedColors.push(pattern);
+        } else {
+          remainingPatterns.push(pattern);
+        }
+      }
+      
+      if (misclassifiedColors.length > 0) {
+        // Move misclassified colors from patterns to colors
+        parsed.constraints.colors = Array.from(new Set([
+          ...(parsed.constraints.colors || []),
+          ...misclassifiedColors
+        ]));
+        parsed.constraints.patterns = remainingPatterns.length > 0 ? remainingPatterns : undefined;
+        
+        logger.debug('query_parser_color_correction', {
+          query: normalizedQuery.substring(0, 100),
+          misclassifiedColors,
+          correctedColors: parsed.constraints.colors,
+          correctedPatterns: parsed.constraints.patterns,
+          note: 'Moved color terms from patterns to colors',
+        });
+      }
+    }
+    
     logger.info('query_parser_llm_response', {
       query: normalizedQuery.substring(0, 200),
       productTerms: parsed.productTerms,
@@ -112,7 +148,48 @@ export async function parseQuery(
           // Explicitly removed - keep as null/undefined, don't overwrite
           mergedConstraints.colors = undefined;
         } else if (parsed.constraints.colors && parsed.constraints.colors.length > 0) {
-          mergedConstraints.colors = parsed.constraints.colors;
+          // CRITICAL: Preserve non-ontology colors from lastConstraints if user mentions the same color
+          // If lastConstraints has a color that matches (case-insensitive) what the user said, preserve it
+          const lastColorsLower = (lastConstraints.colors || []).map(c => c.toLowerCase());
+          const parsedColorsLower = parsed.constraints.colors.map(c => c.toLowerCase());
+          
+          // Check if any parsed color matches a last constraint color (fuzzy match)
+          const preservedColors: string[] = [];
+          const newColors: string[] = [];
+          
+          for (const parsedColor of parsed.constraints.colors) {
+            const parsedColorLower = parsedColor.toLowerCase();
+            // Check if this parsed color matches any last constraint color
+            const matchingLastColor = lastConstraints.colors?.find(
+              lastColor => lastColor.toLowerCase() === parsedColorLower || 
+                          lastColor.toLowerCase().includes(parsedColorLower) ||
+                          parsedColorLower.includes(lastColor.toLowerCase())
+            );
+            
+            if (matchingLastColor && !preservedColors.includes(matchingLastColor)) {
+              // Preserve the original color from lastConstraints (might be non-ontology like "Cherry")
+              preservedColors.push(matchingLastColor);
+            } else {
+              // New color not in lastConstraints
+              newColors.push(parsedColor);
+            }
+          }
+          
+          // Combine preserved colors with new colors
+          mergedConstraints.colors = Array.from(new Set([...preservedColors, ...newColors]));
+          
+          logger.debug('colors_preserved_from_last_constraints', {
+            query: normalizedQuery.substring(0, 100),
+            lastColors: lastConstraints.colors,
+            parsedColors: parsed.constraints.colors,
+            preservedColors,
+            newColors,
+            finalColors: mergedConstraints.colors,
+            note: 'Preserved non-ontology colors from lastConstraints when user mentions same color',
+          });
+        } else if (lastConstraints.colors && lastConstraints.colors.length > 0) {
+          // No colors in parsed result, but we have lastConstraints - preserve them
+          mergedConstraints.colors = lastConstraints.colors;
         }
         
         if (lastConstraints.sizes === null) {

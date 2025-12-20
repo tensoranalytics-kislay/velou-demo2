@@ -20,8 +20,30 @@ const CONSTRAINT_MERGER_PROMPT = `You are a constraint merger for a shopping ass
 
 PREVIOUS QUERY: "{PREVIOUS_QUERY}"
 PREVIOUS CONSTRAINTS: {PREVIOUS_CONSTRAINTS}
+PREVIOUS BOT REPLY: "{PREVIOUS_BOT_REPLY}"
 
 CURRENT FOLLOW-UP MESSAGE: "{CURRENT_MESSAGE}"
+
+CRITICAL: PREVIOUS BOT REPLY Context
+- The PREVIOUS_BOT_REPLY shows what products or information the assistant just provided to the user
+- If PREVIOUS_BOT_REPLY mentions specific products, attributes, or features (e.g., "Coconut Water", "floral", "silk"), the user's CURRENT_MESSAGE might be reacting to those products
+- **NEGATIVE PREFERENCES** (e.g., "I don't like coconutty", "not floral", "no silk") are almost ALWAYS follow-up refinements when they reference attributes from PREVIOUS_BOT_REPLY
+- When the user says "I don't like X" or "not X" after seeing products with X, this is a REFINEMENT (mergeAction: "remove" or "merge"), NOT a new search
+- **PRESERVE THE PRODUCT TYPE** from PREVIOUS_QUERY when the user is refining based on shown products
+- Examples:
+  * PREVIOUS_QUERY="body mist", PREVIOUS_BOT_REPLY mentions "Coconut Water" products, CURRENT_MESSAGE="i dont like anything coconutty"
+    → This is a FOLLOW-UP REFINEMENT (mergeAction: "remove" or "merge")
+    → Preserve product type: "body mist" (from PREVIOUS_QUERY)
+    → Enhanced query: "body mist without coconut" or "body mist excluding coconut"
+    → Reason: "User is refining body mist search to exclude coconut, based on products shown in previous reply"
+  * PREVIOUS_QUERY="dresses", PREVIOUS_BOT_REPLY mentions "floral dresses", CURRENT_MESSAGE="not floral"
+    → This is a FOLLOW-UP REFINEMENT (mergeAction: "remove")
+    → Preserve product type: "dresses" (from PREVIOUS_QUERY)
+    → Enhanced query: "dresses without floral pattern" or "non-floral dresses"
+  * PREVIOUS_QUERY="perfumes", PREVIOUS_BOT_REPLY shows vanilla perfumes, CURRENT_MESSAGE="something without vanilla"
+    → This is a FOLLOW-UP REFINEMENT (mergeAction: "remove")
+    → Preserve product type: "perfumes" (from PREVIOUS_QUERY)
+    → Enhanced query: "perfumes without vanilla"
 
 CRITICAL: PREVIOUS_QUERY may be an ENHANCED QUERY from a previous merge
 - PREVIOUS_QUERY might be a raw user message (e.g., "dresses in light colours")
@@ -107,6 +129,11 @@ Your task:
    - If CURRENT_MESSAGE mentions "close matches", "similar", "relax", "flexible", "price can be", or modifies constraints from PREVIOUS_QUERY → FOLLOW-UP
    - If CURRENT_MESSAGE is vague but mentions modifying/relaxing constraints → FOLLOW-UP
    - If product type + occasion/context are LOGICALLY COMPATIBLE → FOLLOW-UP
+   - **CRITICAL: Negative preferences based on PREVIOUS_BOT_REPLY**:
+     * If CURRENT_MESSAGE expresses dislike for attributes mentioned in PREVIOUS_BOT_REPLY (e.g., "don't like coconutty" when bot showed coconut products) → FOLLOW-UP REFINEMENT
+     * If CURRENT_MESSAGE says "not X" or "without X" when PREVIOUS_BOT_REPLY mentioned X → FOLLOW-UP REFINEMENT
+     * These are ALWAYS follow-ups because the user is refining based on what they just saw
+     * **PRESERVE PRODUCT TYPE** from PREVIOUS_QUERY when refining based on shown products
    
 2. **If mergeAction is "new_search"**:
    - Set mergedConstraints to empty/null values (reset everything)
@@ -155,6 +182,31 @@ MERGE (add/update constraints while keeping others):
   * Enhanced query: "[previous product type] black" (e.g., "tops black" if previous was "tops")
   * If PREVIOUS_QUERY is incomplete, infer from PREVIOUS_CONSTRAINTS (e.g., if constraints show styles=["Top"], use "tops")
   * **CRITICAL**: Always preserve product type from PREVIOUS_QUERY (e.g., if PREVIOUS_QUERY="dresses", enhancedQueryText="black dresses", NOT just "black")
+- **CRITICAL: PRESERVE NON-ONTOLOGY COLORS**
+  * **MOST IMPORTANT**: When user mentions colors like "Cherry", "Crimson", "Scarlet", "Burgundy", "Maroon", etc., extract them EXACTLY as the user said (capitalized), even if they're not in the standard ontology
+  * **DO NOT** convert "Cherry" to "Red" or "Crimson" to "Red" - preserve the exact color term the user used
+  * **DO NOT** map non-ontology colors to ontology colors - the system will handle fuzzy matching later
+  * Examples:
+    * User says "cherry coloured dresses" → colors: ["Cherry"] (NOT ["Red"])
+    * User says "crimson dresses" → colors: ["Crimson"] (NOT ["Red"])
+    * User says "scarlet red" → colors: ["Scarlet"] (NOT ["Red"])
+    * PREVIOUS_CONSTRAINTS has colors: ["Cherry"], CURRENT_MESSAGE="cherry coloured dresses" → colors: ["Cherry"] (preserve from previous, NOT convert to ["Red"])
+    * PREVIOUS_QUERY="cherry coloured dresses", CURRENT_MESSAGE="only cherry coloured dresses" → colors: ["Cherry"] (preserve, NOT ["Red"])
+- **CRITICAL: "X also works" or "X too" patterns (ADD to existing array, don't replace)**:
+  * "cherry also works" or "cherry too" → ADD "Cherry" to existing colors array (e.g., if previous had ["Red"], result is ["Red", "Cherry"]), keep all other constraints
+  * **CRITICAL**: Preserve non-ontology colors from PREVIOUS_CONSTRAINTS when user mentions the same color
+    * If PREVIOUS_CONSTRAINTS has colors: ["Cherry"], and CURRENT_MESSAGE says "cherry coloured" or "cherry also works", preserve ["Cherry"] (NOT convert to ["Red"])
+    * Example: PREVIOUS_CONSTRAINTS={colors: ["Cherry"]}, CURRENT_MESSAGE="cherry coloured dresses" → colors: ["Cherry"] (preserve, NOT ["Red"])
+  * "navy also works" → ADD "Navy" to existing colors array, keep all other constraints
+  * "size 6 also works" → ADD "6" to existing sizes array, keep all other constraints
+  * **IMPORTANT**: When user says "X also works", they want to ADD X to the existing constraint, NOT replace it
+  * Example: PREVIOUS_QUERY="red dresses", PREVIOUS_CONSTRAINTS={colors: ["Red"]}, CURRENT_MESSAGE="cherry also works"
+    → mergedConstraints: { colors: ["Red", "Cherry"] } (ADD Cherry to Red, don't replace)
+    → enhancedQueryText: "red or cherry coloured dresses" (natural, flows well)
+    → NOT: { colors: ["Cherry"] } (this would REPLACE Red, which is wrong)
+  * Example: PREVIOUS_QUERY="dresses in red", CURRENT_MESSAGE="cherry also works"
+    → mergedConstraints: { colors: ["Red", "Cherry"] } (keep Red, add Cherry)
+    → enhancedQueryText: "red or cherry coloured dresses"
 - "only in light colours" or "in light colours" → add/update colors: ["White", "Ivory", "Cream", "Beige", "Blush", "Pink", "Peach", "Lemon", "Mint", "Sky Blue", "Lavender", "Baby Blue"], keep all other constraints including product type
   * **CRITICAL**: Do NOT use generic terms like "Light" or "Dark" - expand to specific ontology colors
   * Enhanced query: "light coloured [previous product type]" (e.g., "light coloured dresses" if previous was "dresses in light colours" or "show me dresses")
@@ -236,6 +288,13 @@ REPLACE (override specific constraints, keep others):
   * Enhanced query: "navy [material] [product type] [other attributes]" (color first, natural flow)
   * Example: PREVIOUS_QUERY: "red silk maxi dress", CURRENT_MESSAGE: "change to navy"
     → enhancedQueryText: "navy silk maxi dress" (NOT "silk maxi dress navy" or "red silk maxi dress navy")
+- **CRITICAL: PRESERVE NON-ONTOLOGY COLORS IN REPLACE ACTIONS**
+  * When user says "change to cherry" or "cherry coloured" or "only cherry", extract colors: ["Cherry"] (NOT ["Red"])
+  * **DO NOT** convert non-ontology colors to ontology colors - preserve the exact color term
+  * Examples:
+    * PREVIOUS_QUERY="red dresses", CURRENT_MESSAGE="change to cherry" → colors: ["Cherry"] (NOT ["Red"])
+    * PREVIOUS_QUERY="red dresses", CURRENT_MESSAGE="only cherry coloured" → colors: ["Cherry"] (NOT ["Red"])
+    * PREVIOUS_QUERY="dresses", CURRENT_MESSAGE="cherry coloured" → colors: ["Cherry"] (NOT ["Red"])
 - "i like chocolate coloured ones" after colors were removed → replace colors: ["Chocolate"], keep all other constraints
   * Enhanced query: "chocolate [material] [product type] [other attributes]" (color first, natural ordering)
   * Example: PREVIOUS_QUERY: "silk maxi dress long sleeves" (colors removed), CURRENT_MESSAGE: "i like chocolate coloured ones"
@@ -253,6 +312,16 @@ REMOVE (explicitly remove constraints, keep others):
 - "any occasion" → remove occasions constraint (set to null), keep price, colors, pattern, and other constraints
 - "no pattern preference" → remove patterns constraint (set to null), keep other constraints
 - "its fine if its not silk" or "not silk" or "any material is fine" → remove materials constraint (set to null), keep colors, occasion, pattern, and other constraints
+- **CRITICAL: Negative preferences based on PREVIOUS_BOT_REPLY**:
+  * "i dont like anything coconutty" or "not coconut" or "no coconut" (when PREVIOUS_BOT_REPLY mentions coconut) → This is a REMOVE action for materials/ingredients/attributes related to coconut
+  * "not floral" (when PREVIOUS_BOT_REPLY mentions floral) → remove patterns: ["Floral"] or add patterns constraint excluding floral
+  * "without vanilla" (when PREVIOUS_BOT_REPLY mentions vanilla) → remove materials/ingredients related to vanilla
+  * **PRESERVE PRODUCT TYPE**: When removing based on shown products, ALWAYS preserve the product type from PREVIOUS_QUERY
+  * Example: PREVIOUS_QUERY="body mist", PREVIOUS_BOT_REPLY shows "Coconut Water" products, CURRENT_MESSAGE="i dont like anything coconutty"
+    → mergeAction: "remove" or "merge"
+    → Preserve product type: "body mist"
+    → Enhanced query: "body mist without coconut" or "body mist excluding coconut"
+    → Reason: "User is refining body mist search to exclude coconut, based on products shown in previous reply"
   * Example: PREVIOUS_QUERY: "silk maxi dress chocolate color long sleeves", CURRENT_MESSAGE: "its fine if its not silk, i just want chocolate coloured ones"
     → mergedConstraints: { materials: null, colors: ["Chocolate"], lengths: ["Maxi"], sleeveLengths: ["Long"], ... }
     → enhancedQueryText: "chocolate maxi dress long sleeves" (REMOVED "silk" because materials is null)
@@ -470,9 +539,27 @@ export async function mergeFollowUpConstraints(
       }
     }
     
+    // Extract the last assistant message (bot reply) from conversation history
+    // This helps understand what products/attributes were just shown to the user
+    let previousBotReply = '';
+    if (conversationHistory && conversationHistory.length > 0) {
+      const assistantMessages = conversationHistory
+        .filter(h => h.role === 'assistant')
+        .slice(-1); // Get the last assistant message
+      if (assistantMessages.length > 0) {
+        previousBotReply = assistantMessages[0].content.substring(0, 500); // Limit to 500 chars
+      }
+    }
+    
+    // If no bot reply found, use a placeholder
+    if (!previousBotReply) {
+      previousBotReply = 'No previous bot reply available';
+    }
+    
     const prompt = CONSTRAINT_MERGER_PROMPT
       .replace('{PREVIOUS_QUERY}', previousQuery)
       .replace('{PREVIOUS_CONSTRAINTS}', constraintsText)
+      .replace('{PREVIOUS_BOT_REPLY}', previousBotReply)
       .replace('{CURRENT_MESSAGE}', currentMessage)
       + conversationContext;
 
@@ -480,7 +567,7 @@ export async function mergeFollowUpConstraints(
       messages: [
         {
           role: 'system',
-          content: 'You are a constraint merger for a fashion shopping assistant. Use HUMAN JUDGMENT and COMMON SENSE to determine if a follow-up message is truly a refinement or a new search. Think like a human: evaluate product type compatibility, age group appropriateness (e.g., newborns don\'t wear joggers), occasion/context compatibility, and category compatibility. If ANY aspect is logically incompatible (e.g., joggers for newborns, bikinis for weddings), treat it as a new search. You have FULL FREEDOM to use your judgment - if something doesn\'t make logical sense, it\'s a new search. Intelligently merge, replace, or remove constraints ONLY when the follow-up makes complete logical sense across ALL dimensions (product type, age group, occasion, category).',
+          content: 'You are a constraint merger for a shopping assistant. Use HUMAN JUDGMENT and COMMON SENSE to determine if a follow-up message is truly a refinement or a new search. Think like a human: evaluate product type compatibility, age group appropriateness (e.g., newborns don\'t wear joggers), occasion/context compatibility, and category compatibility. CRITICALLY: If the user expresses negative preferences (e.g., "don\'t like coconutty", "not floral") based on products shown in PREVIOUS_BOT_REPLY, this is ALWAYS a follow-up refinement - preserve the product type from PREVIOUS_QUERY and remove/exclude the disliked attributes. If ANY aspect is logically incompatible (e.g., joggers for newborns, bikinis for weddings), treat it as a new search. You have FULL FREEDOM to use your judgment - if something doesn\'t make logical sense, it\'s a new search. Intelligently merge, replace, or remove constraints ONLY when the follow-up makes complete logical sense across ALL dimensions (product type, age group, occasion, category).',
         },
         {
           role: 'user',
@@ -561,6 +648,8 @@ export async function mergeFollowUpConstraints(
       allMergedConstraints: mergedConstraintsSummary,
       previousConstraintsProvided: previousConstraints ? Object.keys(previousConstraints).filter(k => previousConstraints![k as keyof typeof previousConstraints] !== undefined && previousConstraints![k as keyof typeof previousConstraints] !== null) : [],
       conversationHistoryLength: conversationHistory?.length || 0,
+      hasPreviousBotReply: !!previousBotReply && previousBotReply !== 'No previous bot reply available',
+      previousBotReplyPreview: previousBotReply !== 'No previous bot reply available' ? previousBotReply.substring(0, 150) : undefined,
     });
 
     logger.debug('constraints_merged', {

@@ -80,6 +80,26 @@ CONSTRAINT EXTRACTION RULES:
 - Extract occasion constraints (e.g., "for a wedding" → occasions: ["Wedding"])
 - Extract pattern/material constraints (e.g., "floral" → patterns: ["Floral"], "cotton" → materials: ["Cotton"])
 - Extract color constraints (e.g., "white" → colors: ["White"])
+- **CRITICAL: COLOR vs PATTERN DISAMBIGUATION - MOST IMPORTANT RULE**
+  * **ABSOLUTE RULE**: "Cherry" is ALWAYS a COLOR (cherry red), NEVER a pattern - extract as colors: ["Cherry"]
+  * **ABSOLUTE RULE**: "Crimson", "Scarlet", "Burgundy", "Maroon", "Rose", "Coral", "Salmon", "Rust", "Terracotta" are COLORS, NEVER patterns
+  * **CRITICAL**: When user says "red and cherry" or "red, cherry" or "red or cherry", extract BOTH as colors: ["Red", "Cherry"] (NOT colors: ["Red"], patterns: ["Cherry"])
+  * **CRITICAL**: When user says "cherry coloured" or "cherry color" or "in cherry", extract as colors: ["Cherry"] (NOT patterns: ["Cherry"])
+  * Only extract as patterns if the word is clearly a pattern type (e.g., "floral", "striped", "polka dot", "plaid", "geometric", "checkered", "paisley")
+  * **WHEN IN DOUBT**: ALWAYS prefer COLOR over pattern - if a word could be a color name, extract it as a color
+  * Examples:
+    * "red and cherry dresses" → colors: ["Red", "Cherry"] (NOT colors: ["Red"], patterns: ["Cherry"])
+    * "cherry coloured dresses" → colors: ["Cherry"] (NOT patterns: ["Cherry"])
+    * "cherry dress" → colors: ["Cherry"] (NOT patterns: ["Cherry"])
+    * "find me red and cherry dresses" → colors: ["Red", "Cherry"] (NOT colors: ["Red"], patterns: ["Cherry"])
+  * **CRITICAL: PRESERVE NON-ONTOLOGY COLORS**
+    * When user mentions colors like "Cherry", "Crimson", "Scarlet", etc., extract them EXACTLY as the user said (capitalized), even if they're not in the ontology
+    * **DO NOT** convert "Cherry" to "Red" or "Crimson" to "Red" - preserve the exact color term
+    * **DO NOT** map non-ontology colors to ontology colors - the system will handle fuzzy matching later
+    * Examples:
+      * User says "cherry coloured dresses" → colors: ["Cherry"] (NOT ["Red"])
+      * User says "crimson dresses" → colors: ["Crimson"] (NOT ["Red"])
+      * User says "scarlet red" → colors: ["Scarlet"] (NOT ["Red"])
 - **CRITICAL: INTELLIGENT COLOR INFERENCE** - You MUST infer colors from context even when not explicitly mentioned. Use your understanding of color semantics, lighting, locations, and occasions:
   - "light colours", "light colors", "light tones" → infer light colors: ["White", "Ivory", "Cream", "Beige", "Blush", "Pink", "Peach", "Lemon", "Mint", "Sky Blue", "Lavender", "Baby Blue"]
   - "dark colours", "dark colors", "dark tones" → infer dark colors: ["Black", "Navy", "Burgundy", "Maroon", "Charcoal", "Brown", "Plum"]
@@ -339,12 +359,44 @@ INSTRUCTIONS:
    - **For suits: prioritize "blazer" in productTerms since blazers are in Tops category and suits are typically blazer + pants/skirt combinations. The vector search will match products with "blazer", "suit", "matching set", "co-ords", "pantsuit", etc. in their titles/descriptions**
    - Remove filler words and constraint attributes.
 2. constraints: Extract attributes mentioned. Match user words to available values (case-insensitive). Use arrays for multiple values. Only include fields that are mentioned.
+   **CRITICAL: COLOR EXTRACTION - EXTRACT ALL COLORS MENTIONED**
+   - **MOST IMPORTANT**: When user explicitly mentions multiple colors (e.g., "red and cherry", "red, maroon, or brown"), extract ALL of them: ["Red", "Cherry"] or ["Red", "Maroon", "Brown"]
+   - **CRITICAL**: Extract colors even if they're not in the ontology (e.g., "Cherry", "Crimson", "Scarlet") - use the exact word the user said, capitalized
+   - **CRITICAL: PRESERVE NON-ONTOLOGY COLORS FROM LAST_CONSTRAINTS**
+     * If LAST_CONSTRAINTS is provided and contains a color (e.g., "Cherry"), and the user mentions the same color in the current query, preserve the EXACT color from LAST_CONSTRAINTS
+     * Example: LAST_CONSTRAINTS has colors: ["Cherry"], user says "cherry coloured dresses" → extract colors: ["Cherry"] (NOT ["Red"])
+     * Do NOT convert non-ontology colors to ontology colors - preserve them as-is
+   - **CRITICAL: COLOR vs PATTERN DISAMBIGUATION - MOST IMPORTANT RULE**
+     * **ABSOLUTE RULE**: "Cherry" is ALWAYS a COLOR (cherry red), NEVER a pattern - extract as colors: ["Cherry"]
+     * **ABSOLUTE RULE**: "Crimson", "Scarlet", "Burgundy", "Maroon", "Rose", "Coral", "Salmon", "Rust", "Terracotta" are COLORS, NEVER patterns
+     * **CRITICAL**: When user says "red and cherry" or "red, cherry" or "red or cherry", extract BOTH as colors: ["Red", "Cherry"] (NOT colors: ["Red"], patterns: ["Cherry"])
+     * **CRITICAL**: When user says "cherry coloured" or "cherry color" or "in cherry", extract as colors: ["Cherry"] (NOT patterns: ["Cherry"])
+     * Only extract as patterns if the word is clearly a pattern type (e.g., "floral", "striped", "polka dot", "plaid", "geometric", "checkered", "paisley")
+     * **WHEN IN DOUBT**: ALWAYS prefer COLOR over pattern - if a word could be a color name, extract it as a color
+     * Examples:
+       * "red and cherry dresses" → colors: ["Red", "Cherry"] (NOT colors: ["Red"], patterns: ["Cherry"])
+       * "cherry coloured dresses" → colors: ["Cherry"] (NOT patterns: ["Cherry"])
+       * "cherry dress" → colors: ["Cherry"] (NOT patterns: ["Cherry"])
+       * "find me red and cherry dresses" → colors: ["Red", "Cherry"] (NOT colors: ["Red"], patterns: ["Cherry"])
+   - When user says "red or similar coloured" or "red, or similar colours", extract ONLY the base color: ["Red"] (expansion happens later)
+   - DO NOT pre-expand to similar colors (e.g., ["Red", "Maroon", "Brown", "Blue"]) - the system will handle expansion later
+   - When user says "similar colours to red", extract ONLY: ["Red"] (expansion happens later)
+   - The phrase "or similar" or "similar colours" is a signal for expansion, NOT a list of colors to extract
+   - Examples:
+     * "red and cherry dresses" → colors: ["Red", "Cherry"] (NOT patterns: ["Cherry"])
+     * "cherry coloured dresses" → colors: ["Cherry"] (NOT patterns: ["Cherry"])
+     * If LAST_CONSTRAINTS has colors: ["Cherry"], user says "cherry coloured dresses" → colors: ["Cherry"] (preserve from LAST_CONSTRAINTS, NOT convert to ["Red"])
+     * "red, maroon, or brown" → colors: ["Red", "Maroon", "Brown"]
+     * "cherry also works" (in follow-up) → colors: ["Cherry"] (will be merged with previous colors)
+     * "red or similar coloured" → colors: ["Red"] (don't expand)
 3. ageGroups: ALWAYS extract when age is mentioned (see CRITICAL section above). This is separate from sizes.
 
 EXAMPLES:
 **Fashion/Apparel:**
 Query: "find maxi dresses in pink" → { "productTerms": "maxi dress", "constraints": { "colors": ["Pink"] }, "confidence": 0.9 }
 Query: "red dresses" → { "productTerms": "dress", "constraints": { "colors": ["Red"] }, "confidence": 0.9 }
+Query: "red and cherry dresses" → { "productTerms": "dress", "constraints": { "colors": ["Red", "Cherry"] }, "confidence": 0.95 }
+Query: "find me red and cherry dresses" → { "productTerms": "dress", "constraints": { "colors": ["Red", "Cherry"] }, "confidence": 0.95 }
 Query: "wedding dresses size 4" → { "productTerms": "dress", "constraints": { "occasions": ["Wedding"], "sizes": ["4"] }, "confidence": 0.95 }
 Query: "floral summer dress" → { "productTerms": "dress", "constraints": { "patterns": ["Floral"], "seasons": ["Summer"] }, "confidence": 0.9 }
 Query: "swimsuits for beach" → { "productTerms": "swimsuit", "constraints": { "occasions": ["Beach"] }, "confidence": 0.9 }

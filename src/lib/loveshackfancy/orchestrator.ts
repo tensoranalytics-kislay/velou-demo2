@@ -334,7 +334,7 @@ Answer the user's question about this product:`;
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful product expert answering questions about a specific fashion product.',
+            content: 'You are a friendly, witty fashion shopping assistant for LoveShackFancy. You have great style, a sense of humor, and you genuinely love helping people understand products. You\'re answering questions about a specific product the user has selected. Be honest, understanding, witty, and helpful—match the same conversational tone as your chat replies.',
           },
           {
             role: 'user',
@@ -592,12 +592,61 @@ Answer the user's question about this product:`;
   const isShortMessage = messageWords < 25;
   const matchesFollowUpPattern = isFollowUpRefinement(input.message, true);
   
+  // Early category change detection: If user is asking for a completely different product category,
+  // treat it as a new search immediately, bypassing follow-up processing
+  const categoryKeywords = {
+    apparel: ['dress', 'dresses', 'top', 'tops', 'bottom', 'bottoms', 'skirt', 'skirts', 'swimsuit', 'swimsuits', 'bikini', 'bikinis', 'onesie', 'onesies', 'romper', 'rompers', 'pant', 'pants', 'short', 'shorts', 'jogger', 'joggers', 'sweater', 'sweaters', 'loungewear', 'activewear'],
+    accessories: ['jewelry', 'accessories', 'bag', 'bags', 'tote', 'hair accessory', 'phone case'],
+    personalCare: ['perfume', 'perfumes', 'fragrance', 'fragrances'],
+    homeLiving: ['bedding', 'bed', 'towel', 'towels', 'decor', 'decoration', 'candle', 'candles', 'tabletop', 'interior', 'interiors', 'dish', 'dishes'],
+  };
+  
+  const messageLower = input.message.toLowerCase();
+  const currentCategoryGroups = Object.entries(categoryKeywords)
+    .filter(([_, keywords]) => keywords.some(kw => messageLower.includes(kw)))
+    .map(([group, _]) => group);
+  
+  let isCategoryChange = false;
+  if (hasQueryToMergeWith && queryToMergeWith) {
+    const previousQueryLower = queryToMergeWith.toLowerCase();
+    const previousCategoryGroups = Object.entries(categoryKeywords)
+      .filter(([_, keywords]) => keywords.some(kw => previousQueryLower.includes(kw)))
+      .map(([group, _]) => group);
+    
+    // If current message mentions a different category group than previous query, it's a category change
+    if (currentCategoryGroups.length > 0 && previousCategoryGroups.length > 0) {
+      const hasSharedCategory = currentCategoryGroups.some(cg => previousCategoryGroups.includes(cg));
+      if (!hasSharedCategory) {
+        isCategoryChange = true;
+        logger.info('category_change_detected_early', {
+          currentMessage: input.message.substring(0, 100),
+          previousQuery: queryToMergeWith.substring(0, 100),
+          currentCategoryGroups,
+          previousCategoryGroups,
+          note: 'Different category groups detected - treating as new search',
+        });
+      }
+    }
+  }
+  
   // If we have a query to merge with and the message is short, let the LLM decide (even if it doesn't match patterns)
   // This allows logical follow-ups like "Show me close matches, price can be higher" to be detected
   // Previous constraints are helpful but not required - LLM can infer constraints from previous query text
-  const shouldCheckWithLLM = hasQueryToMergeWith && (isShortMessage || matchesFollowUpPattern);
+  // BUT: Skip follow-up processing if we detected a category change
+  const shouldCheckWithLLM = hasQueryToMergeWith && (isShortMessage || matchesFollowUpPattern) && !isCategoryChange;
 
-  if (shouldCheckWithLLM) {
+  // If category change detected, skip follow-up processing and treat as new search
+  if (isCategoryChange) {
+    isFollowUp = false;
+    mergedConstraints = null;
+    enhancedQueryText = input.message; // Use current message as-is
+    
+    logger.info('category_change_treated_as_new_search', {
+      currentMessage: input.message.substring(0, 100),
+      previousQuery: queryToMergeWith?.substring(0, 100),
+      note: 'Category change detected - skipping follow-up processing',
+    });
+  } else if (shouldCheckWithLLM) {
     logger.info('checking_if_followup_with_llm', {
       currentMessage: input.message.substring(0, 100),
       queryToMergeWith: queryToMergeWith?.substring(0, 100),
@@ -638,8 +687,8 @@ Answer the user's question about this product:`;
             const { expandColorsWithSimilarity } = await import('./color-similarity');
             const expandedColors = await expandColorsWithSimilarity(
               mergedConstraints.colors,
-              0.6, // Lower threshold (0.6 instead of 0.7) to find more similar colors
-              8    // Increase max similar colors to 8 for better coverage
+              0.8, // Higher threshold (0.8) to ensure only truly similar colors (e.g., red → burgundy, crimson, rose, NOT blue, purple, pink)
+              5    // Limit to 5 similar colors max per original color
             );
             
             if (expandedColors.length > mergedConstraints.colors.length) {
@@ -1134,6 +1183,76 @@ Answer the user's question about this product:`;
   // Step 3.7: Merge parsed constraints into classification (especially price constraints)
   // This ensures price and other constraints from query parser are used in retrieval
   if (queryParseResult && queryParseResult.constraints) {
+    // CRITICAL: Fix misclassified colors in patterns BEFORE merging
+    // Move color terms that were incorrectly classified as patterns to colors
+    const colorTerms = ['Cherry', 'Crimson', 'Scarlet', 'Burgundy', 'Maroon', 'Rose', 'Coral', 'Salmon', 'Rust', 'Terracotta'];
+    if (queryParseResult.constraints.patterns && queryParseResult.constraints.patterns.length > 0) {
+      const misclassifiedColors: string[] = [];
+      const remainingPatterns: string[] = [];
+      
+      for (const pattern of queryParseResult.constraints.patterns) {
+        const patternLower = pattern.toLowerCase();
+        const isColorTerm = colorTerms.some(color => color.toLowerCase() === patternLower);
+        
+        if (isColorTerm) {
+          misclassifiedColors.push(pattern);
+        } else {
+          remainingPatterns.push(pattern);
+        }
+      }
+      
+      if (misclassifiedColors.length > 0) {
+        // Move misclassified colors from patterns to colors
+        queryParseResult.constraints.colors = Array.from(new Set([
+          ...(queryParseResult.constraints.colors || []),
+          ...misclassifiedColors
+        ]));
+        queryParseResult.constraints.patterns = remainingPatterns.length > 0 ? remainingPatterns : undefined;
+        
+        logger.debug('orchestrator_color_correction_from_patterns', {
+          query: input.message.substring(0, 100),
+          misclassifiedColors,
+          correctedColors: queryParseResult.constraints.colors,
+          correctedPatterns: queryParseResult.constraints.patterns,
+          note: 'Moved color terms from patterns to colors in query parser result',
+        });
+      }
+    }
+    
+    // Also check classification patterns for misclassified colors
+    if (classification.constraints.patterns && classification.constraints.patterns.length > 0) {
+      const misclassifiedColors: string[] = [];
+      const remainingPatterns: string[] = [];
+      
+      for (const pattern of classification.constraints.patterns) {
+        const patternLower = pattern.toLowerCase();
+        const isColorTerm = colorTerms.some(color => color.toLowerCase() === patternLower);
+        
+        if (isColorTerm) {
+          misclassifiedColors.push(pattern);
+        } else {
+          remainingPatterns.push(pattern);
+        }
+      }
+      
+      if (misclassifiedColors.length > 0) {
+        // Move misclassified colors from patterns to colors
+        classification.constraints.colors = Array.from(new Set([
+          ...(classification.constraints.colors || []),
+          ...misclassifiedColors
+        ]));
+        classification.constraints.patterns = remainingPatterns.length > 0 ? remainingPatterns : null;
+        
+        logger.debug('orchestrator_color_correction_from_classification_patterns', {
+          query: input.message.substring(0, 100),
+          misclassifiedColors,
+          correctedColors: classification.constraints.colors,
+          correctedPatterns: classification.constraints.patterns,
+          note: 'Moved color terms from patterns to colors in classification result',
+        });
+      }
+    }
+    
     // Merge parsed constraints into classification constraints
     // Priority: parsed constraints override classification constraints (more accurate)
     // Handle explicit removal (null) and independent min/max updates
@@ -1155,8 +1274,21 @@ Answer the user's question about this product:`;
     }
     // Note: If priceMaxCents is undefined in parsed result, keep existing value from classification
     // Merge other constraints if they exist in parsed result
+    // CRITICAL: For colors, merge (union) instead of replace to preserve all colors from both classification and parser
     if (queryParseResult.constraints.colors && queryParseResult.constraints.colors.length > 0) {
-      classification.constraints.colors = queryParseResult.constraints.colors;
+      // Merge colors: combine classification colors with parsed colors (union, no duplicates)
+      const existingColors = classification.constraints.colors || [];
+      const parsedColors = queryParseResult.constraints.colors;
+      const mergedColors = Array.from(new Set([...existingColors, ...parsedColors]));
+      classification.constraints.colors = mergedColors.length > 0 ? mergedColors : queryParseResult.constraints.colors;
+      
+      logger.debug('colors_merged_from_parser', {
+        query: input.message.substring(0, 100),
+        classificationColors: existingColors,
+        parsedColors,
+        mergedColors,
+        note: 'Merged colors from classification and parser (union) to preserve all mentioned colors',
+      });
     }
     if (queryParseResult.constraints.sizes && queryParseResult.constraints.sizes.length > 0) {
       classification.constraints.sizes = queryParseResult.constraints.sizes;
@@ -1264,7 +1396,20 @@ Answer the user's question about this product:`;
   // CRITICAL: If merged constraints have invalid colors (like "Dark"), prefer classification colors
   // The classifier is better at inferring colors from context (e.g., "dark colours" → ["Black", "Navy", etc.])
   // The constraint merger might extract generic terms like "Dark" which aren't in the ontology
+  // CRITICAL: When we have merged constraints (from constraint merger), preserve them and merge with query parser colors (union)
   let finalColors = finalConstraintsForRanking.colors || queryParseResult?.constraints.colors;
+  if (isFollowUp && mergedConstraints?.colors && queryParseResult?.constraints.colors) {
+    // Merge merged constraints colors with query parser colors (union) to preserve non-ontology colors
+    const mergedColors = Array.from(new Set([...mergedConstraints.colors, ...queryParseResult.constraints.colors]));
+    finalColors = mergedColors;
+    logger.debug('colors_merged_from_merged_constraints_and_parser', {
+      query: input.message.substring(0, 100),
+      mergedConstraintsColors: mergedConstraints.colors,
+      parsedColors: queryParseResult.constraints.colors,
+      finalColors,
+      note: 'Merged colors from constraint merger and query parser (union) to preserve non-ontology colors',
+    });
+  }
   if (finalColors && finalColors.length > 0) {
     // Check if any colors are invalid (not in ontology)
     const { LOVESHACKFANCY_ONTOLOGY } = await import('./ontology');
@@ -1272,26 +1417,25 @@ Answer the user's question about this product:`;
     const invalidColors = finalColors.filter(c => !validColors.has(c.toLowerCase()));
     
     if (invalidColors.length > 0) {
-      // If we have invalid colors, prefer classification colors (which are better inferred)
-      logger.warn('invalid_colors_detected_using_classification', {
-        invalidColors,
-        mergedColors: finalConstraintsForRanking.colors,
-        classificationColors: classification.constraints.colors,
+      // Keep invalid colors for ranking (fuzzy matching can handle them)
+      // But also include valid colors from classification if available
+      logger.debug('non_ontology_colors_detected_keeping_for_ranking', {
+        nonOntologyColors: invalidColors,
+        allColors: finalColors,
+        note: 'Non-ontology colors (e.g., "Cherry") will be used for fuzzy matching in ranking',
       });
       
-      // Use classification colors if they exist and are valid
+      // Merge with classification colors if they exist (union)
       if (classification.constraints.colors && classification.constraints.colors.length > 0) {
-        const validClassificationColors = classification.constraints.colors.filter(c => 
-          validColors.has(c.toLowerCase())
-        );
-        if (validClassificationColors.length > 0) {
-          finalColors = validClassificationColors;
-          logger.info('using_classification_colors_instead_of_invalid_merged', {
-            originalMergedColors: finalConstraintsForRanking.colors,
-            finalColors,
-          });
-        }
+        const mergedColors = Array.from(new Set([...finalColors, ...classification.constraints.colors]));
+        finalColors = mergedColors;
+        logger.debug('merged_colors_with_classification', {
+          originalColors: finalConstraintsForRanking.colors,
+          classificationColors: classification.constraints.colors,
+          mergedColors: finalColors,
+        });
       }
+      // Don't filter out invalid colors - keep them for fuzzy matching
     }
   }
   
@@ -1493,14 +1637,12 @@ Answer the user's question about this product:`;
   // CRITICAL: Check if results are relevant to the query
   // If the top product doesn't match the query intent (e.g., cardigan for "joggers"), generate a regretful reply
   const MIN_PRODUCTS_FOR_RECOMMENDATION = 4;
-  const MIN_TOP_SCORE_FOR_CONFIDENT_REPLY = 0.4;
-  const MIN_RELEVANCE_SCORE = 0.3; // Minimum score to consider a product relevant
+  const MIN_TOP_SCORE_FOR_CONFIDENT_REPLY = 0.25; // Lowered from 0.4 to show more products
+  const MIN_RELEVANCE_SCORE = 0.2; // Lowered from 0.3 to consider products with score >= 0.2 as relevant
   
   // Check if we have enough products and if they're relevant
   const hasEnoughProducts = productsToShow.length >= MIN_PRODUCTS_FOR_RECOMMENDATION;
   const topScore = productsWithScores[0]?.score || 0;
-  const hasHighConfidence = topScore >= MIN_TOP_SCORE_FOR_CONFIDENT_REPLY;
-  const topProductRelevant = topScore >= MIN_RELEVANCE_SCORE;
   
   // Check if top product matches query intent (e.g., "joggers" query shouldn't return "cardigans")
   let productTypeMatches = true;
@@ -1533,8 +1675,38 @@ Answer the user's question about this product:`;
     }
   }
   
-  // If we don't have enough products, low confidence, or product type mismatch, generate regretful reply
-  if (!hasEnoughProducts || !hasHighConfidence || !topProductRelevant || !productTypeMatches) {
+  const topProductRelevant = topScore >= MIN_RELEVANCE_SCORE;
+  
+  // If product type matches, be more lenient with confidence threshold
+  // This allows relevant products (e.g., dresses for "dresses" query) to show even with slightly lower scores
+  // Use a lower threshold (0.2) when product type matches and product is relevant
+  const effectiveConfidenceThreshold = (productTypeMatches && topProductRelevant) 
+    ? 0.2 // Be more lenient when product type matches AND product is relevant (lowered from 0.35)
+    : MIN_TOP_SCORE_FOR_CONFIDENT_REPLY;
+  
+  const hasHighConfidence = topScore >= effectiveConfidenceThreshold;
+  
+  logger.debug('confidence_threshold_calculation', {
+    query: input.message.substring(0, 100),
+    topScore,
+    productTypeMatches,
+    topProductRelevant,
+    effectiveConfidenceThreshold,
+    hasHighConfidence,
+    isFollowUp,
+    minTopScore: MIN_TOP_SCORE_FOR_CONFIDENT_REPLY,
+    thresholdApplied: isFollowUp, // Only applied for follow-ups
+  });
+  
+  // Show products if we have enough, they're relevant, type matches, and meet confidence threshold
+  // For new queries (isFollowUp=false), skip confidence threshold since initial queries can have low correlation
+  // For follow-ups (isFollowUp=true), apply threshold since enhanced queries should be more correlated
+  const shouldShowProducts = hasEnoughProducts && 
+    topProductRelevant && 
+    productTypeMatches &&
+    (isFollowUp ? hasHighConfidence : true); // Only check confidence threshold for follow-ups
+  
+  if (!shouldShowProducts) {
     logger.warn('low_confidence_or_irrelevant_recommendation', {
       query: input.message.substring(0, 100),
       productCount: productsToShow.length,
@@ -1543,8 +1715,10 @@ Answer the user's question about this product:`;
       hasHighConfidence,
       topProductRelevant,
       productTypeMatches,
+      isFollowUp,
       reason: !hasEnoughProducts ? 'not_enough_products' : 
-              !hasHighConfidence ? 'low_top_score' : 
+              (!isFollowUp && !hasHighConfidence) ? 'threshold_skipped_for_new_query' :
+              (isFollowUp && !hasHighConfidence) ? 'low_top_score' :
               !topProductRelevant ? 'low_relevance_score' : 
               'product_type_mismatch',
     });

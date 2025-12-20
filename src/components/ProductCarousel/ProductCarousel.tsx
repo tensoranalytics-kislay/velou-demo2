@@ -7,6 +7,7 @@ type ProductCarouselProps = {
   products: ProductCard[];
   onProductClick?: (productId: string) => Promise<void> | void;
   onProductAsk?: (productId: string, productTitle: string, productImageUrl: string) => Promise<void> | void;
+  onProductFindSimilar?: (productId: string, productTitle: string, productImageUrl: string) => Promise<void> | void;
 };
 
 const formatAttributes = (attributes: string[]) => {
@@ -56,11 +57,20 @@ const getRating = (productId: string): number => {
   return 5;
 };
 
-export default function ProductCarousel({ products, onProductClick, onProductAsk }: ProductCarouselProps) {
+export default function ProductCarousel({ products, onProductClick, onProductAsk, onProductFindSimilar }: ProductCarouselProps) {
   const [clickedProductId, setClickedProductId] = useState<string | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Debug: Log to verify prop is passed
+  useEffect(() => {
+    if (onProductFindSimilar) {
+      console.log('[ProductCarousel] onProductFindSimilar prop is provided');
+    } else {
+      console.log('[ProductCarousel] onProductFindSimilar prop is NOT provided');
+    }
+  }, [onProductFindSimilar]);
 
   const inStockProducts = useMemo(
     () => products.filter((product) => product.stockStatus !== 'out_of_stock'),
@@ -141,8 +151,8 @@ export default function ProductCarousel({ products, onProductClick, onProductAsk
               key={product.id}
                 className="group relative flex w-[40vw] max-w-[40vw] flex-shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-[#D61F2B]/20 bg-[#FEEEED] p-2 text-slate-900 transition hover:border-[#D61F2B]/40 sm:w-[28vw] sm:max-w-[28vw] md:w-[170px] md:max-w-[170px] lg:w-[180px] lg:max-w-[180px]"
             >
-                <div className="relative mb-2 w-full rounded-xl border border-white/60 bg-[#fff7f6] p-1.5">
-                  <div className="relative h-[140px] w-full rounded-xl bg-white/70 sm:h-[150px] md:h-[160px]">
+                <div className="relative mb-2 w-full rounded-xl border border-white/60 bg-[#fff7f6] p-1.5 overflow-visible">
+                  <div className="relative h-[140px] w-full rounded-xl bg-white/70 sm:h-[150px] md:h-[160px] overflow-visible">
                     <img
                       src={product.imageUrl}
                       alt={product.title}
@@ -191,6 +201,34 @@ export default function ProductCarousel({ products, onProductClick, onProductAsk
                         </svg>
                       </button>
                     )}
+                    {/* Find similar products icon - floating bottom right */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onProductFindSimilar) {
+                          onProductFindSimilar(product.id, product.title, product.imageUrl);
+                        }
+                      }}
+                      className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-full bg-[#D61F2B]/90 backdrop-blur-sm p-1.5 shadow-lg transition hover:bg-[#D61F2B] hover:scale-110 active:scale-95"
+                      aria-label={`Find similar products to ${product.title}`}
+                      title={`Find similar products to ${product.title}`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-3.5 w-3.5 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
+                        />
+                      </svg>
+                    </button>
                   </div>
                 </div>
 

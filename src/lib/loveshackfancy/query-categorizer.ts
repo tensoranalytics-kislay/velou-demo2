@@ -31,6 +31,7 @@ const QUERY_CATEGORIZER_PROMPT = `Categorize the user's shopping query into one 
 3. **irrelevant**: Not shopping-related and doesn't match any of the 48 product categories
    - Examples: "what's the weather?", "tell me a joke", "do you sell cars?"
    - Completely unrelated to shopping
+   - **IMPORTANT**: If the query mentions a valid product category (perfumes, dresses, bedding, etc.), it should be "direct_search" even if combined with unusual modifiers (e.g., "perfumes for toddler" is still direct_search because "perfumes" is a valid category)
 
 The catalog includes 48 categories across 5 groups:
 - Kids: Girls Tops, Girls Bottoms, Girls Dresses, Girls Swimwear, Baby & Toddler Bottoms, Tween Pants, Tween Sweaters, Tween Dresses

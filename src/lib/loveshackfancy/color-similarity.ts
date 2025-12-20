@@ -142,6 +142,16 @@ export async function expandColorsWithSimilarity(
       if (similarity >= similarityThreshold) {
         similarities.push({ color: ontologyColor, similarity });
       }
+      
+      // Log high similarity matches for debugging (even if below threshold)
+      if (similarity >= 0.7) {
+        logger.debug('color_similarity: high_similarity_match', {
+          queryColor,
+          ontologyColor,
+          similarity,
+          aboveThreshold: similarity >= similarityThreshold,
+        });
+      }
     }
     
     // Sort by similarity and take top N

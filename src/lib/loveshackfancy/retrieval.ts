@@ -13,6 +13,7 @@ import { logger } from '../telemetry/logger';
 import type { SearchConstraints } from '../search/types';
 import type { QueryClassification, FashionConstraints } from './classifier';
 import { expandColorsWithSimilarity } from './color-similarity';
+import { LOVESHACKFANCY_ONTOLOGY } from './ontology';
 
 /**
  * Generate a simple hash from query text for consistent but diverse variant selection
@@ -66,31 +67,68 @@ export async function multiViewRetrieval(
   // This hard filters the catalog BEFORE retrieval (applied at SQL level)
   const searchConstraints = classificationToSearchConstraints(classification, topCategories);
   
-  // Expand colors using embedding similarity
-  // This allows "white" to match "beige", "ivory", "cream" but NOT "black"
-  // Lower threshold (0.6) to find more similar colors, especially for colors like "brown" that might have fewer exact matches
+  // Expand colors using embedding similarity ONLY when:
+  // 1. User explicitly requests "similar colours" (handled in orchestrator)
+  // 2. Colors are vague (like "light colours", "dark colours") - these are already expanded by classifier
+  // 3. For explicit color queries, use original colors without expansion (unless user explicitly asks for similar)
+  // Use higher threshold (0.8) to ensure only truly similar colors are included (e.g., red → burgundy, crimson, NOT blue)
   let expandedColors = searchConstraints.colors;
   if (searchConstraints.colors && searchConstraints.colors.length > 0) {
-    try {
-      expandedColors = await expandColorsWithSimilarity(
-        searchConstraints.colors,
-        0.6, // Lower threshold (0.6 instead of 0.7) to find more similar colors
-        8    // Increase max similar colors to 8 for better coverage
-      );
-      
-      logger.info('color_expansion_applied', {
+    // Only expand if we have a single color (more likely to be vague or need expansion)
+    // For multiple explicit colors (e.g., ["Red", "Cherry"]), don't expand (user already specified what they want)
+    // Also check if any color is not in the ontology - if so, don't expand (user might have added a custom color)
+    const hasNonOntologyColor = searchConstraints.colors.some(color => {
+      const colorLower = color.toLowerCase();
+      return !LOVESHACKFANCY_ONTOLOGY.colors.some(ontColor => ontColor.toLowerCase() === colorLower);
+    });
+    const shouldExpand = searchConstraints.colors.length === 1 && !hasNonOntologyColor;
+    
+    if (shouldExpand) {
+      try {
+        expandedColors = await expandColorsWithSimilarity(
+          searchConstraints.colors,
+          0.8, // Higher threshold (0.8) to ensure only truly similar colors (e.g., red → burgundy, crimson, rose, NOT blue, purple, pink)
+          5    // Limit to 5 similar colors max
+        );
+        
+        // Only log if expansion actually happened
+        if (expandedColors.length > searchConstraints.colors.length) {
+          logger.info('color_expansion_applied', {
+            query: query.substring(0, 100),
+            originalColors: searchConstraints.colors,
+            expandedColors,
+            expansionCount: expandedColors.length - searchConstraints.colors.length,
+          });
+        } else {
+          logger.debug('color_expansion_no_similar_colors_found', {
+            query: query.substring(0, 100),
+            originalColors: searchConstraints.colors,
+            threshold: 0.8,
+            note: 'No similar colors found above threshold, using original colors only',
+          });
+        }
+      } catch (error) {
+        logger.warn('color_expansion_failed', {
+          error: error instanceof Error ? error.message : String(error),
+          colors: searchConstraints.colors,
+        });
+        // Fallback to original colors if expansion fails
+        expandedColors = searchConstraints.colors;
+      }
+    } else {
+      // Multiple explicit colors or non-ontology color - use as-is without expansion
+      const skipReason = searchConstraints.colors.length > 1 
+        ? 'Multiple explicit colors specified, using as-is'
+        : hasNonOntologyColor 
+          ? 'Non-ontology color present, using as-is'
+          : 'Unknown reason';
+      logger.debug('color_expansion_skipped', {
         query: query.substring(0, 100),
-        originalColors: searchConstraints.colors,
-        expandedColors,
-        expansionCount: expandedColors.length - searchConstraints.colors.length,
-      });
-    } catch (error) {
-      logger.warn('color_expansion_failed', {
-        error: error instanceof Error ? error.message : String(error),
         colors: searchConstraints.colors,
+        colorCount: searchConstraints.colors.length,
+        hasNonOntologyColor,
+        reason: skipReason,
       });
-      // Fallback to original colors if expansion fails
-      expandedColors = searchConstraints.colors;
     }
   }
   
