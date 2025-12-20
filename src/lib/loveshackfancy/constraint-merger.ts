@@ -23,13 +23,42 @@ PREVIOUS CONSTRAINTS: {PREVIOUS_CONSTRAINTS}
 
 CURRENT FOLLOW-UP MESSAGE: "{CURRENT_MESSAGE}"
 
-IMPORTANT: Infer the complete product type from PREVIOUS_CONSTRAINTS or PREVIOUS_QUERY
-- If PREVIOUS_CONSTRAINTS is null, infer constraints and product type from PREVIOUS_QUERY text
-- If PREVIOUS_QUERY is incomplete (e.g., "one piece please"), look at PREVIOUS_CONSTRAINTS to infer the full product type
-- If PREVIOUS_CONSTRAINTS has styles like ["One-Piece", "Swimsuit"], the previous query was about "one piece swimsuit"
-- If PREVIOUS_CONSTRAINTS has categories or styles, use them to construct the complete product type
-- If PREVIOUS_CONSTRAINTS is null, parse PREVIOUS_QUERY to extract product type (e.g., "Girls Swimwear Bikinis" → product type is "bikini" or "swimwear", ageGroups: ["kids"])
-- The enhanced query MUST include the complete product type (e.g., "one piece swimsuit under $150", NOT just "one piece under $150")
+CRITICAL: PREVIOUS_QUERY may be an ENHANCED QUERY from a previous merge
+- PREVIOUS_QUERY might be a raw user message (e.g., "dresses in light colours")
+- OR it might be an enhanced query from a previous merge (e.g., "light coloured dresses")
+- When PREVIOUS_QUERY is an enhanced query, it already contains ALL previously merged constraints in natural language
+- Your task is to merge CURRENT_MESSAGE with this enhanced query to create a NEW enhanced query
+- Example chain:
+  1. User: "dresses in light colours" → Enhanced: "light coloured dresses" (stored)
+  2. User: "only in light colours" → Merge with "light coloured dresses" → Enhanced: "light coloured dresses" (already has it, stored)
+  3. User: "find floral ones" → Merge with "light coloured dresses" → Enhanced: "light coloured floral dresses" (stored)
+  4. User: "under $150" → Merge with "light coloured floral dresses" → Enhanced: "light coloured floral dresses under $150"
+- Each merge builds on the previous enhanced query, creating cumulative context
+
+CRITICAL: ALWAYS Preserve Product Type from PREVIOUS_QUERY or CONVERSATION HISTORY
+- **MOST IMPORTANT RULE**: If PREVIOUS_QUERY mentions a product type (dresses, tops, swimsuits, bikinis, joggers, etc.), you MUST preserve it in enhancedQueryText, even if CURRENT_MESSAGE doesn't mention it
+- **TRACE BACK THROUGH CONVERSATION HISTORY**: If PREVIOUS_QUERY doesn't mention a product type, look at CONVERSATION HISTORY to find where the product type was first mentioned
+  * Example: If conversation history shows:
+    1. "dresses in light colours"
+    2. "only in light colours" (PREVIOUS_QUERY - doesn't mention "dresses")
+    3. "find floral ones" (CURRENT_MESSAGE)
+  * You should trace back to query #1 to find "dresses" as the product type
+  * Enhanced query should be: "light coloured floral dresses" (NOT "light coloured floral items")
+- **Examples of preserving product type**:
+  * PREVIOUS_QUERY="dresses in light colours", CURRENT_MESSAGE="only in light colours" → enhancedQueryText="light coloured dresses" (PRESERVE "dresses")
+  * PREVIOUS_QUERY="dresses in light colours", CURRENT_MESSAGE="find floral ones" → enhancedQueryText="light coloured floral dresses" (PRESERVE "dresses", merge "floral")
+  * PREVIOUS_QUERY="only in light colours" (but history shows "dresses in light colours"), CURRENT_MESSAGE="find floral ones" → enhancedQueryText="light coloured floral dresses" (TRACE BACK to find "dresses")
+  * PREVIOUS_QUERY="show me dresses", CURRENT_MESSAGE="in pink" → enhancedQueryText="pink dresses" (PRESERVE "dresses")
+  * PREVIOUS_QUERY="tops under $100", CURRENT_MESSAGE="make it cheaper" → enhancedQueryText="tops under $X" (PRESERVE "tops")
+  * PREVIOUS_QUERY="swimsuits for beach", CURRENT_MESSAGE="one piece please" → enhancedQueryText="one piece swimsuits for beach" (PRESERVE "swimsuits", add "one piece")
+- **Inferring product type when PREVIOUS_QUERY is incomplete**:
+  * If PREVIOUS_QUERY is incomplete (e.g., "one piece please"), FIRST check CONVERSATION HISTORY to trace back to original product type
+  * If history doesn't help, look at PREVIOUS_CONSTRAINTS to infer the full product type
+  * If PREVIOUS_CONSTRAINTS has styles like ["One-Piece", "Swimsuit"], the previous query was about "one piece swimsuit"
+  * If PREVIOUS_CONSTRAINTS has categories or styles, use them to construct the complete product type
+  * If PREVIOUS_CONSTRAINTS is null, parse PREVIOUS_QUERY to extract product type (e.g., "Girls Swimwear Bikinis" → product type is "bikini" or "swimwear", ageGroups: ["kids"])
+- **The enhanced query MUST include the complete product type** (e.g., "one piece swimsuit under $150", NOT just "one piece under $150")
+- **NEVER drop the product type** unless CURRENT_MESSAGE explicitly changes it (e.g., "show me tops instead" after "dresses")
 
 Your task:
 1. **CRITICAL FIRST STEP**: Use human judgment and logical reasoning to determine if this is truly a follow-up or a NEW SEARCH
@@ -125,6 +154,17 @@ MERGE (add/update constraints while keeping others):
 - "make it black" → add/update colors: ["Black"], keep all other constraints (price, occasion, pattern, etc.)
   * Enhanced query: "[previous product type] black" (e.g., "tops black" if previous was "tops")
   * If PREVIOUS_QUERY is incomplete, infer from PREVIOUS_CONSTRAINTS (e.g., if constraints show styles=["Top"], use "tops")
+  * **CRITICAL**: Always preserve product type from PREVIOUS_QUERY (e.g., if PREVIOUS_QUERY="dresses", enhancedQueryText="black dresses", NOT just "black")
+- "only in light colours" or "in light colours" → add/update colors: ["White", "Ivory", "Cream", "Beige", "Blush", "Pink", "Peach", "Lemon", "Mint", "Sky Blue", "Lavender", "Baby Blue"], keep all other constraints including product type
+  * **CRITICAL**: Do NOT use generic terms like "Light" or "Dark" - expand to specific ontology colors
+  * Enhanced query: "light coloured [previous product type]" (e.g., "light coloured dresses" if previous was "dresses in light colours" or "show me dresses")
+  * **CRITICAL**: If PREVIOUS_QUERY="dresses in light colours" and CURRENT_MESSAGE="only in light colours", enhancedQueryText="light coloured dresses" (PRESERVE "dresses")
+- "dark colours" or "dark colors" or "in dark colours" → add/update colors: ["Black", "Navy", "Burgundy", "Maroon", "Charcoal", "Brown", "Plum"], keep all other constraints
+  * **CRITICAL**: Do NOT use generic terms like "Dark" - expand to specific ontology colors: ["Black", "Navy", "Burgundy", "Maroon", "Charcoal", "Brown", "Plum"]
+  * Enhanced query: "dark coloured [previous product type]" (e.g., "dark coloured joggers" if previous was "joggers" and current is "dark colours")
+- "find floral ones" or "floral ones" → add/update patterns: ["Floral"], keep all other constraints including product type
+  * Enhanced query: "[previous color/attributes] floral [previous product type]" (e.g., "light coloured floral dresses" if previous was "dresses in light colours")
+  * **CRITICAL**: If PREVIOUS_QUERY="light coloured dresses" and CURRENT_MESSAGE="find floral ones", enhancedQueryText="light coloured floral dresses" (PRESERVE "dresses")
 - "also in size 6" → add/update sizes: ["6"], keep all other constraints
   * Enhanced query: "[previous product type] size 6" (e.g., "one piece swimsuit size 6" if previous was "one piece swimsuit")
   * If PREVIOUS_QUERY was "one piece please" but PREVIOUS_CONSTRAINTS shows styles=["One-Piece", "Swimsuit"], use "one piece swimsuit size 6"
@@ -239,6 +279,21 @@ CONSTRAINT RELAXATION (modify constraints to be less strict, keep others):
 - "relax the price constraint" → REMOVE priceMaxCents and/or priceMinCents (set to null), keep all other constraints
 - "flexible with price" → REMOVE priceMaxCents and priceMinCents (set to null), keep all other constraints
 
+COLOR RELAXATION (expand color constraints to include similar colors):
+- **CRITICAL**: When user says "similar colours to [color] also work", "similar colors", "or similar colours", "close color matches", etc.:
+  * This is a MERGE action that RELAXES the color constraint (expands to include similar colors)
+  * Keep the original color(s) in mergedConstraints.colors, but mark in enhancedQueryText that similar colors are acceptable
+  * Enhanced query should read naturally: "[color] or similar coloured [product type] [other constraints]"
+  * Example: PREVIOUS_QUERY="brown maxi dresses for a wedding in summer", CURRENT_MESSAGE="similar colours to brown also work"
+    → mergedConstraints: { colors: ["Brown"], occasions: ["Wedding"], seasons: ["Summer"], ... } (keep Brown, but system will expand to similar colors later)
+    → enhancedQueryText: "brown or similar coloured maxi dresses for a wedding in summer" (natural, flows well)
+    → NOT: "brown maxi dresses for a wedding in summer or similar colours" (awkward - "or similar colours" at the end)
+    → NOT: "brown maxi dresses for a wedding in summer similar colours" (missing "or", not natural)
+  * The system will automatically expand "Brown" to include similar colors (e.g., "Taupe", "Tan", "Camel", "Chocolate") using embedding similarity
+  * This expansion happens AFTER constraint merging, so you just need to keep the original color and make the enhanced query natural
+- "similar shades", "close color matches", "or similar" (when referring to colors) → same as above
+- The enhancedQueryText should read as a natural, complete sentence that flows well
+
 RULES:
 1. **FIRST**: Check logical compatibility between product type and occasion/context
    - If INCOMPATIBLE → mergeAction: "new_search" (reset all constraints, use CURRENT_MESSAGE as-is)
@@ -281,11 +336,17 @@ RULES:
 8. For arrays (colors, sizes, patterns): MERGE adds to array, REPLACE replaces entire array, REMOVE sets to null
 9. The enhancedQueryText should be a complete, searchable query that includes ALL merged constraints
 10. "Actually, I prefer X" or "I prefer X instead" → REPLACE the constraint for X, keep all other constraints from previous query
-11. CRITICAL: When creating enhancedQueryText, ALWAYS preserve the COMPLETE product type/category
+11. CRITICAL: When creating enhancedQueryText, ALWAYS preserve the COMPLETE product type/category from PREVIOUS_QUERY
+    - **MOST IMPORTANT**: If PREVIOUS_QUERY mentions a product type (dresses, tops, swimsuits, etc.), it MUST appear in enhancedQueryText, even if CURRENT_MESSAGE doesn't mention it
+    - **Examples of preserving product type**:
+      * PREVIOUS_QUERY="dresses in light colours", CURRENT_MESSAGE="only in light colours" → enhancedQueryText="light coloured dresses" (PRESERVE "dresses")
+      * PREVIOUS_QUERY="dresses in light colours", CURRENT_MESSAGE="find floral ones" → enhancedQueryText="light coloured floral dresses" (PRESERVE "dresses", merge "floral")
+      * PREVIOUS_QUERY="show me dresses", CURRENT_MESSAGE="in pink" → enhancedQueryText="pink dresses" (PRESERVE "dresses")
     - INFER the complete product type from PREVIOUS_CONSTRAINTS if PREVIOUS_QUERY is incomplete
     - If PREVIOUS_QUERY was "one piece please" but PREVIOUS_CONSTRAINTS shows styles=["One-Piece", "Swimsuit"], infer the product type is "one piece swimsuit"
     - If PREVIOUS_QUERY was "one piece swimsuit" and current message is "under $150", enhancedQueryText should be "one piece swimsuit under $150" (NOT just "one piece under $150")
     - If PREVIOUS_QUERY was "red silk maxi dress..." and current message is "price can be higher", enhancedQueryText should be "red silk maxi dress [other constraints]" (preserve all constraints except price max)
+    - **NEVER drop the product type** unless CURRENT_MESSAGE explicitly changes it (e.g., "show me tops instead" after "dresses")
 12. CRITICAL: enhancedQueryText must be NATURAL and COHERENT
     - Write the query as a natural, searchable phrase that flows well
     - Use natural attribute ordering: color → material → product type → style attributes → size → occasion → price
@@ -380,12 +441,15 @@ CRITICAL REMINDERS FOR enhancedQueryText:
 - When adding constraints back after removal, place them in natural positions (color first, not last)
 - Group related attributes together ("long sleeves" stays together)
 - The query should be complete and coherent, not a jumbled list of attributes
+- For "similar colours" requests: Use natural phrasing like "[color] or similar coloured [product type]" NOT "[product type] or similar colours" (the latter is awkward)
+- The enhanced query should read like a complete sentence that flows naturally
 `;
 
 export async function mergeFollowUpConstraints(
   previousQuery: string,
   previousConstraints: FashionConstraints | null,
-  currentMessage: string
+  currentMessage: string,
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
 ): Promise<ConstraintMergeResult> {
   try {
     // If previous constraints are missing, infer from previous query text
@@ -393,10 +457,24 @@ export async function mergeFollowUpConstraints(
       ? JSON.stringify(previousConstraints, null, 2)
       : 'null (constraints not available - infer from PREVIOUS_QUERY text)';
     
+    // Extract conversation context: get all user messages to help trace back product type
+    let conversationContext = '';
+    if (conversationHistory && conversationHistory.length > 0) {
+      const userMessages = conversationHistory
+        .filter(h => h.role === 'user')
+        .slice(-5) // Last 5 user messages for context
+        .map((msg, idx) => `${idx + 1}. "${msg.content}"`)
+        .join('\n');
+      if (userMessages) {
+        conversationContext = `\n\nCONVERSATION HISTORY (recent user queries, in order):\n${userMessages}\n\nUse this history to trace back to the ORIGINAL product type. For example, if the conversation was:\n1. "dresses in light colours"\n2. "only in light colours"\n3. "find floral ones"\n\nWhen processing query #3, you should trace back to query #1 to find "dresses" as the product type, even though query #2 ("only in light colours") doesn't mention it.`;
+      }
+    }
+    
     const prompt = CONSTRAINT_MERGER_PROMPT
       .replace('{PREVIOUS_QUERY}', previousQuery)
       .replace('{PREVIOUS_CONSTRAINTS}', constraintsText)
-      .replace('{CURRENT_MESSAGE}', currentMessage);
+      .replace('{CURRENT_MESSAGE}', currentMessage)
+      + conversationContext;
 
     const result = await callLLM({
       messages: [
@@ -447,6 +525,43 @@ export async function mergeFollowUpConstraints(
     });
 
     const merged = JSON.parse(result.rawText) as ConstraintMergeResult;
+
+    // Build detailed constraints summary
+    const mergedConstraintsSummary: Record<string, any> = {};
+    if (merged.mergedConstraints.colors) mergedConstraintsSummary.colors = merged.mergedConstraints.colors;
+    if (merged.mergedConstraints.sizes) mergedConstraintsSummary.sizes = merged.mergedConstraints.sizes;
+    if (merged.mergedConstraints.occasions) mergedConstraintsSummary.occasions = merged.mergedConstraints.occasions;
+    if (merged.mergedConstraints.styles) mergedConstraintsSummary.styles = merged.mergedConstraints.styles;
+    if (merged.mergedConstraints.patterns) mergedConstraintsSummary.patterns = merged.mergedConstraints.patterns;
+    if (merged.mergedConstraints.materials) mergedConstraintsSummary.materials = merged.mergedConstraints.materials;
+    if (merged.mergedConstraints.seasons) mergedConstraintsSummary.seasons = merged.mergedConstraints.seasons;
+    if (merged.mergedConstraints.fits) mergedConstraintsSummary.fits = merged.mergedConstraints.fits;
+    if (merged.mergedConstraints.collections) mergedConstraintsSummary.collections = merged.mergedConstraints.collections;
+    if (merged.mergedConstraints.embellishments) mergedConstraintsSummary.embellishments = merged.mergedConstraints.embellishments;
+    if (merged.mergedConstraints.necklines) mergedConstraintsSummary.necklines = merged.mergedConstraints.necklines;
+    if (merged.mergedConstraints.sleeveLengths) mergedConstraintsSummary.sleeveLengths = merged.mergedConstraints.sleeveLengths;
+    if (merged.mergedConstraints.ageGroups) mergedConstraintsSummary.ageGroups = merged.mergedConstraints.ageGroups;
+    if (merged.mergedConstraints.priceMinCents !== undefined && merged.mergedConstraints.priceMinCents !== null) mergedConstraintsSummary.priceMinCents = merged.mergedConstraints.priceMinCents;
+    if (merged.mergedConstraints.priceMaxCents !== undefined && merged.mergedConstraints.priceMaxCents !== null) mergedConstraintsSummary.priceMaxCents = merged.mergedConstraints.priceMaxCents;
+
+    // Check for product type in enhanced query
+    const productTypeKeywords = ['dress', 'dresses', 'top', 'tops', 'bottom', 'bottoms', 'skirt', 'skirts', 'swimsuit', 'swimsuits', 'bikini', 'bikinis', 'jogger', 'joggers', 'pant', 'pants', 'short', 'shorts', 'romper', 'rompers', 'onesie', 'onesies', 'sleeper', 'sleepers'];
+    const enhancedQueryLower = merged.enhancedQueryText.toLowerCase();
+    const detectedProductType = productTypeKeywords.find(kw => enhancedQueryLower.includes(kw));
+
+    logger.info('constraint_merger_result', {
+      previousQuery: previousQuery.substring(0, 200),
+      currentMessage: currentMessage.substring(0, 200),
+      mergeAction: merged.mergeAction,
+      reason: merged.reason,
+      enhancedQueryText: merged.enhancedQueryText,
+      detectedProductType: detectedProductType || 'none',
+      hasProductTypeInEnhanced: !!detectedProductType,
+      mergedConstraintsCount: Object.keys(mergedConstraintsSummary).length,
+      allMergedConstraints: mergedConstraintsSummary,
+      previousConstraintsProvided: previousConstraints ? Object.keys(previousConstraints).filter(k => previousConstraints![k as keyof typeof previousConstraints] !== undefined && previousConstraints![k as keyof typeof previousConstraints] !== null) : [],
+      conversationHistoryLength: conversationHistory?.length || 0,
+    });
 
     logger.debug('constraints_merged', {
       previousQuery: previousQuery.substring(0, 100),

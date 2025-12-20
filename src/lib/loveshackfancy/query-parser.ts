@@ -25,6 +25,7 @@ export type QueryConstraints = {
   embellishments?: string[] | null;
   necklines?: string[] | null;
   sleeveLengths?: string[] | null;
+  lengths?: string[] | null; // e.g., "Mini", "Midi", "Maxi" for dresses
   ageGroups?: string[] | null; // e.g., "kids", "children", "toddler", "baby", "adult", "5-year-old", etc.
 };
 
@@ -69,6 +70,30 @@ export async function parseQuery(
     });
 
     const parsed = JSON.parse(result.rawText) as QueryParseResult;
+    
+    logger.info('query_parser_llm_response', {
+      query: normalizedQuery.substring(0, 200),
+      productTerms: parsed.productTerms,
+      constraintsFromLLM: {
+        colors: parsed.constraints.colors,
+        sizes: parsed.constraints.sizes,
+        occasions: parsed.constraints.occasions,
+        styles: parsed.constraints.styles,
+        patterns: parsed.constraints.patterns,
+        materials: parsed.constraints.materials,
+        seasons: parsed.constraints.seasons,
+        fits: parsed.constraints.fits,
+        collections: parsed.constraints.collections,
+        embellishments: parsed.constraints.embellishments,
+        necklines: parsed.constraints.necklines,
+        sleeveLengths: parsed.constraints.sleeveLengths,
+        ageGroups: parsed.constraints.ageGroups,
+        priceMinCents: parsed.constraints.priceMinCents,
+        priceMaxCents: parsed.constraints.priceMaxCents,
+      },
+      confidence: parsed.confidence,
+      hasLastConstraints: !!lastConstraints,
+    });
     
     // Merge with lastConstraints if this is a follow-up
     let mergedConstraints: QueryConstraints = {};

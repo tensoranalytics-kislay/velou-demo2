@@ -12,6 +12,15 @@ import { getConceptIndex } from '../search/concept/cache';
 import { logger } from '../telemetry/logger';
 import type { SearchConstraints } from '../search/types';
 import type { QueryClassification, FashionConstraints } from './classifier';
+import { expandColorsWithSimilarity } from './color-similarity';
+
+/**
+ * Generate a simple hash from query text for consistent but diverse variant selection
+ * Same query always gets same hash (cacheable), different queries get different hashes
+ */
+function hashQuery(query: string): string {
+  return query.split('').reduce((hash, char) => ((hash << 5) - hash) + char.charCodeAt(0), 0).toString();
+}
 
 export type MultiViewRetrievalResult = {
   candidateIds: string[];
@@ -56,6 +65,34 @@ export async function multiViewRetrieval(
   // Include top categories for hard SQL-level filtering if provided
   // This hard filters the catalog BEFORE retrieval (applied at SQL level)
   const searchConstraints = classificationToSearchConstraints(classification, topCategories);
+  
+  // Expand colors using embedding similarity
+  // This allows "white" to match "beige", "ivory", "cream" but NOT "black"
+  // Lower threshold (0.6) to find more similar colors, especially for colors like "brown" that might have fewer exact matches
+  let expandedColors = searchConstraints.colors;
+  if (searchConstraints.colors && searchConstraints.colors.length > 0) {
+    try {
+      expandedColors = await expandColorsWithSimilarity(
+        searchConstraints.colors,
+        0.6, // Lower threshold (0.6 instead of 0.7) to find more similar colors
+        8    // Increase max similar colors to 8 for better coverage
+      );
+      
+      logger.info('color_expansion_applied', {
+        query: query.substring(0, 100),
+        originalColors: searchConstraints.colors,
+        expandedColors,
+        expansionCount: expandedColors.length - searchConstraints.colors.length,
+      });
+    } catch (error) {
+      logger.warn('color_expansion_failed', {
+        error: error instanceof Error ? error.message : String(error),
+        colors: searchConstraints.colors,
+      });
+      // Fallback to original colors if expansion fails
+      expandedColors = searchConstraints.colors;
+    }
+  }
   
   if (topCategories && topCategories.length > 0) {
     logger.info('category_filter_passed_to_search_constraints', {
@@ -131,10 +168,13 @@ export async function multiViewRetrieval(
           if (topCategories && topCategories.length > 0) {
             // Step 1: Deduplicate by category (happens BEFORE vector search)
             // This filters the catalog to categories and deduplicates variants
+            // Use query hash for consistent but diverse variant selection
+            const queryHash = hashQuery(query);
             logger.info('fashion_semantic_search: deduplicating_by_category_first', {
               query: query.substring(0, 100),
               categories: topCategories,
               categoryCount: topCategories.length,
+              queryHash,
             });
             
             productIdsToSearch = await deduplicateProductsByCategory(
@@ -144,8 +184,11 @@ export async function multiViewRetrieval(
                 categories: topCategories,
                 priceMinCents: searchConstraints.priceMinCents,
                 priceMaxCents: searchConstraints.priceMaxCents,
+                colors: expandedColors, // Use expanded colors for intelligent matching
+                ageGroups: searchConstraints.ageGroups, // CRITICAL - apply as hard SQL-level filter to exclude incompatible age groups
               },
-              1000 // Get up to 1000 deduplicated products for vector search
+              1500, // Get up to 1500 deduplicated products for vector search (increased for more diversity)
+              queryHash // Pass query hash for variant selection
             );
             
             if (productIdsToSearch.length === 0) {
@@ -178,6 +221,10 @@ export async function multiViewRetrieval(
               // Price filtering: IMPORTANT - apply as hard SQL-level filter
               priceMinCents: searchConstraints.priceMinCents,
               priceMaxCents: searchConstraints.priceMaxCents,
+              // Color filtering: IMPORTANT - apply as hard SQL-level filter with expanded colors
+              colors: expandedColors,
+              // Age group filtering: CRITICAL - apply as hard SQL-level filter to exclude incompatible age groups
+              ageGroups: searchConstraints.ageGroups,
             },
             productIdsToSearch ? undefined : 450, // Pre-deduplication limit only if not pre-deduplicated
             productIdsToSearch // Pass pre-deduplicated IDs

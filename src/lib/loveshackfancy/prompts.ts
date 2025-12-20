@@ -56,12 +56,19 @@ Colors: ${LOVESHACKFANCY_ONTOLOGY.colors.join(', ')}
 Sizes: ${LOVESHACKFANCY_ONTOLOGY.sizes.join(', ')}
 
 QUERY TYPES:
-1. direct_product_search: User mentions specific product types (e.g., "mini dress", "maxi dress", "blouse", "top", "bedding", "decor items", "tabletop", "towels")
-2. occasion_based: User mentions occasions or events (e.g., "beach wedding", "office outfit", "vacation", "date night")
-3. style_exploration: User mentions style preferences (e.g., "A-line dress", "floral print", "lace details", "empire waist")
-4. fit_and_size: User mentions size or fit preferences (e.g., "fitted dress", "size 4", "petite", "plus size")
+1. direct_product_search: User mentions specific product types WITHOUT occasion context (e.g., "mini dress", "maxi dress", "blouse", "top", "bedding", "decor items", "tabletop", "towels")
+   - **IMPORTANT**: If the query mentions BOTH a product type AND an occasion (e.g., "pink dresses for wedding", "dress for beach"), classify as "occasion_based" NOT "direct_product_search"
+2. occasion_based: User mentions occasions or events, OR product type WITH occasion context (e.g., "beach wedding", "office outfit", "vacation", "date night", "pink dresses for wedding", "dress for beach", "outfit for my wedding")
+   - **CRITICAL**: Queries like "dresses for wedding", "outfit for beach", "something for office" are ALWAYS "occasion_based" even if they mention a product type
+3. style_exploration: User mentions style preferences WITHOUT occasion context (e.g., "A-line dress", "floral print", "lace details", "empire waist")
+4. fit_and_size: User mentions size or fit preferences WITHOUT occasion context (e.g., "fitted dress", "size 4", "petite", "plus size")
 5. gift_or_vague: User gives vague requests or gift requests (e.g., "gift for mom", "something elegant under $500", "what do you have?")
 6. unrelated: Not shopping-related AND does NOT match any of the 48 categories (e.g., "what's the weather?", "tell me a joke", "do you sell cars?")
+
+**QUERY TYPE CLASSIFICATION RULES**:
+- If query contains "for [occasion]" (e.g., "for wedding", "for beach", "for office", "for party"), classify as "occasion_based"
+- If query contains occasion keywords (wedding, beach, office, party, gym, home, date, formal, casual) WITH a product type, classify as "occasion_based"
+- Only classify as "direct_product_search" if NO occasion context is present
 
 **CRITICAL**: The catalog includes Home & Living items (Bedding, Bathroom, Towels, Tabletop, Kitchen & Dining, Stationary, Interiors, Candle, Decorative Dishes, Fragrance Tray, Pets). Queries about decor, home items, dining items, bedding, etc. are VALID shopping queries and should be classified as "direct_product_search" or "gift_or_vague", NOT "unrelated".
 
@@ -73,12 +80,74 @@ CONSTRAINT EXTRACTION RULES:
 - Extract occasion constraints (e.g., "for a wedding" → occasions: ["Wedding"])
 - Extract pattern/material constraints (e.g., "floral" → patterns: ["Floral"], "cotton" → materials: ["Cotton"])
 - Extract color constraints (e.g., "white" → colors: ["White"])
-- Extract length constraints (e.g., "mini dress" → lengths: ["Mini"])
-- Extract fit constraints (e.g., "fitted" → fits: ["Fitted"])
+- **CRITICAL: INTELLIGENT COLOR INFERENCE** - You MUST infer colors from context even when not explicitly mentioned. Use your understanding of color semantics, lighting, locations, and occasions:
+  - "light colours", "light colors", "light tones" → infer light colors: ["White", "Ivory", "Cream", "Beige", "Blush", "Pink", "Peach", "Lemon", "Mint", "Sky Blue", "Lavender", "Baby Blue"]
+  - "dark colours", "dark colors", "dark tones" → infer dark colors: ["Black", "Navy", "Burgundy", "Maroon", "Charcoal", "Brown", "Plum"]
+  - "dresses for a sunny day", "for summer", "beach" → infer bright/light colors: ["White", "Yellow", "Coral", "Sky Blue", "Mint", "Lemon"]
+  - "dresses for night", "evening", "night out" → infer darker/elegant colors: ["Black", "Navy", "Burgundy", "Plum", "Charcoal"]
+  - "dresses for miami" → infer tropical/bright colors: ["Coral", "Pink", "Turquoise", "Yellow", "White", "Sky Blue"]
+  - "dresses for utah" → infer earth tones/neutral colors: ["Beige", "Brown", "Tan", "Sage", "Olive", "Taupe", "Camel"]
+  - "pastel colours", "pastels" → infer pastel colors: ["Blush", "Lavender", "Mint", "Peach", "Baby Blue", "Lemon"]
+  - "neutral colours", "neutrals" → infer neutral colors: ["White", "Beige", "Taupe", "Gray", "Nude", "Cream", "Black"]
+  - "warm colours", "warm tones" → infer warm colors: ["Red", "Orange", "Yellow", "Coral", "Peach", "Gold", "Burgundy"]
+  - "cool colours", "cool tones" → infer cool colors: ["Blue", "Green", "Purple", "Teal", "Mint", "Navy", "Lavender"]
+  - **IMPORTANT**: Infer colors based on semantic understanding, not hardcoded rules. Consider context: location, time of day, season, occasion. Map inferred colors to the closest ontology terms. You can infer multiple colors when appropriate (e.g., "light colours" → array of light colors). If the query explicitly mentions a color, use that instead of inferring.
+- **CRITICAL: INTELLIGENT OCCASION INFERENCE** - You MUST infer occasions from context even when not explicitly mentioned:
+  - "for wedding" or "wedding dress" → occasions: ["Wedding", "Formal"]
+  - "for beach" or "beach outfit" → occasions: ["Beach", "Casual", "Vacation"]
+  - "for office" or "office wear" → occasions: ["Office", "Professional", "Daytime"]
+  - "for party" or "party dress" → occasions: ["Party", "Cocktail", "Evening"]
+  - "for gym" or "gym wear" → occasions: ["Athletic", "Activewear"]
+  - "for home" or "loungewear" → occasions: ["Casual", "Loungewear"]
+  - "for date" or "date night" → occasions: ["Date Night", "Evening", "Cocktail"]
+  - "for formal event" → occasions: ["Formal", "Evening"]
+  - "for casual" → occasions: ["Casual", "Daytime"]
+  - **IMPORTANT**: Infer occasions based on semantic understanding. Consider context: event type, time of day, location. Map inferred occasions to the closest ontology terms.
+- **CRITICAL: INTELLIGENT MATERIAL INFERENCE** - You MUST infer materials from context and product descriptions:
+  - "silk dress" or "silk" → materials: ["Silk"]
+  - "cotton shirt" or "cotton" → materials: ["Cotton"]
+  - "linen" → materials: ["Linen"]
+  - "wool" or "woolen" → materials: ["Wool"]
+  - "breathable" → materials: ["Cotton", "Linen", "Modal"]
+  - "warm" or "warm fabric" → materials: ["Wool", "Cashmere", "Fleece"]
+  - "soft" → materials: ["Cotton", "Modal", "Cashmere", "Silk"]
+  - "stretchy" or "stretch" → materials: ["Spandex", "Elastane", "Modal"]
+  - "lightweight" → materials: ["Linen", "Cotton", "Modal"]
+  - **IMPORTANT**: Infer materials based on product descriptions and user language. Map inferred materials to the closest ontology terms.
+- **CRITICAL: INTELLIGENT SEASON INFERENCE** - You MUST infer seasons from context:
+  - "summer dress" or "for summer" → seasons: ["Summer"]
+  - "winter coat" or "for winter" → seasons: ["Winter"]
+  - "spring collection" or "for spring" → seasons: ["Spring"]
+  - "fall outfit" or "for fall" or "autumn" → seasons: ["Fall"]
+  - "for miami" or "tropical" → seasons: ["Summer"]
+  - "for utah" or "mountain" → seasons: ["Winter", "Fall"]
+  - "beach" → seasons: ["Summer"]
+  - "snow" → seasons: ["Winter"]
+  - **IMPORTANT**: Infer seasons based on context: location, weather, product type. Map inferred seasons to the closest ontology terms.
+- **CRITICAL: INTELLIGENT FIT INFERENCE** - You MUST infer fit from user language:
+  - "relaxed fit" or "relaxed" → fits: ["Relaxed"]
+  - "fitted" or "fitted dress" → fits: ["Fitted"]
+  - "loose" or "loose fit" → fits: ["Loose", "Relaxed"]
+  - "slim fit" or "slim" → fits: ["Slim", "Fitted"]
+  - "comfortable" → fits: ["Relaxed", "Loose"]
+  - "form-fitting" → fits: ["Fitted"]
+  - **IMPORTANT**: Infer fit based on user language and product descriptions. Map inferred fits to the closest ontology terms.
+- **CRITICAL: INTELLIGENT LENGTH INFERENCE** (for dresses and skirts):
+  - "mini dress" or "mini" → lengths: ["Mini"]
+  - "maxi dress" or "maxi" or "long dress" → lengths: ["Maxi"]
+  - "midi dress" or "midi" → lengths: ["Midi"]
+  - "short dress" → lengths: ["Mini"]
+  - "long dress" → lengths: ["Maxi"]
+  - "knee-length" → lengths: ["Midi"]
+  - **IMPORTANT**: Infer length based on user language. Map inferred lengths to the closest ontology terms.
 - Extract collection constraints (e.g., "spring collection" → collections: ["Spring Collection"])
 - Extract age group constraints (e.g., "for kids" → ageGroups: ["kids"], "5-year-old" → ageGroups: ["kids"], "toddler" → ageGroups: ["toddler"], "baby" → ageGroups: ["baby"], "adult" or "women" → ageGroups: ["adult"])
   - IMPORTANT: Distinguish between age and size. "5-year-old" or "for kids" is ageGroups, NOT sizes.
-- Extract age group constraints (e.g., "for kids" → ageGroups: ["kids"], "5-year-old" → ageGroups: ["kids"], "for children" → ageGroups: ["kids"], "toddler" → ageGroups: ["toddler"], "baby" → ageGroups: ["baby"], "adult" or "women" → ageGroups: ["adult"])
+- **CRITICAL: FLEXIBLE VS STRICT REQUIREMENTS** - Distinguish between must-have, preferred, and avoid:
+  - **Must have** (strict): "must be silk", "only silk", "silk only", "has to be silk" → materials: ["Silk"] (treat as strict requirement)
+  - **Preferred** (flexible): "silk preferred", "silk if possible", "preferably silk", "silk would be nice" → materials: ["Silk"] (treat as preferred, not strict)
+  - **Avoid** (negative): "not silk", "avoid silk", "no silk", "anything but silk" → materials: null (remove silk constraint, or mark as avoid)
+  - **IMPORTANT**: Use semantic understanding to determine if a requirement is strict or flexible. When in doubt, treat as preferred (flexible) rather than strict.
 
 FOLLOW-UP CONTEXT:
 **CRITICAL**: If LAST_CONSTRAINTS is provided, you MUST determine if this is a FOLLOW-UP refinement or a NEW search.

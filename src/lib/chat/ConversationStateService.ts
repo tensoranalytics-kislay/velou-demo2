@@ -38,6 +38,7 @@ export type ConversationMemory = {
   productTypes?: string[];
   lastIntent?: string;
   pendingFollowups?: PendingFollowups;
+  lastEnhancedQuery?: string; // Store the last enhanced query from constraint merging for cumulative context
 };
 
 export type ConversationStateData = {

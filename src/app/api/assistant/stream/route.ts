@@ -90,7 +90,8 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // No searchMethods provided, default to fast mode
-      validatedSearchMethods = { lexical: false, semantic: true, concept: true };
+      // Concept search disabled - attributes aren't structured in this dataset (see retrieval.ts line 54)
+      validatedSearchMethods = { lexical: false, semantic: true, concept: false };
     }
 
     logger.info('assistant_api_stream_request', {

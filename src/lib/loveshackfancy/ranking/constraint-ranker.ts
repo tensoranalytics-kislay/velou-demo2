@@ -8,7 +8,7 @@
 
 import type { SearchResultItem } from '../../search/types';
 import type { QueryConstraints } from '../query-parser';
-import { calculateConstraintMatchScore } from './constraint-matcher';
+import { calculateConstraintMatchScore, type QueryContext } from './constraint-matcher';
 import { logger } from '../../telemetry/logger';
 
 export type ProductWithVectorScore = {
@@ -37,13 +37,15 @@ export type ProductWithFinalScore = {
  * 
  * @param products - Products with their vector similarity scores
  * @param constraints - Query constraints to match against
- * @param maxConstraintBoost - Maximum boost factor for constraints (default 0.3 = 30% of base score)
+ * @param maxConstraintBoost - Maximum boost factor for constraints (default 0.6 = 60% of base score)
+ * @param queryContext - Optional query context for dynamic weight adjustment
  * @returns Products ranked by final score (descending)
  */
 export async function rankWithConstraints(
   products: ProductWithVectorScore[],
   constraints: QueryConstraints,
-  maxConstraintBoost: number = 0.3
+  maxConstraintBoost: number = 0.6,
+  queryContext?: QueryContext
 ): Promise<ProductWithFinalScore[]> {
   if (products.length === 0) return [];
   
@@ -61,39 +63,91 @@ export async function rankWithConstraints(
     }));
   }
   
-  // Calculate constraint match scores and final scores in parallel
+  // Calculate constraint match scores first (to determine dynamic boost)
   // Using Promise.all() to allow event loop interleaving for better responsiveness
-  const productsWithScores: ProductWithFinalScore[] = await Promise.all(
+  const productsWithConstraintScores = await Promise.all(
     products.map(async ({ product, vectorScore }) => {
       // Calculate constraint score (synchronous, but wrapped in Promise for parallel processing)
       const constraintScore = calculateConstraintMatchScore(
         product, // Pass full product object so ageGroup can be inferred from title/description
-        constraints
+        constraints,
+        queryContext // Pass query context for dynamic weight adjustment
       );
-      
-      // Calculate constraint boost (capped at maxConstraintBoost)
-      // Constraint boost adds to the base vector score proportionally
-      const constraintBoost = constraintScore * maxConstraintBoost;
-      
-      // Final score: base vector score + constraint boost
-      // This ensures products matching constraints rank higher, but don't completely
-      // dominate if they have low vector similarity
-      const finalScore = Math.min(1.0, vectorScore + constraintBoost);
       
       return {
         product,
-        finalScore,
+        vectorScore,
         constraintScore,
       };
     })
   );
   
+  // Calculate average constraint score to determine dynamic boost
+  const avgConstraintScore = productsWithConstraintScores.reduce((sum, p) => sum + p.constraintScore, 0) / productsWithConstraintScores.length;
+  const minConstraintScore = Math.min(...productsWithConstraintScores.map(p => p.constraintScore));
+  const maxConstraintScore = Math.max(...productsWithConstraintScores.map(p => p.constraintScore));
+  
+  // Dynamic boost: higher boost (0.8) if constraints match well, lower boost (0.4) if they don't
+  // This allows good constraint matches to outrank pure vector similarity
+  const effectiveBoost = avgConstraintScore > 0.3 ? 0.8 : 0.4;
+  
+  // Calculate final scores with dynamic boost
+  const productsWithScores: ProductWithFinalScore[] = productsWithConstraintScores.map(({ product, vectorScore, constraintScore }) => {
+    // Calculate constraint boost using dynamic effective boost
+    const constraintBoost = constraintScore * effectiveBoost;
+    
+    // Final score: base vector score + constraint boost
+    // This ensures products matching constraints rank higher, but don't completely
+    // dominate if they have low vector similarity
+    const finalScore = Math.min(1.0, vectorScore + constraintBoost);
+    
+    return {
+      product,
+      finalScore,
+      constraintScore,
+    };
+  });
+  
   // Sort by final score (descending)
   productsWithScores.sort((a, b) => b.finalScore - a.finalScore);
   
+  // Log top 5 products with detailed scores
+  const topProducts = productsWithScores.slice(0, 5).map((p, idx) => ({
+    rank: idx + 1,
+    productId: p.product.id,
+    productTitle: p.product.title?.substring(0, 80),
+    vectorScore: productsWithConstraintScores.find(pc => pc.product.id === p.product.id)?.vectorScore || 0,
+    constraintScore: p.constraintScore,
+    constraintBoost: p.constraintScore * effectiveBoost,
+    finalScore: p.finalScore,
+  }));
+  
+  logger.info('constraint_ranking_applied', {
+    productCount: productsWithScores.length,
+    avgConstraintScore,
+    minConstraintScore,
+    maxConstraintScore,
+    effectiveBoost,
+    avgFinalScore: productsWithScores.reduce((sum, p) => sum + p.finalScore, 0) / productsWithScores.length,
+    topFinalScore: productsWithScores[0]?.finalScore,
+    constraintFields: Object.keys(constraints).filter(k => constraints[k as keyof QueryConstraints] !== null && constraints[k as keyof QueryConstraints] !== undefined),
+    topProducts,
+    constraintValues: {
+      colors: constraints.colors,
+      patterns: constraints.patterns,
+      occasions: constraints.occasions,
+      materials: constraints.materials,
+      sizes: constraints.sizes,
+      ageGroups: constraints.ageGroups,
+      priceMinCents: constraints.priceMinCents,
+      priceMaxCents: constraints.priceMaxCents,
+    },
+  });
+  
   logger.debug('constraint_ranking_applied', {
     productCount: productsWithScores.length,
-    avgConstraintScore: productsWithScores.reduce((sum, p) => sum + p.constraintScore, 0) / productsWithScores.length,
+    avgConstraintScore,
+    effectiveBoost,
     avgFinalScore: productsWithScores.reduce((sum, p) => sum + p.finalScore, 0) / productsWithScores.length,
     topFinalScore: productsWithScores[0]?.finalScore,
     constraintFields: Object.keys(constraints).filter(k => constraints[k as keyof QueryConstraints] !== null && constraints[k as keyof QueryConstraints] !== undefined),

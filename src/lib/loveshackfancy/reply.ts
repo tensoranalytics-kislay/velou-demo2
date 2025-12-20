@@ -207,3 +207,59 @@ export async function generateReply(
     };
   }
 }
+
+/**
+ * Generate a regretful, witty reply when no products are found or confidence is too low
+ */
+export async function generateRegretfulReply(
+  userQuery: string,
+  productCount: number,
+  topScore: number,
+  brandName: string
+): Promise<ReplyResult> {
+  try {
+    const prompt = `The user searched for: "${userQuery}".
+We found ${productCount} products, with the top product having a relevance score of ${topScore.toFixed(2)}.
+This is a low confidence recommendation, or we didn't find enough products that match the query intent.
+
+Generate a witty, smart, and regretful reply in the tone of a helpful shopping assistant for ${brandName}.
+Acknowledge the user's request, express regret for not finding perfect matches, and offer to help further.
+Keep it concise, 2-3 short paragraphs (1-2 lines each). Do NOT recommend any products.
+Example tone: "Oh dear, it seems we're having a bit of a treasure hunt today! While I couldn't unearth a perfect trove of ${userQuery} just yet, don't you fret. Our collection is always growing, and I'm here to help you explore other fabulous finds or refine your quest. What else can I assist you with?"`;
+
+    const result = await callLLM({
+      messages: [
+        {
+          role: 'system',
+          content: `You are a witty, smart, and helpful shopping assistant for ${brandName}. Your task is to generate a regretful reply when perfect product matches are not found. Be honest, concise, and maintain a playful yet helpful tone. Keep it to 2-3 short paragraphs (1-2 lines each).`,
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      purpose: 'final_reply',
+      maxTokens: 200,
+    });
+
+    const fullReply = result.rawText.trim();
+    const paragraphs = fullReply.split(/\n\n+/).filter(p => p.trim().length > 0);
+    const replyText = paragraphs.slice(0, 2).join('\n\n').trim(); // Take first 2 paragraphs
+
+    return {
+      replyText,
+      replyTextAfter: paragraphs.slice(2).join('\n\n').trim() || undefined, // Remaining paragraphs
+    };
+  } catch (error) {
+    logger.error('regretful_reply_generation_failed', {
+      error: error instanceof Error ? error.message : String(error),
+      query: userQuery.substring(0, 100),
+    });
+
+    // Fallback reply
+    return {
+      replyText: `I couldn't find perfect matches for "${userQuery}" in our collection right now. Our inventory is always changing, so feel free to try different search terms or browse our categories. How else can I help you?`,
+      replyTextAfter: undefined,
+    };
+  }
+}

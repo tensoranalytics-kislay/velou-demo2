@@ -207,8 +207,9 @@ export async function searchVectorIndex(
  * @returns Array of deduplicated product IDs
  */
 export async function deduplicateProductsByCategory(
-  filters?: { inStockOnly?: boolean; merchantId?: string; categories?: string[]; priceMinCents?: number; priceMaxCents?: number },
-  limit: number = 1000
+  filters?: { inStockOnly?: boolean; merchantId?: string; categories?: string[]; priceMinCents?: number; priceMaxCents?: number; colors?: string[]; ageGroups?: string[] },
+  limit: number = 1000,
+  queryHash?: string // Optional query hash for consistent but diverse variant selection
 ): Promise<string[]> {
   try {
     // Build WHERE clause for filters
@@ -239,6 +240,90 @@ export async function deduplicateProductsByCategory(
       whereConditions.push(`p."priceCents" <= $${paramIndex}`);
       params.push(filters.priceMaxCents);
       paramIndex++;
+    }
+    
+    // Add color filtering if provided (hard SQL-level filter)
+    // Colors are stored in attributes->>'color' or attributes->extensible->color
+    // Match case-insensitively for exact and partial matches
+    if (filters?.colors && filters.colors.length > 0) {
+      const colorOrConditions: string[] = [];
+      filters.colors.forEach((color) => {
+        // Try exact match first, then partial match
+        // Match on attributes->>'color' OR attributes->extensible->>'color'
+        const exactParam = paramIndex;
+        const partialParam = paramIndex + 1;
+        colorOrConditions.push(
+          `(LOWER(COALESCE(p.attributes->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->>'color', '')) LIKE LOWER($${partialParam}) OR (p.attributes->'extensible' IS NOT NULL AND (LOWER(COALESCE(p.attributes->'extensible'->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->'extensible'->>'color', '')) LIKE LOWER($${partialParam}))))`
+        );
+        params.push(color); // Exact match
+        params.push(`%${color}%`); // Partial match
+        paramIndex += 2;
+      });
+      // Wrap all color conditions in parentheses with OR
+      if (colorOrConditions.length > 0) {
+        whereConditions.push(`(${colorOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // Add age group filtering if provided (hard SQL-level filter)
+    // Age groups can be stored in attributes->>'ageGroup' or inferred from category/subcategory
+    // This is CRITICAL for filtering kids vs adult products
+    // We use INCLUSIVE matching (match compatible age groups) AND EXCLUSIVE filtering (exclude incompatible age groups)
+    if (filters?.ageGroups && filters.ageGroups.length > 0) {
+      const ageGroupOrConditions: string[] = [];
+      const ageGroupExclusions: string[] = []; // Products to EXCLUDE (incompatible age groups)
+      
+      filters.ageGroups.forEach((ageGroup) => {
+        const ageGroupLower = ageGroup.toLowerCase();
+        
+        // Build conditions for explicit ageGroup attribute
+        const exactParam = paramIndex;
+        const partialParam = paramIndex + 1;
+        const attrCondition = `(LOWER(COALESCE(p.attributes->>'ageGroup', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->>'ageGroup', '')) LIKE LOWER($${partialParam}) OR (p.attributes->'extensible' IS NOT NULL AND (LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) LIKE LOWER($${partialParam}))))`;
+        
+        // Build conditions for category/subcategory inference
+        // For "adult" or "Adult": match categories containing "women", "men", "adult", "ladies", "gentlemen"
+        // For "kids", "children", "toddler", "baby": match categories containing "kids", "children", "toddler", "baby", "infant", "youth", "junior"
+        let categoryCondition = '';
+        if (ageGroupLower === 'adult' || ageGroupLower === 'adults') {
+          categoryCondition = `(LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%')`;
+          // EXCLUDE products explicitly in kids categories or with kids ageGroup
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')`);
+        } else if (ageGroupLower === 'kids' || ageGroupLower === 'children' || ageGroupLower === 'child' || ageGroupLower === 'kid') {
+          categoryCondition = `(LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%youth%' OR LOWER(p."category") LIKE '%junior%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%youth%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%junior%')`;
+          // EXCLUDE products explicitly in adult categories or with adult ageGroup
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('adult', 'adults', 'women', 'womens', 'men', 'mens', 'ladies', 'gentlemen') OR LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%')`);
+        } else if (ageGroupLower === 'toddler' || ageGroupLower === 'toddlers') {
+          categoryCondition = `(LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%')`;
+          // EXCLUDE products explicitly in adult categories
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('adult', 'adults', 'women', 'womens', 'men', 'mens') OR LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%')`);
+        } else if (ageGroupLower === 'baby' || ageGroupLower === 'babies' || ageGroupLower === 'infant' || ageGroupLower === 'infants') {
+          categoryCondition = `(LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%')`;
+          // EXCLUDE products explicitly in adult categories
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('adult', 'adults', 'women', 'womens', 'men', 'mens') OR LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%')`);
+        }
+        
+        // Combine attribute and category conditions with OR
+        if (categoryCondition) {
+          ageGroupOrConditions.push(`(${attrCondition} OR ${categoryCondition})`);
+        } else {
+          ageGroupOrConditions.push(attrCondition);
+        }
+        
+        params.push(ageGroup); // Exact match
+        params.push(`%${ageGroup}%`); // Partial match
+        paramIndex += 2;
+      });
+      
+      // Build final age group condition: (INCLUDE compatible) AND (EXCLUDE incompatible)
+      if (ageGroupOrConditions.length > 0) {
+        let finalCondition = `(${ageGroupOrConditions.join(' OR ')})`;
+        // Add exclusions if any
+        if (ageGroupExclusions.length > 0) {
+          finalCondition = `(${finalCondition} AND NOT (${ageGroupExclusions.join(' OR ')}))`;
+        }
+        whereConditions.push(finalCondition);
+      }
     }
     
     // Add category filtering if provided (hard SQL-level filter)
@@ -284,28 +369,32 @@ export async function deduplicateProductsByCategory(
     
     // Build the deduplication query
     // We want to get one product per dedup_key group
-    // Since we don't have similarity scores yet, we'll just pick the first one (by id or updatedAt)
+    // Use query-dependent hash for variant selection: same query gets same variant, different queries get different variants
+    const hashSeed = queryHash || '';
     const query = `
       WITH all_products AS (
         SELECT 
           p.id as "productId",
           ${dedupKeyExpr} as dedup_key,
-          p."updatedAt"
+          p."updatedAt",
+          ABS(HASHTEXT(p.id || '${hashSeed}'))::float as selection_score
         FROM "Product" p
         WHERE ${whereConditions.join(' AND ')}
       ),
       deduplicated AS (
         SELECT 
           "productId",
+          selection_score,
           ROW_NUMBER() OVER (
             PARTITION BY dedup_key
-            ORDER BY "updatedAt" DESC
+            ORDER BY selection_score DESC
           ) as dedup_rank
         FROM all_products
       )
       SELECT "productId"
       FROM deduplicated
       WHERE dedup_rank = 1
+      ORDER BY selection_score DESC
       LIMIT $${paramIndex}
     `;
     
@@ -319,6 +408,10 @@ export async function deduplicateProductsByCategory(
       hasPriceFilter: filters?.priceMinCents !== undefined || filters?.priceMaxCents !== undefined,
       priceMinCents: filters?.priceMinCents,
       priceMaxCents: filters?.priceMaxCents,
+      hasColorFilter: filters?.colors !== undefined && filters.colors.length > 0,
+      colorCount: filters?.colors?.length || 0,
+      hasAgeGroupFilter: filters?.ageGroups !== undefined && filters.ageGroups.length > 0,
+      ageGroupCount: filters?.ageGroups?.length || 0,
       paramCount: params.length,
     });
     
@@ -367,7 +460,7 @@ export async function deduplicateProductsByCategory(
 export async function searchVectorIndexWithDeduplication(
   queryEmbedding: number[],
   limit: number,
-  filters?: { inStockOnly?: boolean; merchantId?: string; categories?: string[]; priceMinCents?: number; priceMaxCents?: number },
+  filters?: { inStockOnly?: boolean; merchantId?: string; categories?: string[]; priceMinCents?: number; priceMaxCents?: number; colors?: string[]; ageGroups?: string[] },
   preDeduplicationLimit?: number,
   productIds?: string[] // NEW: pre-deduplicated product IDs to search within
 ): Promise<Array<{ productId: string; similarity: number }>> {
@@ -420,6 +513,92 @@ export async function searchVectorIndexWithDeduplication(
       whereConditions.push(`p."priceCents" <= $${paramIndex}`);
       params.push(filters.priceMaxCents);
       paramIndex++;
+    }
+    
+    // Add color filtering if provided (hard SQL-level filter)
+    // Colors are stored in attributes->>'color' or attributes->extensible->color
+    // Match case-insensitively for exact and partial matches
+    // Apply color filters even when productIds are provided (they were filtered in deduplication, but we need to ensure consistency)
+    if (filters?.colors && filters.colors.length > 0) {
+      const colorOrConditions: string[] = [];
+      filters.colors.forEach((color) => {
+        // Try exact match first, then partial match
+        // Match on attributes->>'color' OR attributes->extensible->>'color'
+        const exactParam = paramIndex;
+        const partialParam = paramIndex + 1;
+        colorOrConditions.push(
+          `(LOWER(COALESCE(p.attributes->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->>'color', '')) LIKE LOWER($${partialParam}) OR (p.attributes->'extensible' IS NOT NULL AND (LOWER(COALESCE(p.attributes->'extensible'->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->'extensible'->>'color', '')) LIKE LOWER($${partialParam}))))`
+        );
+        params.push(color); // Exact match
+        params.push(`%${color}%`); // Partial match
+        paramIndex += 2;
+      });
+      // Wrap all color conditions in parentheses with OR
+      if (colorOrConditions.length > 0) {
+        whereConditions.push(`(${colorOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // Add age group filtering if provided (hard SQL-level filter)
+    // Age groups can be stored in attributes->>'ageGroup' or inferred from category/subcategory
+    // This is CRITICAL for filtering kids vs adult products
+    // We use INCLUSIVE matching (match compatible age groups) AND EXCLUSIVE filtering (exclude incompatible age groups)
+    // Apply age group filters even when productIds are provided (they were filtered in deduplication, but we need to ensure consistency)
+    if (filters?.ageGroups && filters.ageGroups.length > 0) {
+      const ageGroupOrConditions: string[] = [];
+      const ageGroupExclusions: string[] = []; // Products to EXCLUDE (incompatible age groups)
+      
+      filters.ageGroups.forEach((ageGroup) => {
+        const ageGroupLower = ageGroup.toLowerCase();
+        
+        // Build conditions for explicit ageGroup attribute
+        const exactParam = paramIndex;
+        const partialParam = paramIndex + 1;
+        const attrCondition = `(LOWER(COALESCE(p.attributes->>'ageGroup', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->>'ageGroup', '')) LIKE LOWER($${partialParam}) OR (p.attributes->'extensible' IS NOT NULL AND (LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) LIKE LOWER($${partialParam}))))`;
+        
+        // Build conditions for category/subcategory inference
+        // For "adult" or "Adult": match categories containing "women", "men", "adult", "ladies", "gentlemen"
+        // For "kids", "children", "toddler", "baby": match categories containing "kids", "children", "toddler", "baby", "infant", "youth", "junior"
+        let categoryCondition = '';
+        if (ageGroupLower === 'adult' || ageGroupLower === 'adults') {
+          categoryCondition = `(LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%')`;
+          // EXCLUDE products explicitly in kids categories or with kids ageGroup
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')`);
+        } else if (ageGroupLower === 'kids' || ageGroupLower === 'children' || ageGroupLower === 'child' || ageGroupLower === 'kid') {
+          categoryCondition = `(LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%youth%' OR LOWER(p."category") LIKE '%junior%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%youth%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%junior%')`;
+          // EXCLUDE products explicitly in adult categories or with adult ageGroup
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('adult', 'adults', 'women', 'womens', 'men', 'mens', 'ladies', 'gentlemen') OR LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%')`);
+        } else if (ageGroupLower === 'toddler' || ageGroupLower === 'toddlers') {
+          categoryCondition = `(LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%')`;
+          // EXCLUDE products explicitly in adult categories
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('adult', 'adults', 'women', 'womens', 'men', 'mens') OR LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%')`);
+        } else if (ageGroupLower === 'baby' || ageGroupLower === 'babies' || ageGroupLower === 'infant' || ageGroupLower === 'infants') {
+          categoryCondition = `(LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%')`;
+          // EXCLUDE products explicitly in adult categories
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('adult', 'adults', 'women', 'womens', 'men', 'mens') OR LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%')`);
+        }
+        
+        // Combine attribute and category conditions with OR
+        if (categoryCondition) {
+          ageGroupOrConditions.push(`(${attrCondition} OR ${categoryCondition})`);
+        } else {
+          ageGroupOrConditions.push(attrCondition);
+        }
+        
+        params.push(ageGroup); // Exact match
+        params.push(`%${ageGroup}%`); // Partial match
+        paramIndex += 2;
+      });
+      
+      // Build final age group condition: (INCLUDE compatible) AND (EXCLUDE incompatible)
+      if (ageGroupOrConditions.length > 0) {
+        let finalCondition = `(${ageGroupOrConditions.join(' OR ')})`;
+        // Add exclusions if any
+        if (ageGroupExclusions.length > 0) {
+          finalCondition = `(${finalCondition} AND NOT (${ageGroupExclusions.join(' OR ')}))`;
+        }
+        whereConditions.push(finalCondition);
+      }
     }
     
     // If productIds provided, filter to only those IDs (deduplication already done)

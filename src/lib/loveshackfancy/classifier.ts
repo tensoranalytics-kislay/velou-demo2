@@ -76,6 +76,34 @@ export async function classifyQuery(
     const cleaned = stripJsonFences(result.rawText);
     const parsed = JSON.parse(cleaned) as QueryClassification;
 
+    // Log all extracted constraints and product type hints
+    const constraintsSummary: Record<string, any> = {};
+    if (parsed.constraints.colors) constraintsSummary.colors = parsed.constraints.colors;
+    if (parsed.constraints.sizes) constraintsSummary.sizes = parsed.constraints.sizes;
+    if (parsed.constraints.occasions) constraintsSummary.occasions = parsed.constraints.occasions;
+    if (parsed.constraints.styles) constraintsSummary.styles = parsed.constraints.styles;
+    if (parsed.constraints.patterns) constraintsSummary.patterns = parsed.constraints.patterns;
+    if (parsed.constraints.materials) constraintsSummary.materials = parsed.constraints.materials;
+    if (parsed.constraints.seasons) constraintsSummary.seasons = parsed.constraints.seasons;
+    if (parsed.constraints.fits) constraintsSummary.fits = parsed.constraints.fits;
+    if (parsed.constraints.collections) constraintsSummary.collections = parsed.constraints.collections;
+    if (parsed.constraints.embellishments) constraintsSummary.embellishments = parsed.constraints.embellishments;
+    if (parsed.constraints.necklines) constraintsSummary.necklines = parsed.constraints.necklines;
+    if (parsed.constraints.sleeveLengths) constraintsSummary.sleeveLengths = parsed.constraints.sleeveLengths;
+    if (parsed.constraints.ageGroups) constraintsSummary.ageGroups = parsed.constraints.ageGroups;
+    if (parsed.constraints.priceMinCents !== undefined) constraintsSummary.priceMinCents = parsed.constraints.priceMinCents;
+    if (parsed.constraints.priceMaxCents !== undefined) constraintsSummary.priceMaxCents = parsed.constraints.priceMaxCents;
+
+    logger.info('classifier_constraints_extracted', {
+      query: message.substring(0, 200),
+      type: parsed.type,
+      confidence: parsed.confidence,
+      constraintsCount: Object.keys(constraintsSummary).length,
+      allConstraints: constraintsSummary,
+      hasLastConstraints: !!lastConstraints,
+      lastConstraintsKeys: lastConstraints ? Object.keys(lastConstraints).filter(k => lastConstraints![k as keyof typeof lastConstraints] !== undefined && lastConstraints![k as keyof typeof lastConstraints] !== null) : [],
+    });
+
     logger.debug('fashion_query_classified', {
       query: message.substring(0, 100),
       type: parsed.type,
