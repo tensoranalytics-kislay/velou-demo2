@@ -30,7 +30,7 @@ import { categorizeQuery, type QueryCategorization } from './query-categorizer';
 import { generateFollowUpQuestions, regenerateNextQuestion } from './followup-generator';
 import { enhanceQuery, createEnhancedVectorQuery } from './query-enhancer';
 import { shouldContinueAnyway } from './continue-detector';
-import { updateState } from '../chat/ConversationStateService';
+import { updateState, setLastRankedProducts } from '../chat/ConversationStateService';
 import { parseQuery } from './query-parser';
 import { rankWithConstraints } from './ranking/constraint-ranker';
 import { classifyQueryToCategories } from './category-classifier';
@@ -1792,7 +1792,38 @@ Answer the user's question about this product:`;
 
   // Step 10: Generate actions (if needed)
   const actions: Array<{ id: string; type: string; label: string; payload?: any }> = [];
-  if (routerResult.action) {
+  
+  // Add "show more" action for product discovery queries when there are more products available
+  // Only show for product discovery (when we have product cards and it's not clarification/product-specific Q&A)
+  const hasMoreProducts = productsWithScores.length > 4; // We show 4, so check if there are more
+  const nonDiscoveryRoutes = ['CLARIFICATION_NEEDED', 'PDP_SUITABILITY', 'PRODUCT_NOT_FOUND', 'NO_MATCH'];
+  const isProductDiscovery = productCards.length > 0 && 
+                             routerResult.route && 
+                             !nonDiscoveryRoutes.includes(routerResult.route);
+  
+  if (isProductDiscovery && hasMoreProducts) {
+    // Generate unique action ID
+    const actionId = `show_more_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    actions.push({
+      id: actionId,
+      type: 'show_more',
+      label: 'Show more',
+      payload: {
+        currentProductCount: productCards.length,
+        totalAvailableProducts: productsWithScores.length,
+      },
+    });
+    
+    logger.info('show_more_action_added', {
+      query: input.message.substring(0, 100),
+      currentProductCount: productCards.length,
+      totalAvailableProducts: productsWithScores.length,
+      route: routerResult.route,
+    });
+  }
+  
+  // Add other actions from router if available (but don't duplicate show_more)
+  if (routerResult.action && routerResult.action.type !== 'show_more') {
     actions.push({
       id: `action_${Date.now()}`,
       type: routerResult.action.type || 'show_more',
@@ -1983,6 +2014,25 @@ Answer the user's question about this product:`;
         sessionId: input.sessionId,
       });
     });
+  }
+
+  // Store ranked product IDs for "show more" functionality (only for product discovery queries)
+  // This allows the next "show more" click to retrieve the next 4 products from the ranked list
+  if (isProductDiscovery && input.merchantId && input.sessionId && productsWithScores.length > 0) {
+    try {
+      const rankedProductIds = productsWithScores.map(p => p.product.id);
+      await setLastRankedProducts(input.merchantId, input.sessionId, rankedProductIds);
+      logger.debug('stored_ranked_products_for_show_more', {
+        query: input.message.substring(0, 100),
+        rankedProductCount: rankedProductIds.length,
+        sessionId: input.sessionId,
+      });
+    } catch (error) {
+      logger.warn('failed_to_store_ranked_products', {
+        error: error instanceof Error ? error.message : String(error),
+        sessionId: input.sessionId,
+      });
+    }
   }
 
   logger.info('handleLoveshackfancyQuery complete', {
