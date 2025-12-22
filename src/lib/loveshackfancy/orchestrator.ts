@@ -33,7 +33,7 @@ import { shouldContinueAnyway } from './continue-detector';
 import { updateState, setLastRankedProducts } from '../chat/ConversationStateService';
 import { parseQuery } from './query-parser';
 import { rankWithConstraints } from './ranking/constraint-ranker';
-import { classifyQueryToCategories } from './category-classifier';
+import { classifyQueryToCategories, classifyQueryToCategoriesWithConfidence } from './category-classifier';
 import { mergeFollowUpConstraints, isFollowUpRefinement } from './constraint-merger';
 import { callLLM } from '../llm/provider';
 import { buildProductQaPrompt } from '../llm/prompts';
@@ -829,22 +829,55 @@ Answer the user's question about this product:`;
     };
   }
 
+  // Declare topCategories early so it's accessible throughout (may be set for indirect_search)
+  let topCategories: string[] = [];
+
   // Handle indirect/vague queries
   // CRITICAL: If this is a merged follow-up, skip the indirect_search check and proceed with search
   // The constraint merger has already determined this is a follow-up refinement, so we should proceed
   // even if the categorizer thinks it's vague (e.g., "wedding outfits" after "bikinis" - the merger
   // should have preserved the product type, but if it didn't, we still proceed since it's a follow-up)
   if (categorization.category === 'indirect_search' && !isFollowUp) {
-    // New vague query - generate follow-up questions
-    logger.info('generating_followup_questions', {
+    // NEW: Try category classification first before asking questions
+    // If we can confidently identify categories, proceed with discovery immediately
+    logger.info('indirect_search_attempting_category_classification', {
       query: input.message,
       hasPreliminaryProducts: !!categorization.preliminaryProducts?.length,
     });
+    
+    onProgress?.('classifying', STAGE_PROGRESS.classifying);
+    // Use the function that returns confidence info to capture potential categories even if low confidence
+    const categoryResult = await classifyQueryToCategoriesWithConfidence(input.message, input.merchantId);
+    
+    if (categoryResult.confidence >= 0.5 && categoryResult.categories.length > 0) {
+      // Category identified confidently - proceed with discovery instead of asking questions
+      topCategories = categoryResult.categories;
+      logger.info('indirect_search_category_identified_proceeding_with_discovery', {
+        query: input.message,
+        categories: topCategories,
+        categoryCount: topCategories.length,
+        confidence: categoryResult.confidence,
+        note: 'Category classification succeeded, proceeding with product discovery',
+      });
+      
+      // Set topCategories so it's used in the search pipeline below
+      // Continue to the classification and search pipeline (don't return early)
+    } else {
+      // Category unclear or low confidence - generate follow-up questions with potential categories
+      const potentialCategories = categoryResult.categories.length > 0 ? categoryResult.categories : [];
+      logger.info('indirect_search_category_unclear_generating_followup_questions', {
+        query: input.message,
+        potentialCategories,
+        confidence: categoryResult.confidence,
+        note: 'Category classification returned low confidence or empty, asking follow-up questions with potential categories',
+      });
+      
       onProgress?.('generating', STAGE_PROGRESS.generating);
       const followups = await generateFollowUpQuestions(
         input.message,
         categorization.preliminaryProducts,
-        input.merchantData?.datasetContext
+        input.merchantData?.datasetContext,
+        potentialCategories // Pass potential categories to include in questions
       );
       logger.info('followup_questions_received', {
         query: input.message,
@@ -890,24 +923,30 @@ Answer the user's question about this product:`;
         noExactMatch: true,
         route: 'CLARIFICATION_NEEDED',
       };
+    }
   }
 
   // Step 4: Query classification (for direct_search or enhanced queries)
   // Step 3.5: Category Classification (for product discovery only) - run in parallel when both are needed
   // Optimize: Run classifyQuery and classifyQueryToCategories in parallel for direct_search queries
-  // Also run category classification for indirect_search queries that are follow-ups or have clear category signals
+  // Also run category classification for indirect_search queries that are follow-ups, have clear category signals,
+  // or have already been classified above (when category was identified for indirect_search)
   onProgress?.('understanding', STAGE_PROGRESS.understanding);
   let classification: QueryClassification;
-  let topCategories: string[] = [];
   
   // Determine if we should run category classification
   // Run it for: direct_search OR (indirect_search that is a follow-up OR has clear category signals)
-  const shouldRunCategoryClassification = categorization.category === 'direct_search' 
+  // Note: If we already ran category classification above for indirect_search and got results, topCategories is already set
+  // and we should skip running it again
+  const alreadyHasCategories = topCategories.length > 0;
+  const shouldRunCategoryClassification = !alreadyHasCategories && (
+    categorization.category === 'direct_search' 
     || (categorization.category === 'indirect_search' && (
       isFollowUp || 
       // Check for clear category signals in the query
       /\b(newborn|baby|infant|toddler|kids?|children|girls?|boys?|women|men|adult|home|decor|bedding|tabletop|bath|personal care|accessories?)\b/i.test(input.message)
-    ));
+    ))
+  );
   
   // If this is a direct_search or an indirect_search with context, run both LLM calls in parallel for better performance
   if (shouldRunCategoryClassification) {
@@ -1639,9 +1678,9 @@ Answer the user's question about this product:`;
   const MIN_PRODUCTS_FOR_RECOMMENDATION = 4;
   const MIN_TOP_SCORE_FOR_CONFIDENT_REPLY = 0.25; // Lowered from 0.4 to show more products
   const MIN_RELEVANCE_SCORE = 0.2; // Lowered from 0.3 to consider products with score >= 0.2 as relevant
+  const HIGH_CONFIDENCE_THRESHOLD = 0.5; // Allow product type mismatch if confidence >= 0.5
   
-  // Check if we have enough products and if they're relevant
-  const hasEnoughProducts = productsToShow.length >= MIN_PRODUCTS_FOR_RECOMMENDATION;
+  // Check if products are relevant (removed minimum product count requirement - show whatever is available)
   const topScore = productsWithScores[0]?.score || 0;
   
   // Check if top product matches query intent (e.g., "joggers" query shouldn't return "cardigans")
@@ -1660,16 +1699,31 @@ Answer the user's question about this product:`;
       const queryProductType = productTypeKeywords.find(keyword => productTermsLower.includes(keyword));
       if (queryProductType) {
         // Top product should contain the same product type keyword
-        productTypeMatches = topProductTitle.includes(queryProductType) || topProductCategory.includes(queryProductType);
+        const strictProductTypeMatches = topProductTitle.includes(queryProductType) || topProductCategory.includes(queryProductType);
         
-        if (!productTypeMatches) {
-          logger.warn('product_type_mismatch', {
-            query: input.message.substring(0, 100),
-            queryProductType,
-            topProductTitle: productsToShow[0].title,
-            topProductCategory: productsToShow[0].category,
-            topScore,
-          });
+        // Allow product type mismatch if confidence is high enough (>= 0.5)
+        productTypeMatches = strictProductTypeMatches || topScore >= HIGH_CONFIDENCE_THRESHOLD;
+        
+        if (!strictProductTypeMatches) {
+          if (topScore >= HIGH_CONFIDENCE_THRESHOLD) {
+            logger.info('product_type_mismatch_allowed_high_confidence', {
+              query: input.message.substring(0, 100),
+              queryProductType,
+              topProductTitle: productsToShow[0].title,
+              topProductCategory: productsToShow[0].category,
+              topScore,
+              note: 'Product type mismatch allowed due to high confidence (>= 0.5)',
+            });
+          } else {
+            logger.warn('product_type_mismatch', {
+              query: input.message.substring(0, 100),
+              queryProductType,
+              topProductTitle: productsToShow[0].title,
+              topProductCategory: productsToShow[0].category,
+              topScore,
+              note: 'Product type mismatch and confidence below 0.5 threshold',
+            });
+          }
         }
       }
     }
@@ -1698,10 +1752,11 @@ Answer the user's question about this product:`;
     thresholdApplied: isFollowUp, // Only applied for follow-ups
   });
   
-  // Show products if we have enough, they're relevant, type matches, and meet confidence threshold
+  // Show products if they're relevant, type matches (or high confidence), and meet confidence threshold
+  // Removed minimum product count requirement - show whatever is available (at least 1 product)
   // For new queries (isFollowUp=false), skip confidence threshold since initial queries can have low correlation
   // For follow-ups (isFollowUp=true), apply threshold since enhanced queries should be more correlated
-  const shouldShowProducts = hasEnoughProducts && 
+  const shouldShowProducts = productsToShow.length > 0 && // At least 1 product
     topProductRelevant && 
     productTypeMatches &&
     (isFollowUp ? hasHighConfidence : true); // Only check confidence threshold for follow-ups
@@ -1711,12 +1766,11 @@ Answer the user's question about this product:`;
       query: input.message.substring(0, 100),
       productCount: productsToShow.length,
       topScore,
-      hasEnoughProducts,
       hasHighConfidence,
       topProductRelevant,
       productTypeMatches,
       isFollowUp,
-      reason: !hasEnoughProducts ? 'not_enough_products' : 
+      reason: productsToShow.length === 0 ? 'no_products' :
               (!isFollowUp && !hasHighConfidence) ? 'threshold_skipped_for_new_query' :
               (isFollowUp && !hasHighConfidence) ? 'low_top_score' :
               !topProductRelevant ? 'low_relevance_score' : 

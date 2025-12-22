@@ -24,8 +24,14 @@ Similar products we found (for context):
 DATASET CONTEXT:
 {DATASET_CONTEXT}
 
+{POTENTIAL_CATEGORIES_SECTION}
+
 Your task:
-Write a warm, conversational opening message (1-2 sentences) that addresses them directly, then 2-3 targeted clarifying questions.
+Write a warm, conversational opening message (1-2 sentences) that addresses them directly, then 1-2 targeted clarifying questions.
+
+**CRITICAL: Your FIRST question should identify the product category/type (e.g., dresses, tops, bedding, accessories, jewelry, perfumes). Only ask about colors, sizes, or other attributes if the category is already clear from the query.**
+
+**If POTENTIAL_CATEGORIES are provided above, your first question MUST ask if those categories are what they're looking for. For example: "Are you looking for dresses, accessories, or something else?" or "I'm thinking you might be looking for bedding or towels—is that right?"**
 
 TONE & STYLE - CRITICAL RULES:
 - Write EXACTLY as if you're texting a friend right now. This is a direct conversation, not a report.
@@ -70,19 +76,22 @@ EXAMPLES - NEVER DO THIS (❌):
 ❌ "Based on the query, the user is looking for wedding-related items."
 
 Rules for questions:
-1. Specific and actionable
-2. Focus on missing attributes (category, style, occasion, price, etc.)
+1. **PRIORITY: Category/Product Type FIRST** - Your first question must identify the product category/type (e.g., "Are you looking for dresses, tops, accessories, or something else?", "What type of item are you shopping for?"). Only ask about other attributes (colors, sizes, styles) if the category is already clear from the query.
+2. Specific and actionable
 3. Natural, conversational language - ask directly, like a friend would
 4. Each question independent (can be answered separately)
 5. Consider what similar products suggest (if provided)
 6. Short and friendly—no need to be overly formal
 7. Ask about attributes relevant to the catalog's category groups (Kids, Apparel, Accessories, Personal Care, Home & Living)
+8. Generate 1-2 questions maximum (prioritize category identification)
 
 Output JSON:
 {
-  "questions": ["question 1", "question 2", "question 3"],
+  "questions": ["question 1", "question 2"],
   "contextSummary": "A warm, witty opening (1-2 sentences) talking directly TO them using 'you'. Be natural, funny, and human—like you're genuinely excited to help. Show personality! No robotic language."
-}`;
+}
+
+**IMPORTANT**: Generate 1-2 questions maximum. The first question MUST focus on identifying the product category/type. Only include a second question about other attributes (color, size, style) if the category is already clear from the query.`;
 
 const REGENERATE_REMAINING_QUESTIONS_PROMPT = `You are a friendly, witty shopping assistant for LoveShackFancy. The catalog includes multiple category groups: Kids, Women's/Adult Apparel, Accessories, Personal Care, and Home & Living.
 
@@ -121,7 +130,8 @@ Output JSON:
 export async function generateFollowUpQuestions(
   vagueQuery: string,
   preliminaryProducts?: Array<{ productId: string; title: string; similarity: number }>,
-  datasetContext?: DatasetContext | null
+  datasetContext?: DatasetContext | null,
+  potentialCategories?: string[]
 ): Promise<FollowUpQuestions> {
   console.log('[FOLLOWUP-GEN] Starting generateFollowUpQuestions for query:', vagueQuery);
   try {
@@ -136,10 +146,16 @@ export async function generateFollowUpQuestions(
           .join('\n')
       : 'No similar products found yet.';
 
+    // Build potential categories section if provided
+    const potentialCategoriesSection = potentialCategories && potentialCategories.length > 0
+      ? `\n\n**POTENTIAL CATEGORIES** (low confidence suggestions - ask user to confirm):\n${potentialCategories.map(cat => `- ${cat}`).join('\n')}\n\nIMPORTANT: Your first question should ask if these categories are what they're looking for. For example: "Are you looking for ${potentialCategories.join(', ')}${potentialCategories.length > 1 ? ', or something else' : ', or something else'}?"`
+      : '';
+
     const prompt = FOLLOWUP_QUESTION_PROMPT
       .replace('{USER_QUERY}', vagueQuery)
       .replace('{PRELIMINARY_PRODUCTS}', productsContext)
-      .replace('{DATASET_CONTEXT}', datasetHint);
+      .replace('{DATASET_CONTEXT}', datasetHint)
+      .replace('{POTENTIAL_CATEGORIES_SECTION}', potentialCategoriesSection);
 
     const result = await callLLM({
       messages: [
@@ -162,8 +178,8 @@ export async function generateFollowUpQuestions(
             questions: {
               type: 'array',
               items: { type: 'string' },
-              minItems: 2,
-              maxItems: 3,
+              minItems: 1,
+              maxItems: 2,
             },
             contextSummary: { type: 'string' },
           },

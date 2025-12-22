@@ -74,25 +74,26 @@ AVAILABLE CATEGORIES (48 total):
 
 INSTRUCTIONS:
 1. Analyze the user's query and identify the most relevant product categories
-2. **For specific single-item queries (e.g., "blazer", "black blazer", "dress"), return ONLY the most relevant category (e.g., ["Tops"] for blazer, ["Women's Dresses"] for dress)**
-3. **For ambiguous queries (e.g., "suits", "matching sets"), return up to 3 categories in order of relevance**
-4. Return categories in order of relevance (most relevant first)
-4. **CRITICAL: Return ONLY the category name (the text before the "—" em dash), NOT the description**
+2. **CRITICAL: Only return categories if you are confident (confidence >= 0.5). If the query is too vague to determine category (e.g., "something elegant", "gift for someone"), return an empty categories array and set confidence < 0.5.**
+3. **For specific single-item queries (e.g., "blazer", "black blazer", "dress"), return ONLY the most relevant category (e.g., ["Tops"] for blazer, ["Women's Dresses"] for dress)**
+4. **For ambiguous queries (e.g., "suits", "matching sets"), return up to 3 categories in order of relevance**
+5. Return categories in order of relevance (most relevant first)
+6. **CRITICAL: Return ONLY the category name (the text before the "—" em dash), NOT the description**
    - Correct: "Girls Tops"
    - Wrong: "Girls Tops — Kids tops/outerwear-like items..."
    - Correct: "Baby & Toddler Bottoms"
    - Wrong: "Baby & Toddler Bottoms — Baby/toddler bottoms..."
-5. Use the exact category names as listed above (e.g., "Women's Dresses", "Tops", "Girls Dresses", "Baby & Toddler Bottoms")
-6. **DO NOT return "Uncategorized" - it is not a valid category for filtering**
-7. If the query is ambiguous or could match multiple categories, prioritize the most specific match
-8. Consider age groups: queries mentioning "kids", "children", "toddler", "baby" should map to Kids categories
-9. Consider product types: "dress" → "Women's Dresses", "top" → "Tops", "swim" → "Swimsuits" or "Bikini Sets"
-10. Consider context: "beach" might map to "Swimsuits", "Swim Cover-ups", or "Beach Towels"
-11. **For specific single-item queries, be precise**:
+7. Use the exact category names as listed above (e.g., "Women's Dresses", "Tops", "Girls Dresses", "Baby & Toddler Bottoms")
+8. **DO NOT return "Uncategorized" - it is not a valid category for filtering**
+9. If the query is ambiguous or could match multiple categories, prioritize the most specific match
+10. Consider age groups: queries mentioning "kids", "children", "toddler", "baby" should map to Kids categories
+11. Consider product types: "dress" → "Women's Dresses", "top" → "Tops", "swim" → "Swimsuits" or "Bikini Sets"
+12. Consider context: "beach" might map to "Swimsuits", "Swim Cover-ups", or "Beach Towels"
+13. **For specific single-item queries, be precise**:
     - "blazer" → ["Tops"] (blazers are in Tops category, NOT Bottoms or Accessories)
     - "jacket" → ["Tops"] (jackets are in Tops category)
     - "sweater" → ["Tops", "Sweaters"] if Sweaters is a separate category, otherwise ["Tops"]
-12. **For composite product types** (items made of multiple pieces):
+14. **For composite product types** (items made of multiple pieces):
     - "suits" → ["Tops", "Bottoms"] (suits are matching sets of jacket + pants/skirt)
     - "matching sets" → ["Tops", "Bottoms"] or ["Tops", "Skirts"] depending on context
     - "co-ords" or "coords" → ["Tops", "Bottoms"] or ["Tops", "Skirts"]
@@ -180,6 +181,17 @@ export async function classifyQueryToCategories(
           confidence?: number;
         };
 
+        // Check confidence - if too low, return empty array
+        const confidence = classification.confidence ?? 0.5; // Default to 0.5 if not provided
+        if (confidence < 0.5) {
+          logger.info('category_classifier: low_confidence_returning_empty', {
+            query: query.substring(0, 100),
+            confidence,
+            merchantId,
+          });
+          return [];
+        }
+
         // Extract only the category name (before "—" em dash or " - " dash)
         // This handles cases where the LLM returns the full description
         const categories = (classification.categories || []).map(cat => {
@@ -227,5 +239,96 @@ export async function classifyQueryToCategories(
   }
 }
 
+/**
+ * Category classification result with confidence
+ */
+export type CategoryClassificationResult = {
+  categories: string[];
+  confidence: number;
+};
+
+/**
+ * Classify a user query to categories with confidence information
+ * Returns categories even when confidence is low (useful for follow-up questions)
+ * 
+ * @param query - User's shopping query
+ * @param merchantId - Optional merchant ID for logging
+ * @returns Category classification result with categories and confidence
+ */
+export async function classifyQueryToCategoriesWithConfidence(
+  query: string,
+  merchantId?: string
+): Promise<CategoryClassificationResult> {
+  const startTime = Date.now();
+  
+  logger.info('category_classifier: starting classification with confidence', {
+    query: query.substring(0, 100),
+    merchantId,
+  });
+
+  try {
+    const result = await callLLM({
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a category classification system for a shopping assistant. The catalog includes multiple verticals: Kids, Women\'s/Adult Apparel, Accessories, Personal Care, and Home & Living (48 total categories). Map user queries to the most relevant product categories from any of these verticals.',
+        },
+        {
+          role: 'user',
+          content: `${CATEGORY_CLASSIFIER_PROMPT}\n\nUser query: "${query}"`,
+        },
+      ],
+      purpose: 'intent',
+      expectJson: true,
+      schema: CATEGORY_CLASSIFIER_SCHEMA,
+      maxTokens: 200,
+    });
+
+    const classification = JSON.parse(result.rawText) as {
+      categories: string[];
+      confidence?: number;
+    };
+
+    const confidence = classification.confidence ?? 0.5;
+
+    // Extract only the category name (before "—" em dash or " - " dash)
+    const categories = (classification.categories || []).map(cat => {
+      const nameOnly = cat.split('—')[0].split(' - ')[0].trim();
+      return nameOnly;
+    }).filter(cat => cat.length > 0);
+
+    const elapsed = Date.now() - startTime;
+
+    logger.info('category_classifier: classification with confidence complete', {
+      query: query.substring(0, 100),
+      categories,
+      categoryCount: categories.length,
+      confidence,
+      elapsedMs: elapsed,
+      merchantId,
+    });
+
+    const finalCategories = categories.slice(0, 3);
+
+    return {
+      categories: finalCategories,
+      confidence,
+    };
+  } catch (error) {
+    const elapsed = Date.now() - startTime;
+    
+    logger.error('category_classifier: classification with confidence failed', {
+      error: error instanceof Error ? error.message : String(error),
+      query: query.substring(0, 100),
+      elapsedMs: elapsed,
+      merchantId,
+    });
+
+    return {
+      categories: [],
+      confidence: 0.0,
+    };
+  }
+}
 
 
