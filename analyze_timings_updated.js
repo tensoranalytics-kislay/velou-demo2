@@ -173,3 +173,6 @@ console.log('• Parallel LLM calls show clear time savings');
 console.log('• Product loading time includes constraint ranking (5-6s)');
 console.log('• Constraint ranking is CPU-bound but benefits from Promise.all() interleaving');
 
+
+
+

@@ -52,7 +52,13 @@ function buildGreetingFromContext(options: {
   }
 
   if (v === 'apparel' || v === 'fashion') {
+    const isLoveShackFancy = safeBrand.toLowerCase().includes('loveshackfancy') || safeBrand.toLowerCase().includes('love shack fancy');
     const facetHint = hasFacets ? topFacets : 'fit, style, or budget';
+    
+    if (isLoveShackFancy) {
+      return `Welcome to a dreamy world of ruffles, lace, and heirloom details. Share the occasion, ${facetHint}, or what you're dreaming of and I'll curate something beautiful.`;
+    }
+    
     return `Hey there, I'm ${safeBrand}'s Product Advisor. Share the occasion, ${facetHint}, or price point and I'll curate looks from our catalog.`;
   }
 

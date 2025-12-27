@@ -86,7 +86,11 @@ INSTRUCTIONS:
 7. Use the exact category names as listed above (e.g., "Women's Dresses", "Tops", "Girls Dresses", "Baby & Toddler Bottoms")
 8. **DO NOT return "Uncategorized" - it is not a valid category for filtering**
 9. If the query is ambiguous or could match multiple categories, prioritize the most specific match
-10. Consider age groups: queries mentioning "kids", "children", "toddler", "baby" should map to Kids categories
+10. Consider age groups: 
+    - **Kids categories (Girls Dresses, Girls Tops, etc.)**: queries mentioning "kids", "children", "toddler", "baby", "infant", "little girl", "little boy" (typically ages 0-12)
+    - **Teen/Adult categories (Women's Dresses, Tops, etc.)**: queries mentioning "teen", "teenager", "teenage", "teenage daughter", "teenage son", "teenage girl", "teenage boy", "juvenile", "youth", "adolescent", "young adult", "pre-teen", "tween" (ages 13-19) should map to ADULT categories like "Women's Dresses", "Tops", etc., NOT kids categories
+    - **CRITICAL**: "teen", "teenager", "teenage" → "Women's Dresses" (NOT "Girls Dresses")
+    - **CRITICAL**: "for my teen daughter" or "for teenage daughter" → "Women's Dresses" (NOT "Girls Dresses")
 11. Consider product types: "dress" → "Women's Dresses", "top" → "Tops", "swim" → "Swimsuits" or "Bikini Sets"
 12. Consider context: "beach" might map to "Swimsuits", "Swim Cover-ups", or "Beach Towels"
 13. **For specific single-item queries, be precise**:
@@ -102,6 +106,9 @@ INSTRUCTIONS:
 EXAMPLES:
 - "wedding dress" → ["Women's Dresses"]
 - "kids dress" → ["Girls Dresses"]
+- "dress for my teen daughter" → ["Women's Dresses"] (NOT "Girls Dresses" - teens are 13-19, should use adult categories)
+- "teenage daughter" → ["Women's Dresses"] (NOT "Girls Dresses")
+- "for teenage girl" → ["Women's Dresses"] (NOT "Girls Dresses")
 - "swimwear" → ["Swimsuits", "Bikini Sets", "Swim Cover-ups"]
 - "pajamas" → ["Pajama Set", "Loungewear"]
 - "perfume" → ["Perfumes"]

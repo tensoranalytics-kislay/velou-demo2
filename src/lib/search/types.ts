@@ -11,6 +11,7 @@ export type SearchConstraints = {
   fit?: string;
   seasons?: string[];
   occasions?: string[];
+  lengths?: string[]; // Dress/skirt lengths (e.g., "Mini", "Midi", "Maxi")
   useCases?: string[]; // Generic: usage contexts (e.g., "travel", "office", "gift", "beginner-friendly", "night routine")
   styleTags?: string[]; // Generic: style descriptors (e.g., "minimalist", "bold", "sporty", "luxury")
   benefits?: string[]; // Generic: product benefits (e.g., "durable", "lightweight", "energy efficient", "high performance")

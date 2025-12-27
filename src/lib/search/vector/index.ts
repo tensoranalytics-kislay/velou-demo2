@@ -209,7 +209,8 @@ export async function searchVectorIndex(
 export async function deduplicateProductsByCategory(
   filters?: { inStockOnly?: boolean; merchantId?: string; categories?: string[]; priceMinCents?: number; priceMaxCents?: number; colors?: string[]; ageGroups?: string[] },
   limit: number = 1000,
-  queryHash?: string // Optional query hash for consistent but diverse variant selection
+  queryHash?: string, // Optional query hash for consistent but diverse variant selection
+  skipColorFilter?: boolean // NEW: Skip color filtering if colors are text-only constraints
 ): Promise<string[]> {
   try {
     // Build WHERE clause for filters
@@ -245,7 +246,8 @@ export async function deduplicateProductsByCategory(
     // Add color filtering if provided (hard SQL-level filter)
     // Colors are stored in attributes->>'color' or attributes->extensible->color
     // Match case-insensitively for exact and partial matches
-    if (filters?.colors && filters.colors.length > 0) {
+    // Skip if skipColorFilter is true (colors are text-only constraints for this category)
+    if (filters?.colors && filters.colors.length > 0 && !skipColorFilter) {
       const colorOrConditions: string[] = [];
       filters.colors.forEach((color) => {
         // Try exact match first, then partial match
@@ -266,9 +268,11 @@ export async function deduplicateProductsByCategory(
     }
     
     // Add age group filtering if provided (hard SQL-level filter)
+    // IMPORTANT: ageGroup attribute is OPTIONAL - products without ageGroup should still match via category
     // Age groups can be stored in attributes->>'ageGroup' or inferred from category/subcategory
     // This is CRITICAL for filtering kids vs adult products
-    // We use INCLUSIVE matching (match compatible age groups) AND EXCLUSIVE filtering (exclude incompatible age groups)
+    // We use INCLUSIVE matching (match compatible age groups via attribute OR category) 
+    // AND EXCLUSIVE filtering (exclude incompatible age groups - only when explicitly set or in incompatible categories)
     if (filters?.ageGroups && filters.ageGroups.length > 0) {
       const ageGroupOrConditions: string[] = [];
       const ageGroupExclusions: string[] = []; // Products to EXCLUDE (incompatible age groups)
@@ -276,23 +280,41 @@ export async function deduplicateProductsByCategory(
       filters.ageGroups.forEach((ageGroup) => {
         const ageGroupLower = ageGroup.toLowerCase();
         
-        // Build conditions for explicit ageGroup attribute
+        // Build conditions for explicit ageGroup attribute (OPTIONAL - products without ageGroup can still match via category)
         const exactParam = paramIndex;
         const partialParam = paramIndex + 1;
         const attrCondition = `(LOWER(COALESCE(p.attributes->>'ageGroup', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->>'ageGroup', '')) LIKE LOWER($${partialParam}) OR (p.attributes->'extensible' IS NOT NULL AND (LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) LIKE LOWER($${partialParam}))))`;
         
         // Build conditions for category/subcategory inference
         // For "adult" or "Adult": match categories containing "women", "men", "adult", "ladies", "gentlemen"
+        // For "women", "womens", "ladies": match categories containing "women", "ladies"
+        // For "men", "mens", "gentlemen": match categories containing "men", "gentlemen"
         // For "kids", "children", "toddler", "baby": match categories containing "kids", "children", "toddler", "baby", "infant", "youth", "junior"
         let categoryCondition = '';
         if (ageGroupLower === 'adult' || ageGroupLower === 'adults') {
           categoryCondition = `(LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%')`;
           // EXCLUDE products explicitly in kids categories or with kids ageGroup
           ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')`);
+        } else if (ageGroupLower === 'women' || ageGroupLower === 'womens' || ageGroupLower === 'ladies' || ageGroupLower === 'lady') {
+          // Match categories containing "women", "ladies", "womens"
+          categoryCondition = `(LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%')`;
+          // EXCLUDE products explicitly in kids categories or with kids ageGroup
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')`);
+        } else if (ageGroupLower === 'men' || ageGroupLower === 'mens' || ageGroupLower === 'gentlemen' || ageGroupLower === 'gentleman') {
+          // Match categories containing "men", "gentlemen", "mens"
+          categoryCondition = `(LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%')`;
+          // EXCLUDE products explicitly in kids categories or with kids ageGroup
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')`);
         } else if (ageGroupLower === 'kids' || ageGroupLower === 'children' || ageGroupLower === 'child' || ageGroupLower === 'kid') {
           categoryCondition = `(LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%youth%' OR LOWER(p."category") LIKE '%junior%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%youth%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%junior%')`;
           // EXCLUDE products explicitly in adult categories or with adult ageGroup
           ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('adult', 'adults', 'women', 'womens', 'men', 'mens', 'ladies', 'gentlemen') OR LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%')`);
+        } else if (ageGroupLower === 'teen' || ageGroupLower === 'teens' || ageGroupLower === 'teenager' || ageGroupLower === 'teenagers') {
+          // CRITICAL: Teens (ages 13-19) should use ADULT categories (Women's Dresses, Tops, etc.), NOT kids categories
+          // Teens are old enough for adult sizing and styles, but not for kids/toddler products
+          categoryCondition = `(LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%')`;
+          // EXCLUDE products explicitly in kids categories (kids, children, toddler, baby)
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')`);
         } else if (ageGroupLower === 'toddler' || ageGroupLower === 'toddlers') {
           categoryCondition = `(LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%')`;
           // EXCLUDE products explicitly in adult categories
@@ -350,20 +372,28 @@ export async function deduplicateProductsByCategory(
     }
     
     // Build deduplication key expression
-    // Priority: parent_id > shopifyProductId > related_id > sourceId pattern > product id (fallback)
+    // Priority: extract shopifyProductId from product id > parent_id > shopifyProductId > related_id > sourceId pattern > product id (fallback)
     const dedupKeyExpr = `
       COALESCE(
+        -- Extract the first numeric sequence (9+ digits) that appears after "shopify" (case-insensitive)
+        -- This captures the Shopify product ID regardless of variant or pattern variations
+        -- Pattern examples: loveshackfancy_Shopify_8203037769913_45309911892153
+        --                   loveshackfancy_shopify_US_8203037769913_45309911892153
+        (
+          SELECT (regexp_match(p.id, '.*shopify[^0-9]*([0-9]{9,})', 'i'))[1]
+        ),
         NULLIF(p.attributes->>'parent_id', ''),
+        NULLIF(p.attributes->>'related_id', ''),
         NULLIF(p."shopifyProductId"::text, ''),
         NULLIF(p.attributes->>'shopifyProductId', ''),
-        NULLIF(p.attributes->>'related_id', ''),
         CASE
           WHEN p."sourceId" IS NOT NULL AND p."sourceId" != ''
           THEN regexp_replace(p."sourceId", '[-_](size|color|variant|s|m|l|xl|xs|xxl|\\d+)$', '', 'i')
           WHEN p.attributes->>'sourceId' IS NOT NULL AND p.attributes->>'sourceId' != ''
           THEN regexp_replace(p.attributes->>'sourceId', '[-_](size|color|variant|s|m|l|xl|xs|xxl|\\d+)$', '', 'i')
-          ELSE p.id
-        END
+          ELSE NULL
+        END,
+        p.id
       )
     `;
     
@@ -437,6 +467,213 @@ export async function deduplicateProductsByCategory(
     });
     throw new EmbeddingError(
       `Failed to deduplicate products by category: ${error instanceof Error ? error.message : String(error)}`,
+      error
+    );
+  }
+}
+
+/**
+ * Search products by keyword in titles/descriptions with category filter
+ * 
+ * Used as fallback when strict SQL filters return 0 results.
+ * Searches for keywords in product titles and descriptions, then ranks by vector similarity.
+ * 
+ * @param keywords - Keywords to search for in titles/descriptions
+ * @param categories - Categories to filter by
+ * @param queryEmbedding - Optional query embedding for vector similarity ranking
+ * @param limit - Maximum number of products to return
+ * @param filters - Additional filters (merchant, stock, price, etc.)
+ * @returns Array of product IDs with similarity scores
+ */
+export async function searchProductsByKeyword(
+  keywords: string[],
+  categories: string[],
+  queryEmbedding?: number[],
+  limit: number = 50,
+  filters?: { inStockOnly?: boolean; merchantId?: string; priceMinCents?: number; priceMaxCents?: number; ageGroups?: string[] }
+): Promise<Array<{ productId: string; similarity: number }>> {
+  try {
+    if (keywords.length === 0) {
+      return [];
+    }
+
+    const whereConditions: string[] = ['p."isActive" = true'];
+    const params: unknown[] = [];
+    let paramIndex = 1;
+
+    if (filters?.merchantId) {
+      whereConditions.push(`p."merchantId" = $${paramIndex}`);
+      params.push(filters.merchantId);
+      paramIndex++;
+    }
+
+    if (filters?.inStockOnly) {
+      whereConditions.push(`p."stockStatus" = 'in_stock'`);
+    }
+
+    // Add price filtering if provided
+    if (filters?.priceMinCents !== undefined && filters.priceMinCents !== null && typeof filters.priceMinCents === 'number') {
+      whereConditions.push(`p."priceCents" >= $${paramIndex}`);
+      params.push(filters.priceMinCents);
+      paramIndex++;
+    }
+
+    if (filters?.priceMaxCents !== undefined && filters.priceMaxCents !== null && typeof filters.priceMaxCents === 'number') {
+      whereConditions.push(`p."priceCents" <= $${paramIndex}`);
+      params.push(filters.priceMaxCents);
+      paramIndex++;
+    }
+
+    // Add age group filtering if provided (same logic as deduplicateProductsByCategory)
+    // IMPORTANT: ageGroup attribute is OPTIONAL - products without ageGroup should still match via category
+    if (filters?.ageGroups && filters.ageGroups.length > 0) {
+      const ageGroupOrConditions: string[] = [];
+      const ageGroupExclusions: string[] = [];
+
+      filters.ageGroups.forEach((ageGroup) => {
+        const ageGroupLower = ageGroup.toLowerCase();
+        const exactParam = paramIndex;
+        const partialParam = paramIndex + 1;
+        const attrCondition = `(LOWER(COALESCE(p.attributes->>'ageGroup', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->>'ageGroup', '')) LIKE LOWER($${partialParam}) OR (p.attributes->'extensible' IS NOT NULL AND (LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) LIKE LOWER($${partialParam}))))`;
+
+        let categoryCondition = '';
+        if (ageGroupLower === 'adult' || ageGroupLower === 'adults') {
+          categoryCondition = `(LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%')`;
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')`);
+        } else if (ageGroupLower === 'women' || ageGroupLower === 'womens' || ageGroupLower === 'ladies' || ageGroupLower === 'lady') {
+          // Match categories containing "women", "ladies", "womens"
+          categoryCondition = `(LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%')`;
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')`);
+        } else if (ageGroupLower === 'men' || ageGroupLower === 'mens' || ageGroupLower === 'gentlemen' || ageGroupLower === 'gentleman') {
+          // Match categories containing "men", "gentlemen", "mens"
+          categoryCondition = `(LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%')`;
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')`);
+        } else if (ageGroupLower === 'kids' || ageGroupLower === 'children' || ageGroupLower === 'child' || ageGroupLower === 'kid') {
+          categoryCondition = `(LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%youth%' OR LOWER(p."category") LIKE '%junior%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%youth%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%junior%')`;
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('adult', 'adults', 'women', 'womens', 'men', 'mens', 'ladies', 'gentlemen') OR LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%')`);
+        } else if (ageGroupLower === 'teen' || ageGroupLower === 'teens' || ageGroupLower === 'teenager' || ageGroupLower === 'teenagers') {
+          // CRITICAL: Teens (ages 13-19) should use ADULT categories (Women's Dresses, Tops, etc.), NOT kids categories
+          // Teens are old enough for adult sizing and styles, but not for kids/toddler products
+          categoryCondition = `(LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%')`;
+          // EXCLUDE products explicitly in kids categories (kids, children, toddler, baby)
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')`);
+        } else if (ageGroupLower === 'toddler' || ageGroupLower === 'toddlers') {
+          categoryCondition = `(LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%')`;
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('adult', 'adults', 'women', 'womens', 'men', 'mens') OR LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%')`);
+        } else if (ageGroupLower === 'baby' || ageGroupLower === 'babies' || ageGroupLower === 'infant' || ageGroupLower === 'infants') {
+          categoryCondition = `(LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%')`;
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('adult', 'adults', 'women', 'womens', 'men', 'mens') OR LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%')`);
+        }
+
+        if (categoryCondition) {
+          ageGroupOrConditions.push(`(${attrCondition} OR ${categoryCondition})`);
+        } else {
+          ageGroupOrConditions.push(attrCondition);
+        }
+
+        params.push(ageGroup);
+        params.push(`%${ageGroup}%`);
+        paramIndex += 2;
+      });
+
+      if (ageGroupOrConditions.length > 0) {
+        let finalCondition = `(${ageGroupOrConditions.join(' OR ')})`;
+        if (ageGroupExclusions.length > 0) {
+          finalCondition = `(${finalCondition} AND NOT (${ageGroupExclusions.join(' OR ')}))`;
+        }
+        whereConditions.push(finalCondition);
+      }
+    }
+
+    // Add category filtering
+    if (categories.length > 0) {
+      const categoryOrConditions: string[] = [];
+      categories.forEach((cat) => {
+        const exactParam = paramIndex;
+        const partialParam = paramIndex + 1;
+        categoryOrConditions.push(
+          `(LOWER(p."category") = LOWER($${exactParam}) OR LOWER(p."category") LIKE LOWER($${partialParam}) OR LOWER(COALESCE(p."subcategory", '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($${partialParam}))`
+        );
+        params.push(cat);
+        params.push(`%${cat}%`);
+        paramIndex += 2;
+      });
+      if (categoryOrConditions.length > 0) {
+        whereConditions.push(`(${categoryOrConditions.join(' OR ')})`);
+      }
+    }
+
+    // Build keyword search conditions (search in title, description, and attributes)
+    // For perfumes, keywords like "lavender" might be in attributes->>'scent', attributes->>'notes', etc.
+    const keywordConditions: string[] = [];
+    keywords.forEach((keyword) => {
+      const titleParam = paramIndex;
+      const descParam = paramIndex + 1;
+      const attrParam = paramIndex + 2;
+      keywordConditions.push(
+        `(LOWER(p."title") LIKE LOWER($${titleParam}) OR LOWER(p."description") LIKE LOWER($${descParam}) OR LOWER(COALESCE(p.attributes::text, '')) LIKE LOWER($${attrParam}))`
+      );
+      params.push(`%${keyword}%`);
+      params.push(`%${keyword}%`);
+      params.push(`%${keyword}%`);
+      paramIndex += 3;
+    });
+
+    if (keywordConditions.length === 0) {
+      return [];
+    }
+
+    // Build query with optional vector similarity ranking
+    let similarityExpr = '0.0::float';
+    let similarityJoin = '';
+    if (queryEmbedding && queryEmbedding.length > 0) {
+      const embeddingArray = `[${queryEmbedding.join(',')}]`;
+      similarityExpr = `(1 - (p.embedding <=> $${paramIndex}::vector))`;
+      params.push(embeddingArray);
+      paramIndex++;
+    }
+
+    const query = `
+      SELECT 
+        p.id as "productId",
+        ${similarityExpr} as similarity
+      FROM "Product" p
+      ${similarityJoin}
+      WHERE ${whereConditions.join(' AND ')} AND (${keywordConditions.join(' OR ')})
+      ORDER BY similarity DESC, p."updatedAt" DESC
+      LIMIT $${paramIndex}
+    `;
+
+    params.push(limit);
+
+    logger.info('searchProductsByKeyword: executing query', {
+      keywords,
+      categories,
+      limit,
+      hasVectorRanking: !!queryEmbedding,
+      paramCount: params.length,
+    });
+
+    const results = await prisma.$queryRawUnsafe<Array<{ productId: string; similarity: number }>>(
+      query,
+      ...params
+    );
+
+    logger.info('searchProductsByKeyword: results found', {
+      count: results.length,
+      requestedLimit: limit,
+    });
+
+    return results;
+  } catch (error) {
+    logger.error('searchProductsByKeyword: error executing query', {
+      error: error instanceof Error ? error.message : String(error),
+      keywords,
+      categories,
+      limit,
+    });
+    throw new EmbeddingError(
+      `Failed to search products by keyword: ${error instanceof Error ? error.message : String(error)}`,
       error
     );
   }
@@ -540,9 +777,11 @@ export async function searchVectorIndexWithDeduplication(
     }
     
     // Add age group filtering if provided (hard SQL-level filter)
+    // IMPORTANT: ageGroup attribute is OPTIONAL - products without ageGroup should still match via category
     // Age groups can be stored in attributes->>'ageGroup' or inferred from category/subcategory
     // This is CRITICAL for filtering kids vs adult products
-    // We use INCLUSIVE matching (match compatible age groups) AND EXCLUSIVE filtering (exclude incompatible age groups)
+    // We use INCLUSIVE matching (match compatible age groups via attribute OR category) 
+    // AND EXCLUSIVE filtering (exclude incompatible age groups - only when explicitly set or in incompatible categories)
     // Apply age group filters even when productIds are provided (they were filtered in deduplication, but we need to ensure consistency)
     if (filters?.ageGroups && filters.ageGroups.length > 0) {
       const ageGroupOrConditions: string[] = [];
@@ -551,23 +790,41 @@ export async function searchVectorIndexWithDeduplication(
       filters.ageGroups.forEach((ageGroup) => {
         const ageGroupLower = ageGroup.toLowerCase();
         
-        // Build conditions for explicit ageGroup attribute
+        // Build conditions for explicit ageGroup attribute (OPTIONAL - products without ageGroup can still match via category)
         const exactParam = paramIndex;
         const partialParam = paramIndex + 1;
         const attrCondition = `(LOWER(COALESCE(p.attributes->>'ageGroup', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->>'ageGroup', '')) LIKE LOWER($${partialParam}) OR (p.attributes->'extensible' IS NOT NULL AND (LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) LIKE LOWER($${partialParam}))))`;
         
         // Build conditions for category/subcategory inference
         // For "adult" or "Adult": match categories containing "women", "men", "adult", "ladies", "gentlemen"
+        // For "women", "womens", "ladies": match categories containing "women", "ladies"
+        // For "men", "mens", "gentlemen": match categories containing "men", "gentlemen"
         // For "kids", "children", "toddler", "baby": match categories containing "kids", "children", "toddler", "baby", "infant", "youth", "junior"
         let categoryCondition = '';
         if (ageGroupLower === 'adult' || ageGroupLower === 'adults') {
           categoryCondition = `(LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%')`;
           // EXCLUDE products explicitly in kids categories or with kids ageGroup
           ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')`);
+        } else if (ageGroupLower === 'women' || ageGroupLower === 'womens' || ageGroupLower === 'ladies' || ageGroupLower === 'lady') {
+          // Match categories containing "women", "ladies", "womens"
+          categoryCondition = `(LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%')`;
+          // EXCLUDE products explicitly in kids categories or with kids ageGroup
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')`);
+        } else if (ageGroupLower === 'men' || ageGroupLower === 'mens' || ageGroupLower === 'gentlemen' || ageGroupLower === 'gentleman') {
+          // Match categories containing "men", "gentlemen", "mens"
+          categoryCondition = `(LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%')`;
+          // EXCLUDE products explicitly in kids categories or with kids ageGroup
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')`);
         } else if (ageGroupLower === 'kids' || ageGroupLower === 'children' || ageGroupLower === 'child' || ageGroupLower === 'kid') {
           categoryCondition = `(LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%youth%' OR LOWER(p."category") LIKE '%junior%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%youth%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%junior%')`;
           // EXCLUDE products explicitly in adult categories or with adult ageGroup
           ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('adult', 'adults', 'women', 'womens', 'men', 'mens', 'ladies', 'gentlemen') OR LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%')`);
+        } else if (ageGroupLower === 'teen' || ageGroupLower === 'teens' || ageGroupLower === 'teenager' || ageGroupLower === 'teenagers') {
+          // CRITICAL: Teens (ages 13-19) should use ADULT categories (Women's Dresses, Tops, etc.), NOT kids categories
+          // Teens are old enough for adult sizing and styles, but not for kids/toddler products
+          categoryCondition = `(LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%')`;
+          // EXCLUDE products explicitly in kids categories (kids, children, toddler, baby)
+          ageGroupExclusions.push(`(LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')`);
         } else if (ageGroupLower === 'toddler' || ageGroupLower === 'toddlers') {
           categoryCondition = `(LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%')`;
           // EXCLUDE products explicitly in adult categories
@@ -579,6 +836,8 @@ export async function searchVectorIndexWithDeduplication(
         }
         
         // Combine attribute and category conditions with OR
+        // IMPORTANT: ageGroup attribute is OPTIONAL - products without ageGroup should still match via category
+        // This allows products with NULL/missing ageGroup to be included if category matches
         if (categoryCondition) {
           ageGroupOrConditions.push(`(${attrCondition} OR ${categoryCondition})`);
         } else {
@@ -591,9 +850,11 @@ export async function searchVectorIndexWithDeduplication(
       });
       
       // Build final age group condition: (INCLUDE compatible) AND (EXCLUDE incompatible)
+      // CRITICAL: Only exclude products that EXPLICITLY have incompatible ageGroup attributes or are in incompatible categories
+      // Products with NULL/missing ageGroup should be included if category matches (handled by OR condition above)
       if (ageGroupOrConditions.length > 0) {
         let finalCondition = `(${ageGroupOrConditions.join(' OR ')})`;
-        // Add exclusions if any
+        // Add exclusions if any - only exclude when there's an explicit conflict
         if (ageGroupExclusions.length > 0) {
           finalCondition = `(${finalCondition} AND NOT (${ageGroupExclusions.join(' OR ')}))`;
         }
@@ -649,20 +910,28 @@ export async function searchVectorIndexWithDeduplication(
     } else {
       // Original query with deduplication CTEs
       // Build deduplication key expression
-      // Priority: parent_id > shopifyProductId > related_id > sourceId pattern > product id (fallback)
+      // Priority: extract shopifyProductId from product id > parent_id > shopifyProductId > related_id > sourceId pattern > product id (fallback)
       const dedupKeyExpr = `
         COALESCE(
+          -- Extract the first numeric sequence (9+ digits) that appears after "shopify" (case-insensitive)
+          -- This captures the Shopify product ID regardless of variant or pattern variations
+          -- Pattern examples: loveshackfancy_Shopify_8203037769913_45309911892153
+          --                   loveshackfancy_shopify_US_8203037769913_45309911892153
+          (
+            SELECT (regexp_match(p.id, '.*shopify[^0-9]*([0-9]{9,})', 'i'))[1]
+          ),
           NULLIF(p.attributes->>'parent_id', ''),
+          NULLIF(p.attributes->>'related_id', ''),
           NULLIF(p."shopifyProductId"::text, ''),
           NULLIF(p.attributes->>'shopifyProductId', ''),
-          NULLIF(p.attributes->>'related_id', ''),
           CASE
             WHEN p."sourceId" IS NOT NULL AND p."sourceId" != ''
             THEN regexp_replace(p."sourceId", '[-_](size|color|variant|s|m|l|xl|xs|xxl|\\d+)$', '', 'i')
             WHEN p.attributes->>'sourceId' IS NOT NULL AND p.attributes->>'sourceId' != ''
             THEN regexp_replace(p.attributes->>'sourceId', '[-_](size|color|variant|s|m|l|xl|xs|xxl|\\d+)$', '', 'i')
-            ELSE p.id
-          END
+            ELSE NULL
+          END,
+          p.id
         )
       `;
       

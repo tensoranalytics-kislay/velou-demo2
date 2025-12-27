@@ -243,6 +243,7 @@ export function matchesAttributeFilters(
   if (constraints.occasions?.length && !valueMatches(attrs.occasion, constraints.occasions))
     return false;
   if (constraints.sizes?.length && !arrayIncludes(attrs.sizes, constraints.sizes)) return false;
+  if (constraints.lengths?.length && !valueMatches(attrs.length, constraints.lengths)) return false;
   
   // Use soft matching for useCases: check if any constraint value is contained in any product useCase (substring match)
   if (constraints.useCases?.length) {

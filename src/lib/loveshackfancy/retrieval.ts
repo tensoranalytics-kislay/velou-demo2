@@ -6,7 +6,7 @@
  */
 
 import { searchProducts } from '../search/index';
-import { searchVectorIndex, searchVectorIndexWithDeduplication, embedText, deduplicateProductsByCategory } from '../search/vector/index';
+import { searchVectorIndex, searchVectorIndexWithDeduplication, embedText, deduplicateProductsByCategory, searchProductsByKeyword } from '../search/vector/index';
 import { searchConceptIndex, type ConceptIndex } from '../search/concept/index';
 import { getConceptIndex } from '../search/concept/cache';
 import { logger } from '../telemetry/logger';
@@ -14,6 +14,7 @@ import type { SearchConstraints } from '../search/types';
 import type { QueryClassification, FashionConstraints } from './classifier';
 import { expandColorsWithSimilarity } from './color-similarity';
 import { LOVESHACKFANCY_ONTOLOGY } from './ontology';
+import { getContextAwareConstraints } from './constraint-context';
 
 /**
  * Generate a simple hash from query text for consistent but diverse variant selection
@@ -199,78 +200,392 @@ export async function multiViewRetrieval(
           
           const queryEmbedding = await embedText(queryTextForEmbedding);
           
-          // NEW FLOW: If categories provided, deduplicate first, then vector search
-          // OLD FLOW: If no categories, use combined deduplication + vector search
-          let productIdsToSearch: string[] | undefined;
-          
+          // PROGRESSIVE FALLBACK: Try strict → relaxed → keyword → vector
+          // Get context-aware constraints based on category metadata
+          const contextAware = topCategories && topCategories.length > 0
+            ? getContextAwareConstraints(searchConstraints, topCategories, query)
+            : {
+                sqlFilters: searchConstraints,
+                keywordTerms: [],
+                relaxedConstraints: searchConstraints,
+                metadata: { applicableConstraints: [], textOnlyConstraints: [], fallbackStrategy: 'vector', allowKeywordMatching: false },
+              };
+
+          logger.info('fashion_semantic_search: context_aware_constraints_applied', {
+            query: query.substring(0, 100),
+            categories: topCategories,
+            originalColors: searchConstraints.colors,
+            sqlFiltersColors: contextAware.sqlFilters.colors,
+            keywordTerms: contextAware.keywordTerms,
+            keywordTermsSample: contextAware.keywordTerms.slice(0, 5),
+            textOnlyConstraints: contextAware.metadata.textOnlyConstraints,
+            allowKeywordMatching: contextAware.metadata.allowKeywordMatching,
+          });
+
+          const queryHash = hashQuery(query);
+          let result: Array<{ productId: string; similarity: number }> = [];
+          let fallbackTier = 'strict';
+
+          // TIER 1: Strict filtering with context-aware constraints
           if (topCategories && topCategories.length > 0) {
-            // Step 1: Deduplicate by category (happens BEFORE vector search)
-            // This filters the catalog to categories and deduplicates variants
-            // Use query hash for consistent but diverse variant selection
-            const queryHash = hashQuery(query);
-            logger.info('fashion_semantic_search: deduplicating_by_category_first', {
+            logger.info('fashion_semantic_search: tier1_strict_filtering', {
               query: query.substring(0, 100),
               categories: topCategories,
-              categoryCount: topCategories.length,
-              queryHash,
+              sqlFilters: {
+                colors: contextAware.sqlFilters.colors?.length || 0,
+                materials: contextAware.sqlFilters.materials?.length || 0,
+                fabrics: contextAware.sqlFilters.fabrics?.length || 0,
+              },
+              keywordTerms: contextAware.keywordTerms.length,
             });
-            
-            productIdsToSearch = await deduplicateProductsByCategory(
+
+            const productIdsToSearch = await deduplicateProductsByCategory(
               {
                 inStockOnly: true,
                 merchantId,
                 categories: topCategories,
-                priceMinCents: searchConstraints.priceMinCents,
-                priceMaxCents: searchConstraints.priceMaxCents,
-                colors: expandedColors, // Use expanded colors for intelligent matching
-                ageGroups: searchConstraints.ageGroups, // CRITICAL - apply as hard SQL-level filter to exclude incompatible age groups
+                priceMinCents: contextAware.sqlFilters.priceMinCents,
+                priceMaxCents: contextAware.sqlFilters.priceMaxCents,
+                colors: contextAware.sqlFilters.colors, // Only if applicable (not text-only)
+                ageGroups: contextAware.sqlFilters.ageGroups,
               },
-              1500, // Get up to 1500 deduplicated products for vector search (increased for more diversity)
-              queryHash // Pass query hash for variant selection
+              1500,
+              queryHash,
+              (contextAware.metadata.textOnlyConstraints as string[]).includes('colors') // Skip color filter if text-only
             );
-            
-            if (productIdsToSearch.length === 0) {
-              logger.warn('fashion_semantic_search: no_products_after_deduplication', {
+
+            if (productIdsToSearch.length > 0) {
+              result = await searchVectorIndexWithDeduplication(
+                queryEmbedding,
+                150,
+                {
+                  inStockOnly: true,
+                  merchantId,
+                  categories: undefined, // Already filtered
+                  priceMinCents: contextAware.sqlFilters.priceMinCents,
+                  priceMaxCents: contextAware.sqlFilters.priceMaxCents,
+                  colors: contextAware.sqlFilters.colors, // Only if applicable
+                  ageGroups: contextAware.sqlFilters.ageGroups,
+                },
+                undefined,
+                productIdsToSearch
+              );
+            }
+
+            if (result.length > 0) {
+              logger.info('fashion_semantic_search: tier1_success', {
                 query: query.substring(0, 100),
-                categories: topCategories,
+                resultCount: result.length,
               });
-              // Continue with empty result - will be handled below
             } else {
-              logger.info('fashion_semantic_search: deduplication_complete', {
+              logger.warn('fashion_semantic_search: tier1_no_results', {
                 query: query.substring(0, 100),
-                deduplicatedCount: productIdsToSearch.length,
                 categories: topCategories,
               });
             }
           }
+
+          // If Tier 1 succeeded but we have keyword terms, also run Tier 3 to find keyword matches
+          // This ensures we find products that actually contain the keywords (e.g., "lavender" in description)
+          // even if vector search returned generic category matches
+          let keywordResults: Array<{ productId: string; similarity: number }> = [];
+          if (result.length > 0 && contextAware.keywordTerms.length > 0 && topCategories && topCategories.length > 0 && contextAware.metadata.allowKeywordMatching) {
+            logger.info('fashion_semantic_search: tier1_succeeded_with_keywords_running_tier3', {
+              query: query.substring(0, 100),
+              tier1ResultCount: result.length,
+              keywords: contextAware.keywordTerms,
+              note: 'Tier 1 found results, but checking Tier 3 for keyword matches to ensure relevance',
+            });
+
+            keywordResults = await searchProductsByKeyword(
+              contextAware.keywordTerms,
+              topCategories,
+              queryEmbedding,
+              150,
+              {
+                inStockOnly: true,
+                merchantId,
+                priceMinCents: contextAware.sqlFilters.priceMinCents,
+                priceMaxCents: contextAware.sqlFilters.priceMaxCents,
+                ageGroups: contextAware.sqlFilters.ageGroups,
+              }
+            );
+
+            if (keywordResults.length > 0) {
+              logger.info('fashion_semantic_search: tier3_keyword_matches_found', {
+                query: query.substring(0, 100),
+                keywordResultCount: keywordResults.length,
+                note: 'Keyword matches found, will merge with Tier 1 results (keyword results prioritized)',
+              });
+
+              // Merge results: keyword matches get priority (higher similarity boost)
+              // Create a map of existing results
+              const existingResultsMap = new Map<string, number>();
+              result.forEach(r => existingResultsMap.set(r.productId, r.similarity));
+
+              // Add keyword results with boosted similarity (prioritize keyword matches)
+              keywordResults.forEach(kr => {
+                const existingSimilarity = existingResultsMap.get(kr.productId) || 0;
+                // Boost keyword matches: take the higher of (keyword similarity * 1.2) or existing similarity
+                const boostedSimilarity = Math.max(kr.similarity * 1.2, existingSimilarity);
+                existingResultsMap.set(kr.productId, boostedSimilarity);
+              });
+
+              // Convert back to array and sort by similarity
+              result = Array.from(existingResultsMap.entries())
+                .map(([productId, similarity]) => ({ productId, similarity }))
+                .sort((a, b) => b.similarity - a.similarity)
+                .slice(0, 150); // Keep top 150
+
+              fallbackTier = 'keyword_merged';
+              logger.info('fashion_semantic_search: tier1_tier3_merged', {
+                query: query.substring(0, 100),
+                finalResultCount: result.length,
+                keywordMatches: keywordResults.length,
+                tier1Matches: result.length - keywordResults.length,
+              });
+            } else {
+              logger.info('fashion_semantic_search: tier3_no_keyword_matches_trying_vector_fallback', {
+                query: query.substring(0, 100),
+                keywords: contextAware.keywordTerms,
+                note: 'No keyword matches found, trying vector similarity with keyword terms to find semantically similar products',
+              });
+
+              // Fallback: Try vector search with keyword terms directly
+              // This finds products that are semantically similar to the keywords even if they don't contain the exact word
+              try {
+                const keywordQueryText = contextAware.keywordTerms.join(' ');
+                const keywordEmbedding = await embedText(keywordQueryText);
+                
+                const keywordVectorResults = await searchVectorIndexWithDeduplication(
+                  keywordEmbedding,
+                  50, // Limit to top 50 for keyword vector search
+                  {
+                    inStockOnly: true,
+                    merchantId,
+                    categories: topCategories,
+                    priceMinCents: contextAware.sqlFilters.priceMinCents,
+                    priceMaxCents: contextAware.sqlFilters.priceMaxCents,
+                    ageGroups: contextAware.sqlFilters.ageGroups,
+                  },
+                  undefined,
+                  undefined // No pre-deduplicated IDs, search all products in category
+                );
+
+                if (keywordVectorResults.length > 0) {
+                  logger.info('fashion_semantic_search: tier3_vector_fallback_found_results', {
+                    query: query.substring(0, 100),
+                    keywordVectorResultCount: keywordVectorResults.length,
+                    note: 'Found products via vector similarity to keywords, merging with Tier 1 results',
+                  });
+
+                  // Merge keyword vector results with Tier 1 results
+                  // Keyword vector results get priority boost
+                  const existingResultsMap = new Map<string, number>();
+                  result.forEach(r => existingResultsMap.set(r.productId, r.similarity));
+
+                  keywordVectorResults.forEach(kvr => {
+                    const existingSimilarity = existingResultsMap.get(kvr.productId) || 0;
+                    // Boost keyword vector matches: take the higher of (keyword similarity * 1.3) or existing similarity
+                    const boostedSimilarity = Math.max(kvr.similarity * 1.3, existingSimilarity);
+                    existingResultsMap.set(kvr.productId, boostedSimilarity);
+                  });
+
+                  // Convert back to array and sort by similarity
+                  result = Array.from(existingResultsMap.entries())
+                    .map(([productId, similarity]) => ({ productId, similarity }))
+                    .sort((a, b) => b.similarity - a.similarity)
+                    .slice(0, 150); // Keep top 150
+
+                  fallbackTier = 'keyword_vector_merged';
+                  logger.info('fashion_semantic_search: tier1_tier3_vector_merged', {
+                    query: query.substring(0, 100),
+                    finalResultCount: result.length,
+                    keywordVectorMatches: keywordVectorResults.length,
+                    tier1Matches: result.length - keywordVectorResults.length,
+                  });
+                } else {
+                  logger.debug('fashion_semantic_search: tier3_vector_fallback_no_results', {
+                    query: query.substring(0, 100),
+                    note: 'Vector fallback also found no results, using Tier 1 results only',
+                  });
+                }
+              } catch (error) {
+                logger.warn('fashion_semantic_search: tier3_vector_fallback_failed', {
+                  query: query.substring(0, 100),
+                  error: error instanceof Error ? error.message : String(error),
+                  note: 'Vector fallback failed, using Tier 1 results only',
+                });
+              }
+            }
+          }
+
+          // TIER 2: Relaxed constraints (drop inapplicable filters)
+          // If strict filtering failed and there are many colors (>5), drop color filter to find any products
+          if (result.length === 0 && topCategories && topCategories.length > 0) {
+            fallbackTier = 'relaxed';
+            
+            // Smart color relaxation: if there are many colors (>5), drop color filter entirely
+            // This helps when users specify many colors (e.g., 11 colors) which is too restrictive
+            const shouldDropColors = contextAware.relaxedConstraints.colors && 
+                                     contextAware.relaxedConstraints.colors.length > 5;
+            
+            logger.info('fashion_semantic_search: tier2_relaxed_filtering', {
+              query: query.substring(0, 100),
+              categories: topCategories,
+              originalColorCount: contextAware.relaxedConstraints.colors?.length || 0,
+              droppingColors: shouldDropColors,
+              reason: shouldDropColors ? 'Too many colors (>5), dropping color filter to find products' : 'Using relaxed constraints',
+            });
+
+            const productIdsToSearch = await deduplicateProductsByCategory(
+              {
+                inStockOnly: true,
+                merchantId,
+                categories: topCategories,
+                priceMinCents: contextAware.relaxedConstraints.priceMinCents,
+                priceMaxCents: contextAware.relaxedConstraints.priceMaxCents,
+                colors: shouldDropColors ? undefined : contextAware.relaxedConstraints.colors, // Drop colors if too many
+                ageGroups: contextAware.relaxedConstraints.ageGroups,
+              },
+              1500,
+              queryHash,
+              shouldDropColors || (contextAware.metadata.textOnlyConstraints as string[]).includes('colors') // Skip color filter if dropped
+            );
+
+            if (productIdsToSearch.length > 0) {
+              result = await searchVectorIndexWithDeduplication(
+                queryEmbedding,
+                150,
+                {
+                  inStockOnly: true,
+                  merchantId,
+                  categories: undefined,
+                  priceMinCents: contextAware.relaxedConstraints.priceMinCents,
+                  priceMaxCents: contextAware.relaxedConstraints.priceMaxCents,
+                  colors: shouldDropColors ? undefined : contextAware.relaxedConstraints.colors, // Drop colors if too many
+                  ageGroups: contextAware.relaxedConstraints.ageGroups,
+                },
+                undefined,
+                productIdsToSearch
+              );
+            }
+
+            if (result.length > 0) {
+              logger.info('fashion_semantic_search: tier2_success', {
+                query: query.substring(0, 100),
+                resultCount: result.length,
+              });
+            } else {
+              logger.warn('fashion_semantic_search: tier2_no_results', {
+                query: query.substring(0, 100),
+              });
+            }
+          }
+
+          // TIER 3: Keyword search (for context-dependent words)
+          if (result.length === 0 && contextAware.keywordTerms.length > 0 && topCategories && topCategories.length > 0 && contextAware.metadata.allowKeywordMatching) {
+            fallbackTier = 'keyword';
+            logger.info('fashion_semantic_search: tier3_keyword_search', {
+              query: query.substring(0, 100),
+              keywords: contextAware.keywordTerms,
+              categories: topCategories,
+            });
+
+            const keywordResults = await searchProductsByKeyword(
+              contextAware.keywordTerms,
+              topCategories,
+              queryEmbedding,
+              150,
+              {
+                inStockOnly: true,
+                merchantId,
+                priceMinCents: contextAware.sqlFilters.priceMinCents,
+                priceMaxCents: contextAware.sqlFilters.priceMaxCents,
+                ageGroups: contextAware.sqlFilters.ageGroups,
+              }
+            );
+
+            result = keywordResults;
+
+            if (result.length > 0) {
+              logger.info('fashion_semantic_search: tier3_success', {
+                query: query.substring(0, 100),
+                resultCount: result.length,
+              });
+            } else {
+              logger.warn('fashion_semantic_search: tier3_no_results', {
+                query: query.substring(0, 100),
+              });
+            }
+          }
+
+          // TIER 4: Pure vector search (no constraint filters, only category)
+          if (result.length === 0 && topCategories && topCategories.length > 0) {
+            fallbackTier = 'vector';
+            logger.info('fashion_semantic_search: tier4_pure_vector', {
+              query: query.substring(0, 100),
+              categories: topCategories,
+            });
+
+            const productIdsToSearch = await deduplicateProductsByCategory(
+              {
+                inStockOnly: true,
+                merchantId,
+                categories: topCategories,
+                // No price, color, or other filters
+                ageGroups: contextAware.sqlFilters.ageGroups, // Keep age groups as they're critical
+              },
+              1500,
+              queryHash,
+              true // Skip color filter
+            );
+
+            if (productIdsToSearch.length > 0) {
+              result = await searchVectorIndexWithDeduplication(
+                queryEmbedding,
+                150,
+                {
+                  inStockOnly: true,
+                  merchantId,
+                  categories: undefined,
+                  // No other filters
+                  ageGroups: contextAware.sqlFilters.ageGroups,
+                },
+                undefined,
+                productIdsToSearch
+              );
+            }
+
+            if (result.length > 0) {
+              logger.info('fashion_semantic_search: tier4_success', {
+                query: query.substring(0, 100),
+                resultCount: result.length,
+              });
+            }
+          }
           
-          // Step 2: Vector search (on pre-deduplicated IDs if available)
-          // Higher similarity = more relevant (cosine similarity 0-1)
-          // If productIdsToSearch provided, deduplication is skipped in vector search
-          // Request 150 unique products (after deduplication if not pre-deduplicated)
-          const result = await searchVectorIndexWithDeduplication(
+          // Fallback: If no categories, use original flow
+          if (result.length === 0 && (!topCategories || topCategories.length === 0)) {
+            result = await searchVectorIndexWithDeduplication(
             queryEmbedding,
-            150, // Number of unique products to return
+              150,
             {
               inStockOnly: true,
               merchantId,
-              // Only pass categories if NOT using pre-deduplicated IDs (backward compatibility)
-              categories: productIdsToSearch ? undefined : (topCategories && topCategories.length > 0 ? topCategories : undefined),
-              // Price filtering: IMPORTANT - apply as hard SQL-level filter
+                categories: undefined,
               priceMinCents: searchConstraints.priceMinCents,
               priceMaxCents: searchConstraints.priceMaxCents,
-              // Color filtering: IMPORTANT - apply as hard SQL-level filter with expanded colors
               colors: expandedColors,
-              // Age group filtering: CRITICAL - apply as hard SQL-level filter to exclude incompatible age groups
               ageGroups: searchConstraints.ageGroups,
             },
-            productIdsToSearch ? undefined : 450, // Pre-deduplication limit only if not pre-deduplicated
-            productIdsToSearch // Pass pre-deduplicated IDs
+              450,
+              undefined
           );
+          }
 
           result.forEach((item) => {
             candidateIds.add(item.productId);
-            // Score based on similarity (higher = better, range 0-1)
             semanticScores.set(item.productId, item.similarity);
           });
 
@@ -281,8 +596,8 @@ export async function multiViewRetrieval(
             avgSimilarity: result.length > 0 
               ? result.reduce((sum, r) => sum + r.similarity, 0) / result.length 
               : 0,
-            usedPreDeduplicatedIds: !!(productIdsToSearch && productIdsToSearch.length > 0),
-            preDeduplicatedCount: productIdsToSearch?.length || 0,
+            fallbackTier,
+            keywordTermsUsed: contextAware.keywordTerms.length,
           });
         } catch (error) {
           logger.error('fashion_semantic_search_failed', {
@@ -420,6 +735,7 @@ export function classificationToSearchConstraints(
     materials: nullToUndefined(constraints.materials),
     occasions: nullToUndefined(constraints.occasions),
     seasons: nullToUndefined(constraints.seasons),
+    lengths: nullToUndefined(constraints.lengths),
     priceMinCents: constraints.priceMinCents === null ? undefined : constraints.priceMinCents,
     priceMaxCents: constraints.priceMaxCents === null ? undefined : constraints.priceMaxCents,
     ageGroups: nullToUndefined(constraints.ageGroups),

@@ -49,7 +49,11 @@ export default function MessageList({ messages, onProductClick, onProductAsk, on
             <div className={`flex-1 min-w-0 ${message.role === 'user' ? 'flex justify-end' : 'flex justify-start'}`}>
               <div className={`max-w-[95%] md:max-w-[80%] min-w-0 ${message.role === 'user' ? 'rounded-lg border border-rose-200/60 bg-white/90 px-3 py-2' : ''}`}>
                 {message.role === 'assistant' ? (
-                  <MarkdownText content={message.content} className="text-black" />
+                  <MarkdownText 
+                    content={message.content} 
+                    className="text-black"
+                    productCards={message.productCards || []}
+                  />
                 ) : (
                   <p className="text-sm leading-relaxed text-black whitespace-pre-wrap">{message.content}</p>
                 )}
@@ -60,20 +64,70 @@ export default function MessageList({ messages, onProductClick, onProductAsk, on
           {/* Product Carousel (full width, extending to where user message icon ends) */}
           {message.role === 'assistant' && message.productCards && message.productCards.length > 0 && (
             <div className="mt-8 w-full -mr-2">
-              <ProductCarousel products={message.productCards} onProductClick={onProductClick} onProductAsk={onProductAsk} onProductFindSimilar={onProductFindSimilar} />
+              {(() => {
+                // Debug: Log to verify onProductFindSimilar is passed
+                console.log('[MessageList] Rendering ProductCarousel with props:', {
+                  productCount: message.productCards.length,
+                  hasOnProductClick: !!onProductClick,
+                  hasOnProductAsk: !!onProductAsk,
+                  hasOnProductFindSimilar: !!onProductFindSimilar,
+                  onProductFindSimilarType: typeof onProductFindSimilar,
+                });
+                return null;
+              })()}
+              <ProductCarousel 
+                products={message.productCards} 
+                onProductClick={onProductClick} 
+                onProductAsk={onProductAsk} 
+                onProductFindSimilar={onProductFindSimilar} 
+              />
             </div>
           )}
 
           {/* Optional follow-up text that appears after product cards, aligned as an assistant message */}
           {/* Prioritize replyTextAfter for product recommendations, fallback to followupText for other cases */}
-          {message.role === 'assistant' && (message.replyTextAfter || message.followupText) && (
+          {message.role === 'assistant' && (() => {
+            const hasReplyTextAfter = message.replyTextAfter !== undefined && message.replyTextAfter !== null && message.replyTextAfter.trim().length > 0;
+            const hasFollowupText = message.followupText !== undefined && message.followupText !== null && message.followupText.trim().length > 0;
+            const hasProductCards = message.productCards && message.productCards.length > 0;
+            
+            // Detect similar products: content starts with "Here are similar products to"
+            const isSimilarProducts = hasProductCards && 
+              message.content && 
+              (message.content.startsWith('Here are similar products to') || 
+               message.content.startsWith("I couldn't find similar products to"));
+            
+            // Detect vague/irrelevant prompts: has followupText or noExactMatch without product cards
+            const isVagueOrIrrelevant = !hasProductCards && (hasFollowupText || message.noExactMatch === true);
+            
+            // Normal product result: has product cards AND has replyTextAfter
+            const isNormalProductResult = hasProductCards && hasReplyTextAfter;
+            
+            // Determine if we should render:
+            // 1. Normal product results with cards: ALWAYS show (they should have replyTextAfter)
+            // 2. Similar products: show even if empty (for potential future content)
+            // 3. Vague/irrelevant: show even if empty (they have followupText)
+            // 4. Otherwise: only show if there's content
+            const shouldRender = isNormalProductResult || 
+                                 isSimilarProducts || 
+                                 isVagueOrIrrelevant || 
+                                 hasReplyTextAfter || 
+                                 hasFollowupText;
+            
+            return shouldRender;
+          })() && (
             <div className="mt-6 sm:mt-8 flex items-start gap-3 pt-2 sm:pt-3">
               <div className="flex-shrink-0">
                 <AssistantAvatar />
               </div>
               <div className="flex-1 min-w-0 flex justify-start">
                 <div className="max-w-[95%] md:max-w-[80%] min-w-0">
-                  <MarkdownText content={message.replyTextAfter || message.followupText || ''} className="text-black" />
+                  {/* Render content - prioritize replyTextAfter, fallback to followupText */}
+                  <MarkdownText 
+                    content={message.replyTextAfter || message.followupText || ''} 
+                    className="text-black"
+                    productCards={message.productCards || []}
+                  />
                 </div>
               </div>
             </div>

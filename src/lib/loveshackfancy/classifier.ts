@@ -60,7 +60,7 @@ export async function classifyQuery(
       messages: [
         {
           role: 'system',
-          content: 'You are a shopping assistant for LoveShackFancy. Classify queries and extract constraints accurately.',
+          content: 'You are a shopping assistant for LoveShackFancy. Classify queries and extract ALL possible constraints from context using semantic understanding. Think like a stylist who understands cultural sensitivity, appropriateness, and what works for different contexts. Extract both explicit and inferred constraints, ensuring explicit mentions override inferred ones.',
         },
         {
           role: 'user',
@@ -172,6 +172,10 @@ export function inferClassificationFromKeywords(
     'cocktail': 'Cocktail',
     'evening': 'Evening',
     'vacation': 'Vacation',
+    'date': 'Date Night',
+    'date night': 'Date Night',
+    'romantic date': 'Date Night',
+    'evening date': 'Date Night',
   };
 
   const styleKeywords: Record<string, string> = {

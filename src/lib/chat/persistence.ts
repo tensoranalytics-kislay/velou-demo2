@@ -6,6 +6,7 @@ export type StoredChatMessage = {
   text: string;
   productCards?: ProductCard[];
   followupText?: string;
+  replyTextAfter?: string; // Second part of reply (after product cards) - for product recommendations
   noExactMatch?: boolean;
   ts: number;
 };

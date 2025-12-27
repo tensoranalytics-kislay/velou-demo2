@@ -446,15 +446,25 @@ export async function searchVectorIndexWithRanking(
     // Build deduplication key expression (needs to be in the CTE)
     const dedupKeyExpr = `
       COALESCE(
-        p.attributes->>'parent_id',
-        p.attributes->>'shopifyProductId',
-        p.attributes->>'related_id',
+        -- Extract the first numeric sequence (9+ digits) that appears after "shopify" (case-insensitive)
+        -- This captures the Shopify product ID regardless of variant or pattern variations
+        -- Pattern examples: loveshackfancy_Shopify_8203037769913_45309911892153
+        --                   loveshackfancy_shopify_US_8203037769913_45309911892153
+        (
+          SELECT (regexp_match(p.id, '.*shopify[^0-9]*([0-9]{9,})', 'i'))[1]
+        ),
+        NULLIF(p.attributes->>'parent_id', ''),
+        NULLIF(p.attributes->>'related_id', ''),
+        NULLIF(p."shopifyProductId"::text, ''),
+        NULLIF(p.attributes->>'shopifyProductId', ''),
         CASE
-          WHEN p.attributes->>'sourceId' IS NOT NULL
+          WHEN p."sourceId" IS NOT NULL AND p."sourceId" != ''
+          THEN regexp_replace(p."sourceId", '[-_](size|color|variant|s|m|l|xl|xs|xxl|\\d+)$', '', 'i')
+          WHEN p.attributes->>'sourceId' IS NOT NULL AND p.attributes->>'sourceId' != ''
           THEN regexp_replace(p.attributes->>'sourceId', '[-_](size|color|variant|s|m|l|xl|xs|xxl|\\d+)$', '', 'i')
-          ELSE ''
+          ELSE NULL
         END,
-        ''
+        p.id
       )
     `;
 

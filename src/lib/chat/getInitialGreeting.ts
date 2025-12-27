@@ -48,6 +48,16 @@ function buildDeterministicGreetingOptions(
   }
 
   if (vertical === 'apparel' || vertical === 'fashion') {
+    const isLoveShackFancy = brandName.toLowerCase().includes('loveshackfancy') || brandName.toLowerCase().includes('love shack fancy');
+    
+    if (isLoveShackFancy) {
+      return [
+        `Welcome to a dreamy world of ruffles, lace, and heirloom details. I'm here to help you find pieces that feel like golden hour moments—share the occasion, style, or what you're dreaming of and I'll curate something beautiful.`,
+        `Picture yourself in garden party elegance or moonlit evening romance. Tell me the scene you're creating, the style you love, or your budget, and I'll help you discover pieces that feel like a love letter to your wardrobe.`,
+        `I'm here to help you find pieces that capture that soft-glam, poetic confidence. Share the occasion, the vibe, or what you're envisioning—whether it's ${topFacetSnippet ?? 'style, fit, fabric'}—and I'll curate something that feels like a dream.`,
+      ];
+    }
+    
     return [
       `Hi! I'm ${brandName}'s Product Advisor. Tell me the vibe, fit, or budget you're shopping for and I'll pull pieces straight from our catalog.`,
       `You're chatting with ${brandName}'s Product Advisor—share the occasion, fabric, or price point and I'll do the rest.`,
@@ -111,18 +121,37 @@ export async function getInitialGreeting(): Promise<string> {
 
       const variationSeed = Math.random().toString(36).slice(2);
 
-      const systemPrompt = [
-        'You are a helpful shopping assistant for this merchant.',
-        'Generate a SHORT, friendly greeting as the very first message in a chat.',
-        'It should:',
-        '- Mention the brand (if provided) or say "our store" generically.',
-        '- Reference the catalog vertical and facets only when relevant.',
-        '- Hint that you can help find products based on preferences (e.g. skin concern, room, fit, budget, use-case).',
-        '- Be 1–2 sentences max.',
-        '- Avoid markdown, bullet points, or emojis.',
-        '- Avoid promises about shipping, returns, or discounts.',
-        '- Each greeting should feel fresh—do not reuse the exact same phrasing if the variation seed changes.',
-      ].join('\n');
+      // Check if this is LoveShackFancy to apply brand voice
+      const isLoveShackFancy = brandName.toLowerCase().includes('loveshackfancy') || brandName.toLowerCase().includes('love shack fancy');
+      
+      const systemPrompt = isLoveShackFancy
+        ? [
+            'You are a shopping assistant for LoveShackFancy, embodying the brand\'s soft-glam, poetic voice.',
+            'Generate a SHORT, warm greeting as the very first message in a chat.',
+            'It should:',
+            '- Write with soft-glam, poetic confidence—romantic and nostalgic, but always polished.',
+            '- Speak in scenes and sensations (golden hour, garden parties, moonlit evenings) rather than hard selling.',
+            '- Use airy, feminine language that feels like a love letter without becoming childish or overly precious.',
+            '- Be warm, intimate, and celebratory—inviting them into a dreamy world—while keeping high-end restraint: elegant, curated, and subtly cheeky.',
+            '- Mention the brand naturally through feeling-first storytelling.',
+            '- Hint that you can help find products through scenes and sensations (e.g. occasion, style, color, budget).',
+            '- Be 1–2 sentences max.',
+            '- Avoid markdown, bullet points, or emojis.',
+            '- Avoid promises about shipping, returns, or discounts.',
+            '- Each greeting should feel fresh—do not reuse the exact same phrasing if the variation seed changes.',
+          ].join('\n')
+        : [
+            'You are a helpful shopping assistant for this merchant.',
+            'Generate a SHORT, friendly greeting as the very first message in a chat.',
+            'It should:',
+            '- Mention the brand (if provided) or say "our store" generically.',
+            '- Reference the catalog vertical and facets only when relevant.',
+            '- Hint that you can help find products based on preferences (e.g. skin concern, room, fit, budget, use-case).',
+            '- Be 1–2 sentences max.',
+            '- Avoid markdown, bullet points, or emojis.',
+            '- Avoid promises about shipping, returns, or discounts.',
+            '- Each greeting should feel fresh—do not reuse the exact same phrasing if the variation seed changes.',
+          ].join('\n');
 
       const userContent = [
         'Here is context about the catalog:',

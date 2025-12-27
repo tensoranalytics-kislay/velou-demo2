@@ -73,14 +73,29 @@ export default function ChatPanel() {
     if (typeof window === 'undefined') return [defaultInitialMessage];
     const stored = loadChatHistory(STORAGE_KEY);
     if (stored.length) {
-      return stored.map((entry, index) => ({
+      const loadedMessages = stored.map((entry, index) => ({
         id: `stored-${entry.ts ?? index}-${index}`,
         role: entry.role,
         content: entry.text,
         productCards: entry.productCards || [],
         followupText: entry.followupText,
+        replyTextAfter: entry.replyTextAfter,
         noExactMatch: entry.noExactMatch,
       }));
+      
+      // Debug: Log messages with replyTextAfter when loading from localStorage
+      const messagesWithReplyTextAfter = loadedMessages.filter(m => m.replyTextAfter);
+      if (messagesWithReplyTextAfter.length > 0) {
+        console.log('[ChatPanel] Loaded messages with replyTextAfter from localStorage:', messagesWithReplyTextAfter.map(m => ({
+          id: m.id,
+          role: m.role,
+          hasReplyTextAfter: !!m.replyTextAfter,
+          replyTextAfterLength: m.replyTextAfter?.length || 0,
+          productCardsCount: m.productCards?.length || 0,
+        })));
+      }
+      
+      return loadedMessages;
     }
     return [defaultInitialMessage];
   });
@@ -286,6 +301,7 @@ export default function ChatPanel() {
               content: entry.text,
               productCards: entry.productCards || [],
               followupText: entry.followupText,
+              replyTextAfter: entry.replyTextAfter,
               noExactMatch: entry.noExactMatch,
             }));
             setMessages(messages);
@@ -360,13 +376,25 @@ export default function ChatPanel() {
                oldGreetingPatterns.some(pattern => firstMessage.content.includes(pattern)));
             
             // Update first message if it's a greeting
-            if (firstMessage.id === 'welcome' || isOldGreeting || firstMessage.content !== data.greeting) {
+            // IMPORTANT: Only update if it's actually a greeting (no product cards, no replyTextAfter)
+            // This prevents overwriting assistant messages with product recommendations
+            const isGreetingMessage = firstMessage.id === 'welcome' || 
+              (firstMessage.role === 'assistant' && 
+               (!firstMessage.productCards || firstMessage.productCards.length === 0) &&
+               !firstMessage.replyTextAfter &&
+               !firstMessage.followupText);
+            
+            if ((isGreetingMessage && (isOldGreeting || firstMessage.content !== data.greeting))) {
               const updatedMessages = [...currentMessages];
               updatedMessages[0] = {
                 id: 'welcome',
                 role: 'assistant',
                 content: data.greeting,
                 productCards: [],
+                // Preserve any existing fields (shouldn't exist for greeting, but be safe)
+                followupText: firstMessage.followupText,
+                replyTextAfter: firstMessage.replyTextAfter,
+                noExactMatch: firstMessage.noExactMatch,
               };
               
               // Persist the updated messages
@@ -376,6 +404,7 @@ export default function ChatPanel() {
                 text: message.content,
                 productCards: message.productCards,
                 followupText: message.followupText,
+                replyTextAfter: message.replyTextAfter,
                 noExactMatch: message.noExactMatch,
                 ts: timestampBase + index,
               }));
@@ -412,6 +441,7 @@ export default function ChatPanel() {
               text: message.content,
               productCards: message.productCards,
               followupText: message.followupText,
+              replyTextAfter: message.replyTextAfter,
               noExactMatch: message.noExactMatch,
               ts: timestampBase + index,
             }));
@@ -433,6 +463,7 @@ export default function ChatPanel() {
 
   useEffect(() => {
     if (!hasHydrated) return;
+    
     if (persistTimeoutRef.current) {
       clearTimeout(persistTimeoutRef.current);
     }
@@ -443,9 +474,11 @@ export default function ChatPanel() {
         text: message.content,
         productCards: message.productCards,
         followupText: message.followupText,
+        replyTextAfter: message.replyTextAfter,
         noExactMatch: message.noExactMatch,
         ts: timestampBase + index,
       }));
+      
       saveChatHistory(STORAGE_KEY, serializable);
     }, 300);
 
@@ -806,25 +839,35 @@ export default function ChatPanel() {
 
       setPendingSuggestion(finalData.pendingSuggestion ?? null);
       const shouldShowCards = finalData.productCards.length > 0 && !finalData.pendingSuggestion;
+      
+      // CRITICAL: Check conditions before creating message
+      // Set replyTextAfter if it exists and has content (for product recommendations)
+      // Set followupText if replyTextAfter doesn't exist (legacy support for non-product cases)
+      const hasValidReplyTextAfter = finalData.replyTextAfter && 
+        finalData.replyTextAfter.trim().length > 0;
+      const hasValidFollowupText = !hasValidReplyTextAfter && 
+        finalData.followupText && 
+        finalData.followupText.trim().length > 0;
+      
       const assistantMessage: ChatMessage = {
         id: createId(),
         role: 'assistant',
         content: finalData.replyText,
         productCards: shouldShowCards ? finalData.productCards : [],
         noExactMatch: finalData.noExactMatch,
-        // For product recommendations: use replyTextAfter (last 2 paragraphs after cards)
-        // For other cases: use followupText (legacy support)
-        replyTextAfter: shouldShowCards && finalData.replyTextAfter && finalData.replyTextAfter.trim().length
+        // For product recommendations: use replyTextAfter (text after product cards)
+        // Set replyTextAfter whenever it exists, especially when we have product cards
+        replyTextAfter: finalData.replyTextAfter !== undefined && finalData.replyTextAfter !== null
           ? finalData.replyTextAfter
           : undefined,
-        followupText:
-          !shouldShowCards && finalData.followupText && finalData.followupText.trim().length
-            ? finalData.followupText
-            : undefined,
+        followupText: hasValidFollowupText
+          ? finalData.followupText
+          : undefined,
         actions: finalData.actions,
       };
-
+      
       setMessages((prev) => [...prev, assistantMessage]);
+      
       // Scroll to bottom after bot response is added
       // Multiple attempts to account for progress bar, recommendation pills, and product context card
       setTimeout(() => scrollToBottom('smooth'), 100);

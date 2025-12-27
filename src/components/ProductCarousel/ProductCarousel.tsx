@@ -63,14 +63,6 @@ export default function ProductCarousel({ products, onProductClick, onProductAsk
   const [canScrollRight, setCanScrollRight] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Debug: Log to verify prop is passed
-  useEffect(() => {
-    if (onProductFindSimilar) {
-      console.log('[ProductCarousel] onProductFindSimilar prop is provided');
-    } else {
-      console.log('[ProductCarousel] onProductFindSimilar prop is NOT provided');
-    }
-  }, [onProductFindSimilar]);
 
   const inStockProducts = useMemo(
     () => products.filter((product) => product.stockStatus !== 'out_of_stock'),
@@ -133,7 +125,7 @@ export default function ProductCarousel({ products, onProductClick, onProductAsk
       <div className="relative overflow-visible">
         <div
           ref={scrollRef}
-          className="flex gap-3 overflow-x-auto overflow-y-visible pb-2 snap-x snap-mandatory scroll-smooth md:gap-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+          className="flex items-stretch gap-3 overflow-x-auto overflow-y-visible pb-2 snap-x snap-mandatory scroll-smooth md:gap-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
         >
         {inStockProducts.map((product) => {
           const { visible: visibleAttributes, remaining } = formatAttributes(product.keyAttributes);
@@ -174,45 +166,15 @@ export default function ProductCarousel({ products, onProductClick, onProductAsk
                       </svg>
                     </div>
                     {/* Ask about product icon - floating bottom left */}
-                    {onProductAsk && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onProductAsk(product.id, product.title, product.imageUrl);
-                        }}
-                        className="absolute bottom-1.5 left-1.5 flex items-center justify-center rounded-full bg-rose-500/90 backdrop-blur-sm p-1.5 shadow-lg transition hover:bg-rose-600/90 hover:scale-110 active:scale-95"
-                        aria-label={`Ask about ${product.title}`}
-                        title={`Ask about ${product.title}`}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-3.5 w-3.5 text-white"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                          />
-                        </svg>
-                      </button>
-                    )}
-                    {/* Find similar products icon - floating bottom right */}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (onProductFindSimilar) {
-                          onProductFindSimilar(product.id, product.title, product.imageUrl);
-                        }
+                        onProductAsk?.(product.id, product.title, product.imageUrl);
                       }}
-                      className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-full bg-[#D61F2B]/90 backdrop-blur-sm p-1.5 shadow-lg transition hover:bg-[#D61F2B] hover:scale-110 active:scale-95"
-                      aria-label={`Find similar products to ${product.title}`}
-                      title={`Find similar products to ${product.title}`}
+                      className="absolute bottom-1.5 left-1.5 flex items-center justify-center rounded-full bg-rose-500/90 backdrop-blur-sm p-1.5 shadow-lg transition hover:bg-rose-600/90 hover:scale-110 active:scale-95"
+                      aria-label={`Ask about ${product.title}`}
+                      title={`Ask about ${product.title}`}
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -221,6 +183,50 @@ export default function ProductCarousel({ products, onProductClick, onProductAsk
                         viewBox="0 0 24 24"
                         stroke="currentColor"
                         strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                        />
+                      </svg>
+                    </button>
+                    {/* Find similar products icon - floating bottom right */}
+                    {(() => {
+                      // Debug logging for similar products button
+                      if (!onProductFindSimilar) {
+                        console.log('[ProductCarousel] Similar products button: onProductFindSimilar is undefined', {
+                          productId: product.id,
+                          productTitle: product.title?.substring(0, 50),
+                        });
+                      }
+                      return null;
+                    })()}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onProductFindSimilar) {
+                          onProductFindSimilar(product.id, product.title, product.imageUrl);
+                        } else {
+                          console.warn('[ProductCarousel] Similar products button clicked but onProductFindSimilar is undefined', {
+                            productId: product.id,
+                            productTitle: product.title?.substring(0, 50),
+                          });
+                        }
+                      }}
+                      className="absolute bottom-1.5 right-1.5 flex items-center justify-center rounded-full bg-[#D61F2B] p-1.5 shadow-xl transition hover:bg-[#b91822] hover:scale-110 active:scale-95 z-30 pointer-events-auto"
+                      aria-label={`Find similar products to ${product.title}`}
+                      title={`Find similar products to ${product.title}`}
+                      style={{ zIndex: 30 }}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-3.5 w-3.5 text-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2.5}
                       >
                         <path
                           strokeLinecap="round"
@@ -299,8 +305,6 @@ export default function ProductCarousel({ products, onProductClick, onProductAsk
                     )}
                   </div>
                 )}
-
-                  <p className="mt-2 text-[10px] leading-snug text-slate-700 break-words">{product.reason}</p>
 
                   <div className="mt-auto pt-2">
                   <button

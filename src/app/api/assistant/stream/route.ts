@@ -222,6 +222,8 @@ export async function POST(request: NextRequest) {
             logger.info('assistant_api_stream_response', {
               sessionId: body.sessionId,
               replyLength: result.replyText.length,
+              replyTextAfterLength: result.replyTextAfter?.length || 0,
+              hasReplyTextAfter: !!result.replyTextAfter && result.replyTextAfter.trim().length > 0,
               productCount: result.productCards.length,
               noExactMatch: result.noExactMatch,
               pipeline: 'loveshackfancy',

@@ -140,6 +140,7 @@ export const normalizeConstraintValues = (constraints: SearchConstraints): Searc
   normalized.fabrics = cleanArray(normalized.fabrics);
   normalized.seasons = cleanArray(normalized.seasons);
   normalized.occasions = cleanArray(normalized.occasions);
+  normalized.lengths = cleanArray(normalized.lengths);
   normalized.useCases = cleanArray(normalized.useCases);
   normalized.styleTags = cleanArray(normalized.styleTags);
   normalized.benefits = cleanArray(normalized.benefits);
@@ -167,6 +168,7 @@ export const normalizeConstraintArrays = (constraints: SearchConstraints) => {
   constraints.fabrics = coerceStringArray(constraints.fabrics);
   constraints.seasons = coerceStringArray(constraints.seasons);
   constraints.occasions = coerceStringArray(constraints.occasions);
+  constraints.lengths = coerceStringArray(constraints.lengths);
   constraints.useCases = coerceStringArray(constraints.useCases);
   constraints.styleTags = coerceStringArray(constraints.styleTags);
   constraints.benefits = coerceStringArray(constraints.benefits);

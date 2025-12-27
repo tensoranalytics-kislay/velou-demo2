@@ -78,3 +78,6 @@ console.log('The constraint boost (max 0.3) is unlikely to overcome large vector
 console.log('similarity gaps. Top 4 products will likely still come from top 20.');
 console.log('Monitor quality metrics and adjust if needed.');
 
+
+
+

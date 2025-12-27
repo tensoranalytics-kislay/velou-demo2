@@ -80,6 +80,36 @@ CONSTRAINT EXTRACTION RULES:
 - Extract occasion constraints (e.g., "for a wedding" → occasions: ["Wedding"])
 - Extract pattern/material constraints (e.g., "floral" → patterns: ["Floral"], "cotton" → materials: ["Cotton"])
 - Extract color constraints (e.g., "white" → colors: ["White"])
+- **CRITICAL: COMPREHENSIVE CONTEXT-AWARE CONSTRAINT EXTRACTION** - You MUST extract ALL possible constraints from context, not just explicit mentions. Think like a stylist who understands cultural sensitivity, appropriateness, and what works for different contexts. Extract constraints that would help find the most appropriate products.
+
+  **EXTRACTION PRINCIPLES:**
+  1. **Explicit constraints**: Directly mentioned colors, sizes, styles, occasions, etc. - extract these EXACTLY as mentioned
+  2. **Inferred constraints**: Derived from context (skin tone, cultural background, religious context, location, weather, occasion type, time of day, etc.) - infer these using semantic understanding
+  3. **Implicit constraints**: Understood from semantic context (e.g., "wedding" implies formal, "beach" implies casual and summer) - extract these
+  4. **Negative constraints**: What to avoid (e.g., "not mini" → avoid lengths: ["Mini"], "no silk" → avoid materials: ["Silk"]) - extract these
+  5. **Appropriateness constraints**: Infer appropriate styles/lengths/necklines/sleeves based on context (e.g., "muslim wedding" → prefer modest styles, avoid revealing styles)
+
+  **OVERRIDE LOGIC - CRITICAL:**
+  - Explicit mentions ALWAYS override inferred constraints
+  - If user explicitly mentions a constraint (e.g., "in red", "mini dress", "silk"), use that EXACT constraint and DO NOT override with inferred constraints
+  - Only infer constraints when they are NOT explicitly mentioned
+  - Example: "wheatish skin, suggest red dresses" → colors: ["Red"] (explicit "red" overrides inferred colors from wheatish)
+  - Example: "wheatish skin, suggest dresses" → colors: ["Burgundy", "Emerald", "Navy", "Coral", "Peach", "Olive", "Sage", "Rust", "Terracotta", "Gold"] (inferred from wheatish)
+
+  **CONTEXT TYPES TO CONSIDER:**
+  - Skin tone/complexion (wheatish, fair, dark, olive, tan, pale, brown, etc.)
+  - Cultural background (Indian, Western, Middle Eastern, Asian, etc.)
+  - Religious context (Muslim, Christian, Hindu, Jewish, etc.)
+  - Location/geography (Miami, Utah, beach, mountain, tropical, etc.)
+  - Weather/climate (sunny, rainy, cold, hot, humid, etc.)
+  - Time of day (morning, afternoon, evening, night)
+  - Occasion type (wedding, party, office, casual, formal, etc.)
+  - Event formality (formal, semi-formal, casual, black tie, etc.)
+  - Season (spring, summer, fall, winter)
+  - Age group (kids, toddler, baby, adult, etc.)
+  - Body type/size preferences (petite, plus size, tall, etc.)
+  - Style preferences (modest, revealing, elegant, casual, etc.)
+  - Any other contextual information that would affect product selection
 - **CRITICAL: COLOR vs PATTERN DISAMBIGUATION - MOST IMPORTANT RULE**
   * **ABSOLUTE RULE**: "Cherry" is ALWAYS a COLOR (cherry red), NEVER a pattern - extract as colors: ["Cherry"]
   * **ABSOLUTE RULE**: "Crimson", "Scarlet", "Burgundy", "Maroon", "Rose", "Coral", "Salmon", "Rust", "Terracotta" are COLORS, NEVER patterns
@@ -100,18 +130,42 @@ CONSTRAINT EXTRACTION RULES:
       * User says "cherry coloured dresses" → colors: ["Cherry"] (NOT ["Red"])
       * User says "crimson dresses" → colors: ["Crimson"] (NOT ["Red"])
       * User says "scarlet red" → colors: ["Scarlet"] (NOT ["Red"])
-- **CRITICAL: INTELLIGENT COLOR INFERENCE** - You MUST infer colors from context even when not explicitly mentioned. Use your understanding of color semantics, lighting, locations, and occasions:
-  - "light colours", "light colors", "light tones" → infer light colors: ["White", "Ivory", "Cream", "Beige", "Blush", "Pink", "Peach", "Lemon", "Mint", "Sky Blue", "Lavender", "Baby Blue"]
-  - "dark colours", "dark colors", "dark tones" → infer dark colors: ["Black", "Navy", "Burgundy", "Maroon", "Charcoal", "Brown", "Plum"]
-  - "dresses for a sunny day", "for summer", "beach" → infer bright/light colors: ["White", "Yellow", "Coral", "Sky Blue", "Mint", "Lemon"]
-  - "dresses for night", "evening", "night out" → infer darker/elegant colors: ["Black", "Navy", "Burgundy", "Plum", "Charcoal"]
-  - "dresses for miami" → infer tropical/bright colors: ["Coral", "Pink", "Turquoise", "Yellow", "White", "Sky Blue"]
-  - "dresses for utah" → infer earth tones/neutral colors: ["Beige", "Brown", "Tan", "Sage", "Olive", "Taupe", "Camel"]
-  - "pastel colours", "pastels" → infer pastel colors: ["Blush", "Lavender", "Mint", "Peach", "Baby Blue", "Lemon"]
-  - "neutral colours", "neutrals" → infer neutral colors: ["White", "Beige", "Taupe", "Gray", "Nude", "Cream", "Black"]
-  - "warm colours", "warm tones" → infer warm colors: ["Red", "Orange", "Yellow", "Coral", "Peach", "Gold", "Burgundy"]
-  - "cool colours", "cool tones" → infer cool colors: ["Blue", "Green", "Purple", "Teal", "Mint", "Navy", "Lavender"]
-  - **IMPORTANT**: Infer colors based on semantic understanding, not hardcoded rules. Consider context: location, time of day, season, occasion. Map inferred colors to the closest ontology terms. You can infer multiple colors when appropriate (e.g., "light colours" → array of light colors). If the query explicitly mentions a color, use that instead of inferring.
+- **CRITICAL: INTELLIGENT COLOR INFERENCE** - You MUST infer colors from context even when not explicitly mentioned. Use your understanding of color semantics, lighting, locations, occasions, skin tones, and cultural contexts:
+  - **Skin tone/complexion context**:
+    - "wheatish", "wheatish skin", "wheatish complexion" → infer warm earth tones and jewel tones: ["Burgundy", "Emerald", "Navy", "Coral", "Peach", "Olive", "Sage", "Rust", "Terracotta", "Gold"]
+    - "fair skin", "fair complexion", "pale skin" → infer pastels and soft colors: ["Blush", "Lavender", "Mint", "Peach", "Baby Blue", "Lemon", "Pink", "Sky Blue", "Ivory", "Cream"]
+    - "dark skin", "dark complexion", "brown skin" → infer vibrant and jewel tones: ["Emerald", "Royal Blue", "Burgundy", "Gold", "Coral", "Navy", "Plum", "Teal", "Purple", "Fuchsia"]
+    - "olive skin", "olive complexion" → infer warm earth tones: ["Burgundy", "Olive", "Sage", "Rust", "Terracotta", "Coral", "Peach", "Gold", "Navy"]
+    - "tan skin", "tanned" → infer warm colors: ["Coral", "Peach", "Gold", "Burgundy", "Rust", "Terracotta", "Navy", "Emerald"]
+  - **Cultural/religious context**:
+    - "indian wedding", "hindu wedding", "south asian wedding" → infer traditional colors: ["Red", "Gold", "Maroon", "Pink", "Coral", "Orange", "Yellow", "Burgundy"]
+    - "christian wedding", "western wedding" → infer traditional colors: ["White", "Ivory", "Cream", "Blush", "Pink", "Lavender", "Mint"]
+    - "muslim wedding", "islamic wedding" → infer elegant colors: ["Navy", "Burgundy", "Emerald", "Gold", "Plum", "Charcoal", "Ivory"]
+    - "jewish wedding" → infer traditional colors: ["White", "Ivory", "Navy", "Gold", "Blush"]
+  - **Location/geography context**:
+    - "dresses for miami" → infer tropical/bright colors: ["Coral", "Pink", "Turquoise", "Yellow", "White", "Sky Blue", "Mint"]
+    - "dresses for utah" → infer earth tones/neutral colors: ["Beige", "Brown", "Tan", "Sage", "Olive", "Taupe", "Camel"]
+    - "beach", "tropical" → infer bright/light colors: ["White", "Coral", "Turquoise", "Yellow", "Sky Blue", "Mint", "Pink"]
+    - "mountain", "winter location" → infer earth tones and deeper colors: ["Navy", "Burgundy", "Olive", "Charcoal", "Brown", "Plum"]
+  - **Weather/climate context**:
+    - "sunny", "sunny day", "hot weather" → infer bright/light colors: ["White", "Yellow", "Coral", "Sky Blue", "Mint", "Lemon", "Pink"]
+    - "rainy", "cloudy" → infer deeper/muted colors: ["Navy", "Charcoal", "Burgundy", "Plum", "Olive"]
+    - "cold", "winter weather" → infer warm/deep colors: ["Burgundy", "Navy", "Plum", "Charcoal", "Brown", "Gold"]
+  - **Time of day context**:
+    - "dresses for night", "evening", "night out" → infer darker/elegant colors: ["Black", "Navy", "Burgundy", "Plum", "Charcoal", "Gold"]
+    - "morning", "daytime", "afternoon" → infer lighter/bright colors: ["White", "Blush", "Pink", "Sky Blue", "Mint", "Lemon", "Coral"]
+  - **Occasion-specific colors**:
+    - "dresses for a sunny day", "for summer", "beach" → infer bright/light colors: ["White", "Yellow", "Coral", "Sky Blue", "Mint", "Lemon"]
+    - "formal event", "black tie" → infer elegant colors: ["Black", "Navy", "Burgundy", "Plum", "Charcoal", "Gold", "Ivory"]
+    - "casual", "everyday" → infer versatile colors: ["White", "Navy", "Gray", "Beige", "Black", "Blush"]
+  - **Color tone descriptors**:
+    - "light colours", "light colors", "light tones" → infer light colors: ["White", "Ivory", "Cream", "Beige", "Blush", "Pink", "Peach", "Lemon", "Mint", "Sky Blue", "Lavender", "Baby Blue"]
+    - "dark colours", "dark colors", "dark tones" → infer dark colors: ["Black", "Navy", "Burgundy", "Maroon", "Charcoal", "Brown", "Plum"]
+    - "pastel colours", "pastels" → infer pastel colors: ["Blush", "Lavender", "Mint", "Peach", "Baby Blue", "Lemon", "Pink", "Sky Blue"]
+    - "neutral colours", "neutrals" → infer neutral colors: ["White", "Beige", "Taupe", "Gray", "Nude", "Cream", "Black"]
+    - "warm colours", "warm tones" → infer warm colors: ["Red", "Orange", "Yellow", "Coral", "Peach", "Gold", "Burgundy", "Rust", "Terracotta"]
+    - "cool colours", "cool tones" → infer cool colors: ["Blue", "Green", "Purple", "Teal", "Mint", "Navy", "Lavender", "Sky Blue"]
+  - **IMPORTANT**: Infer colors based on semantic understanding, not hardcoded rules. Consider ALL context: location, time of day, season, occasion, skin tone, cultural background, religious context, weather. Map inferred colors to the closest ontology terms. You can infer multiple colors when appropriate (e.g., "light colours" → array of light colors). If the query explicitly mentions a color, use that instead of inferring. When multiple contexts are present, combine inferences appropriately (e.g., "wheatish skin + casual evening date" → infer colors that work for wheatish skin AND are appropriate for casual evening).
 - **CRITICAL: INTELLIGENT OCCASION INFERENCE** - You MUST infer occasions from context even when not explicitly mentioned:
   - "for wedding" or "wedding dress" → occasions: ["Wedding", "Formal"]
   - "for beach" or "beach outfit" → occasions: ["Beach", "Casual", "Vacation"]
@@ -119,7 +173,9 @@ CONSTRAINT EXTRACTION RULES:
   - "for party" or "party dress" → occasions: ["Party", "Cocktail", "Evening"]
   - "for gym" or "gym wear" → occasions: ["Athletic", "Activewear"]
   - "for home" or "loungewear" → occasions: ["Casual", "Loungewear"]
-  - "for date" or "date night" → occasions: ["Date Night", "Evening", "Cocktail"]
+  - "for date" or "date night" or "romantic date" or "evening date" → occasions: ["Date Night"] (NOT "Evening Event" - "Date Night" is a distinct romantic occasion type)
+  - "evening event" or "evening party" → occasions: ["Evening Event", "Evening", "Party"] (NOT "Date Night" - this is a general evening event, not specifically a romantic date)
+  - **CRITICAL**: Distinguish between "date" (romantic occasion → "Date Night") and "evening event" (general evening occasion → "Evening Event")
   - "for formal event" → occasions: ["Formal", "Evening"]
   - "for casual" → occasions: ["Casual", "Daytime"]
   - **IMPORTANT**: Infer occasions based on semantic understanding. Consider context: event type, time of day, location. Map inferred occasions to the closest ontology terms.
@@ -153,13 +209,23 @@ CONSTRAINT EXTRACTION RULES:
   - "form-fitting" → fits: ["Fitted"]
   - **IMPORTANT**: Infer fit based on user language and product descriptions. Map inferred fits to the closest ontology terms.
 - **CRITICAL: INTELLIGENT LENGTH INFERENCE** (for dresses and skirts):
-  - "mini dress" or "mini" → lengths: ["Mini"]
-  - "maxi dress" or "maxi" or "long dress" → lengths: ["Maxi"]
-  - "midi dress" or "midi" → lengths: ["Midi"]
-  - "short dress" → lengths: ["Mini"]
-  - "long dress" → lengths: ["Maxi"]
-  - "knee-length" → lengths: ["Midi"]
-  - **IMPORTANT**: Infer length based on user language. Map inferred lengths to the closest ontology terms.
+  - **Explicit mentions**:
+    - "mini dress" or "mini" → lengths: ["Mini"]
+    - "maxi dress" or "maxi" or "long dress" → lengths: ["Maxi"]
+    - "midi dress" or "midi" → lengths: ["Midi"]
+    - "short dress" → lengths: ["Mini"]
+    - "long dress" → lengths: ["Maxi"]
+    - "knee-length" → lengths: ["Midi"]
+  - **Cultural/religious context**:
+    - "muslim wedding", "islamic wedding", "modest", "conservative" → prefer lengths: ["Maxi", "Midi"], avoid lengths: ["Mini"]
+    - "formal wedding", "traditional wedding" → prefer lengths: ["Maxi", "Midi"], avoid lengths: ["Mini"]
+  - **Occasion formality**:
+    - "formal", "formal event", "black tie", "white tie" → prefer lengths: ["Maxi", "Midi"], avoid lengths: ["Mini"]
+    - "casual", "everyday", "beach" → can be any length, but prefer ["Mini", "Midi"] for casual
+  - **Age appropriateness**:
+    - "kids", "children", "toddler" → can be any length
+    - "adult formal" → prefer longer lengths: ["Maxi", "Midi"]
+  - **IMPORTANT**: Infer length based on user language, cultural context, occasion formality, and age appropriateness. Map inferred lengths to the closest ontology terms. Explicit mentions override inferred lengths.
 - Extract collection constraints (e.g., "spring collection" → collections: ["Spring Collection"])
 - Extract age group constraints (e.g., "for kids" → ageGroups: ["kids"], "5-year-old" → ageGroups: ["kids"], "toddler" → ageGroups: ["toddler"], "baby" → ageGroups: ["baby"], "adult" or "women" → ageGroups: ["adult"])
   - IMPORTANT: Distinguish between age and size. "5-year-old" or "for kids" is ageGroups, NOT sizes.
@@ -168,6 +234,127 @@ CONSTRAINT EXTRACTION RULES:
   - **Preferred** (flexible): "silk preferred", "silk if possible", "preferably silk", "silk would be nice" → materials: ["Silk"] (treat as preferred, not strict)
   - **Avoid** (negative): "not silk", "avoid silk", "no silk", "anything but silk" → materials: null (remove silk constraint, or mark as avoid)
   - **IMPORTANT**: Use semantic understanding to determine if a requirement is strict or flexible. When in doubt, treat as preferred (flexible) rather than strict.
+- **CRITICAL: INTELLIGENT STYLES INFERENCE** - You MUST infer styles from context even when not explicitly mentioned:
+  - **Occasion type**:
+    - "formal", "formal event", "black tie", "white tie" → infer styles: ["Elegant", "Classic", "Formal", "Romantic"]
+    - "casual", "everyday", "weekend" → infer styles: ["Casual", "Bohemian", "Romantic", "Feminine"]
+    - "wedding", "bridal" → infer styles: ["Romantic", "Feminine", "Elegant", "Bridal"]
+    - "beach", "resort", "vacation" → infer styles: ["Beach", "Resort", "Vacation", "Bohemian"]
+  - **Cultural context**:
+    - "modest", "conservative", "muslim wedding", "islamic wedding" → infer styles: ["A-Line", "Empire Waist", "Wrap", "Romantic", "Feminine"], avoid: ["Bodycon", "Fit and Flare"] (if too revealing)
+    - "revealing", "form-fitting" → infer styles: ["Bodycon", "Fit and Flare", "Sheath"]
+  - **Body type preferences**:
+    - "petite" → infer styles: ["A-Line", "Empire Waist", "Fit and Flare"]
+    - "plus size" → infer styles: ["A-Line", "Wrap", "Fit and Flare", "Empire Waist"]
+    - "tall" → infer styles: ["Maxi", "A-Line", "Fit and Flare"]
+  - **Style preferences**:
+    - "romantic", "feminine" → infer styles: ["Romantic", "Feminine", "Ruffled", "Tiered"]
+    - "modern", "minimalist" → infer styles: ["Modern", "Minimalist", "Shift", "Sheath"]
+    - "vintage", "classic" → infer styles: ["Vintage", "Classic", "Romantic"]
+  - **IMPORTANT**: Infer styles based on occasion, cultural context, body type, and style preferences. Map inferred styles to the closest ontology terms. Explicit mentions override inferred styles.
+- **CRITICAL: INTELLIGENT NECKLINES INFERENCE** - You MUST infer necklines from context even when not explicitly mentioned:
+  - **Modesty requirements**:
+    - "modest", "conservative", "muslim wedding", "islamic wedding" → prefer necklines: ["High Neck", "Round Neck", "Mock Neck", "Turtleneck"], avoid necklines: ["V-Neck", "Plunge", "Off-Shoulder", "Strapless", "Cold Shoulder", "One-Shoulder"]
+    - "revealing", "low cut" → prefer necklines: ["V-Neck", "Sweetheart", "Off-Shoulder", "Strapless"]
+  - **Occasion formality**:
+    - "formal", "formal event", "black tie" → prefer necklines: ["Sweetheart", "V-Neck", "Round Neck", "High Neck"], avoid necklines: ["Off-Shoulder", "Cold Shoulder", "Strapless"]
+    - "casual", "everyday" → can be any neckline
+  - **Cultural/religious context**:
+    - "muslim", "islamic", "conservative", "traditional" → prefer necklines: ["High Neck", "Round Neck", "Mock Neck", "Turtleneck", "Boat Neck"], avoid revealing necklines
+  - **IMPORTANT**: Infer necklines based on modesty requirements, occasion formality, and cultural/religious context. Map inferred necklines to the closest ontology terms. Explicit mentions override inferred necklines.
+- **CRITICAL: INTELLIGENT SLEEVE LENGTHS INFERENCE** - You MUST infer sleeve lengths from context even when not explicitly mentioned:
+  - **Modesty requirements**:
+    - "modest", "conservative", "muslim wedding", "islamic wedding" → prefer sleeveLengths: ["Long Sleeve", "Three-Quarter Sleeve"], avoid sleeveLengths: ["Sleeveless", "Cap Sleeve"]
+    - "revealing", "sleeveless" → prefer sleeveLengths: ["Sleeveless", "Cap Sleeve"]
+  - **Occasion formality**:
+    - "formal", "formal event", "black tie" → prefer sleeveLengths: ["Long Sleeve", "Three-Quarter Sleeve"], casual → can be any
+  - **Weather/season**:
+    - "cold", "winter", "fall" → prefer sleeveLengths: ["Long Sleeve", "Three-Quarter Sleeve"]
+    - "hot", "summer", "beach" → prefer sleeveLengths: ["Sleeveless", "Short Sleeve", "Cap Sleeve"]
+  - **IMPORTANT**: Infer sleeve lengths based on modesty, occasion formality, and weather/season. Map inferred sleeve lengths to the closest ontology terms. Explicit mentions override inferred sleeve lengths.
+- **CRITICAL: INTELLIGENT PATTERNS INFERENCE** - You MUST infer patterns from context even when not explicitly mentioned:
+  - **Occasion type**:
+    - "wedding", "bridal", "formal" → prefer patterns: ["Floral", "Botanical", "Romantic", "Solid"]
+    - "casual", "everyday" → can be any pattern
+    - "beach", "resort" → prefer patterns: ["Tropical", "Floral", "Botanical", "Nautical"]
+  - **Cultural context**:
+    - "indian wedding", "hindu wedding", "south asian wedding" → prefer patterns: ["Embroidered", "Sequined", "Beaded", "Floral"]
+    - "western wedding", "christian wedding" → prefer patterns: ["Floral", "Botanical", "Solid", "Romantic"]
+  - **Season**:
+    - "spring", "summer" → prefer patterns: ["Floral", "Botanical", "Tropical", "Polka Dot"]
+    - "fall", "winter" → prefer patterns: ["Plaid", "Tweed", "Geometric", "Striped"]
+  - **IMPORTANT**: Infer patterns based on occasion type, cultural context, and season. Map inferred patterns to the closest ontology terms. Explicit mentions override inferred patterns.
+- **CRITICAL: INTELLIGENT EMBELLISHMENTS INFERENCE** - You MUST infer embellishments from context even when not explicitly mentioned:
+  - **Occasion formality**:
+    - "formal", "formal event", "black tie", "wedding" → prefer embellishments: ["Lace", "Embroidery", "Beading", "Sequins", "Pearls"]
+    - "casual", "everyday" → prefer minimal embellishments or none
+  - **Cultural context**:
+    - "indian wedding", "hindu wedding", "south asian wedding" → prefer embellishments: ["Embroidery", "Beading", "Sequins", "Applique", "Rhinestones"]
+    - "western wedding", "christian wedding" → prefer embellishments: ["Lace", "Embroidery", "Pearls", "Beading"]
+  - **IMPORTANT**: Infer embellishments based on occasion formality and cultural context. Map inferred embellishments to the closest ontology terms. Explicit mentions override inferred embellishments.
+- **CRITICAL: INTELLIGENT COLLECTIONS INFERENCE** - You MUST infer collections from context even when not explicitly mentioned:
+  - **Season mentions**:
+    - "spring", "for spring" → collections: ["Spring Collection"]
+    - "summer", "for summer" → collections: ["Summer Collection"]
+    - "fall", "autumn", "for fall" → collections: ["Fall Collection"]
+    - "winter", "for winter" → collections: ["Winter Collection"]
+  - **Occasion mentions**:
+    - "wedding", "bridal" → collections: ["Wedding Collection", "Bridal Collection"]
+    - "beach", "resort", "vacation" → collections: ["Beach Collection", "Resort Collection", "Vacation Collection"]
+    - "holiday" → collections: ["Holiday Collection"]
+  - **IMPORTANT**: Infer collections based on season and occasion mentions. Map inferred collections to the closest ontology terms. Explicit mentions override inferred collections.
+- **CRITICAL: INTELLIGENT FITS INFERENCE** - Enhanced inference from context:
+  - **Explicit mentions**:
+    - "relaxed fit" or "relaxed" → fits: ["Relaxed Fit"]
+    - "fitted" or "fitted dress" → fits: ["Fitted"]
+    - "loose" or "loose fit" → fits: ["Loose Fit"]
+    - "slim fit" or "slim" → fits: ["Slim Fit", "Fitted"]
+    - "comfortable" → fits: ["Relaxed Fit", "Loose Fit"]
+    - "form-fitting" → fits: ["Fitted", "Bodycon"]
+  - **Body type preferences**:
+    - "petite" → prefer fits: ["Fitted", "Slim Fit", "A-Line"]
+    - "plus size" → prefer fits: ["Relaxed Fit", "A-Line", "Wrap", "Fit and Flare"]
+    - "tall" → prefer fits: ["Fitted", "A-Line", "Fit and Flare"]
+  - **Comfort preferences**:
+    - "comfortable", "easy to wear" → prefer fits: ["Relaxed Fit", "Loose Fit", "A-Line"]
+    - "form-fitting", "fitted" → prefer fits: ["Fitted", "Bodycon", "Slim Fit"]
+  - **IMPORTANT**: Infer fit based on user language, body type preferences, and comfort requirements. Map inferred fits to the closest ontology terms. Explicit mentions override inferred fits.
+- **CRITICAL: INTELLIGENT SIZES INFERENCE** - You MUST distinguish between age mentions and explicit size mentions:
+  - **Age mentions** (extract as ageGroups, NOT sizes):
+    - "5-year-old", "5 years old", "age 5", "turning 5" → ageGroups: ["kids"], NOT sizes
+    - "2-year-old", "3-year-old", "toddler" → ageGroups: ["toddler"], NOT sizes
+    - "baby", "infant" → ageGroups: ["baby"], NOT sizes
+    - "for kids", "children" → ageGroups: ["kids"], NOT sizes
+  - **Explicit size mentions** (extract as sizes):
+    - "size 4", "size 6", "size small", "size medium" → sizes: ["4"], ["6"], ["S"], ["M"]
+    - "petite" → can infer smaller sizes if context suggests, but primarily extract as style/fit preference
+    - "plus size" → can infer larger sizes if context suggests, but primarily extract as style/fit preference
+  - **IMPORTANT**: Always distinguish between age and size. Age mentions go to ageGroups, explicit size mentions go to sizes. When in doubt, prefer ageGroups for age-related mentions.
+- **CRITICAL: INTELLIGENT AGE GROUPS INFERENCE** - Enhanced inference from context:
+  - **Age mentions**:
+    - "5-year-old", "5 years old", "age 5", "turning 5", "she is 5" → ageGroups: ["kids"]
+    - "2-year-old", "3-year-old", "toddler" → ageGroups: ["toddler"]
+    - "baby", "infant", "babies" → ageGroups: ["baby"]
+    - "for kids", "children", "child" → ageGroups: ["kids"]
+    - "adult", "women", "womens", "for women" → ageGroups: ["adult"]
+    - "teen", "teenager", "teenage", "teenagers", "juvenile", "youth", "adolescent", "young", "pre-teen", "preteen", "tween" → ageGroups: ["Teen"] or ["kids"] depending on context (typically ["Teen"] for 13-19 age range)
+    - "for teenage daughter", "for teenage son", "teenage girl", "teenage boy" → ageGroups: ["Teen"]
+    - "juvenile", "youth", "adolescent" → ageGroups: ["Teen"] or ["kids"] depending on context
+  - **Product category context**:
+    - "baby items", "onesie", "bodysuit" (for babies) → ageGroups: ["baby"]
+    - "kids items", "children's clothes" → ageGroups: ["kids"]
+    - "adult items", "women's clothes" → ageGroups: ["adult"]
+  - **IMPORTANT**: Infer age groups from age mentions and product category context. Always distinguish between age (ageGroups) and size (sizes). Map inferred age groups to the closest ontology terms. Explicit mentions override inferred age groups.
+- **CRITICAL: SEMANTIC UNDERSTANDING OVER HARDCODED RULES** - While the examples above provide guidance, you MUST use semantic understanding to extract constraints from ANY contextual query, not just the examples provided. Consider:
+  - The overall meaning and intent of the query
+  - Cultural sensitivity and appropriateness
+  - What a stylist or fashion expert would recommend for the given context
+  - How different contexts interact (e.g., "wheatish skin + casual evening date" → infer colors that work for wheatish skin AND are appropriate for casual evening)
+  - When multiple contexts are present, combine inferences appropriately
+  - Always prioritize explicit mentions over inferences
+  - When in doubt, infer constraints that would help find appropriate products rather than leaving fields empty
+  - Use your understanding of fashion, style, cultural norms, and appropriateness to extract ALL relevant constraints
+  - Think beyond the examples: if a query mentions a context not explicitly covered above, still infer appropriate constraints using semantic understanding
 
 FOLLOW-UP CONTEXT:
 **CRITICAL**: If LAST_CONSTRAINTS is provided, you MUST determine if this is a FOLLOW-UP refinement or a NEW search.
@@ -328,6 +515,8 @@ If the query mentions age information, you MUST extract it in ageGroups:
 - "2-year-old", "3-year-old", "toddler" → ageGroups: ["toddler"]
 - "baby", "infant", "babies" → ageGroups: ["baby"]
 - "adult", "women", "womens" → ageGroups: ["adult"]
+- "teen", "teenager", "teenage", "teenagers", "juvenile", "youth", "adolescent", "young", "pre-teen", "preteen", "tween" → ageGroups: ["Teen"] (for 13-19 age range)
+- "for teenage daughter", "for teenage son", "teenage girl", "teenage boy" → ageGroups: ["Teen"]
 - IMPORTANT: "5-year-old" or "5 year old" is AGE (ageGroups), NOT size (sizes). Only extract as size if explicitly "size 5".
 
 AVAILABLE VALUES (map user words to these):
