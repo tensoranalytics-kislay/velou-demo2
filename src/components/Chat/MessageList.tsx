@@ -90,31 +90,26 @@ export default function MessageList({ messages, onProductClick, onProductAsk, on
             const hasReplyTextAfter = message.replyTextAfter !== undefined && message.replyTextAfter !== null && message.replyTextAfter.trim().length > 0;
             const hasFollowupText = message.followupText !== undefined && message.followupText !== null && message.followupText.trim().length > 0;
             const hasProductCards = message.productCards && message.productCards.length > 0;
+            const contentToRender = message.replyTextAfter || message.followupText || '';
+            const hasContent = contentToRender.trim().length > 0;
             
-            // Detect similar products: content starts with "Here are similar products to"
-            const isSimilarProducts = hasProductCards && 
-              message.content && 
-              (message.content.startsWith('Here are similar products to') || 
-               message.content.startsWith("I couldn't find similar products to"));
+            // Debug logging for product card messages
+            if (hasProductCards) {
+              console.log('[MessageList] replyTextAfter render check:', {
+                messageId: message.id,
+                hasReplyTextAfter,
+                hasFollowupText,
+                hasProductCards: hasProductCards,
+                productCardCount: message.productCards?.length || 0,
+                replyTextAfterLength: message.replyTextAfter?.length || 0,
+                replyTextAfterPreview: message.replyTextAfter?.substring(0, 150) || 'null/undefined',
+                hasContent,
+                willRender: hasContent && (hasReplyTextAfter || hasFollowupText),
+              });
+            }
             
-            // Detect vague/irrelevant prompts: has followupText or noExactMatch without product cards
-            const isVagueOrIrrelevant = !hasProductCards && (hasFollowupText || message.noExactMatch === true);
-            
-            // Normal product result: has product cards AND has replyTextAfter
-            const isNormalProductResult = hasProductCards && hasReplyTextAfter;
-            
-            // Determine if we should render:
-            // 1. Normal product results with cards: ALWAYS show (they should have replyTextAfter)
-            // 2. Similar products: show even if empty (for potential future content)
-            // 3. Vague/irrelevant: show even if empty (they have followupText)
-            // 4. Otherwise: only show if there's content
-            const shouldRender = isNormalProductResult || 
-                                 isSimilarProducts || 
-                                 isVagueOrIrrelevant || 
-                                 hasReplyTextAfter || 
-                                 hasFollowupText;
-            
-            return shouldRender;
+            // Always render if there's content to show (either replyTextAfter or followupText)
+            return hasContent;
           })() && (
             <div className="mt-6 sm:mt-8 flex items-start gap-3 pt-2 sm:pt-3">
               <div className="flex-shrink-0">
