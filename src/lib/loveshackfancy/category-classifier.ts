@@ -109,6 +109,8 @@ EXAMPLES:
 - "dress for my teen daughter" → ["Women's Dresses"] (NOT "Girls Dresses" - teens are 13-19, should use adult categories)
 - "teenage daughter" → ["Women's Dresses"] (NOT "Girls Dresses")
 - "for teenage girl" → ["Women's Dresses"] (NOT "Girls Dresses")
+- "dress for my baby daughter" → ["Girls Dresses"] (babies/toddlers can wear kids dresses, NOT "Women's Dresses" or "Baby & Toddler Bottoms" since dresses aren't in that category)
+- "baby daughter dress" → ["Girls Dresses"] (babies/toddlers can wear kids dresses)
 - "swimwear" → ["Swimsuits", "Bikini Sets", "Swim Cover-ups"]
 - "pajamas" → ["Pajama Set", "Loungewear"]
 - "perfume" → ["Perfumes"]

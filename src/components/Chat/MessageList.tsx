@@ -93,20 +93,21 @@ export default function MessageList({ messages, onProductClick, onProductAsk, on
             const contentToRender = message.replyTextAfter || message.followupText || '';
             const hasContent = contentToRender.trim().length > 0;
             
-            // Debug logging for product card messages
-            if (hasProductCards) {
-              console.log('[MessageList] replyTextAfter render check:', {
-                messageId: message.id,
-                hasReplyTextAfter,
-                hasFollowupText,
-                hasProductCards: hasProductCards,
-                productCardCount: message.productCards?.length || 0,
-                replyTextAfterLength: message.replyTextAfter?.length || 0,
-                replyTextAfterPreview: message.replyTextAfter?.substring(0, 150) || 'null/undefined',
-                hasContent,
-                willRender: hasContent && (hasReplyTextAfter || hasFollowupText),
-              });
-            }
+            // Debug logging for ALL assistant messages (not just those with product cards)
+            console.log('[MessageList] replyTextAfter render check:', {
+              messageId: message.id,
+              hasReplyTextAfter,
+              hasFollowupText,
+              hasProductCards: hasProductCards,
+              productCardCount: message.productCards?.length || 0,
+              replyTextAfterValue: message.replyTextAfter,
+              replyTextAfterLength: message.replyTextAfter?.length || 0,
+              replyTextAfterPreview: message.replyTextAfter?.substring(0, 150) || 'null/undefined',
+              followupTextPreview: message.followupText?.substring(0, 150) || 'null/undefined',
+              contentToRender: contentToRender.substring(0, 150),
+              hasContent,
+              willRender: hasContent,
+            });
             
             // Always render if there's content to show (either replyTextAfter or followupText)
             return hasContent;

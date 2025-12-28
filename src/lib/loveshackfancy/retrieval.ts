@@ -725,6 +725,14 @@ export function classificationToSearchConstraints(
   const nullToUndefined = <T>(value: T | null | undefined): T | undefined => 
     value === null ? undefined : value;
   
+  // Map scents to sensoryProfile: combine scents into a string description
+  const sensoryProfileFromScents = constraints.scents && constraints.scents.length > 0
+    ? constraints.scents.join(', ') + ' scent'
+    : undefined;
+  
+  // Merge sensoryProfile from scents with explicit sensoryProfile (prefer explicit if both exist)
+  const mergedSensoryProfile = constraints.sensoryProfile || sensoryProfileFromScents;
+  
   // Map FashionConstraints to SearchConstraints (only include fields that exist in SearchConstraints)
   const searchConstraints: SearchConstraints = {
     // Category filter: hard SQL-level filter using top 3 categories
@@ -748,6 +756,21 @@ export function classificationToSearchConstraints(
       ...(constraints.styles || []),
       ...(constraints.patterns || []),
     ] : undefined),
+    // Map category-specific constraints
+    // scents -> sensoryProfile (convert array to string description)
+    sensoryProfile: mergedSensoryProfile || undefined,
+    // rooms -> useCases (rooms are a type of useCase for home products)
+    useCases: nullToUndefined([
+      ...(constraints.rooms || []),
+      ...(constraints.useCases || []),
+    ].filter(Boolean).length > 0 ? [
+      ...(constraints.rooms || []),
+      ...(constraints.useCases || []),
+    ] : undefined),
+    // Direct mappings for generic constraints
+    benefits: nullToUndefined(constraints.benefits),
+    claims: nullToUndefined(constraints.claims),
+    compatibility: nullToUndefined(constraints.compatibility),
   };
   
   return searchConstraints;

@@ -420,6 +420,11 @@ export function inferAgeGroupFromProduct(product: { title?: string; description?
   ];
   
   // Adult indicators in product text
+  // CRITICAL: Check for "for Women", "for Men" patterns first (most explicit)
+  if (/\bfor\s+(women|womens|men|mens|ladies|gentlemen)\b/i.test(text)) {
+    return 'adult';
+  }
+  
   const adultPatterns = [
     /\b(women|womens|men|mens|ladies|gentlemen|adult|adults)\b/,
     /\b(size[\s-]*)?(XS|S|M|L|XL|XXL|0|2|4|6|8|10|12|14|16|18|20|22|24)\b/,

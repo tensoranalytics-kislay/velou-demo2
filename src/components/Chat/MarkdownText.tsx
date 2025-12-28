@@ -73,9 +73,20 @@ function renderInlineMarkdown(text: string, productCards: ProductCard[] = []): R
     console.log('[MarkdownText] Building product name map from productCards:', {
       productCardsCount: productCards.length,
       productTitles: productCards.map(c => c.title),
+      productUrls: productCards.map(c => c.productUrl),
+      hasProductUrls: productCards.map(c => !!c.productUrl),
     });
     
     productCards.forEach((card) => {
+      // Skip cards without productUrl - they can't be hyperlinked
+      if (!card.productUrl) {
+        console.warn('[MarkdownText] Product card missing productUrl, skipping hyperlink:', {
+          productId: card.id,
+          productTitle: card.title,
+        });
+        return;
+      }
+      
       const originalTitle = card.title.trim();
       
       // Extract the base product name (everything before " in " or " in," or similar patterns)
@@ -95,38 +106,38 @@ function renderInlineMarkdown(text: string, productCards: ProductCard[] = []): R
       
       // Store base name (without "in color")
       if (normalizedBase && !productNameMap.has(normalizedBase)) {
-        productNameMap.set(normalizedBase, { url: card.productUrl, fullTitle: originalTitle, originalTitle });
+        productNameMap.set(normalizedBase, { url: card.productUrl!, fullTitle: originalTitle, originalTitle });
       }
       
       // Store shorter name (without "for Women", "by Brand", "Size: X", etc.)
       if (normalizedShorter && normalizedShorter !== normalizedBase && !productNameMap.has(normalizedShorter)) {
-        productNameMap.set(normalizedShorter, { url: card.productUrl, fullTitle: originalTitle, originalTitle });
+        productNameMap.set(normalizedShorter, { url: card.productUrl!, fullTitle: originalTitle, originalTitle });
       }
       
       // Store full title (with "in color")
       if (normalizedFull && !productNameMap.has(normalizedFull)) {
-        productNameMap.set(normalizedFull, { url: card.productUrl, fullTitle: originalTitle, originalTitle });
+        productNameMap.set(normalizedFull, { url: card.productUrl!, fullTitle: originalTitle, originalTitle });
       }
       
       // Store with "The" prefix for all variations
       if (normalizedBase) {
         const withThe = `the ${normalizedBase}`;
         if (!productNameMap.has(withThe)) {
-          productNameMap.set(withThe, { url: card.productUrl, fullTitle: originalTitle, originalTitle });
+          productNameMap.set(withThe, { url: card.productUrl!, fullTitle: originalTitle, originalTitle });
         }
       }
       
       if (normalizedShorter && normalizedShorter !== normalizedBase) {
         const withTheShorter = `the ${normalizedShorter}`;
         if (!productNameMap.has(withTheShorter)) {
-          productNameMap.set(withTheShorter, { url: card.productUrl, fullTitle: originalTitle, originalTitle });
+          productNameMap.set(withTheShorter, { url: card.productUrl!, fullTitle: originalTitle, originalTitle });
         }
       }
       
       if (normalizedFull) {
         const withTheFull = `the ${normalizedFull}`;
         if (!productNameMap.has(withTheFull)) {
-          productNameMap.set(withTheFull, { url: card.productUrl, fullTitle: originalTitle, originalTitle });
+          productNameMap.set(withTheFull, { url: card.productUrl!, fullTitle: originalTitle, originalTitle });
         }
       }
     });
@@ -326,21 +337,31 @@ function renderInlineMarkdown(text: string, productCards: ProductCard[] = []): R
     } else if (match.type === 'italic') {
       parts.push(<em key={`italic-${keyCounter++}`}>{match.content}</em>);
     } else if (match.type === 'product') {
-      parts.push(
-        <a
-          key={`product-${keyCounter++}`}
-          href={match.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-rose-600 hover:text-rose-700 underline font-medium transition-colors"
-          onClick={(e) => {
-            // Allow default link behavior (opens in new tab)
-            e.stopPropagation();
-          }}
-        >
-          {match.content}
-        </a>
-      );
+      // Ensure URL is valid before creating link
+      if (!match.url) {
+        console.warn('[MarkdownText] Product match has no URL, rendering as plain text:', {
+          content: match.content,
+          start: match.start,
+          end: match.end,
+        });
+        parts.push(match.content);
+      } else {
+        parts.push(
+          <a
+            key={`product-${keyCounter++}`}
+            href={match.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-rose-600 hover:text-rose-700 underline font-medium transition-colors"
+            onClick={(e) => {
+              // Allow default link behavior (opens in new tab)
+              e.stopPropagation();
+            }}
+          >
+            {match.content}
+          </a>
+        );
+      }
     }
     
     currentIndex = match.end;

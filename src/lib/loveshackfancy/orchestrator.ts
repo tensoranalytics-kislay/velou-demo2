@@ -37,6 +37,8 @@ import { classifyQueryToCategories, classifyQueryToCategoriesWithConfidence } fr
 import { mergeFollowUpConstraints, isFollowUpRefinement } from './constraint-merger';
 import { callLLM } from '../llm/provider';
 import { buildProductQaPrompt } from '../llm/prompts';
+import { matchAgeGroup } from './ranking/constraint-matcher';
+import { handleIrrelevantQuery, generateIntelligentDenial } from './irrelevant-query-handler';
 
 export type LoveshackfancyQueryInput = {
   sessionId: string;
@@ -234,98 +236,129 @@ export async function handleLoveshackfancyQuery(
       };
     }
 
-    // Handle unrelated queries - treat as potential indirect product searches
+    // Handle unrelated queries - intelligently decide redirect vs deny
     if ('reason' in safetyCheck && safetyCheck.reason === 'unrelated') {
-      logger.info('unrelated_query_attempting_category_classification', {
+      logger.info('unrelated_query_intelligent_handling', {
         query: input.message,
-        note: 'Treating unrelated query as potential indirect product search, attempting category classification first',
+        note: 'Analyzing unrelated query to determine if redirect or deny',
       });
-      
-      // Try category classification first (like vague queries)
-      onProgress?.('classifying', STAGE_PROGRESS.classifying);
-      const categoryResult = await classifyQueryToCategoriesWithConfidence(input.message, input.merchantId);
-      
-      if (categoryResult.confidence >= 0.5 && categoryResult.categories.length > 0) {
-        // Category identified confidently - proceed with discovery
-        // Store categories to use after categorization step
-        safetyCheckCategories = categoryResult.categories;
-        logger.info('unrelated_query_category_identified_proceeding_with_discovery', {
-          query: input.message,
-          categories: safetyCheckCategories,
-          confidence: categoryResult.confidence,
-          note: 'Category classification succeeded for unrelated query, proceeding with product discovery',
-        });
-        
-        // Continue with normal flow - we'll use safetyCheckCategories after categorization
-        // to override the irrelevant check if needed
-      } else {
-        // Category unclear - generate witty follow-up questions to divert to product discovery
-        const potentialCategories = categoryResult.categories.length > 0 ? categoryResult.categories : [];
-        logger.info('unrelated_query_category_unclear_generating_witty_followup', {
-          query: input.message,
-          potentialCategories,
-          confidence: categoryResult.confidence,
-          note: 'Category classification unclear for unrelated query, generating witty follow-up questions to divert to product discovery',
-        });
-        
-        onProgress?.('generating', STAGE_PROGRESS.generating);
-        const followups = await generateFollowUpQuestions(
-          input.message,
-          undefined, // No preliminary products for unrelated queries
-          input.merchantData?.datasetContext,
-          potentialCategories,
-          true // Mark as unrelated query for wittier diversion
-        );
-        logger.info('unrelated_query_followup_questions_received', {
-          query: input.message,
-          contextSummary: followups.contextSummary.substring(0, 150),
-          questionCount: followups.questions.length,
-        });
 
-        // Store in conversation state for next turn (fire-and-forget - non-blocking)
-        if (input.merchantId) {
-          const currentState = input.conversationState || {
-            shownProductIds: [],
-            lastQueryFingerprint: null,
-            lastRankedProductIds: [],
-            lastRankCursor: 0,
-            pendingActions: [],
-            memory: {},
-          };
-          updateState(input.merchantId, input.sessionId, {
-            memory: {
-              ...currentState.memory,
-              pendingFollowups: {
-                originalQuery: input.message,
-                questions: followups.questions,
-                responses: [],
-                preliminaryProducts: undefined,
-              },
+      // Get product context from conversation history
+      const currentState = input.conversationState || {
+        shownProductIds: [],
+        lastQueryFingerprint: null,
+        lastRankedProductIds: [],
+        lastRankCursor: 0,
+        pendingActions: [],
+        memory: {},
+      };
+      const productContext = currentState.shownProductIds?.length > 0
+        ? await prisma.product.findMany({
+            where: {
+              id: { in: currentState.shownProductIds.slice(-5) },
+              merchantId: input.merchantId,
             },
-          }).catch(err => logger.warn('state_update_failed', { 
-            error: err instanceof Error ? err.message : String(err),
-            context: 'store_pending_followups_unrelated'
-          }));
-        }
+            select: { id: true, title: true },
+          }).then(products => products.map(p => ({ productId: p.id, title: p.title || '' })))
+        : undefined;
+
+      // Intelligently decide: redirect or deny
+      const decision = await handleIrrelevantQuery(
+        input.message,
+        input.merchantData?.datasetContext,
+        undefined, // Will fetch from ontology
+        productContext
+      );
+
+      if (decision.action === 'deny') {
+        // Generate intelligent denial reply
+        onProgress?.('generating', STAGE_PROGRESS.generating);
+        const denialReply = await generateIntelligentDenial(
+          input.message,
+          decision.reason,
+          input.merchantData?.brandName || 'LoveShackFancy',
+          input.history
+        );
 
         onProgress?.('complete', STAGE_PROGRESS.complete);
-        // Show witty contextSummary (diverting to product discovery) followed by first question only
-        const firstQuestion = followups.questions.length > 0 
-          ? `\n\n${followups.questions[0]}`
-          : '';
-        const replyText = `${followups.contextSummary}${firstQuestion}`;
-        logger.info('unrelated_query_reply_constructed', {
-          query: input.message,
-          contextSummaryLength: followups.contextSummary.length,
-          questionsCount: followups.questions.length,
-          replyTextPreview: replyText.substring(0, 200),
-        });
         return {
-          replyText,
+          replyText: denialReply,
           productCards: [],
           noExactMatch: true,
-          route: 'CLARIFICATION_NEEDED',
+          route: 'DENIED',
         };
+      } else {
+        // Redirect: Try category classification first
+        onProgress?.('classifying', STAGE_PROGRESS.classifying);
+        const categoryResult = await classifyQueryToCategoriesWithConfidence(input.message, input.merchantId);
+
+        if (categoryResult.confidence >= 0.5 && categoryResult.categories.length > 0) {
+          // Category identified confidently - proceed with discovery
+          // Store categories to use after categorization step
+          safetyCheckCategories = categoryResult.categories;
+          logger.info('unrelated_query_redirected_category_identified', {
+            query: input.message,
+            categories: safetyCheckCategories,
+            confidence: categoryResult.confidence,
+            note: 'Category classification succeeded, proceeding with product discovery',
+          });
+          // Continue with normal flow - we'll use safetyCheckCategories after categorization
+          // to override the irrelevant check if needed
+        } else {
+          // Category unclear - generate intelligent redirect with segue
+          const potentialCategories = decision.potentialCategories || categoryResult.categories || [];
+          logger.info('unrelated_query_redirected_category_unclear', {
+            query: input.message,
+            potentialCategories,
+            confidence: categoryResult.confidence,
+            note: 'Generating intelligent redirect with segue to product discovery',
+          });
+
+          onProgress?.('generating', STAGE_PROGRESS.generating);
+          const followups = await generateFollowUpQuestions(
+            input.message,
+            undefined, // No preliminary products for unrelated queries
+            input.merchantData?.datasetContext,
+            potentialCategories,
+            true // Mark as unrelated query for intelligent redirect
+          );
+          logger.info('unrelated_query_followup_questions_received', {
+            query: input.message,
+            contextSummary: followups.contextSummary.substring(0, 150),
+            questionCount: followups.questions.length,
+          });
+
+          // Store in conversation state
+          if (input.merchantId) {
+            updateState(input.merchantId, input.sessionId, {
+              memory: {
+                ...currentState.memory,
+                pendingFollowups: {
+                  originalQuery: input.message,
+                  questions: followups.questions,
+                  responses: [],
+                  preliminaryProducts: undefined,
+                },
+              },
+            }).catch(err => logger.warn('state_update_failed', {
+              error: err instanceof Error ? err.message : String(err),
+              context: 'store_pending_followups_unrelated_redirect',
+            }));
+          }
+
+          onProgress?.('complete', STAGE_PROGRESS.complete);
+          const firstQuestion = followups.questions.length > 0
+            ? `\n\n${followups.questions[0]}`
+            : '';
+          const replyText = `${followups.contextSummary}${firstQuestion}`;
+          
+          return {
+            replyText,
+            productCards: [],
+            noExactMatch: true,
+            route: 'CLARIFICATION_NEEDED',
+          };
+        }
       }
     }
 
@@ -901,89 +934,118 @@ Answer the user's question about this product:`;
   // Declare topCategories early so it's accessible throughout (may be set for indirect_search or safety check)
   let topCategories: string[] = safetyCheckCategories || [];
 
-  // Handle irrelevant queries - treat as potential indirect product searches
+  // Handle irrelevant queries - intelligently decide redirect vs deny
   // Skip this check if we already found categories from safety check
   if (categorization.category === 'irrelevant' && !safetyCheckCategories) {
-    logger.info('irrelevant_query_attempting_category_classification', {
+    logger.info('irrelevant_query_intelligent_handling', {
       query: input.message,
-      note: 'Treating irrelevant query as potential indirect product search, attempting category classification first',
+      note: 'Analyzing irrelevant query to determine if redirect or deny',
     });
-    
-    // Try category classification first (like vague queries)
-    onProgress?.('classifying', STAGE_PROGRESS.classifying);
-    const categoryResult = await classifyQueryToCategoriesWithConfidence(input.message, input.merchantId);
-    
-    if (categoryResult.confidence >= 0.5 && categoryResult.categories.length > 0) {
-      // Category identified confidently - proceed with discovery
-      topCategories = categoryResult.categories;
-      logger.info('irrelevant_query_category_identified_proceeding_with_discovery', {
-        query: input.message,
-        categories: topCategories,
-        confidence: categoryResult.confidence,
-        note: 'Category classification succeeded for irrelevant query, proceeding with product discovery',
-      });
-      
-      // Continue with normal flow - topCategories is set, proceed to classification and search pipeline
-    } else {
-      // Category unclear - generate witty follow-up questions to divert to product discovery
-      const potentialCategories = categoryResult.categories.length > 0 ? categoryResult.categories : [];
-      logger.info('irrelevant_query_category_unclear_generating_witty_followup', {
-        query: input.message,
-        potentialCategories,
-        confidence: categoryResult.confidence,
-        note: 'Category classification unclear for irrelevant query, generating witty follow-up questions to divert to product discovery',
-      });
-      
-      onProgress?.('generating', STAGE_PROGRESS.generating);
-      const followups = await generateFollowUpQuestions(
-        input.message,
-        categorization.preliminaryProducts,
-        input.merchantData?.datasetContext,
-        potentialCategories,
-        true // Mark as unrelated query for wittier diversion
-      );
-      logger.info('irrelevant_query_followup_questions_received', {
-        query: input.message,
-        contextSummary: followups.contextSummary.substring(0, 150),
-        questionCount: followups.questions.length,
-      });
 
-      // Store in conversation state for next turn (fire-and-forget - non-blocking)
-      if (input.merchantId) {
-        updateState(input.merchantId, input.sessionId, {
-          memory: {
-            ...conversationState.memory,
-            pendingFollowups: {
-              originalQuery: input.message,
-              questions: followups.questions,
-              responses: [],
-              preliminaryProducts: categorization.preliminaryProducts,
-            },
+    // Get product context from conversation history
+    const productContext = conversationState.shownProductIds?.length > 0
+      ? await prisma.product.findMany({
+          where: {
+            id: { in: conversationState.shownProductIds.slice(-5) },
+            merchantId: input.merchantId,
           },
-        }).catch(err => logger.warn('state_update_failed', { 
-          error: err instanceof Error ? err.message : String(err),
-          context: 'store_pending_followups_irrelevant'
-        }));
-      }
+          select: { id: true, title: true },
+        }).then(products => products.map(p => ({ productId: p.id, title: p.title || '' })))
+      : undefined;
+
+    // Intelligently decide: redirect or deny
+    const decision = await handleIrrelevantQuery(
+      input.message,
+      input.merchantData?.datasetContext,
+      undefined, // Will fetch from ontology
+      productContext
+    );
+
+    if (decision.action === 'deny') {
+      // Generate intelligent denial reply
+      onProgress?.('generating', STAGE_PROGRESS.generating);
+      const denialReply = await generateIntelligentDenial(
+        input.message,
+        decision.reason,
+        input.merchantData?.brandName || 'LoveShackFancy',
+        input.history
+      );
 
       onProgress?.('complete', STAGE_PROGRESS.complete);
-      // Show witty contextSummary (diverting to product discovery) followed by first question only
-      const firstQuestion = followups.questions.length > 0 
-        ? `\n\n${followups.questions[0]}`
-        : '';
-      const replyText = `${followups.contextSummary}${firstQuestion}`;
-      logger.info('irrelevant_query_reply_constructed', {
-        query: input.message,
-        contextSummaryLength: followups.contextSummary.length,
-        questionsCount: followups.questions.length,
-        replyTextPreview: replyText.substring(0, 200),
-      });
       return {
-        replyText,
+        replyText: denialReply,
         productCards: [],
         noExactMatch: true,
-        route: 'CLARIFICATION_NEEDED',
+        route: 'DENIED',
       };
+    } else {
+      // Redirect: Try category classification first
+      onProgress?.('classifying', STAGE_PROGRESS.classifying);
+      const categoryResult = await classifyQueryToCategoriesWithConfidence(
+        input.message,
+        input.merchantId
+      );
+
+      if (categoryResult.confidence >= 0.5 && categoryResult.categories.length > 0) {
+        // Category identified confidently - proceed with discovery
+        topCategories = categoryResult.categories;
+        logger.info('irrelevant_query_redirected_category_identified', {
+          query: input.message,
+          categories: topCategories,
+          confidence: categoryResult.confidence,
+          note: 'Category classification succeeded, proceeding with product discovery',
+        });
+        // Continue with normal flow
+      } else {
+        // Category unclear - generate intelligent redirect with segue
+        const potentialCategories = decision.potentialCategories || categoryResult.categories || [];
+        logger.info('irrelevant_query_redirected_category_unclear', {
+          query: input.message,
+          potentialCategories,
+          confidence: categoryResult.confidence,
+          note: 'Generating intelligent redirect with segue to product discovery',
+        });
+
+        onProgress?.('generating', STAGE_PROGRESS.generating);
+        const followups = await generateFollowUpQuestions(
+          input.message,
+          categorization.preliminaryProducts,
+          input.merchantData?.datasetContext,
+          potentialCategories,
+          true // Mark as unrelated query for intelligent redirect
+        );
+
+        // Store in conversation state
+        if (input.merchantId) {
+          updateState(input.merchantId, input.sessionId, {
+            memory: {
+              ...conversationState.memory,
+              pendingFollowups: {
+                originalQuery: input.message,
+                questions: followups.questions,
+                responses: [],
+                preliminaryProducts: categorization.preliminaryProducts,
+              },
+            },
+          }).catch(err => logger.warn('state_update_failed', {
+            error: err instanceof Error ? err.message : String(err),
+            context: 'store_pending_followups_irrelevant_redirect',
+          }));
+        }
+
+        onProgress?.('complete', STAGE_PROGRESS.complete);
+        const firstQuestion = followups.questions.length > 0
+          ? `\n\n${followups.questions[0]}`
+          : '';
+        const replyText = `${followups.contextSummary}${firstQuestion}`;
+        
+        return {
+          replyText,
+          productCards: [],
+          noExactMatch: true,
+          route: 'CLARIFICATION_NEEDED',
+        };
+      }
     }
   }
 
@@ -1724,9 +1786,21 @@ Answer the user's question about this product:`;
       error: error instanceof Error ? error.message : String(error),
       message: input.message.substring(0, 100),
     });
-    // Return empty result
+    // Generate intelligent reply using LLM
+    // Note: constraintsForRanking not yet available at this point, use mergedConstraints or undefined
+    const { generateRegretfulReply } = await import('./reply');
+    const regretfulReply = await generateRegretfulReply(
+      input.message,
+      0, // productCount
+      0, // topScore
+      input.merchantData?.brandName || 'LoveShackFancy',
+      enhancedQueryText, // Enhanced query
+      queryToMergeWith || undefined, // Previous query context
+      mergedConstraints || undefined, // Use mergedConstraints if available, otherwise undefined
+      input.history // Conversation history
+    );
     return {
-      replyText: "I couldn't find any products matching your search. Try adjusting your filters or search terms.",
+      replyText: regretfulReply.replyText,
       productCards: [],
       noExactMatch: true,
     };
@@ -1740,9 +1814,22 @@ Answer the user's question about this product:`;
   const candidateProducts = await loadFashionProducts(candidateIdsToLoad, input.merchantId);
 
   if (candidateProducts.length === 0) {
+    // Generate intelligent reply using LLM
+    // Note: constraintsForRanking not yet available at this point, use mergedConstraints or undefined
+    const { generateRegretfulReply } = await import('./reply');
+    const regretfulReply = await generateRegretfulReply(
+      input.message,
+      0, // productCount
+      0, // topScore
+      input.merchantData?.brandName || 'LoveShackFancy',
+      enhancedQueryText, // Enhanced query
+      queryToMergeWith || undefined, // Previous query context
+      mergedConstraints || undefined, // Use mergedConstraints if available, otherwise undefined
+      input.history // Conversation history
+    );
     onProgress?.('complete', STAGE_PROGRESS.complete);
     return {
-      replyText: "I couldn't find any products matching your search. Try adjusting your filters or search terms.",
+      replyText: regretfulReply.replyText,
       productCards: [],
       noExactMatch: true,
     };
@@ -1889,6 +1976,72 @@ Answer the user's question about this product:`;
     v !== null && v !== undefined && (Array.isArray(v) ? v.length > 0 : true)
   );
   
+  // Extract query context for dynamic weight adjustment (needed for age group filtering)
+  // Determine which attributes were explicitly mentioned in the query
+  const explicitMentions: string[] = [];
+  const queryLower = input.message.toLowerCase();
+  
+  // Check for explicit mentions - more comprehensive patterns
+  if (constraintsForRanking.occasions) {
+    // Check for "for [occasion]" pattern or direct occasion keywords
+    const occasionPatterns = [
+      /for\s+(wedding|beach|office|party|gym|home|date|formal|casual|vacation|holiday|christmas)/i,
+      /\b(wedding|beach|office|party|gym|home|date|formal|casual|vacation|holiday|christmas)\b/,
+    ];
+    if (occasionPatterns.some(pattern => pattern.test(input.message))) {
+      explicitMentions.push('occasions');
+    }
+  }
+  if (constraintsForRanking.materials) {
+    const materialKeywords = ['silk', 'cotton', 'linen', 'wool', 'cashmere', 'polyester', 'modal', 'spandex', 'elastane', 'fleece', 'satin', 'lace'];
+    if (materialKeywords.some(keyword => queryLower.includes(keyword))) {
+      explicitMentions.push('materials');
+    }
+  }
+  if (constraintsForRanking.seasons) {
+    const seasonKeywords = ['summer', 'winter', 'spring', 'fall', 'autumn'];
+    if (seasonKeywords.some(keyword => queryLower.includes(keyword))) {
+      explicitMentions.push('seasons');
+    }
+  }
+  if (constraintsForRanking.fits) {
+    const fitKeywords = ['fit', 'relaxed', 'fitted', 'loose', 'slim', 'comfortable', 'form-fitting'];
+    if (fitKeywords.some(keyword => queryLower.includes(keyword))) {
+      explicitMentions.push('fits');
+    }
+  }
+  if (constraintsForRanking.lengths) {
+    const lengthKeywords = ['mini', 'maxi', 'midi', 'long dress', 'short dress', 'knee-length'];
+    if (lengthKeywords.some(keyword => queryLower.includes(keyword))) {
+      explicitMentions.push('lengths');
+    }
+  }
+  if (constraintsForRanking.colors) {
+    const colorKeywords = ['white', 'black', 'red', 'blue', 'green', 'pink', 'yellow', 'purple', 'orange', 'brown', 'gray', 'grey', 'navy', 'beige', 'cream', 'ivory', 'blush', 'coral', 'mint', 'lavender'];
+    if (colorKeywords.some(keyword => new RegExp(`\\b${keyword}\\b`).test(queryLower))) {
+      explicitMentions.push('colors');
+    }
+  }
+  if (constraintsForRanking.styles) {
+    const styleKeywords = ['elegant', 'casual', 'formal', 'romantic', 'vintage', 'modern', 'classic', 'bohemian', 'minimalist', 'feminine', 'sophisticated', 'chic', 'edgy', 'sporty', 'relaxed', 'polished'];
+    if (styleKeywords.some(keyword => new RegExp(`\\b${keyword}\\b`).test(queryLower))) {
+      explicitMentions.push('styles');
+    }
+  }
+  if (constraintsForRanking.ageGroups) {
+    const ageGroupKeywords = ['kid', 'kids', 'children', 'child', 'toddler', 'baby', 'adult', 'adults', 'women', 'men', 'girl', 'girls', 'boy', 'boys', 'teen', 'teens', 'teenager', 'teenagers', 'teenage', 'juvenile', 'youth', 'adolescent', 'young', 'pre-teen', 'preteen', 'tween'];
+    if (ageGroupKeywords.some(keyword => new RegExp(`\\b${keyword}\\b`).test(queryLower))) {
+      explicitMentions.push('ageGroups');
+    }
+  }
+  
+  // Build query context (always available for age group filtering)
+  const queryContext = {
+    queryType: classification.type,
+    explicitMentions,
+    originalQuery: input.message,
+  };
+  
   let productsWithScores: Array<{ product: SearchResultItem; score: number }>;
   
   if (hasConstraintsForRanking) {
@@ -1910,71 +2063,6 @@ Answer the user's question about this product:`;
       vectorScore: retrievalResult.semanticScores.get(product.id) || 0,
     }));
     
-    // Extract query context for dynamic weight adjustment
-    // Determine which attributes were explicitly mentioned in the query
-    const explicitMentions: string[] = [];
-    const queryLower = input.message.toLowerCase();
-    
-    // Check for explicit mentions - more comprehensive patterns
-    if (constraintsForRanking.occasions) {
-      // Check for "for [occasion]" pattern or direct occasion keywords
-      const occasionPatterns = [
-        /for\s+(wedding|beach|office|party|gym|home|date|formal|casual|vacation|holiday|christmas)/i,
-        /\b(wedding|beach|office|party|gym|home|date|formal|casual|vacation|holiday|christmas)\b/,
-      ];
-      if (occasionPatterns.some(pattern => pattern.test(input.message))) {
-        explicitMentions.push('occasions');
-      }
-    }
-    if (constraintsForRanking.materials) {
-      const materialKeywords = ['silk', 'cotton', 'linen', 'wool', 'cashmere', 'polyester', 'modal', 'spandex', 'elastane', 'fleece', 'satin', 'lace'];
-      if (materialKeywords.some(keyword => queryLower.includes(keyword))) {
-        explicitMentions.push('materials');
-      }
-    }
-    if (constraintsForRanking.seasons) {
-      const seasonKeywords = ['summer', 'winter', 'spring', 'fall', 'autumn'];
-      if (seasonKeywords.some(keyword => queryLower.includes(keyword))) {
-        explicitMentions.push('seasons');
-      }
-    }
-    if (constraintsForRanking.fits) {
-      const fitKeywords = ['fit', 'relaxed', 'fitted', 'loose', 'slim', 'comfortable', 'form-fitting'];
-      if (fitKeywords.some(keyword => queryLower.includes(keyword))) {
-        explicitMentions.push('fits');
-      }
-    }
-    if (constraintsForRanking.lengths) {
-      const lengthKeywords = ['mini', 'maxi', 'midi', 'long dress', 'short dress', 'knee-length'];
-      if (lengthKeywords.some(keyword => queryLower.includes(keyword))) {
-        explicitMentions.push('lengths');
-      }
-    }
-    if (constraintsForRanking.colors) {
-      const colorKeywords = ['white', 'black', 'red', 'blue', 'green', 'pink', 'yellow', 'purple', 'orange', 'brown', 'gray', 'grey', 'navy', 'beige', 'cream', 'ivory', 'blush', 'coral', 'mint', 'lavender'];
-      if (colorKeywords.some(keyword => new RegExp(`\\b${keyword}\\b`).test(queryLower))) {
-        explicitMentions.push('colors');
-      }
-    }
-    if (constraintsForRanking.styles) {
-      const styleKeywords = ['elegant', 'casual', 'formal', 'romantic', 'vintage', 'modern', 'classic', 'bohemian', 'minimalist', 'feminine', 'sophisticated', 'chic', 'edgy', 'sporty', 'relaxed', 'polished'];
-      if (styleKeywords.some(keyword => new RegExp(`\\b${keyword}\\b`).test(queryLower))) {
-        explicitMentions.push('styles');
-      }
-    }
-    if (constraintsForRanking.ageGroups) {
-      const ageGroupKeywords = ['kid', 'kids', 'children', 'child', 'toddler', 'baby', 'adult', 'adults', 'women', 'men', 'girl', 'girls', 'boy', 'boys', 'teen', 'teens', 'teenager', 'teenagers', 'teenage', 'juvenile', 'youth', 'adolescent', 'young', 'pre-teen', 'preteen', 'tween'];
-      if (ageGroupKeywords.some(keyword => new RegExp(`\\b${keyword}\\b`).test(queryLower))) {
-        explicitMentions.push('ageGroups');
-      }
-    }
-    
-    // Build query context
-    const queryContext = {
-      queryType: classification.type,
-      explicitMentions,
-      originalQuery: input.message,
-    };
     
     const rankedProducts = await rankWithConstraints(
       productsWithVectorScores,
@@ -2056,6 +2144,35 @@ Answer the user's question about this product:`;
       ? `${productsWithScores[productsWithScores.length - 1]?.score.toFixed(3)} - ${productsWithScores[0]?.score.toFixed(3)}`
       : 'N/A',
   });
+
+  // CRITICAL: Hard filter for age group constraints
+  // If age group is explicitly mentioned in the query, reject products that don't match
+  // This ensures "baby" queries don't return "for Women" products
+  const ageGroupsConstraint = constraintsForRanking.ageGroups;
+  const ageGroupExplicitlyMentioned = queryContext.explicitMentions.includes('ageGroups');
+  
+  if (ageGroupsConstraint && ageGroupsConstraint.length > 0 && ageGroupExplicitlyMentioned) {
+    const beforeFilterCount = productsWithScores.length;
+    
+    productsWithScores = productsWithScores.filter(({ product }) => {
+      const ageGroupScore = matchAgeGroup(product, ageGroupsConstraint);
+      // Reject products with age group score of 0 (no match)
+      return ageGroupScore > 0;
+    });
+    
+    const afterFilterCount = productsWithScores.length;
+    
+    if (beforeFilterCount !== afterFilterCount) {
+      logger.info('age_group_hard_filter_applied', {
+        query: input.message.substring(0, 100),
+        ageGroups: ageGroupsConstraint,
+        beforeFilterCount,
+        afterFilterCount,
+        rejectedCount: beforeFilterCount - afterFilterCount,
+        note: 'Products with age group score of 0 were rejected',
+      });
+    }
+  }
 
   // Take top products - no need to deduplicate since it's already done at SQL level
   // Products returned from vector search are already deduplicated using parent_id, shopifyProductId, related_id
@@ -2168,13 +2285,17 @@ Answer the user's question about this product:`;
               'product_type_mismatch',
     });
 
-    // Generate a regretful, witty reply using LLM
+    // Generate an intelligent, context-aware regretful reply using LLM
     const { generateRegretfulReply } = await import('./reply');
     const regretfulReply = await generateRegretfulReply(
       input.message,
       productsToShow.length,
       topScore,
-      input.merchantData?.brandName || 'LoveShackFancy'
+      input.merchantData?.brandName || 'LoveShackFancy',
+      enhancedQueryText, // Enhanced query
+      queryToMergeWith || undefined, // Previous query context
+      constraintsForRanking, // Constraints to analyze
+      input.history // Conversation history
     );
 
     onProgress?.('complete', STAGE_PROGRESS.complete);
@@ -2386,6 +2507,14 @@ Answer the user's question about this product:`;
     value === null ? undefined : value;
   
   // Map FashionConstraints to SearchConstraints (only include fields that exist in SearchConstraints)
+  // Map scents to sensoryProfile: combine scents into a string description
+  const sensoryProfileFromScents = finalConstraints.scents && finalConstraints.scents.length > 0
+    ? finalConstraints.scents.join(', ') + ' scent'
+    : undefined;
+  
+  // Merge sensoryProfile from scents with explicit sensoryProfile (prefer explicit if both exist)
+  const mergedSensoryProfile = finalConstraints.sensoryProfile || sensoryProfileFromScents;
+  
   const resolvedConstraints: SearchConstraints = {
     colors: nullToUndefined(finalConstraints.colors),
     sizes: nullToUndefined(finalConstraints.sizes),
@@ -2405,6 +2534,21 @@ Answer the user's question about this product:`;
       ...(finalConstraints.styles || []),
       ...(finalConstraints.patterns || []),
     ] : undefined),
+    // Map category-specific constraints
+    // scents -> sensoryProfile (convert array to string description)
+    sensoryProfile: mergedSensoryProfile || undefined,
+    // rooms -> useCases (rooms are a type of useCase for home products)
+    useCases: nullToUndefined([
+      ...(finalConstraints.rooms || []),
+      ...(finalConstraints.useCases || []),
+    ].filter(Boolean).length > 0 ? [
+      ...(finalConstraints.rooms || []),
+      ...(finalConstraints.useCases || []),
+    ] : undefined),
+    // Direct mappings for generic constraints
+    benefits: nullToUndefined(finalConstraints.benefits),
+    claims: nullToUndefined(finalConstraints.claims),
+    compatibility: nullToUndefined(finalConstraints.compatibility),
   };
   
   const resolvedClassificationConstraints: FashionConstraints = finalConstraints;

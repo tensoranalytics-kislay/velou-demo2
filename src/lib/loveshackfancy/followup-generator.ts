@@ -175,7 +175,17 @@ export async function generateFollowUpQuestions(
 
     // Build unrelated query section if this is an unrelated query
     const unrelatedQuerySection = isUnrelatedQuery
-      ? `\n\n**CRITICAL: THIS IS AN UNRELATED QUERY** - The user's query seems unrelated to shopping, but they might be looking for products in a very indirect way. Your task is to WITTIER and more PLAYFULLY divert the conversation to product discovery while acknowledging their query. CRITICAL: Explicitly acknowledge what they mentioned in their query—show you understand the meaning behind what they said, even if it seems unrelated. Be more creative and cheeky in your diversion—think of it as a gentle, charming redirect that invites them into our dreamy world of products. Use LoveShackFancy's brand voice: soft-glam, poetic, romantic, nostalgic, but always polished. Speak in scenes and sensations (golden hour, garden parties, moonlit evenings) rather than hard selling. Be warm, intimate, and celebratory—inviting them into a dreamy world—while keeping high-end restraint: elegant, curated, and subtly cheeky. Make them smile and want to explore our collection!`
+      ? `\n\n**CRITICAL: THIS IS AN UNRELATED QUERY** - The user's query seems unrelated to shopping, but they might be looking for products in a very indirect way. 
+
+IMPORTANT CONTEXT:
+- Available categories in our catalog: ${potentialCategories && potentialCategories.length > 0 ? potentialCategories.join(', ') : 'See full category list above'}
+- DO NOT recommend products that don't exist in our catalog (e.g., "dresses for animals" when we only have human clothing)
+- DO intelligently redirect to products we actually have
+- If the query mentions products we don't have, acknowledge that gracefully and suggest what we do have
+
+Your task is to WITTIER and more PLAYFULLY divert the conversation to product discovery while acknowledging their query. CRITICAL: Explicitly acknowledge what they mentioned in their query—show you understand the meaning behind what they said, even if it seems unrelated. Be more creative and cheeky in your diversion—think of it as a gentle, charming redirect that invites them into our dreamy world of products. Use LoveShackFancy's brand voice: soft-glam, poetic, romantic, nostalgic, but always polished. Speak in scenes and sensations (golden hour, garden parties, moonlit evenings) rather than hard selling. Be warm, intimate, and celebratory—inviting them into a dreamy world—while keeping high-end restraint: elegant, curated, and subtly cheeky. Make them smile and want to explore our collection!
+
+BUT: If the query is about products we absolutely don't have (e.g., "cars", "electronics", "pet clothing"), acknowledge that gracefully and suggest exploring what we do have instead.`
       : '';
 
     const prompt = FOLLOWUP_QUESTION_PROMPT

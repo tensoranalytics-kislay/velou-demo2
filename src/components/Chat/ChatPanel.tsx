@@ -849,6 +849,17 @@ export default function ChatPanel() {
         finalData.followupText && 
         finalData.followupText.trim().length > 0;
       
+      // Debug logging for replyTextAfter
+      if (shouldShowCards && finalData.productCards && finalData.productCards.length > 0) {
+        console.log('[ChatPanel] Setting assistantMessage with products:', {
+          productCount: finalData.productCards.length,
+          hasReplyTextAfter: !!finalData.replyTextAfter,
+          replyTextAfterLength: finalData.replyTextAfter?.length || 0,
+          replyTextAfterPreview: finalData.replyTextAfter?.substring(0, 100) || 'null/undefined',
+          hasValidReplyTextAfter,
+        });
+      }
+      
       const assistantMessage: ChatMessage = {
         id: createId(),
         role: 'assistant',

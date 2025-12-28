@@ -194,18 +194,23 @@ export default function ProductCarousel({ products, onProductClick, onProductAsk
                     {/* Find similar products icon - floating bottom right */}
                     {(() => {
                       // Debug logging for similar products button
-                      if (!onProductFindSimilar) {
-                        console.log('[ProductCarousel] Similar products button: onProductFindSimilar is undefined', {
-                          productId: product.id,
-                          productTitle: product.title?.substring(0, 50),
-                        });
-                      }
+                      console.log('[ProductCarousel] Rendering similar products button for product:', {
+                        productId: product.id,
+                        productTitle: product.title?.substring(0, 50),
+                        hasOnProductFindSimilar: !!onProductFindSimilar,
+                        onProductFindSimilarType: typeof onProductFindSimilar,
+                      });
                       return null;
                     })()}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
+                        console.log('[ProductCarousel] Similar products button clicked:', {
+                          productId: product.id,
+                          productTitle: product.title?.substring(0, 50),
+                          hasOnProductFindSimilar: !!onProductFindSimilar,
+                        });
                         if (onProductFindSimilar) {
                           onProductFindSimilar(product.id, product.title, product.imageUrl);
                         } else {

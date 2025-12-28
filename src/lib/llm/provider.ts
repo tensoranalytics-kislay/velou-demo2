@@ -147,10 +147,25 @@ async function callOpenAI(options: LlmCallOptions): Promise<LlmCallResult> {
       throw new LLMError(`OpenAI API error: ${response.status} ${response.statusText}`, errorBody);
     }
 
-    const data = (await response.json()) as {
+    // Safely parse JSON response - handle cases where API returns non-JSON (e.g., error pages)
+    const responseText = await response.text();
+    let data: {
       choices?: Array<{ message?: { content?: string } }>;
       error?: { message?: string };
     };
+    try {
+      data = JSON.parse(responseText) as {
+        choices?: Array<{ message?: { content?: string } }>;
+        error?: { message?: string };
+      };
+    } catch (parseError) {
+      // If response is not JSON, it's likely an error page or plain text error
+      const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+      const preview = responseText.substring(0, 200);
+      throw new LLMError(
+        `OpenAI API returned non-JSON response: ${response.status} ${response.statusText}. Parse error: ${errorMessage}. Response preview: ${preview}`
+      );
+    }
 
     if (data.error) {
       throw new LLMError(`OpenAI API error: ${data.error.message ?? 'Unknown error'}`);

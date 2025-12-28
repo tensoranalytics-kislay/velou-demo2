@@ -971,30 +971,132 @@ Think about what makes each product unique and why that uniqueness makes it perf
 }
 
 /**
- * Generate a regretful, witty reply when no products are found or confidence is too low
+ * Generate an intelligent, context-aware regretful reply when no products are found
+ * Analyzes constraints and suggests alternatives in LSF brand voice
  */
 export async function generateRegretfulReply(
   userQuery: string,
   productCount: number,
   topScore: number,
-  brandName: string
+  brandName: string,
+  enhancedQuery?: string,
+  previousQuery?: string,
+  constraints?: {
+    colors?: string[] | null;
+    occasions?: string[] | null;
+    materials?: string[] | null;
+    seasons?: string[] | null;
+    styles?: string[] | null;
+    patterns?: string[] | null;
+    lengths?: string[] | null;
+    fits?: string[] | null;
+    ageGroups?: string[] | null;
+    sizes?: string[] | null;
+    priceMinCents?: number | null;
+    priceMaxCents?: number | null;
+  },
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
 ): Promise<ReplyResult> {
   try {
-    const prompt = `The user asked about: "${userQuery}".
-We found ${productCount} products, with the top product having a relevance score of ${topScore.toFixed(2)}.
-This is a low confidence recommendation, or we didn't find enough products that match the query intent.
+    // Build context summary
+    const contextParts: string[] = [];
+    if (previousQuery) {
+      contextParts.push(`Previous conversation context: "${previousQuery}"`);
+    }
+    if (enhancedQuery && enhancedQuery !== userQuery) {
+      contextParts.push(`Enhanced query: "${enhancedQuery}"`);
+    }
+    
+    // Analyze constraints to suggest what might be too restrictive
+    const activeConstraints: string[] = [];
+    if (constraints?.colors && constraints.colors.length > 0) {
+      activeConstraints.push(`colors: ${constraints.colors.join(', ')}`);
+    }
+    if (constraints?.occasions && constraints.occasions.length > 0) {
+      activeConstraints.push(`occasions: ${constraints.occasions.join(', ')}`);
+    }
+    if (constraints?.materials && constraints.materials.length > 0) {
+      activeConstraints.push(`materials: ${constraints.materials.join(', ')}`);
+    }
+    if (constraints?.seasons && constraints.seasons.length > 0) {
+      activeConstraints.push(`seasons: ${constraints.seasons.join(', ')}`);
+    }
+    if (constraints?.styles && constraints.styles.length > 0) {
+      activeConstraints.push(`styles: ${constraints.styles.join(', ')}`);
+    }
+    if (constraints?.patterns && constraints.patterns.length > 0) {
+      activeConstraints.push(`patterns: ${constraints.patterns.join(', ')}`);
+    }
+    if (constraints?.lengths && constraints.lengths.length > 0) {
+      activeConstraints.push(`lengths: ${constraints.lengths.join(', ')}`);
+    }
+    if (constraints?.fits && constraints.fits.length > 0) {
+      activeConstraints.push(`fits: ${constraints.fits.join(', ')}`);
+    }
+    if (constraints?.ageGroups && constraints.ageGroups.length > 0) {
+      activeConstraints.push(`age groups: ${constraints.ageGroups.join(', ')}`);
+    }
+    if (constraints?.sizes && constraints.sizes.length > 0) {
+      activeConstraints.push(`sizes: ${constraints.sizes.join(', ')}`);
+    }
+    if (constraints?.priceMinCents || constraints?.priceMaxCents) {
+      const priceRange = [];
+      if (constraints.priceMinCents) priceRange.push(`min: $${(constraints.priceMinCents / 100).toFixed(2)}`);
+      if (constraints.priceMaxCents) priceRange.push(`max: $${(constraints.priceMaxCents / 100).toFixed(2)}`);
+      activeConstraints.push(`price range: ${priceRange.join(', ')}`);
+    }
 
-Generate a regretful reply in LoveShackFancy's brand voice: warm, elegant, and conversational with subtle romantic touches. Use natural, feminine language that feels intimate but polished. The tone should be warm, helpful, and celebratory—inviting them to explore—while keeping elegant restraint.
+    const constraintsText = activeConstraints.length > 0 
+      ? `Active constraints: ${activeConstraints.join('; ')}`
+      : 'No specific constraints applied';
 
-Acknowledge their request naturally, express regret with restraint for not finding perfect matches, and offer to help further with warm, conversational language.
-Keep it concise, 2-3 short paragraphs (1-2 lines each). Do NOT recommend any products.
-Be warm, helpful, and elegant.`;
+    const prompt = `The user asked: "${userQuery}"
+${contextParts.length > 0 ? contextParts.join('\n') + '\n' : ''}
+${constraintsText}
+
+We found ${productCount} products matching these criteria. This means the combination of constraints might be too restrictive, or we don't have products that match this specific combination.
+
+Your task: Generate an intelligent, warm, and helpful reply in ${brandName}'s brand voice that:
+1. Acknowledges their request naturally and shows you understand what they're looking for
+2. Expresses gentle regret (with elegant restraint) that we couldn't find perfect matches
+3. Intelligently suggests alternatives:
+   - If there are many constraints, suggest they could try dropping one or two (mention which ones might be most flexible)
+   - Suggest related product types or styles that might work
+   - Invite them to explore our collection with slightly different criteria
+4. Maintains the warm, elegant, conversational tone with subtle romantic touches
+5. Keep it to 2-3 short paragraphs (2-3 sentences each)
+6. Be specific and helpful - don't be vague. Show you understand their needs and offer concrete alternatives.
+
+BRAND VOICE - LOVE SHACK FANCY:
+- Warm, elegant confidence: Conversational and polished, with subtle romantic touches
+- Natural, feminine language: Warm, intimate, celebratory - but never overly precious
+- Conversational poetic touches: Use subtle imagery naturally, not forced
+- Elegant restraint: Polished, curated, subtly sophisticated
+
+Write naturally as if having a friendly conversation. Use shorter sentences (8-12 words). Be warm, helpful, and elegant.
+
+IMPORTANT: Write a complete, thoughtful reply (at least 150-200 words). Do not write just a single sentence or a very brief response. The reply should be substantial and helpful.`;
+
+    const systemPrompt = `You are a shopping assistant for ${brandName}, embodying the brand's warm, elegant voice. Your task is to generate an intelligent, context-aware reply when no products are found. 
+
+You must:
+- Analyze the constraints and understand which ones might be too restrictive
+- Suggest specific alternatives (e.g., "try dropping the color constraint" or "explore similar styles")
+- Show you understand their needs based on the conversation context
+- Write with warm, elegant confidence—conversational with subtle romantic touches
+- Use natural, feminine language that feels intimate but polished
+- Be warm, helpful, and celebratory—inviting them to explore—while keeping elegant restraint
+- Be specific and actionable in your suggestions
+- Keep it to 2-3 short paragraphs (2-3 sentences each)
+- Use shorter sentences (8-12 words)
+- NEVER use phrases like "you searched for", "your query", "I found options matching your search" - write naturally as if responding organically
+- CRITICAL: Generate a complete, substantial reply (at least 150-200 words). Do not write just a single sentence or a very brief response.`;
 
     const result = await callLLM({
       messages: [
         {
           role: 'system',
-          content: `You are a shopping assistant for ${brandName}, embodying the brand's warm, elegant voice. Your task is to generate a regretful reply when perfect product matches are not found. Write with warm, elegant confidence—conversational with subtle romantic touches. Use natural, feminine language that feels intimate but polished. Be warm, helpful, and celebratory—inviting them to explore—while keeping elegant restraint. Be honest, concise, and maintain this conversational yet helpful tone. Keep it to 2-3 short paragraphs (1-2 lines each).`,
+          content: systemPrompt,
         },
         {
           role: 'user',
@@ -1002,16 +1104,55 @@ Be warm, helpful, and elegant.`;
         },
       ],
       purpose: 'final_reply',
-      maxTokens: 200,
+      maxTokens: 400, // Increased to ensure we get a substantial reply
     });
 
     const fullReply = result.rawText.trim();
+    
+    logger.info('regretful_reply_llm_response', {
+      query: userQuery.substring(0, 100),
+      fullReplyLength: fullReply.length,
+      fullReplyPreview: fullReply.substring(0, 200),
+    });
+    
     const paragraphs = fullReply.split(/\n\n+/).filter(p => p.trim().length > 0);
-    const replyText = paragraphs.slice(0, 2).join('\n\n').trim(); // Take first 2 paragraphs
+    
+    // If we got a very short response or no paragraphs, use the full reply
+    let replyText: string;
+    if (paragraphs.length === 0) {
+      // No paragraphs found - use the full reply as-is
+      replyText = fullReply || `I couldn't find perfect matches for "${userQuery}" in our collection right now. Our collection is always evolving, so feel free to explore different options or browse our curated categories. How else can I help you find something you'll love?`;
+    } else if (paragraphs.length === 1) {
+      // Only one paragraph - use it
+      replyText = paragraphs[0].trim();
+    } else {
+      // Multiple paragraphs - take first 2
+      replyText = paragraphs.slice(0, 2).join('\n\n').trim();
+    }
+    
+    // Ensure minimum length - if reply is too short, it might be an error
+    if (replyText.length < 50) {
+      logger.warn('regretful_reply_too_short', {
+        query: userQuery.substring(0, 100),
+        replyLength: replyText.length,
+        replyText,
+        fullReplyLength: fullReply.length,
+        paragraphCount: paragraphs.length,
+      });
+      // Use fallback if reply is suspiciously short
+      replyText = `I couldn't find perfect matches for "${userQuery}" in our collection right now. Our collection is always evolving, so feel free to explore different options or browse our curated categories. How else can I help you find something you'll love?`;
+    }
+
+    logger.info('regretful_reply_final', {
+      query: userQuery.substring(0, 100),
+      replyLength: replyText.length,
+      paragraphCount: paragraphs.length,
+      replyPreview: replyText.substring(0, 150),
+    });
 
     return {
       replyText,
-      replyTextAfter: paragraphs.slice(2).join('\n\n').trim() || undefined, // Remaining paragraphs
+      replyTextAfter: paragraphs.length > 2 ? paragraphs.slice(2).join('\n\n').trim() : undefined, // Remaining paragraphs
     };
   } catch (error) {
     logger.error('regretful_reply_generation_failed', {

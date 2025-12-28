@@ -121,6 +121,56 @@ export function getContextAwareConstraints(
     }
   }
 
+  // Handle useCases (includes rooms, which are mapped to useCases in SearchConstraints)
+  if (constraints.useCases && constraints.useCases.length > 0) {
+    if (!metadata.applicableConstraints.includes('useCases')) {
+      // UseCases not applicable for this category
+      keywordTerms.push(...constraints.useCases);
+      delete sqlFilters.useCases;
+      // Keep in relaxedConstraints for progressive fallback
+    }
+  }
+
+  // Handle benefits
+  if (constraints.benefits && constraints.benefits.length > 0) {
+    if (!metadata.applicableConstraints.includes('benefits')) {
+      // Benefits not applicable for this category
+      keywordTerms.push(...constraints.benefits);
+      delete sqlFilters.benefits;
+      // Keep in relaxedConstraints for progressive fallback
+    }
+  }
+
+  // Handle claims
+  if (constraints.claims && constraints.claims.length > 0) {
+    if (!metadata.applicableConstraints.includes('claims')) {
+      // Claims not applicable for this category
+      keywordTerms.push(...constraints.claims);
+      delete sqlFilters.claims;
+      // Keep in relaxedConstraints for progressive fallback
+    }
+  }
+
+  // Handle compatibility
+  if (constraints.compatibility && constraints.compatibility.length > 0) {
+    if (!metadata.applicableConstraints.includes('compatibility')) {
+      // Compatibility not applicable for this category
+      keywordTerms.push(...constraints.compatibility);
+      delete sqlFilters.compatibility;
+      // Keep in relaxedConstraints for progressive fallback
+    }
+  }
+
+  // Handle sensoryProfile
+  if (constraints.sensoryProfile) {
+    if (!metadata.applicableConstraints.includes('sensoryProfile')) {
+      // SensoryProfile not applicable for this category
+      keywordTerms.push(constraints.sensoryProfile);
+      delete sqlFilters.sensoryProfile;
+      // Keep in relaxedConstraints for progressive fallback
+    }
+  }
+
   // Remove inapplicable constraints from SQL filters
   if (!metadata.applicableConstraints.includes('sizes') && sqlFilters.sizes) {
     delete sqlFilters.sizes;

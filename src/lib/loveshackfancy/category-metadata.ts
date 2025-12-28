@@ -7,9 +7,14 @@
 
 export type CategoryConstraintConfig = {
   // Constraints that should be applied as SQL filters
-  applicableConstraints: Array<'colors' | 'sizes' | 'fabrics' | 'materials' | 'occasions' | 'seasons' | 'fit' | 'price'>;
+  applicableConstraints: Array<
+    'colors' | 'sizes' | 'fabrics' | 'materials' | 
+    'occasions' | 'seasons' | 'fit' | 'price' |
+    'scents' | 'rooms' | 'useCases' | 'benefits' | 
+    'claims' | 'sensoryProfile' | 'compatibility'
+  >;
   // Constraints that should NOT be applied as SQL filters but searched in text
-  textOnlyConstraints: Array<'colors' | 'fabrics' | 'materials'>;
+  textOnlyConstraints: Array<'colors' | 'fabrics' | 'materials' | 'scents'>;
   // Context-dependent word mappings (e.g., "lavender" → "scent" for Perfumes)
   contextWordMappings?: Record<string, string>;
   // Fallback strategy when strict filters return 0 results
@@ -224,7 +229,7 @@ export const CATEGORY_METADATA: Record<string, CategoryConstraintConfig> = {
     allowKeywordMatching: true,
   },
   'Jewelry': {
-    applicableConstraints: ['colors', 'materials', 'occasions', 'seasons', 'price'],
+    applicableConstraints: ['colors', 'materials', 'occasions', 'seasons', 'price', 'useCases'],
     textOnlyConstraints: [],
     contextWordMappings: {
       'wedding': 'use',
@@ -264,7 +269,7 @@ export const CATEGORY_METADATA: Record<string, CategoryConstraintConfig> = {
     allowKeywordMatching: false,
   },
   'Phone Cases': {
-    applicableConstraints: ['colors', 'occasions', 'seasons', 'price'],
+    applicableConstraints: ['colors', 'occasions', 'seasons', 'price', 'compatibility', 'benefits'],
     textOnlyConstraints: ['materials'], // Materials may be mentioned but not as structured attribute
     contextWordMappings: {
       'protective': 'use',
@@ -287,7 +292,7 @@ export const CATEGORY_METADATA: Record<string, CategoryConstraintConfig> = {
     allowKeywordMatching: true,
   },
   'Makeup Kit': {
-    applicableConstraints: ['colors', 'occasions', 'seasons', 'price'],
+    applicableConstraints: ['colors', 'occasions', 'seasons', 'price', 'useCases'],
     textOnlyConstraints: ['materials'], // Materials may be mentioned but not as structured attribute
     contextWordMappings: {
       'travel': 'use',
@@ -383,7 +388,7 @@ export const CATEGORY_METADATA: Record<string, CategoryConstraintConfig> = {
     allowKeywordMatching: true,
   },
   'Bathroom': {
-    applicableConstraints: ['colors', 'materials', 'occasions', 'seasons', 'price'],
+    applicableConstraints: ['colors', 'materials', 'occasions', 'seasons', 'price', 'rooms'],
     textOnlyConstraints: [],
     contextWordMappings: {
       'bathroom': 'room',
@@ -421,7 +426,7 @@ export const CATEGORY_METADATA: Record<string, CategoryConstraintConfig> = {
     allowKeywordMatching: true,
   },
   'Tabletop': {
-    applicableConstraints: ['colors', 'materials', 'occasions', 'seasons', 'price'],
+    applicableConstraints: ['colors', 'materials', 'occasions', 'seasons', 'price', 'rooms', 'useCases'],
     textOnlyConstraints: [],
     contextWordMappings: {
       'dining room': 'room',
@@ -439,7 +444,7 @@ export const CATEGORY_METADATA: Record<string, CategoryConstraintConfig> = {
     allowKeywordMatching: true,
   },
   'Kitchen & Dining': {
-    applicableConstraints: ['colors', 'materials', 'occasions', 'seasons', 'price'],
+    applicableConstraints: ['colors', 'materials', 'occasions', 'seasons', 'price', 'rooms', 'useCases'],
     textOnlyConstraints: [],
     contextWordMappings: {
       'kitchen': 'room',
@@ -474,7 +479,7 @@ export const CATEGORY_METADATA: Record<string, CategoryConstraintConfig> = {
     allowKeywordMatching: true,
   },
   'Interiors': {
-    applicableConstraints: ['colors', 'occasions', 'seasons', 'price'],
+    applicableConstraints: ['colors', 'occasions', 'seasons', 'price', 'rooms'],
     textOnlyConstraints: ['materials'], // NO material attribute in dataset
     contextWordMappings: {
       'living room': 'room',
@@ -517,7 +522,7 @@ export const CATEGORY_METADATA: Record<string, CategoryConstraintConfig> = {
     allowKeywordMatching: true,
   },
   'Candle': {
-    applicableConstraints: ['colors', 'occasions', 'seasons', 'price'],
+    applicableConstraints: ['colors', 'occasions', 'seasons', 'price', 'scents', 'rooms'],
     textOnlyConstraints: ['materials'], // NO material attribute in dataset
     contextWordMappings: {
       'lavender': 'scent',
@@ -577,7 +582,7 @@ export const CATEGORY_METADATA: Record<string, CategoryConstraintConfig> = {
     allowKeywordMatching: true,
   },
   'Pets': {
-    applicableConstraints: ['colors', 'materials', 'occasions', 'seasons', 'price'],
+    applicableConstraints: ['colors', 'materials', 'occasions', 'seasons', 'price', 'useCases'],
     textOnlyConstraints: [],
     contextWordMappings: {
       'dog': 'pet',

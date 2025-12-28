@@ -317,6 +317,18 @@ export function matchesAttributeFilters(
     if (!benefitsMatches) return false;
   }
 
+  // Use soft matching for claims: check if any constraint value is contained in any product claim (substring match)
+  if (constraints.claims?.length) {
+    const productClaims = attrs.claims || [];
+    const claimsMatches = constraints.claims.some((constraintClaim) =>
+      productClaims.some((productClaim) =>
+        productClaim.toLowerCase().includes(constraintClaim.toLowerCase()) ||
+        constraintClaim.toLowerCase().includes(productClaim.toLowerCase())
+      )
+    );
+    if (!claimsMatches) return false;
+  }
+
   return true;
 }
 

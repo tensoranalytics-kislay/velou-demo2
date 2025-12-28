@@ -10,6 +10,7 @@ import { LOVESHACKFANCY_QUERY_CLASSIFIER_PROMPT, LOVESHACKFANCY_QUERY_CLASSIFIER
 import { stripJsonFences } from '../llm/orchestrator/utils';
 
 export type FashionConstraints = {
+  // Existing clothing constraints
   styles?: string[] | null;
   lengths?: string[] | null;
   occasions?: string[] | null;
@@ -26,6 +27,15 @@ export type FashionConstraints = {
   necklines?: string[] | null;
   sleeveLengths?: string[] | null;
   ageGroups?: string[] | null;
+  
+  // Category-specific constraints
+  scents?: string[] | null;        // For Perfumes/Candles (lavender, vanilla, etc.)
+  rooms?: string[] | null;          // For Home & Living (bedroom, bathroom, etc.)
+  useCases?: string[] | null;       // Generic (travel, office, gift, etc.)
+  benefits?: string[] | null;       // Generic (durable, lightweight, etc.)
+  claims?: string[] | null;         // Generic (organic, vegan, etc.)
+  sensoryProfile?: string | null;   // Generic (soft feel, citrus scent, etc.)
+  compatibility?: string[] | null;  // Generic (works with iOS, for small rooms, etc.)
 };
 
 export type QueryClassification = {
@@ -93,6 +103,13 @@ export async function classifyQuery(
     if (parsed.constraints.ageGroups) constraintsSummary.ageGroups = parsed.constraints.ageGroups;
     if (parsed.constraints.priceMinCents !== undefined) constraintsSummary.priceMinCents = parsed.constraints.priceMinCents;
     if (parsed.constraints.priceMaxCents !== undefined) constraintsSummary.priceMaxCents = parsed.constraints.priceMaxCents;
+    if (parsed.constraints.scents) constraintsSummary.scents = parsed.constraints.scents;
+    if (parsed.constraints.rooms) constraintsSummary.rooms = parsed.constraints.rooms;
+    if (parsed.constraints.useCases) constraintsSummary.useCases = parsed.constraints.useCases;
+    if (parsed.constraints.benefits) constraintsSummary.benefits = parsed.constraints.benefits;
+    if (parsed.constraints.claims) constraintsSummary.claims = parsed.constraints.claims;
+    if (parsed.constraints.sensoryProfile) constraintsSummary.sensoryProfile = parsed.constraints.sensoryProfile;
+    if (parsed.constraints.compatibility) constraintsSummary.compatibility = parsed.constraints.compatibility;
 
     logger.info('classifier_constraints_extracted', {
       query: message.substring(0, 200),

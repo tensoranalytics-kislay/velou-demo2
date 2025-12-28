@@ -345,6 +345,44 @@ CONSTRAINT EXTRACTION RULES:
     - "kids items", "children's clothes" → ageGroups: ["kids"]
     - "adult items", "women's clothes" → ageGroups: ["adult"]
   - **IMPORTANT**: Infer age groups from age mentions and product category context. Always distinguish between age (ageGroups) and size (sizes). Map inferred age groups to the closest ontology terms. Explicit mentions override inferred age groups.
+
+- **CONSTRAINT EXTRACTION - Category-Specific Constraints**:
+  **Perfumes/Candles**:
+  - Extract scents: "lavender perfume" → scents: ["Lavender"]
+  - Map color words to scents when in perfume context: "vanilla" → scents: ["Vanilla"] (not colors)
+  - Examples:
+    * "lavender body mist" → scents: ["Lavender"]
+    * "citrus candle" → scents: ["Citrus"]
+    * "vanilla scented" → scents: ["Vanilla"]
+    * "rose perfume" → scents: ["Rose"]
+  
+  **Home & Living**:
+  - Extract rooms: "bedroom decor" → rooms: ["Bedroom"]
+  - Extract use cases: "gift for wedding" → useCases: ["Gift"]
+  - Examples:
+    * "bathroom towels" → rooms: ["Bathroom"]
+    * "dining room tabletop" → rooms: ["Dining Room"]
+    * "travel candle" → useCases: ["Travel"]
+    * "bedroom bedding" → rooms: ["Bedroom"]
+    * "gift for wedding" → useCases: ["Gift"]
+  
+  **Accessories**:
+  - Extract use cases: "travel bag" → useCases: ["Travel"]
+  - Extract compatibility: "iPhone 15 case" → compatibility: ["iPhone 15"]
+  - Extract benefits: "protective case" → benefits: ["Protective"]
+  - Examples:
+    * "office accessories" → useCases: ["Office"]
+    * "wedding jewelry" → useCases: ["Wedding"]
+    * "waterproof phone case" → benefits: ["Waterproof"]
+    * "iPhone 15 phone case" → compatibility: ["iPhone 15"]
+    * "durable travel bag" → benefits: ["Durable"], useCases: ["Travel"]
+  
+  **Generic Category Constraints**:
+  - Extract claims: "organic", "vegan", "sustainable" → claims: ["Organic"], ["Vegan"], ["Sustainable"]
+  - Extract sensory profile: "soft feel", "citrus scent", "smooth texture" → sensoryProfile: "soft feel", "citrus scent", "smooth texture"
+  - Extract benefits: "lightweight", "durable", "breathable" → benefits: ["Lightweight"], ["Durable"], ["Breathable"]
+  - Extract use cases: "travel", "gift", "office", "wedding" → useCases: ["Travel"], ["Gift"], ["Office"], ["Wedding"]
+
 - **CRITICAL: SEMANTIC UNDERSTANDING OVER HARDCODED RULES** - While the examples above provide guidance, you MUST use semantic understanding to extract constraints from ANY contextual query, not just the examples provided. Consider:
   - The overall meaning and intent of the query
   - Cultural sensitivity and appropriateness
@@ -406,7 +444,15 @@ OUTPUT JSON:
     "priceMaxCents": number | null,
     "embellishments": string[] | null,
     "necklines": string[] | null,
-    "sleeveLengths": string[] | null
+    "sleeveLengths": string[] | null,
+    "ageGroups": string[] | null,
+    "scents": string[] | null,
+    "rooms": string[] | null,
+    "useCases": string[] | null,
+    "benefits": string[] | null,
+    "claims": string[] | null,
+    "sensoryProfile": string | null,
+    "compatibility": string[] | null
   },
   "confidence": number (0.0-1.0)
 }`;
@@ -442,6 +488,13 @@ export const LOVESHACKFANCY_QUERY_CLASSIFIER_SCHEMA = {
           necklines: { type: ['array', 'null'], items: { type: 'string' } },
           sleeveLengths: { type: ['array', 'null'], items: { type: 'string' } },
           ageGroups: { type: ['array', 'null'], items: { type: 'string' } },
+          scents: { type: ['array', 'null'], items: { type: 'string' } },
+          rooms: { type: ['array', 'null'], items: { type: 'string' } },
+          useCases: { type: ['array', 'null'], items: { type: 'string' } },
+          benefits: { type: ['array', 'null'], items: { type: 'string' } },
+          claims: { type: ['array', 'null'], items: { type: 'string' } },
+          sensoryProfile: { type: ['string', 'null'] },
+          compatibility: { type: ['array', 'null'], items: { type: 'string' } },
         },
       },
       confidence: { type: 'number', minimum: 0, maximum: 1 },
@@ -643,6 +696,13 @@ export const LOVESHACKFANCY_QUERY_PARSER_SCHEMA = {
           necklines: { type: ['array', 'null'], items: { type: 'string' } },
           sleeveLengths: { type: ['array', 'null'], items: { type: 'string' } },
           ageGroups: { type: ['array', 'null'], items: { type: 'string' } },
+          scents: { type: ['array', 'null'], items: { type: 'string' } },
+          rooms: { type: ['array', 'null'], items: { type: 'string' } },
+          useCases: { type: ['array', 'null'], items: { type: 'string' } },
+          benefits: { type: ['array', 'null'], items: { type: 'string' } },
+          claims: { type: ['array', 'null'], items: { type: 'string' } },
+          sensoryProfile: { type: ['string', 'null'] },
+          compatibility: { type: ['array', 'null'], items: { type: 'string' } },
         },
         required: [],
         additionalProperties: false,
