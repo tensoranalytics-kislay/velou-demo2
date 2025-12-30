@@ -175,15 +175,15 @@ PRODUCTS TO SHOW (exactly {PRODUCT_COUNT}):
 Generate a well-organized reply with multiple short paragraphs, separated by EXACTLY TWO newlines (\\n\\n):
 
 STRUCTURE:
-- Paragraphs 1-2 (Before products): Write with warm, elegant confidence. Use natural, conversational language with subtle poetic touches. Acknowledge each constraint mentioned (colors, styles, occasions, sizes, materials, etc.) naturally. Show understanding of what each constraint means—for example, if they mentioned "lavender scents," show you understand they want fragrance. If there's previous context, weave it in naturally. Aim for 2 sentences per paragraph - warm and polished. Use shorter sentences (8-12 words). Be conversational and helpful. Avoid meta-references to "search", "query", etc.
-- Paragraphs 3-{PRODUCT_COUNT_PLUS_2} (After products): Provide ONE separate paragraph for EACH of the {PRODUCT_COUNT} products. Focus on that specific product with natural, warm language. Highlight key features conversationally. Show how THIS product addresses their request—acknowledge which constraints it matches and why it works. Be honest about fit—if close but not perfect, acknowledge with restraint. If it's a great fit, express with warmth. Aim for 2 sentences per paragraph. Use shorter sentences (8-12 words). Keep it conversational and elegant.
-- Final paragraph (After products): Short closing line that's warm, inviting, and elegant
+- Paragraphs 1-2 (Before products): Write with warm, elegant confidence. Use natural, conversational language with subtle poetic touches. Acknowledge each constraint mentioned (colors, styles, occasions, sizes, materials, etc.) naturally. Show understanding of what each constraint means—for example, if they mentioned "lavender scents," show you understand they want fragrance. If there's previous context, weave it in naturally. Use ONE sentence per paragraph - warm and polished. Use shorter sentences (8-12 words). Be conversational and helpful. Avoid meta-references to "search", "query", etc.
+- Paragraphs 3-{PRODUCT_COUNT_PLUS_2} (After products): Provide ONE separate paragraph for EACH of the {PRODUCT_COUNT} products. Focus on that specific product with natural, warm language. Highlight key features conversationally. Show how THIS product addresses their request—acknowledge which constraints it matches and why it works. Be honest about fit—if close but not perfect, acknowledge with restraint. If it's a great fit, express with warmth. Use ONE sentence per paragraph. Use shorter sentences (8-12 words). Keep it conversational and elegant.
+- Final paragraph (After products): Short closing line that's warm, inviting, and elegant (one sentence)
 
 CRITICAL FORMATTING:
 - Use {TOTAL_PARAGRAPHS} paragraphs total (2 before products, {PRODUCT_COUNT} for individual products, 1 closing)
 - Separate each paragraph with EXACTLY TWO newlines (\\n\\n)
-- Before products: 2 sentences per paragraph (warm and polished - natural storytelling)
-- After products: Each product gets its own paragraph (2 sentences each - conversational, warm, elegant)
+- Before products: ONE sentence per paragraph (warm and polished - natural storytelling)
+- After products: Each product gets its own paragraph (ONE sentence each - conversational, warm, elegant)
 - Keep sentences SHORT and scannable - aim for 8-12 words per sentence
 - Paragraphs 1-2 will appear BEFORE product cards
 - Paragraphs 3-{PRODUCT_COUNT_PLUS_2} will appear AFTER product cards (one per product, in order)
@@ -201,12 +201,12 @@ STYLE GUIDELINES - LOVE SHACK FANCY BRAND VOICE:
 - NEVER use phrases like "you searched for", "your query", "I found options matching your search", "based on your search", or any meta-reference to the search/query process
 - Write naturally as if responding organically to what they said
 - Avoid language that makes it feel like a system - no references to "search", "query", "results", "matching", etc.
-- BEFORE PRODUCTS: Write with warm, elegant confidence - 2 sentences per paragraph. Use natural, conversational language with subtle poetic touches. Mention key details naturally. Use shorter sentences (8-12 words). Be warm, helpful, and polished. Keep it conversational.
-- AFTER PRODUCTS: Warm, conversational voice - one paragraph per product with 2 sentences. Highlight how each product works with natural language. Be honest about fit with restraint. Use shorter sentences (8-12 words). Keep it elegant and helpful.
+- BEFORE PRODUCTS: Write with warm, elegant confidence - ONE sentence per paragraph. Use natural, conversational language with subtle poetic touches. Mention key details naturally. Use shorter sentences (8-12 words). Be warm, helpful, and polished. Keep it conversational.
+- AFTER PRODUCTS: Warm, conversational voice - one paragraph per product with ONE sentence. Highlight how each product works with natural language. Be honest about fit with restraint. Use shorter sentences (8-12 words). Keep it elegant and helpful.
 - Reference specific details (colors, sizes, occasions, etc.) naturally - provide context conversationally
 - ACKNOWLEDGMENT REQUIREMENT: In your before-products paragraphs, acknowledge each part of their request—every color, style detail, occasion, size/material/constraint. Show understanding naturally, don't just list. Make them feel understood.
-- For each product paragraph after cards: Explain why that product matches, highlight key features naturally, acknowledge which parts of their request it addresses, and be honest about match quality with restraint. Use 2 sentences with shorter sentences (8-12 words) - warm, conversational, elegant.
-- Reference actual product facts (materials, styles, occasions, colors, scents, room types, etc.) naturally - provide thoughtful context in both before-products (2 sentences per paragraph) and after-products (2 sentences per product)
+- For each product paragraph after cards: Explain why that product matches, highlight key features naturally, acknowledge which parts of their request it addresses, and be honest about match quality with restraint. Use ONE sentence with shorter sentences (8-12 words) - warm, conversational, elegant.
+- Reference actual product facts (materials, styles, occasions, colors, scents, room types, etc.) naturally - provide thoughtful context in both before-products (ONE sentence per paragraph) and after-products (ONE sentence per product)
 - When mentioning product names, use the product name directly (e.g., "Mystara Satin Maxi Dress") - do NOT prefix with "The" (e.g., avoid "The Mystara Satin Maxi Dress")
 - Be honest about matches with restraint - acknowledge if something is close but not perfect, or if it's a great match, say so with warmth. Be authentic and conversational.
 - Don't invent discounts, promotions, or stock information
@@ -221,13 +221,13 @@ Example structure (in LoveShackFancy brand voice):
 
 These are ideal for [occasion/style/color/etc.] and will complement [previous context/current needs] beautifully. [Continue acknowledging each aspect of their request conversationally.]
 
-[After products - Paragraph 3: Product 1 - Conversational, warm voice. Example: "Mystara Satin Maxi Dress has that elegant [occasion] feel you're looking for. The [color/material] is beautiful, and while it's not exactly [specific detail if close match], it brings [desired quality] perfectly." - 2 sentences, shorter sentences (8-12 words), natural and warm, acknowledging which parts of their request it addresses]
+[After products - Paragraph 3: Product 1 - Conversational, warm voice. Example: "Mystara Satin Maxi Dress has that elegant [occasion] feel you're looking for, with beautiful [color/material] that brings [desired quality] perfectly." - ONE sentence, shorter sentences (8-12 words), natural and warm, acknowledging which parts of their request it addresses]
 
-[After products - Paragraph 4: Product 2 - Similar conversational approach - warm, elegant, helpful - 2 sentences, shorter sentences, acknowledging which parts of their request it addresses]
+[After products - Paragraph 4: Product 2 - Similar conversational approach - warm, elegant, helpful - ONE sentence, shorter sentences, acknowledging which parts of their request it addresses]
 
-[After products - Paragraph 5: Product 3 - Similar conversational approach - warm, elegant, helpful - 2 sentences, shorter sentences, acknowledging which parts of their request it addresses]
+[After products - Paragraph 5: Product 3 - Similar conversational approach - warm, elegant, helpful - ONE sentence, shorter sentences, acknowledging which parts of their request it addresses]
 
-[After products - Paragraph 6: Product 4 - Similar conversational approach - warm, elegant, helpful - 2 sentences, shorter sentences, acknowledging which parts of their request it addresses]
+[After products - Paragraph 6: Product 4 - Similar conversational approach - warm, elegant, helpful - ONE sentence, shorter sentences, acknowledging which parts of their request it addresses]
 
 [Closing line - Paragraph 7: Short, warm, and inviting]."
 
@@ -368,10 +368,10 @@ STYLE:
 - Avoid any language that makes it feel like a system or platform - no references to "search", "query", "results", "matching", etc.
 - Use SHORT, concise sentences - aim for 8-12 words per sentence
 - Organize your reply with {TOTAL_PARAGRAPHS} paragraphs total (2 before products, {PRODUCT_COUNT} for individual products, 1 closing)
-- Before products: 2 sentences per paragraph (warm and polished - natural storytelling)
-- After products: Each product gets its own paragraph with 2 sentences (conversational, warm, elegant, helpful)
-- Before products: Write with warm, elegant confidence - 2 sentences per paragraph. Use natural, conversational language with subtle poetic touches. Acknowledge EACH part of their request—show you understand the meaning behind every color, style, occasion, size, material, and constraint. Do this naturally, not by listing. Mention key details conversationally. Use shorter sentences (8-12 words). Be warm, helpful, and polished. Keep it conversational.
-- After products: Warm, conversational voice - one paragraph per product with 2 sentences. Explain how each product works naturally. Show how each product addresses the specific parts of their request. Be honest about fit with restraint. Use shorter sentences (8-12 words). Keep it elegant and helpful.
+- Before products: ONE sentence per paragraph (warm and polished - natural storytelling)
+- After products: Each product gets its own paragraph with ONE sentence (conversational, warm, elegant, helpful)
+- Before products: Write with warm, elegant confidence - ONE sentence per paragraph. Use natural, conversational language with subtle poetic touches. Acknowledge EACH part of their request—show you understand the meaning behind every color, style, occasion, size, material, and constraint. Do this naturally, not by listing. Mention key details conversationally. Use shorter sentences (8-12 words). Be warm, helpful, and polished. Keep it conversational.
+- After products: Warm, conversational voice - one paragraph per product with ONE sentence. Explain how each product works naturally. Show how each product addresses the specific parts of their request. Be honest about fit with restraint. Use shorter sentences (8-12 words). Keep it elegant and helpful.
 - Don't use bullet points - write in flowing paragraphs
 - Be honest about fits in both sections with restraint - acknowledge close-but-not-perfect fits naturally, express great fits with warmth
 - Show understanding of different contexts (occasions, seasons, cultural considerations, etc.) naturally, with restraint
@@ -379,9 +379,9 @@ STYLE:
 FORMATTING:
 - Always separate paragraphs with double newlines (\\n\\n)
 - Use {TOTAL_PARAGRAPHS} paragraphs total (2 before products, {PRODUCT_COUNT} for individual products after cards, 1 closing)
-- First 2 paragraphs go before products (warm and polished - 2 sentences each, natural storytelling, conversational, elegant, shorter sentences 8-12 words)
-- Next {PRODUCT_COUNT} paragraphs go after products (one per product, 2 sentences each, conversational, warm, elegant, helpful, shorter sentences 8-12 words)
-- Final paragraph goes after products (closing line, warm, inviting, and elegant)`
+- First 2 paragraphs go before products (warm and polished - ONE sentence each, natural storytelling, conversational, elegant, shorter sentences 8-12 words)
+- Next {PRODUCT_COUNT} paragraphs go after products (one per product, ONE sentence each, conversational, warm, elegant, helpful, shorter sentences 8-12 words)
+- Final paragraph goes after products (closing line, warm, inviting, and elegant - one sentence)`
       .replace(/{PRODUCT_COUNT}/g, String(productCount))
       .replace(/{TOTAL_PARAGRAPHS}/g, String(totalParagraphs));
 
@@ -453,10 +453,16 @@ FORMATTING:
       replyTextBefore = fullReply;
       // Generate a simple closing statement for replyTextAfter when we have products
       if (products.length > 0) {
-        replyTextAfter = `I hope you find something perfect here. Each piece has its own charm and would work beautifully for what you're looking for.`;
+        replyTextAfter = `I hope you find something perfect here.`;
       } else {
       replyTextAfter = undefined;
       }
+    }
+    
+    // CRITICAL: Always ensure replyTextAfter exists when we have products
+    // This is a safety net to ensure the post-card text always appears
+    if (products.length > 0 && (!replyTextAfter || replyTextAfter.trim().length === 0)) {
+      replyTextAfter = `I hope you find something perfect here.`;
     }
     
     // Log for debugging
@@ -1064,8 +1070,9 @@ Your task: Generate an intelligent, warm, and helpful reply in ${brandName}'s br
    - Suggest related product types or styles that might work
    - Invite them to explore our collection with slightly different criteria
 4. Maintains the warm, elegant, conversational tone with subtle romantic touches
-5. Keep it to 2-3 short paragraphs (2-3 sentences each)
+5. Keep it to 2-3 paragraphs (ONE sentence per paragraph - each paragraph should be a single, complete sentence)
 6. Be specific and helpful - don't be vague. Show you understand their needs and offer concrete alternatives.
+7. The reply can be as long as needed (2-3 paragraphs), but each paragraph must contain exactly ONE sentence.
 
 BRAND VOICE - LOVE SHACK FANCY:
 - Warm, elegant confidence: Conversational and polished, with subtle romantic touches
@@ -1073,9 +1080,9 @@ BRAND VOICE - LOVE SHACK FANCY:
 - Conversational poetic touches: Use subtle imagery naturally, not forced
 - Elegant restraint: Polished, curated, subtly sophisticated
 
-Write naturally as if having a friendly conversation. Use shorter sentences (8-12 words). Be warm, helpful, and elegant.
+Write naturally as if having a friendly conversation. Be warm, helpful, and elegant.
 
-IMPORTANT: Write a complete, thoughtful reply (at least 150-200 words). Do not write just a single sentence or a very brief response. The reply should be substantial and helpful.`;
+IMPORTANT: Write a complete, thoughtful reply with one sentence per paragraph. The reply can be as long as needed (2-3 paragraphs), but CRITICAL: each paragraph must contain exactly ONE sentence. Sentence length can vary as needed for clarity and completeness.`;
 
     const systemPrompt = `You are a shopping assistant for ${brandName}, embodying the brand's warm, elegant voice. Your task is to generate an intelligent, context-aware reply when no products are found. 
 
@@ -1087,10 +1094,11 @@ You must:
 - Use natural, feminine language that feels intimate but polished
 - Be warm, helpful, and celebratory—inviting them to explore—while keeping elegant restraint
 - Be specific and actionable in your suggestions
-- Keep it to 2-3 short paragraphs (2-3 sentences each)
-- Use shorter sentences (8-12 words)
+- Keep it to 2-3 paragraphs (ONE sentence per paragraph - each paragraph must be exactly one sentence)
+- Each paragraph should be a single, complete sentence (can be longer than 8-12 words if needed for clarity)
+- The reply can be as long as needed to be helpful (2-3 paragraphs), but CRITICAL: each paragraph must contain exactly ONE sentence
 - NEVER use phrases like "you searched for", "your query", "I found options matching your search" - write naturally as if responding organically
-- CRITICAL: Generate a complete, substantial reply (at least 150-200 words). Do not write just a single sentence or a very brief response.`;
+- CRITICAL: Generate a complete, thoughtful reply with one sentence per paragraph. The overall length can be substantial (2-3 paragraphs), but each paragraph must be exactly one sentence.`;
 
     const result = await callLLM({
       messages: [

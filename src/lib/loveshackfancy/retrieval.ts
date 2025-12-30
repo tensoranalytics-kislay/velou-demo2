@@ -521,11 +521,13 @@ export async function multiViewRetrieval(
           }
 
           // TIER 4: Pure vector search (no constraint filters, only category)
+          // This is the final fallback - drop all constraint filters to find any products in the category
           if (result.length === 0 && topCategories && topCategories.length > 0) {
             fallbackTier = 'vector';
             logger.info('fashion_semantic_search: tier4_pure_vector', {
               query: query.substring(0, 100),
               categories: topCategories,
+              note: 'Dropping all constraint filters (including age groups) to find any products in category',
             });
 
             const productIdsToSearch = await deduplicateProductsByCategory(
@@ -533,8 +535,7 @@ export async function multiViewRetrieval(
                 inStockOnly: true,
                 merchantId,
                 categories: topCategories,
-                // No price, color, or other filters
-                ageGroups: contextAware.sqlFilters.ageGroups, // Keep age groups as they're critical
+                // No price, color, age groups, or other filters - pure category-based search
               },
               1500,
               queryHash,
@@ -549,8 +550,7 @@ export async function multiViewRetrieval(
                   inStockOnly: true,
                   merchantId,
                   categories: undefined,
-                  // No other filters
-                  ageGroups: contextAware.sqlFilters.ageGroups,
+                  // No constraint filters - pure vector similarity search
                 },
                 undefined,
                 productIdsToSearch

@@ -335,6 +335,8 @@ CONSTRAINT EXTRACTION RULES:
     - "5-year-old", "5 years old", "age 5", "turning 5", "she is 5" → ageGroups: ["kids"]
     - "2-year-old", "3-year-old", "toddler" → ageGroups: ["toddler"]
     - "baby", "infant", "babies" → ageGroups: ["baby"]
+    - "baby girl", "for my baby girl", "baby daughter" → ageGroups: ["baby"] (NOT "Baby Girl" - "girl" is gender, not age)
+    - "baby boy", "for my baby boy", "baby son" → ageGroups: ["baby"] (NOT "Baby Boy" - "boy" is gender, not age)
     - "for kids", "children", "child" → ageGroups: ["kids"]
     - "adult", "women", "womens", "for women" → ageGroups: ["adult"]
     - "teen", "teenager", "teenage", "teenagers", "juvenile", "youth", "adolescent", "young", "pre-teen", "preteen", "tween" → ageGroups: ["Teen"] or ["kids"] depending on context (typically ["Teen"] for 13-19 age range)
@@ -567,10 +569,13 @@ If the query mentions age information, you MUST extract it in ageGroups:
 - "5-year-old", "5 years old", "age 5", "turning 5", "she is 5", "5 year old" → ageGroups: ["kids"] (NOT sizes!)
 - "2-year-old", "3-year-old", "toddler" → ageGroups: ["toddler"]
 - "baby", "infant", "babies" → ageGroups: ["baby"]
+- "baby girl", "for my baby girl", "baby daughter" → ageGroups: ["baby"] (NOT "Baby Girl" - "girl" is gender, not age)
+- "baby boy", "for my baby boy", "baby son" → ageGroups: ["baby"] (NOT "Baby Boy" - "boy" is gender, not age)
 - "adult", "women", "womens" → ageGroups: ["adult"]
 - "teen", "teenager", "teenage", "teenagers", "juvenile", "youth", "adolescent", "young", "pre-teen", "preteen", "tween" → ageGroups: ["Teen"] (for 13-19 age range)
 - "for teenage daughter", "for teenage son", "teenage girl", "teenage boy" → ageGroups: ["Teen"]
 - IMPORTANT: "5-year-old" or "5 year old" is AGE (ageGroups), NOT size (sizes). Only extract as size if explicitly "size 5".
+- IMPORTANT: "boy" and "girl" are gender indicators, NOT age group modifiers. Extract "baby" as ageGroup, not "Baby Girl" or "Baby Boy".
 
 AVAILABLE VALUES (map user words to these):
 - Colors: ${colors}${LOVESHACKFANCY_ONTOLOGY.colors.length > 30 ? ' (and more)' : ''}

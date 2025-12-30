@@ -2644,10 +2644,23 @@ Answer the user's question about this product:`;
     })),
   });
 
+  // CRITICAL: Always ensure replyTextAfter exists when we have products
+  // This is a safety net to ensure the post-card text always appears
+  let finalReplyTextAfter = replyResult.replyTextAfter;
+  if (productsToShow.length > 0) {
+    // If we have products but no replyTextAfter, use a fallback
+    if (!finalReplyTextAfter || finalReplyTextAfter.trim().length === 0) {
+      finalReplyTextAfter = `I hope you find something perfect here.`;
+    }
+  } else {
+    // No products, no replyTextAfter
+    finalReplyTextAfter = undefined;
+  }
+
   const result: LoveshackfancyQueryResult = {
     replyText: replyResult.replyText,
-    // Only include replyTextAfter when we have product cards to show
-    replyTextAfter: productsToShow.length > 0 ? replyResult.replyTextAfter : undefined,
+    // Always include replyTextAfter when we have product cards to show
+    replyTextAfter: finalReplyTextAfter,
     productCards,
     noExactMatch: productsToShow.length === 0,
     actions: actions.length > 0 ? actions : undefined,
