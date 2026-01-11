@@ -18,6 +18,20 @@ export type SearchConstraints = {
   claims?: string[]; // Generic: certifications/claims (e.g., "certified organic", "B Corp", "warranty included", "eco-friendly")
   sensoryProfile?: string; // Generic: experiential descriptors (e.g., "soft feel", "bright sound", "citrus scent", "matte look")
   compatibility?: string[]; // Generic: compatibility requirements (e.g., "works with iOS", "for small rooms", "for tall people", "for sensitive use cases")
+  // Enriched constraints
+  silhouetteCut?: string[];
+  sleeves?: string[];
+  necklines?: string[];
+  formalityLevel?: string[];
+  temperatureIntent?: string;
+  humidityFriendly?: boolean;
+  occasionContext?: string[];
+  problemSolutions?: string[];
+  functionFeatures?: string[];
+  colorShade?: string[];
+  colorUndertone?: string[];
+  multicolor?: boolean;
+  seasonalPalette?: string[];
   brands?: string[];
   genders?: string[];
   materials?: string[];
@@ -107,12 +121,36 @@ export type SearchResultItem = {
   salePriceCents?: number | null;
   currency: string;
   category: string;
+  subcategory?: string | null;
   stockStatus: string;
   attributes: ProductAttributes;
+  // Core indexed columns (Phase 2)
+  color?: string | null;
+  fabric?: string | null;
+  material?: string | null;
+  occasion?: string | null; // Single occasion column (e.g., "Daytime, Vacation")
+  season?: string | null;
+  fit?: string | null;
+  
+  // Enriched columns (for primary filtering, JSON attributes as fallback)
+  length?: string | null;
+  sleeve?: string | null;
+  neckline?: string | null;
+  formalityLevel?: string | null;
+  temperatureIntent?: string | null;
+  humidityFriendly?: boolean | null;
+  occasionContext?: string[] | null; // Array of occasions (e.g., ["Daytime", "Vacation"])
+  problemSolutions?: string[] | null;
+  functionFeatures?: string[] | null;
+  colorShade?: string | null;
+  colorUndertone?: string | null;
+  multicolor?: boolean | null;
+  seasonalPalette?: string | null;
+  enrichedColor?: string | null;
+  ageGroup?: string | null;
 };
 
 export type ProductSearchResult = {
   products: SearchResultItem[];
   wasRelaxed: boolean;
 };
-

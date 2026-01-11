@@ -26,8 +26,8 @@ model Merchant {
   useMerchantKey       Boolean               @default(false)
   merchantOpenAIKey    String?
   datasetContext       Json?
-  uiCopy               Json?  // Merchant voice + reusable copy blocks (tone, action labels, etc.)
-  faq                  Json?  // Q/A pairs or topics for brand/product info queries
+  uiCopy               Json? // Merchant voice + reusable copy blocks (tone, action labels, etc.)
+  faq                  Json? // Q/A pairs or topics for brand/product info queries
   shopifyStore         String?
   shopifyAccessToken   String?
   shopifySyncEnabled   Boolean               @default(false)
@@ -108,41 +108,105 @@ model ReviewConfig {
 
 /// Product model - now multi-tenant with merchantId
 /// Extended with Shopify and review integration fields
+/// Phase 2: Added indexed columns for commonly-queried attributes (color, fabric, etc.)
+/// Phase 2: Added variants relation for ProductVariant model
 model Product {
   /// Core product data. All flexible / vendor-specific attributes must be stored
   /// in the JSON `attributes` field (e.g. "new", "is_featured", custom tags).
   /// Do NOT add ad-hoc columns such as `new` – those belong in `attributes`.
-  id                String                   @id
-  merchantId        String
-  title             String
-  description       String
-  imageUrl          String
-  priceCents        Int
-  currency          String
-  category          String
-  subcategory       String?
-  brand             String?
-  attributes        Json
-  stockStatus       StockStatus              @default(in_stock)
+  id          String  @id
+  merchantId  String
+  title       String
+  description String
+  imageUrl    String
+  priceCents  Int // Base price (variants can override)
+  currency    String
+  category    String
+  subcategory String?
+  brand       String?
+
+  // Phase 2: Move commonly-queried attributes to indexed columns
+  // These are extracted from attributes JSON during migration
+  color    String? // Most common color (indexed for fast filtering)
+  fabric   String? // Fabric type (indexed for fast filtering)
+  material String? // Material type (indexed for fast filtering)
+  occasion String? // Occasion (indexed for fast filtering)
+  season   String? // Season (indexed for fast filtering)
+  fit      String? // Fit type (indexed for fast filtering)
+
+  // Enriched attributes (Phase: Enriched dataset integration)
+  // Fit & Construction
+  silhouetteCut       String?
+  length              String?
+  sleeve              String?
+  neckline            String?
+  closureConstruction String?
+  lined               Boolean?
+  fitPreference       String?
+  riseWaist           String?
+  stretchLevel        String?
+  bodyIntent          String?
+  comfortIntent       String?
+
+  // Fabric Properties
+  fabricFamily    String?
+  handfeel        String?
+  warmthWeight    String?
+  breathability   String?
+  opacity         String?
+  wrinkleBehavior String?
+
+  // Style & Occasion
+  formalityLevel  String?
+  occasionContext String[]
+  dressCode       String?
+  seasonalCues    String?
+
+  // Weather & Comfort
+  temperatureIntent String?
+  humidityFriendly  Boolean?
+  movementNeeds     String?
+
+  // Problem-Solution
+  problemSolutions String[]
+  functionFeatures String[]
+
+  // Color Details
+  colorShade      String?
+  colorUndertone  String?
+  multicolor      Boolean?
+  seasonalPalette String?
+
+  // Inclusivity
+  inclusivitySizing String?
+
+  // Enriched 2.csv specific columns
+  enrichedColor String? // User-friendly color terms (e.g., "White, Bright White, Pure White")
+  ageGroup      String? // Age categories (e.g., "Adult", "Kids", "Baby, Toddler")
+
+  // Keep flexible attributes in JSONB (backward compatibility)
+  attributes Json // Less-frequently-queried fields remain here
+
+  stockStatus       StockStatus              @default(in_stock) // Aggregate: in_stock if ANY variant in stock
   vendorId          String?
-  sourceId          String?
+  sourceId          String? // Base product ID (no size suffix) - indexed for deduplication
   isActive          Boolean                  @default(true)
   lastIngestBatchId String?
-  shopifyProductId  String?
+  shopifyProductId  String? // Parent product ID (not variant ID)
   shopifyHandle     String?
-  shopifyVariantIds String[]
+  shopifyVariantIds String[] // Keep for backward compatibility
   shopifyBestseller Boolean                  @default(false)
   shopifyTrending   Boolean                  @default(false)
   shopifySalesRank  Int?
-  reviewScore       Float?
-  reviewCount       Int?
+  reviewScore       Float? // Aggregate across variants
+  reviewCount       Int? // Aggregate across variants
   reviewsJson       Json?
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @updatedAt
   productUrl        String
   salePriceCents    Int?
   search_vector     Unsupported("tsvector")?
-  embedding         Unsupported("vector")?
+  embedding         Unsupported("vector")? // ONE embedding per product (not per variant)
   merchant          Merchant                 @relation(fields: [merchantId], references: [id], onDelete: Cascade)
 
   @@index([merchantId])
@@ -158,6 +222,40 @@ model Product {
   @@index([vendorId, sourceId])
   @@index([embedding], map: "idx_product_embedding")
   @@index([search_vector], map: "idx_product_search", type: Gin)
+  // Phase 2: New indexes for fast constraint filtering
+  @@index([color], map: "idx_product_color")
+  @@index([fabric], map: "idx_product_fabric")
+  @@index([material], map: "idx_product_material")
+  @@index([occasion], map: "idx_product_occasion")
+  @@index([season], map: "idx_product_season")
+  @@index([fit], map: "idx_product_fit")
+  @@index([sourceId], map: "idx_product_source_id") // For deduplication
+  // Enriched attribute indexes
+  @@index([silhouetteCut], map: "idx_product_silhouette_cut")
+  @@index([length], map: "idx_product_length")
+  @@index([sleeve], map: "idx_product_sleeve")
+  @@index([neckline], map: "idx_product_neckline")
+  @@index([formalityLevel], map: "idx_product_formality_level")
+  @@index([temperatureIntent], map: "idx_product_temperature_intent")
+  @@index([humidityFriendly], map: "idx_product_humidity_friendly")
+  @@index([colorShade], map: "idx_product_color_shade")
+  @@index([colorUndertone], map: "idx_product_color_undertone")
+  @@index([multicolor], map: "idx_product_multicolor")
+  @@index([enrichedColor], map: "idx_product_enriched_color")
+  @@index([ageGroup], map: "idx_product_age_group")
+  @@index([category, subcategory], map: "idx_product_category_subcategory")
+  // GIN indexes for array fields
+  @@index([occasionContext], map: "idx_product_occasion_context", type: Gin)
+  @@index([problemSolutions], map: "idx_product_problem_solutions", type: Gin)
+  @@index([functionFeatures], map: "idx_product_function_features", type: Gin)
+  // Phase 2: Composite indexes for common queries
+  @@index([category, color], map: "idx_product_category_color")
+  @@index([merchantId, category], map: "idx_product_merchant_category")
+  // Enriched composite indexes
+  @@index([category, length, formalityLevel], map: "idx_product_category_length_formality")
+  @@index([temperatureIntent, humidityFriendly], map: "idx_product_temperature_humidity")
+  @@index([bodyIntent, comfortIntent], map: "idx_product_body_comfort")
+  @@index([colorShade, colorUndertone], map: "idx_product_shade_undertone")
 }
 
 /// Catalog ingestion tracking - now multi-tenant
@@ -234,8 +332,8 @@ model ConversationEvent {
   createdAt             DateTime @default(now())
   assistantReplySnippet String?  @db.VarChar(256)
   clicked               Boolean  @default(false)
-  route                 String?  // Dialogue route (DISCOVERY, ACTION_REQUEST, etc.)
-  actionType            String?  // Action type if ACTION_REQUEST (show_more, etc.)
+  route                 String? // Dialogue route (DISCOVERY, ACTION_REQUEST, etc.)
+  actionType            String? // Action type if ACTION_REQUEST (show_more, etc.)
   hadActionClick        Boolean  @default(false) // Whether user clicked an action chip
   hadTypedYesNo         Boolean  @default(false) // Whether user typed yes/no (mapped to action)
   merchant              Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)

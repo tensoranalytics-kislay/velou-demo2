@@ -10,6 +10,7 @@ import type { QueryClassification, FashionConstraints } from './classifier';
 import { callLLM } from '../llm/provider';
 import { stripJsonFences } from '../llm/orchestrator/utils';
 import { LOVESHACKFANCY_QUERY_CLASSIFIER_PROMPT, LOVESHACKFANCY_QUERY_CLASSIFIER_SCHEMA } from './prompts';
+import { normalizeQueryForSearch } from './query-normalizer';
 
 /**
  * Extract constraints via embeddings (semantic fallback)
@@ -95,6 +96,7 @@ export async function extractConstraintsViaEmbeddings(
     // Return minimal classification on failure
     return {
       type: 'gift_or_vague',
+      productTerms: normalizeQueryForSearch(message),
       constraints: {},
       confidence: 0.2,
     };

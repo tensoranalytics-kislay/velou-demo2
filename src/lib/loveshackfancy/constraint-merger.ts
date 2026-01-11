@@ -8,6 +8,39 @@
 import { callLLM } from '../llm/provider';
 import { logger } from '../telemetry/logger';
 import type { FashionConstraints } from './classifier';
+import { normalizeAgeGroups } from './age-group-normalizer';
+
+// Constraint portability classification
+const ALWAYS_PORTABLE_CONSTRAINTS = [
+  'occasions',
+  'ageGroups',
+  'seasons',
+  'formalityLevel'
+] as const;
+
+const NEVER_PORTABLE_CONSTRAINTS = [
+  'lengths',
+  'sleeveLengths',
+  'necklines',
+  'fits',
+  'braSolution',
+  'pockets',
+  'liningType',
+  'scents',
+  'rooms'
+] as const;
+
+const CONTEXT_DEPENDENT_CONSTRAINTS = [
+  'styles',
+  'materials',
+  'patterns',
+  'embellishments',
+  'travelFeatures',
+  'careRequirements',
+  'ecoMaterials',
+  'temperatureIntent',
+  'humidityFriendly'
+] as const;
 
 export type ConstraintMergeResult = {
   mergedConstraints: FashionConstraints;
@@ -16,11 +49,147 @@ export type ConstraintMergeResult = {
   reason: string;
 };
 
+/**
+ * Get the category group (Apparel, Accessories, Home & Living, etc.) for a category
+ */
+function getCategoryGroup(category: string): string {
+  const apparelCategories = [
+    "Women's Dresses", "Tops", "Bottoms", "Skirts", "Skorts",
+    "Activewear", "Swimsuits", "Bikini Sets", "Swim Cover-ups",
+    "Cold Weather Essentials", "Loungewear", "Robes", "Pajama Set",
+    "Shoes", "Ski Jackets", "Ski Tops", "Ski Shoes", "Sweaters",
+    "Mini Dress", "Maxi Dress", "Tote Bags"
+  ];
+  
+  const kidsCategories = [
+    "Girls Tops", "Girls Bottoms", "Girls Dresses", "Girls Swimwear",
+    "Baby & Toddler Bottoms", "Tween Pants", "Tween Sweaters", "Tween Dresses"
+  ];
+  
+  const accessoriesCategories = [
+    "Accessories", "Jewelry", "Hair Accessories", "Pocket Squares",
+    "Phone Cases", "Soap Dispensers", "Makeup Kit"
+  ];
+  
+  const homeCategories = [
+    "Bedding", "Bathroom", "Towels", "Tabletop", "Kitchen & Dining",
+    "Stationary", "Interiors", "Candle", "Decorative Dishes", "Fragrance Tray", "Pets"
+  ];
+  
+  const personalCareCategories = ["Perfumes"];
+  
+  if (apparelCategories.includes(category) || kidsCategories.includes(category)) {
+    return 'Apparel';
+  }
+  if (accessoriesCategories.includes(category)) {
+    return 'Accessories';
+  }
+  if (homeCategories.includes(category)) {
+    return 'Home & Living';
+  }
+  if (personalCareCategories.includes(category)) {
+    return 'Personal Care';
+  }
+  
+  return 'Unknown';
+}
+
+/**
+ * Check if categories are in the same vertical/group
+ */
+function areCategoriesSimilar(
+  previousCategories: string[],
+  currentCategories: string[]
+): boolean {
+  if (previousCategories.length === 0 || currentCategories.length === 0) {
+    return false;
+  }
+  
+  // Get verticals for previous and current categories
+  const previousVerticals = new Set(
+    previousCategories.map(cat => getCategoryGroup(cat))
+  );
+  const currentVerticals = new Set(
+    currentCategories.map(cat => getCategoryGroup(cat))
+  );
+  
+  // Check if there's any overlap
+  for (const vertical of previousVerticals) {
+    if (currentVerticals.has(vertical)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Detect explicit user intent to preserve colors or price
+ */
+function detectExplicitIntent(
+  currentMessage: string,
+  previousConstraints: FashionConstraints | null
+): {
+  preserveColors: boolean;
+  preservePrice: boolean;
+  explicitColorMentions: string[];
+  explicitPriceMentions: string[];
+} {
+  const messageLower = currentMessage.toLowerCase();
+  const explicitColorMentions: string[] = [];
+  const explicitPriceMentions: string[] = [];
+  
+  // Detect explicit color preservation keywords
+  const colorPreservationPatterns = [
+    /\b(also\s+in|also|keep\s+the\s+color|same\s+color|keep\s+color|same\s+colou?r|keep\s+colou?r)\b/i,
+    /\b(also\s+)?(?:red|blue|green|yellow|black|white|pink|purple|orange|brown|gray|grey|navy|beige|gold|silver|bronze|coral|mint|lavender|blush|ivory|cream|tan|teal|turquoise|emerald|burgundy|maroon|plum|charcoal|sage|olive|rust|terracotta|peach|lemon|cherry|crimson|scarlet|chocolate|whisper\s+blue|daydream\s+pink|hibiscus|rose|pink|blue|green|yellow|purple|orange)\b/i
+  ];
+  
+  // Check for explicit color mentions in current message
+  colorPreservationPatterns.forEach(pattern => {
+    const matches = currentMessage.match(pattern);
+    if (matches) {
+      explicitColorMentions.push(...matches);
+    }
+  });
+  
+  // Detect explicit price preservation keywords
+  const pricePreservationPatterns = [
+    /\b(same\s+price\s+range|same\s+range|same\s+price|in\s+same\s+range|in\s+same\s+price\s+range|keep\s+the\s+price|same\s+cost|same\s+budget)\b/i,
+    /\b(under|below|up\s+to|over|above|at\s+least|between)\s+\$?\d+/i
+  ];
+  
+  // Check for explicit price mentions in current message
+  pricePreservationPatterns.forEach(pattern => {
+    const matches = currentMessage.match(pattern);
+    if (matches) {
+      explicitPriceMentions.push(...matches);
+    }
+  });
+  
+  const preserveColors = explicitColorMentions.length > 0;
+  const preservePrice = explicitPriceMentions.length > 0;
+  
+  return {
+    preserveColors,
+    preservePrice,
+    explicitColorMentions: Array.from(new Set(explicitColorMentions)),
+    explicitPriceMentions: Array.from(new Set(explicitPriceMentions)),
+  };
+}
+
 const CONSTRAINT_MERGER_PROMPT = `You are a constraint merger for a shopping assistant. The catalog includes multiple category groups: Kids, Women's/Adult Apparel, Accessories, Personal Care, and Home & Living (48 total categories). You handle constraint merging for queries across all these category groups.
 
 PREVIOUS QUERY: "{PREVIOUS_QUERY}"
 PREVIOUS CONSTRAINTS: {PREVIOUS_CONSTRAINTS}
 PREVIOUS BOT REPLY: "{PREVIOUS_BOT_REPLY}"
+PREVIOUS CATEGORIES: {PREVIOUS_CATEGORIES}
+CURRENT CATEGORIES: {CURRENT_CATEGORIES}
+CATEGORIES_ARE_SIMILAR: {CATEGORIES_ARE_SIMILAR}
+USER_EXPLICITLY_PRESERVES_COLORS: {USER_EXPLICITLY_PRESERVES_COLORS}
+USER_EXPLICITLY_PRESERVES_PRICE: {USER_EXPLICITLY_PRESERVES_PRICE}
+EXPLICIT_COLOR_MENTIONS: {EXPLICIT_COLOR_MENTIONS}
+EXPLICIT_PRICE_MENTIONS: {EXPLICIT_PRICE_MENTIONS}
 
 CURRENT FOLLOW-UP MESSAGE: "{CURRENT_MESSAGE}"
 
@@ -136,31 +305,158 @@ Your task:
      * **PRESERVE PRODUCT TYPE** from PREVIOUS_QUERY when refining based on shown products
    
 2. **If mergeAction is "new_search"**:
-   - Set mergedConstraints to empty/null values (reset everything)
-   - Set enhancedQueryText to CURRENT_MESSAGE (use as-is, don't merge with previous)
-   - This indicates the orchestrator should treat this as a completely new search
+   - **CRITICAL: Age Group Switch = New Search with Constraint Preservation**:
+     * If this is a NEW SEARCH due to complete age group switch (e.g., children to adult, adult to children):
+       - Set ageGroups to null in mergedConstraints (let classifier set the correct age group from CURRENT_MESSAGE)
+       - Preserve portable constraints from PREVIOUS_CONSTRAINTS based on constraint preservation logic:
+         * ALWAYS PRESERVE: occasions, seasons, formalityLevel (universal constraints)
+         * PRESERVE BASED ON INTENT OR SIMILARITY: colors (preserve if explicitly mentioned in CURRENT_MESSAGE OR categories are similar OR USER_EXPLICITLY_PRESERVES_COLORS), price (preserve if explicitly mentioned OR categories are similar OR USER_EXPLICITLY_PRESERVES_PRICE)
+       - Set category-specific constraints to null: lengths, sleeveLengths, necklines, fits, braSolution, pockets, liningType (category-specific)
+       - Set enhancedQueryText to CURRENT_MESSAGE (fresh query, not merged with previous)
+       - Example: PREVIOUS="clothes for my 6 year old and 12 year old" (ageGroups: ["Kids", "Tween"], colors: ["Red"], occasions: ["Wedding"]), CURRENT="only red dresses for adult" (ageGroups: ["Adult"], colors: ["Red"])
+         → mergeAction: "new_search"
+         → mergedConstraints: { ageGroups: null, colors: ["Red"] (preserved - mentioned in CURRENT_MESSAGE), occasions: ["Wedding"] (preserved - universal), lengths: null, ... (reset category-specific) }
+         → enhancedQueryText: "only red dresses for adult" (CURRENT_MESSAGE as-is)
+         → reason: "user switched from children's age groups to adult, treating as new search while preserving portable constraints"
+   - **Standard New Search (incompatibility)**:
+     * Set mergedConstraints to empty/null values (reset everything)
+     * Set enhancedQueryText to CURRENT_MESSAGE (use as-is, don't merge with previous)
+     * This indicates the orchestrator should treat this as a completely new search
    
 3. **If it's a follow-up** (mergeAction: "merge", "replace", or "remove"):
    - Determine the user's intent: MERGE, REPLACE, or REMOVE constraints
    - Intelligently merge/replace/remove constraints based on the follow-up message
    - Create an enhanced query text that captures the complete intent, INCLUDING the full product type inferred from PREVIOUS_CONSTRAINTS
 
-CRITICAL: Category Changes = New Search
-- If the current message changes the product category (e.g., "show me swimsuits" after "show me tops"), this is a NEW SEARCH
-- For new searches, you should RESET ALL constraints including price constraints - start completely fresh
+**CRITICAL: Intent-Aware Constraint Preservation Across Category Switches**
+
+When the user switches product categories, intelligently preserve or remove constraints based on:
+1. **EXPLICIT USER INTENT** (highest priority)
+2. **Category similarity** (similar categories preserve more)
+3. **Constraint portability** (universal vs category-specific)
+
+**PRIORITY 1: EXPLICIT USER INTENT**
+- If user explicitly mentions a constraint in the new query → PRESERVE/UPDATE it
+- If user explicitly says "same", "also", "keep", "same range", "same price" → PRESERVE those constraints
 - Examples:
-  * "show me loungewear" after "black swimsuits under $150" → mergeAction: "new_search", RESET all constraints
-  * "Actually, show me swimsuits instead" → mergeAction: "new_search", RESET all previous constraints including price
-- IMPORTANT: When this function is called for a NEW SEARCH (not a follow-up), the orchestrator will pass null for PREVIOUS_CONSTRAINTS, so you won't need to reset - but if you detect a category change or logical incompatibility, use mergeAction: "new_search"
+  * PREVIOUS="gold jewelry" + CURRENT="show me cardigans in same price range" → Preserve price
+  * PREVIOUS="gold jewelry" + CURRENT="show me cardigans" → Remove colors (no explicit mention)
+  * PREVIOUS="red dresses" + CURRENT="show me tops also in red" → Preserve colors (explicit "also in red")
+
+**PRIORITY 2: CATEGORY SIMILARITY**
+
+**Similar Categories** (preserve more constraints):
+- Apparel ↔ Apparel (e.g., Dresses ↔ Tops, Dresses ↔ Bottoms, Tops ↔ Sweaters)
+- Accessories ↔ Accessories (e.g., Jewelry ↔ Bags, Jewelry ↔ Hair Accessories)
+- Kids ↔ Kids (e.g., Girls Dresses ↔ Girls Tops)
+- Home & Living ↔ Home & Living
+
+**Dissimilar Categories** (preserve fewer constraints):
+- Apparel ↔ Accessories (e.g., Jewelry ↔ Dresses, Bags ↔ Tops)
+- Apparel ↔ Home & Living (e.g., Dresses ↔ Bedding)
+- Accessories ↔ Personal Care (e.g., Jewelry ↔ Perfumes)
+
+**PRIORITY 3: CONSTRAINT PORTABILITY**
+
+**ALWAYS PRESERVE** (Universal - apply to ALL categories):
+- occasions (e.g., "wedding" applies to dresses, jewelry, bags, perfumes, bedding)
+- ageGroups (e.g., "Adult" applies to all categories)
+- seasons (e.g., "summer" applies to all categories)
+- formalityLevel (e.g., "formal" applies to all categories)
+
+**PRESERVE BASED ON INTENT OR SIMILARITY**:
+- colors:
+  * PRESERVE if: User explicitly mentions color in new query OR categories are similar (apparel ↔ apparel) OR USER_EXPLICITLY_PRESERVES_COLORS is true
+  * REMOVE if: Categories are dissimilar (jewelry ↔ apparel) AND color not mentioned AND USER_EXPLICITLY_PRESERVES_COLORS is false
+  * Example: PREVIOUS="gold jewelry" + CURRENT="cardigans" → Remove colors (dissimilar categories, not mentioned)
+  * Example: PREVIOUS="red dresses" + CURRENT="tops" → Preserve colors (similar categories, apparel ↔ apparel)
+
+- price:
+  * PRESERVE if: User explicitly says "same range", "same price", "in same price range", "under $X", "over $X", "between $X and $Y" OR categories are similar (apparel ↔ apparel) OR USER_EXPLICITLY_PRESERVES_PRICE is true
+  * REMOVE if: Categories are dissimilar (jewelry ↔ apparel) AND price not mentioned AND USER_EXPLICITLY_PRESERVES_PRICE is false
+  * Example: PREVIOUS="gold jewelry under $200" + CURRENT="cardigans" → Remove price (dissimilar categories, not mentioned)
+  * Example: PREVIOUS="dresses under $150" + CURRENT="tops" → Preserve price (similar categories, apparel ↔ apparel)
+  * Example: PREVIOUS="gold jewelry under $200" + CURRENT="cardigans in same price range" → Preserve price (explicit intent)
+
+**ALWAYS REMOVE** (Category-Specific):
+- lengths (maxi, mini, midi - only for apparel, not jewelry/bags/perfumes)
+- sleeveLengths (long sleeve, short sleeve - only for apparel)
+- necklines (v-neck, round neck - only for apparel)
+- fits (plus size, relaxed fit - only for apparel)
+- braSolution (only for apparel)
+- pockets (only for apparel/bags, not jewelry/perfumes)
+- liningType (only for apparel/bags)
+- scents (only for perfumes/candles)
+- rooms (only for home & living)
+
+**INTELLIGENTLY PRESERVE** (Context-Dependent):
+- styles, materials, patterns, embellishments, travelFeatures, careRequirements, ecoMaterials, temperatureIntent, humidityFriendly
+- Preserve only if relevant to new category AND either explicitly mentioned OR categories are similar
+
+**EXAMPLES:**
+
+1. PREVIOUS="gold jewelry for formal event" + CURRENT="tote bags for travel"
+   → Preserve: occasions=["Formal Event"] → ["Travel"] (replace with new)
+   → Remove: colors=["Gold"] (dissimilar categories, not mentioned)
+   → Remove: embellishments=["Pearls", "Crystals"] (category-specific)
+   → Result: "tote bags for travel"
+
+2. PREVIOUS="gold jewelry" + CURRENT="cardigans"
+   → Preserve: (nothing from previous - dissimilar categories, no explicit intent)
+   → Remove: colors=["Gold"] (dissimilar categories, not mentioned)
+   → Result: "cardigans" (fresh start)
+
+3. PREVIOUS="red dresses for wedding" + CURRENT="tops"
+   → Preserve: colors=["Red"] (similar categories - apparel ↔ apparel)
+   → Preserve: occasions=["Wedding"] (universal)
+   → Remove: lengths=["Maxi"] (category-specific)
+   → Result: "red tops for wedding"
+
+4. PREVIOUS="dresses for wedding" + CURRENT="jewelry"
+   → Preserve: occasions=["Wedding"] (universal)
+   → Remove: lengths=["Maxi"] (category-specific)
+   → Result: "jewelry for wedding"
+
+5. PREVIOUS="gold jewelry under $200" + CURRENT="cardigans in same price range"
+   → Preserve: priceMaxCents=20000 (EXPLICIT INTENT - "same price range")
+   → Remove: colors=["Gold"] (dissimilar categories, not mentioned)
+   → Result: "cardigans under $200"
+
+6. PREVIOUS="dresses under $150" + CURRENT="tops"
+   → Preserve: priceMaxCents=15000 (similar categories - apparel ↔ apparel)
+   → Remove: lengths=["Maxi"] (category-specific)
+   → Result: "tops under $150"
+
+7. PREVIOUS="gold jewelry" + CURRENT="show me cardigans also in gold"
+   → Preserve: colors=["Gold"] (EXPLICIT INTENT - "also in gold")
+   → Result: "gold cardigans"
 
 CRITICAL: Logical Incompatibility = New Search (Most Important)
 - **Use human judgment and common sense**: Would a reasonable person wear/use the previous product type for the new occasion/context? Does the product type make sense for the age group?
 - **Think like a human**: If something doesn't make logical sense (e.g., joggers for a newborn, bikinis for a wedding), it's a NEW SEARCH
 - Examples of INCOMPATIBLE (use mergeAction: "new_search"):
-  * **Age Group Incompatibility**:
+  * **Age Group Incompatibility** - COMPLETE AGE GROUP SWITCHES are NEW SEARCH:
+    - **CRITICAL**: When user switches from one age group to a completely different age group (e.g., children to adult, adult to children), this is ALWAYS a NEW SEARCH
+    - PREVIOUS="clothes for my 6 year old and 12 year old" (ageGroups: ["Kids", "Tween"]) + CURRENT="only red dresses for adult" (ageGroups: ["Adult"]) → NEW SEARCH (complete age group switch)
+    - PREVIOUS="dresses for my daughter" (ageGroups: ["Kids"]) + CURRENT="show me ones for women" (ageGroups: ["Adult"]) → NEW SEARCH (kids to adult)
+    - PREVIOUS="red tops for kids" (ageGroups: ["Kids"]) + CURRENT="for adult" (ageGroups: ["Adult"]) → NEW SEARCH (complete age group switch)
+    - PREVIOUS="adult clothing" (ageGroups: ["Adult"]) + CURRENT="for my 8 year old" (ageGroups: ["Kids"]) → NEW SEARCH (adult to kids)
     - PREVIOUS="dress for newborn" or "newborn outfit" + CURRENT="joggers" or "relaxed fit joggers" → NEW SEARCH (newborns don't wear joggers - they wear onesies, sleepers, dresses, rompers)
     - PREVIOUS="newborn" + CURRENT="adult sizes" or "adult clothing" → NEW SEARCH (age group mismatch)
     - PREVIOUS="baby clothes" + CURRENT="toddler sizes" → NEW SEARCH (age group mismatch, unless explicitly changing age group)
+    - **RULE**: If PREVIOUS_CONSTRAINTS has ageGroups (e.g., ["Kids", "Tween"]) and CURRENT_MESSAGE specifies a different age group (e.g., ["Adult"]), this is a NEW SEARCH
+    - **RULE**: If PREVIOUS_CONSTRAINTS has ageGroups=["Adult"] and CURRENT_MESSAGE specifies children's age groups (e.g., ["Kids", "Tween"]), this is a NEW SEARCH
+    - **EXCEPTION**: Only when user explicitly says "also", "too", "and", "or" (e.g., "for kids or adults") can multiple age groups coexist - this is still a NEW SEARCH if switching completely
+    - **When mergeAction is "new_search" due to age group switch**:
+      * Set ageGroups to null in mergedConstraints (let classifier set the correct age group)
+      * Still preserve portable constraints (colors, occasions, seasons, formalityLevel) based on constraint preservation logic
+      * Set enhancedQueryText to CURRENT_MESSAGE (fresh query, not merged with previous)
+      * Set other category-specific constraints to null (lengths, sleeveLengths, necklines, fits, etc.)
+      * Example: PREVIOUS="clothes for my 6 year old and 12 year old" (ageGroups: ["Kids", "Tween"], colors: ["Red"]), CURRENT="only red dresses for adult" (ageGroups: ["Adult"], colors: ["Red"])
+        → mergeAction: "new_search"
+        → mergedConstraints: { ageGroups: null, colors: ["Red"] (preserved - portable constraint), occasions: null, lengths: null, ... (reset category-specific) }
+        → enhancedQueryText: "only red dresses for adult" (CURRENT_MESSAGE as-is, fresh query)
+        → reason: "user switched from children's age groups to adult, treating as new search while preserving portable constraints"
   * **Product Type + Occasion Incompatibility**:
     - PREVIOUS="bikinis" or "swimsuits" + CURRENT="for my wedding" → NEW SEARCH (bikinis not appropriate for weddings)
     - PREVIOUS="swimwear" + CURRENT="for office" → NEW SEARCH (swimwear not for office)
@@ -177,8 +473,37 @@ CRITICAL: Logical Incompatibility = New Search (Most Important)
   * Set enhancedQueryText to CURRENT_MESSAGE (use as-is, don't merge)
   * Set reason to explain the incompatibility (e.g., "bikinis are not appropriate for weddings, treating as new search")
 
+**CRITICAL: CONSTRAINT INTENT LEVELS** (extract for ALL constraints):
+When merging constraints, determine and preserve/update intent levels:
+
+1. **REQUIRED** ("only wants", "must be", "only", "just", "exactly", "specifically"):
+   - "only blue" after "blue dress" → update colors intent from 'strong' to 'required'
+   - "must be cotton" → materials: { values: ["Cotton"], intent: "required" }
+   - "exactly size 4" → sizes: { values: ["4"], intent: "required" }
+
+2. **STRONG** ("seriously wants", "really want", "preferably", "ideally", "or similar", "would prefer"):
+   - "blue or similar colors" → colors: { values: ["Blue"], intent: "strong" }
+   - "preferably cotton" → materials: { values: ["Cotton"], intent: "strong" }
+   - Default for explicit mentions without qualifiers
+
+3. **PREFERRED** ("mildly wants", "would like", "if possible", "maybe", "could be"):
+   - "maybe blue" → colors: { values: ["Blue"], intent: "preferred" }
+   - "would like cotton" → materials: { values: ["Cotton"], intent: "preferred" }
+
+4. **EXCLUDED** ("does not want", "not", "avoid", "no", "without", "don't want"):
+   - "not blue" → colors: { values: ["Blue"], intent: "excluded" }
+   - "avoid cotton" → materials: { values: ["Cotton"], intent: "excluded" }
+   - "without floral" → patterns: { values: ["Floral"], intent: "excluded" }
+
+**INTENT PRESERVATION RULES**:
+- When merging, preserve intent from PREVIOUS_CONSTRAINTS unless CURRENT_MESSAGE changes it
+- When user says "only X" after "X", update intent to 'required'
+- When user says "maybe X" after "X", update intent to 'preferred'
+- When user says "not X" after "X", update intent to 'excluded'
+- When user says "X or similar", keep intent as 'strong' (triggers similarity expansion)
+
 MERGE (add/update constraints while keeping others):
-- "make it black" → add/update colors: ["Black"], keep all other constraints (price, occasion, pattern, etc.)
+- "make it black" → add/update colors: ["Black"] with intent: "strong", keep all other constraints (price, occasion, pattern, etc.)
   * Enhanced query: "[previous product type] black" (e.g., "tops black" if previous was "tops")
   * If PREVIOUS_QUERY is incomplete, infer from PREVIOUS_CONSTRAINTS (e.g., if constraints show styles=["Top"], use "tops")
   * **CRITICAL**: Always preserve product type from PREVIOUS_QUERY (e.g., if PREVIOUS_QUERY="dresses", enhancedQueryText="black dresses", NOT just "black")
@@ -303,6 +628,22 @@ REPLACE (override specific constraints, keep others):
 - "not floral, show me solid" → replace patterns: ["Solid"], remove "Floral", keep other constraints
 - "Actually, I prefer a mini dress instead" → replace lengths: ["Mini"], keep pattern, occasion, price, and other constraints from previous query
 - "I prefer X instead" → replace the relevant constraint (X), keep all other constraints from previous query
+- **CRITICAL: Age Group Replacement in Follow-ups** - When a follow-up query changes the age group, REPLACE (not merge) the age group constraint:
+  * **RULE**: If CURRENT_MESSAGE mentions a different age group than PREVIOUS_CONSTRAINTS, REPLACE ageGroups with the new age group(s) from CURRENT_MESSAGE
+  * **RULE**: If CURRENT_MESSAGE contains adult terminology ("for adult", "for adults", "for women", "for men", "for ladies", "for gentlemen") at the END while PREVIOUS_CONSTRAINTS has children's age groups, REPLACE ageGroups: ["Adult"]
+  * Examples:
+    * PREVIOUS="clothes for my 6 year old" (ageGroups: ["Kids"]), CURRENT="only red dresses for adult" → REPLACE ageGroups: ["Adult"], NOT ["Kids", "Adult"]
+    * PREVIOUS="dresses for my daughter" (ageGroups: ["Kids"]), CURRENT="show me ones for women" → REPLACE ageGroups: ["Adult"], enhancedQueryText: "dresses for women" (removes "for my daughter")
+    * PREVIOUS="red tops for kids", CURRENT="for adult" → REPLACE ageGroups: ["Adult"], enhancedQueryText: "red tops for adult" (removes "for kids")
+    * PREVIOUS="clothes for my 6 year old and 12 year old" (ageGroups: ["Kids", "Tween"]), CURRENT="only red dresses for adult" → REPLACE ageGroups: ["Adult"], enhancedQueryText: "red dresses for adult" (removes all children's age mentions)
+  * **When to ADD vs REPLACE**: Only ADD age groups if the user explicitly says "also", "too", "and", "or", or lists multiple ages (e.g., "for my 6 year old and 12 year old")
+    * "for my 6 year old and 12 year old" → ageGroups: ["Kids", "Tween"] (both ages mentioned)
+    * "for kids or adults" → ageGroups: ["Kids", "Adult"] (explicit "or" indicates both)
+    * "for my daughter too" → ADD to existing age groups if PREVIOUS had age groups
+  * **When to REPLACE**: If the user mentions a single new age group without "also", "too", "and", "or", REPLACE the previous age group
+    * PREVIOUS="for kids", CURRENT="for adult" → REPLACE ageGroups: ["Adult"]
+    * PREVIOUS="for my 6 year old", CURRENT="for women" → REPLACE ageGroups: ["Adult"]
+    * PREVIOUS="red dresses", CURRENT="for my 12 year old" → REPLACE ageGroups: ["Tween"] (or set if no previous age group)
 - "over $100" when priceMaxCents exists → replace priceMinCents: 10000, keep priceMaxCents, keep other constraints
 - "under $200" when priceMinCents exists → replace priceMaxCents: 20000, keep priceMinCents, keep other constraints
 
@@ -505,26 +846,337 @@ CRITICAL: When mergeAction is "new_search":
 
 CRITICAL REMINDERS FOR enhancedQueryText:
 - Must read as a natural, searchable query (like a user would type)
-- Use natural attribute ordering: color → material → product type → style details → size → occasion → price
+- Use natural attribute ordering: color → material → product type → style details → size → occasion → age group → price
 - Avoid redundant words ("chocolate color" → "chocolate", "silk material" → "silk")
 - When adding constraints back after removal, place them in natural positions (color first, not last)
 - Group related attributes together ("long sleeves" stays together)
 - The query should be complete and coherent, not a jumbled list of attributes
 - For "similar colours" requests: Use natural phrasing like "[color] or similar coloured [product type]" NOT "[product type] or similar colours" (the latter is awkward)
+- **CRITICAL: Age Group Replacement in enhancedQueryText**: When age groups are REPLACED (not merged), REMOVE the old age group mentions from the enhanced query and use only the new age group
+  * PREVIOUS_QUERY="clothes for my 6 year old and 12 year old", CURRENT_MESSAGE="only red dresses for adult" → enhancedQueryText: "red dresses for adult" (NOT "clothes for my 6 year old and 12 year old red dresses for adult")
+  * PREVIOUS_QUERY="dresses for my daughter", CURRENT_MESSAGE="show me ones for women" → enhancedQueryText: "dresses for women" (removes "for my daughter", uses only "for women")
+  * PREVIOUS_QUERY="red tops for kids", CURRENT_MESSAGE="for adult" → enhancedQueryText: "red tops for adult" (removes "for kids", uses "for adult")
+  * When ADDING age groups (not replacing), include both: PREVIOUS="dresses for my 8 year old", CURRENT="and for my 12 year old" → enhancedQueryText: "dresses for my 8 year old and 12 year old"
 - The enhanced query should read like a complete sentence that flows naturally
 `;
+
+/**
+ * Helper function to extract age groups from query text
+ * Used as fallback when previousConstraints?.ageGroups is missing
+ */
+function extractAgeGroupsFromQuery(query: string): string[] {
+  const ageGroups: string[] = [];
+  const queryLower = query.toLowerCase();
+  
+  // Check for specific age mentions
+  if (/\b(2|3)[\s-]*(?:year|years)[\s-]*old\b/.test(queryLower)) {
+    ageGroups.push('Toddler');
+  }
+  if (/\b(4|5|6|7|8|9)[\s-]*(?:year|years)[\s-]*old\b/.test(queryLower)) {
+    ageGroups.push('Kids');
+  }
+  if (/\b(10|11|12)[\s-]*(?:year|years)[\s-]*old\b/.test(queryLower)) {
+    ageGroups.push('Tween');
+  }
+  if (/\b(13|14|15|16|17|18|19)[\s-]*(?:year|years)[\s-]*old\b/.test(queryLower)) {
+    ageGroups.push('Teen');
+  }
+  if (/\bfor\s+(?:adult|adults|women|men|ladies|gentlemen|woman|man)\b/.test(queryLower)) {
+    ageGroups.push('Adult');
+  }
+  if (/\bfor\s+(?:kids|children|child|toddler|toddlers|baby|babies)\b/.test(queryLower)) {
+    if (!ageGroups.includes('Kids') && !ageGroups.includes('Toddler')) {
+      ageGroups.push('Kids'); // Default to Kids if not specific
+    }
+  }
+  
+  return [...new Set(ageGroups)]; // Remove duplicates
+}
 
 export async function mergeFollowUpConstraints(
   previousQuery: string,
   previousConstraints: FashionConstraints | null,
   currentMessage: string,
-  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>,
+  previousCategories?: string[],
+  currentCategories?: string[]
 ): Promise<ConstraintMergeResult> {
   try {
+    // Debug logging at the start
+    logger.debug('constraint_merger_called', {
+      previousQuery: previousQuery?.substring(0, 100),
+      currentMessage: currentMessage.substring(0, 100),
+      hasPreviousConstraints: !!previousConstraints,
+      previousAgeGroups: previousConstraints?.ageGroups,
+      previousCategories,
+      currentCategories,
+    });
+    
     // If previous constraints are missing, infer from previous query text
     const constraintsText = previousConstraints 
       ? JSON.stringify(previousConstraints, null, 2)
       : 'null (constraints not available - infer from PREVIOUS_QUERY text)';
+    
+    // FALLBACK: If previousConstraints doesn't have ageGroups, try to extract from previousQuery
+    if (!previousConstraints?.ageGroups && previousQuery) {
+      const inferredAgeGroups = extractAgeGroupsFromQuery(previousQuery);
+      if (inferredAgeGroups.length > 0) {
+        previousConstraints = {
+          ...previousConstraints,
+          ageGroups: inferredAgeGroups,
+        };
+        logger.debug('age_groups_inferred_from_previous_query', {
+          previousQuery: previousQuery.substring(0, 100),
+          inferredAgeGroups,
+          note: 'Age groups missing from previousConstraints, extracted from previous query text',
+        });
+      }
+    }
+    
+    // Check category similarity
+    const areSimilar = previousCategories && currentCategories && previousCategories.length > 0 && currentCategories.length > 0
+      ? areCategoriesSimilar(previousCategories, currentCategories)
+      : false;
+    
+    // Detect explicit user intent (needed for age group switch check and LLM prompt)
+    const explicitIntent = detectExplicitIntent(currentMessage, previousConstraints);
+    
+    // CRITICAL: Check for complete age group switch BEFORE calling LLM
+    // If user switches from children to adult (or vice versa), force new_search immediately
+    const hasCompleteAgeGroupSwitch = (() => {
+      if (!previousConstraints?.ageGroups) {
+        logger.debug('age_group_switch_check_skipped', {
+          reason: 'No previous age groups',
+          previousConstraints: previousConstraints ? 'exists but no ageGroups' : 'null/undefined',
+        });
+        return false;
+      }
+      
+      logger.debug('age_group_switch_check_start', {
+        previousAgeGroups: previousConstraints.ageGroups,
+        currentMessage: currentMessage.substring(0, 100),
+      });
+      
+      // Extract previous age groups
+      const prevAgeGroups = Array.isArray(previousConstraints.ageGroups) 
+        ? previousConstraints.ageGroups 
+        : (previousConstraints.ageGroups as any)?.values || [];
+      const prevAgeGroupsNormalized = normalizeAgeGroups(prevAgeGroups);
+      
+      // Define age group categories
+      const childrenAgeGroups = ['Toddler', 'Kids', 'Tween', 'Teen'];
+      const adultAgeGroups = ['Adult'];
+      
+      const hasChildren = prevAgeGroupsNormalized.some(ag => childrenAgeGroups.includes(ag));
+      const hasAdult = prevAgeGroupsNormalized.some(ag => adultAgeGroups.includes(ag));
+      
+      // Check current message for age groups
+      const currentMessageLower = currentMessage.toLowerCase();
+      
+      // Check for adult terminology at the end (strong indicator)
+      // CRITICAL: If "for adult" appears at the END of the query, it REPLACES earlier children's mentions
+      const adultTermPattern = /\b(for\s+(?:adult|adults|women|men|ladies|gentlemen|woman|man))\b/i;
+      const adultTermMatch = currentMessage.match(adultTermPattern);
+      const hasAdultTerm = !!adultTermMatch;
+      const adultTermIndex = hasAdultTerm && adultTermMatch?.[0] 
+        ? currentMessageLower.indexOf(adultTermMatch[0].toLowerCase()) 
+        : -1;
+      // Check if adult term is in the last 30% of the message (strong indicator it's replacing earlier age mentions)
+      const isAdultTermNearEnd = hasAdultTerm && adultTermIndex >= currentMessage.length * 0.7;
+      
+      // Check for children's age mentions in current message (but ignore if adult term is at end)
+      const childrenPattern = /\b((?:for\s+my\s+)?(?:2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19)[\s-]*(?:year|years)[\s-]*old|for\s+(?:kids|children|child|toddler|toddlers|baby|babies|daughter|son|kid))\b/i;
+      const hasChildrenMention = childrenPattern.test(currentMessage);
+      
+      // CRITICAL: If adult term is at the end, it ALWAYS takes precedence over children's mentions in the same message
+      // This handles cases like "clothes for my 6 year old and 12 year old only red dresses for adult"
+      // The "for adult" at the end REPLACES the earlier children's age mentions
+      if (hasChildren && isAdultTermNearEnd) {
+        logger.debug('age_group_switch_detected', {
+          type: 'Children → Adult (adult term at end)',
+          hasChildren,
+          isAdultTermNearEnd,
+          adultTermIndex,
+          messageLength: currentMessage.length,
+          threshold: currentMessage.length * 0.7,
+        });
+        return true; // Children → Adult switch (adult term at end overrides earlier children's mentions)
+      }
+      
+      // ALTERNATIVE CHECK: If adult term exists anywhere and previous had children, and no explicit "also" or "too"
+      // This is a fallback for cases where "for adult" might not be exactly at the end
+      if (hasChildren && hasAdultTerm && !currentMessage.toLowerCase().includes('also') && !currentMessage.toLowerCase().includes('too')) {
+        // Only if adult term is in the second half of the message
+        if (adultTermIndex >= currentMessage.length * 0.5) {
+          logger.debug('age_group_switch_detected', {
+            type: 'Children → Adult (adult term in second half, no "also"/"too")',
+            hasChildren,
+            hasAdultTerm,
+            adultTermIndex,
+            messageLength: currentMessage.length,
+            threshold: currentMessage.length * 0.5,
+          });
+          return true; // Children → Adult switch
+        }
+      }
+      
+      // If adult term is NOT at the end, check for complete switches
+      if (hasChildren && hasAdultTerm && !isAdultTermNearEnd) {
+        // Adult term in middle/beginning but previous had children - might be adding, not replacing
+        // Only treat as switch if previous had ONLY children and current has ONLY adult intent
+        // For now, be conservative - don't treat as switch if adult term is not at end
+        return false;
+      }
+      
+      // Complete switch detected if:
+      // 1. Previous had children's ages AND current has adult terminology at end (already handled above)
+      // 2. Previous had adult AND current has children's mentions (without adult term)
+      if (hasAdult && hasChildrenMention && !hasAdultTerm) {
+        logger.debug('age_group_switch_detected', {
+          type: 'Adult → Children',
+          hasAdult,
+          hasChildrenMention,
+          hasAdultTerm,
+        });
+        return true; // Adult → Children switch
+      }
+      
+      logger.debug('age_group_switch_check_result', {
+        hasChildren,
+        hasAdult,
+        hasAdultTerm,
+        isAdultTermNearEnd,
+        hasChildrenMention,
+        adultTermIndex,
+        messageLength: currentMessage.length,
+        threshold: currentMessage.length * 0.7,
+        detected: false,
+      });
+      
+      return false;
+    })();
+    
+    // If complete age group switch detected, force new_search with preserved constraints
+    if (hasCompleteAgeGroupSwitch) {
+      logger.info('age_group_switch_detected_programmatically', {
+        previousQuery: previousQuery.substring(0, 100),
+        currentMessage: currentMessage.substring(0, 100),
+        previousAgeGroups: previousConstraints?.ageGroups,
+        note: 'Complete age group switch detected - forcing new_search while preserving portable constraints',
+      });
+      
+      // Build preserved constraints based on constraint preservation logic
+      const preservedConstraints: FashionConstraints = {
+        ageGroups: null, // Let classifier set the correct age group
+        // Preserve portable constraints (colors if mentioned, occasions, seasons, formalityLevel)
+        colors: (explicitIntent.preserveColors || explicitIntent.explicitColorMentions.length > 0 || 
+                 (areSimilar && previousConstraints?.colors)) // Also preserve if categories are similar
+          ? previousConstraints?.colors || undefined
+          : undefined,
+        occasions: previousConstraints?.occasions || undefined, // Universal - always preserve
+        seasons: previousConstraints?.seasons || undefined, // Universal - always preserve
+        formalityLevel: previousConstraints?.formalityLevel || undefined, // Universal - always preserve
+        priceMinCents: (explicitIntent.preservePrice || areSimilar) 
+          ? previousConstraints?.priceMinCents 
+          : undefined,
+        priceMaxCents: (explicitIntent.preservePrice || areSimilar) 
+          ? previousConstraints?.priceMaxCents 
+          : undefined,
+        // Reset category-specific constraints
+        lengths: null,
+        sleeveLengths: null,
+        necklines: null,
+        fits: null,
+        patterns: null,
+        materials: null,
+        sizes: null,
+        styles: null,
+        collections: null,
+        embellishments: null,
+        // Reset other category-specific
+        braSolution: null,
+        pockets: null,
+        liningType: null,
+        scents: null,
+        rooms: null,
+      };
+      
+      return {
+        mergedConstraints: preservedConstraints,
+        enhancedQueryText: (() => {
+          // Extract clean enhanced query: remove old age group mentions, keep only new intent
+          // Example: "clothes for my 6 year old and 12 year old only red dresses for adult" 
+          // → "red dresses for adult" or "only red dresses for adult"
+          const prevAgeGroupsForExtraction = previousConstraints && Array.isArray(previousConstraints.ageGroups) 
+            ? previousConstraints.ageGroups 
+            : (previousConstraints?.ageGroups as any)?.values || [];
+          const prevAgeGroupsNormalized = normalizeAgeGroups(prevAgeGroupsForExtraction);
+          const childrenAgeGroups = ['Toddler', 'Kids', 'Tween', 'Teen'];
+          const adultAgeGroups = ['Adult'];
+          
+          let cleanMessage = currentMessage;
+          const messageLower = currentMessage.toLowerCase();
+          
+          // If previous had children's ages, remove children's age mentions
+          if (prevAgeGroupsNormalized.some(ag => childrenAgeGroups.includes(ag))) {
+            cleanMessage = cleanMessage.replace(/\b(for\s+my\s+)?(?:2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19)[\s-]*(?:year|years)[\s-]*old\b/gi, '');
+            cleanMessage = cleanMessage.replace(/\bfor\s+(?:kids|children|child|toddler|toddlers|baby|babies|daughter|son|kid)\b/gi, '');
+            cleanMessage = cleanMessage.replace(/\bclothes\s+for\s+my\s+(?:daughter|son|kid|child)\b/gi, '');
+          }
+          
+          // If previous had adult, remove adult mentions (for adult → children switch)
+          if (prevAgeGroupsNormalized.some(ag => adultAgeGroups.includes(ag))) {
+            cleanMessage = cleanMessage.replace(/\bfor\s+(?:adult|adults|women|men|ladies|gentlemen|woman|man)\b/gi, '');
+          }
+          
+          // Clean up extra spaces and "and" connectors
+          cleanMessage = cleanMessage.replace(/\s+and\s+/gi, ' ');
+          cleanMessage = cleanMessage.replace(/\s+/g, ' ').trim();
+          
+          // Remove leading "clothes" if it's just a generic term
+          if (cleanMessage.toLowerCase().startsWith('clothes ') && 
+              !cleanMessage.toLowerCase().match(/\bclothes\s+(?:rack|hanger|organizer|storage)\b/i)) {
+            cleanMessage = cleanMessage.replace(/^clothes\s+/i, '');
+          }
+          
+          // If message is too short, extract product type + new age group
+          if (cleanMessage.length < 5) {
+            const adultTermMatch = currentMessage.match(/\b(for\s+(?:adult|adults|women|men|ladies|gentlemen|woman|man))\b/i);
+            const productTypeMatch = currentMessage.match(/\b(?:only\s+)?(?:red|blue|green|yellow|black|white|pink|purple|orange|brown|gray|grey|navy|beige|gold|silver|bronze|coral|mint|lavender|blush|ivory|cream|tan|teal|turquoise|emerald|burgundy|maroon|plum|charcoal|sage|olive|rust|terracotta|peach|lemon|cherry|crimson|scarlet|chocolate)\s+(?:dress|dresses|top|tops|bottom|bottoms|skirt|skirts|cardigan|cardigans|sweater|sweaters|swimsuit|swimsuits|bikini|bikinis|jogger|joggers|pant|pants|short|shorts)\w*/i);
+            
+            if (productTypeMatch && adultTermMatch) {
+              cleanMessage = `${productTypeMatch[0]} ${adultTermMatch[0]}`;
+            } else if (adultTermMatch) {
+              const adultIndex = messageLower.indexOf(adultTermMatch[0].toLowerCase());
+              if (adultIndex > 0) {
+                const beforeAdult = currentMessage.substring(0, adultIndex).trim();
+                const cleanedBefore = beforeAdult.replace(/\b(for\s+my\s+)?(?:2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19)[\s-]*(?:year|years)[\s-]*old\b/gi, '')
+                  .replace(/\bfor\s+(?:kids|children|child|toddler|toddlers|baby|babies)\b/gi, '')
+                  .replace(/\bclothes\s+for\s+my\s+(?:daughter|son|kid|child)\b/gi, '')
+                  .replace(/\s+and\s+/gi, ' ')
+                  .replace(/\s+/g, ' ')
+                  .trim();
+                
+                if (cleanedBefore.length > 0) {
+                  cleanMessage = `${cleanedBefore} ${adultTermMatch[0]}`;
+                }
+              }
+            }
+          }
+          
+          const finalQuery = cleanMessage.trim() || currentMessage;
+          logger.info('age_group_switch_enhanced_query_extracted', {
+            originalMessage: currentMessage.substring(0, 100),
+            extractedQuery: finalQuery,
+            previousAgeGroups: prevAgeGroupsNormalized,
+            note: 'Extracted clean enhanced query with old age group mentions removed',
+          });
+          return finalQuery;
+        })(),
+        mergeAction: 'new_search',
+        reason: 'Complete age group switch detected - treating as new search while preserving portable constraints (colors, occasions, seasons)',
+      };
+    }
     
     // Extract conversation context: get all user messages to help trace back product type
     let conversationContext = '';
@@ -556,10 +1208,26 @@ export async function mergeFollowUpConstraints(
       previousBotReply = 'No previous bot reply available';
     }
     
+    // Format category information for prompt
+    const previousCategoriesText = previousCategories && previousCategories.length > 0
+      ? JSON.stringify(previousCategories)
+      : '[] (no previous categories available)';
+    
+    const currentCategoriesText = currentCategories && currentCategories.length > 0
+      ? JSON.stringify(currentCategories)
+      : '[] (no current categories available)';
+    
     const prompt = CONSTRAINT_MERGER_PROMPT
       .replace('{PREVIOUS_QUERY}', previousQuery)
       .replace('{PREVIOUS_CONSTRAINTS}', constraintsText)
       .replace('{PREVIOUS_BOT_REPLY}', previousBotReply)
+      .replace('{PREVIOUS_CATEGORIES}', previousCategoriesText)
+      .replace('{CURRENT_CATEGORIES}', currentCategoriesText)
+      .replace('{CATEGORIES_ARE_SIMILAR}', areSimilar ? 'true' : 'false')
+      .replace('{USER_EXPLICITLY_PRESERVES_COLORS}', explicitIntent.preserveColors ? 'true' : 'false')
+      .replace('{USER_EXPLICITLY_PRESERVES_PRICE}', explicitIntent.preservePrice ? 'true' : 'false')
+      .replace('{EXPLICIT_COLOR_MENTIONS}', explicitIntent.explicitColorMentions.length > 0 ? JSON.stringify(explicitIntent.explicitColorMentions) : '[]')
+      .replace('{EXPLICIT_PRICE_MENTIONS}', explicitIntent.explicitPriceMentions.length > 0 ? JSON.stringify(explicitIntent.explicitPriceMentions) : '[]')
       .replace('{CURRENT_MESSAGE}', currentMessage)
       + conversationContext;
 
@@ -584,22 +1252,229 @@ export async function mergeFollowUpConstraints(
             mergedConstraints: {
               type: 'object',
               properties: {
-                styles: { type: ['array', 'null'], items: { type: 'string' } },
-                lengths: { type: ['array', 'null'], items: { type: 'string' } },
-                occasions: { type: ['array', 'null'], items: { type: 'string' } },
-                seasons: { type: ['array', 'null'], items: { type: 'string' } },
-                materials: { type: ['array', 'null'], items: { type: 'string' } },
-                patterns: { type: ['array', 'null'], items: { type: 'string' } },
-                colors: { type: ['array', 'null'], items: { type: 'string' } },
-                sizes: { type: ['array', 'null'], items: { type: 'string' } },
-                fits: { type: ['array', 'null'], items: { type: 'string' } },
-                collections: { type: ['array', 'null'], items: { type: 'string' } },
-                priceMinCents: { type: ['integer', 'null'] },
-                priceMaxCents: { type: ['integer', 'null'] },
-                embellishments: { type: ['array', 'null'], items: { type: 'string' } },
-                necklines: { type: ['array', 'null'], items: { type: 'string' } },
-                sleeveLengths: { type: ['array', 'null'], items: { type: 'string' } },
-                ageGroups: { type: ['array', 'null'], items: { type: 'string' } },
+                // Support both old format (array) and new format (object with intent) for backward compatibility
+                styles: { 
+                  oneOf: [
+                    { type: ['array', 'null'], items: { type: 'string' } },
+                    { 
+                      type: 'object',
+                      properties: {
+                        values: { type: 'array', items: { type: 'string' } },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                        similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                      },
+                      required: ['values', 'intent']
+                    }
+                  ]
+                },
+                lengths: { 
+                  oneOf: [
+                    { type: ['array', 'null'], items: { type: 'string' } },
+                    { 
+                      type: 'object',
+                      properties: {
+                        values: { type: 'array', items: { type: 'string' } },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                        similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                      },
+                      required: ['values', 'intent']
+                    }
+                  ]
+                },
+                occasions: { 
+                  oneOf: [
+                    { type: ['array', 'null'], items: { type: 'string' } },
+                    { 
+                      type: 'object',
+                      properties: {
+                        values: { type: 'array', items: { type: 'string' } },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                        similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                      },
+                      required: ['values', 'intent']
+                    }
+                  ]
+                },
+                seasons: { 
+                  oneOf: [
+                    { type: ['array', 'null'], items: { type: 'string' } },
+                    { 
+                      type: 'object',
+                      properties: {
+                        values: { type: 'array', items: { type: 'string' } },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                        similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                      },
+                      required: ['values', 'intent']
+                    }
+                  ]
+                },
+                materials: { 
+                  oneOf: [
+                    { type: ['array', 'null'], items: { type: 'string' } },
+                    { 
+                      type: 'object',
+                      properties: {
+                        values: { type: 'array', items: { type: 'string' } },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                        similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                      },
+                      required: ['values', 'intent']
+                    }
+                  ]
+                },
+                patterns: { 
+                  oneOf: [
+                    { type: ['array', 'null'], items: { type: 'string' } },
+                    { 
+                      type: 'object',
+                      properties: {
+                        values: { type: 'array', items: { type: 'string' } },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                        similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                      },
+                      required: ['values', 'intent']
+                    }
+                  ]
+                },
+                colors: { 
+                  oneOf: [
+                    { type: ['array', 'null'], items: { type: 'string' } },
+                    { 
+                      type: 'object',
+                      properties: {
+                        values: { type: 'array', items: { type: 'string' } },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                        similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                      },
+                      required: ['values', 'intent']
+                    }
+                  ]
+                },
+                sizes: { 
+                  oneOf: [
+                    { type: ['array', 'null'], items: { type: 'string' } },
+                    { 
+                      type: 'object',
+                      properties: {
+                        values: { type: 'array', items: { type: 'string' } },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                        similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                      },
+                      required: ['values', 'intent']
+                    }
+                  ]
+                },
+                fits: { 
+                  oneOf: [
+                    { type: ['array', 'null'], items: { type: 'string' } },
+                    { 
+                      type: 'object',
+                      properties: {
+                        values: { type: 'array', items: { type: 'string' } },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                        similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                      },
+                      required: ['values', 'intent']
+                    }
+                  ]
+                },
+                collections: { 
+                  oneOf: [
+                    { type: ['array', 'null'], items: { type: 'string' } },
+                    { 
+                      type: 'object',
+                      properties: {
+                        values: { type: 'array', items: { type: 'string' } },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                        similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                      },
+                      required: ['values', 'intent']
+                    }
+                  ]
+                },
+                priceMinCents: { 
+                  oneOf: [
+                    { type: ['integer', 'null'] },
+                    { 
+                      type: 'object',
+                      properties: {
+                        value: { type: 'integer' },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] }
+                      },
+                      required: ['value', 'intent']
+                    }
+                  ]
+                },
+                priceMaxCents: { 
+                  oneOf: [
+                    { type: ['integer', 'null'] },
+                    { 
+                      type: 'object',
+                      properties: {
+                        value: { type: 'integer' },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] }
+                      },
+                      required: ['value', 'intent']
+                    }
+                  ]
+                },
+                embellishments: { 
+                  oneOf: [
+                    { type: ['array', 'null'], items: { type: 'string' } },
+                    { 
+                      type: 'object',
+                      properties: {
+                        values: { type: 'array', items: { type: 'string' } },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                        similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                      },
+                      required: ['values', 'intent']
+                    }
+                  ]
+                },
+                necklines: { 
+                  oneOf: [
+                    { type: ['array', 'null'], items: { type: 'string' } },
+                    { 
+                      type: 'object',
+                      properties: {
+                        values: { type: 'array', items: { type: 'string' } },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                        similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                      },
+                      required: ['values', 'intent']
+                    }
+                  ]
+                },
+                sleeveLengths: { 
+                  oneOf: [
+                    { type: ['array', 'null'], items: { type: 'string' } },
+                    { 
+                      type: 'object',
+                      properties: {
+                        values: { type: 'array', items: { type: 'string' } },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                        similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                      },
+                      required: ['values', 'intent']
+                    }
+                  ]
+                },
+                ageGroups: { 
+                  oneOf: [
+                    { type: ['array', 'null'], items: { type: 'string' } },
+                    { 
+                      type: 'object',
+                      properties: {
+                        values: { type: 'array', items: { type: 'string' } },
+                        intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                        similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                      },
+                      required: ['values', 'intent']
+                    }
+                  ]
+                },
                 scents: { type: ['array', 'null'], items: { type: 'string' } },
                 rooms: { type: ['array', 'null'], items: { type: 'string' } },
                 useCases: { type: ['array', 'null'], items: { type: 'string' } },
@@ -634,7 +1509,10 @@ export async function mergeFollowUpConstraints(
     if (merged.mergedConstraints.embellishments) mergedConstraintsSummary.embellishments = merged.mergedConstraints.embellishments;
     if (merged.mergedConstraints.necklines) mergedConstraintsSummary.necklines = merged.mergedConstraints.necklines;
     if (merged.mergedConstraints.sleeveLengths) mergedConstraintsSummary.sleeveLengths = merged.mergedConstraints.sleeveLengths;
-    if (merged.mergedConstraints.ageGroups) mergedConstraintsSummary.ageGroups = merged.mergedConstraints.ageGroups;
+    if (merged.mergedConstraints.ageGroups) {
+      // Normalize age groups to match dataset values
+      mergedConstraintsSummary.ageGroups = normalizeAgeGroups(merged.mergedConstraints.ageGroups);
+    }
     if (merged.mergedConstraints.priceMinCents !== undefined && merged.mergedConstraints.priceMinCents !== null) mergedConstraintsSummary.priceMinCents = merged.mergedConstraints.priceMinCents;
     if (merged.mergedConstraints.priceMaxCents !== undefined && merged.mergedConstraints.priceMaxCents !== null) mergedConstraintsSummary.priceMaxCents = merged.mergedConstraints.priceMaxCents;
 
@@ -737,4 +1615,3 @@ export function isFollowUpRefinement(message: string, hasPreviousConstraints: bo
   
   return startsWithFollowUp || (isShort && (mentionsMatches || mentionsPriceModification));
 }
-

@@ -30,6 +30,7 @@ const MAX_TAKE = 2500; // safe for 13k catalog
 
 /**
  * Result type for database ranked search
+ * Includes enriched columns for efficient filtering
  */
 export type RankedSearchResult = {
   id: string;
@@ -46,6 +47,30 @@ export type RankedSearchResult = {
   updatedAt: Date;
   createdAt: Date;
   rank: number;
+  // Core indexed columns (Phase 2)
+  color?: string | null;
+  fabric?: string | null;
+  material?: string | null;
+  occasion?: string | null; // Single occasion column (e.g., "Daytime, Vacation")
+  season?: string | null;
+  fit?: string | null;
+  
+  // Enriched columns (for primary filtering, JSON attributes as fallback)
+  length?: string | null;
+  sleeve?: string | null;
+  neckline?: string | null;
+  formalityLevel?: string | null;
+  temperatureIntent?: string | null;
+  humidityFriendly?: boolean | null;
+  occasionContext?: string[] | null; // Array of occasions (e.g., ["Daytime", "Vacation"])
+  problemSolutions?: string[] | null;
+  functionFeatures?: string[] | null;
+  colorShade?: string | null;
+  colorUndertone?: string | null;
+  multicolor?: boolean | null;
+  seasonalPalette?: string | null;
+  enrichedColor?: string | null;
+  ageGroup?: string | null;
 };
 
 /**
@@ -86,18 +111,18 @@ export async function dbRankedSearch(
   }
 
   // Tolerant category matching: Use OR conditions for canonical categories
-  // IMPORTANT: Also check subcategory field, as products may have matching subcategories
-  // even if their main category is different (e.g., "Perfume" subcategory under "Fragrance" category)
+  // Check both category AND subcategory fields individually for maximum product coverage
+  // This ensures products are found whether they're stored in category field or subcategory field
   if (whereFilters.categoryOr && whereFilters.categoryOr.length > 0) {
     // Build OR conditions for category matching
     const categoryConditions: Prisma.Sql[] = [];
 
     for (const orCondition of whereFilters.categoryOr) {
       if (orCondition.category) {
-        // Match on both DB category AND subcategory fields (exact or contains)
+        // Match on BOTH category AND subcategory fields (exact or contains)
         const pattern = `%${orCondition.category.toLowerCase()}%`;
         categoryConditions.push(
-          Prisma.sql`LOWER("category") LIKE ${pattern} OR LOWER(COALESCE("subcategory", '')) LIKE ${pattern}`,
+          Prisma.sql`(LOWER("category") LIKE ${pattern} OR LOWER(COALESCE("subcategory", '')) LIKE ${pattern})`,
         );
       }
       // Note: googleCategory and productType are in JSON attributes, handled in post-filter
@@ -112,7 +137,7 @@ export async function dbRankedSearch(
       whereParts.push(Prisma.sql`(${joined})`);
     }
   } else if (whereFilters.category) {
-    // Use ILIKE for case-insensitive matching, also check subcategory
+    // Use ILIKE for case-insensitive matching on BOTH category AND subcategory fields
     const pattern = `%${whereFilters.category.toLowerCase()}%`;
     whereParts.push(
       Prisma.sql`(LOWER("category") LIKE ${pattern} OR LOWER(COALESCE("subcategory", '')) LIKE ${pattern})`,
@@ -306,6 +331,70 @@ export async function dbRankedSearch(
     }
   }
 
+  // Enriched attribute filters (SQL path)
+  // Length (e.g. Mini, Midi, Maxi)
+  if (whereFilters.length && whereFilters.length.length > 0) {
+    const values = whereFilters.length.map((v) => `'${v.replace(/'/g, "''")}'`).join(', ');
+    whereParts.push(Prisma.raw(`"length" = ANY(ARRAY[${values}]::text[])`));
+  }
+
+  // Formality level (Casual, Semi-Formal, Formal)
+  if (whereFilters.formalityLevel && whereFilters.formalityLevel.length > 0) {
+    const values = whereFilters.formalityLevel.map((v) => `'${v.replace(/'/g, "''")}'`).join(', ');
+    whereParts.push(Prisma.raw(`"formalityLevel" = ANY(ARRAY[${values}]::text[])`));
+  }
+
+  // Temperature intent (Warm Weather, Cool Weather, etc.)
+  if (whereFilters.temperatureIntent) {
+    whereParts.push(Prisma.sql`"temperatureIntent" = ${whereFilters.temperatureIntent}`);
+  }
+
+  // Humidity friendly (boolean)
+  if (typeof whereFilters.humidityFriendly === 'boolean') {
+    whereParts.push(Prisma.sql`"humidityFriendly" = ${whereFilters.humidityFriendly}`);
+  }
+
+  // Occasion context (array) - GIN && operator for array overlap
+  if (whereFilters.occasionContext && whereFilters.occasionContext.hasSome?.length) {
+    const values = whereFilters.occasionContext.hasSome
+      .map((v) => `'${v.replace(/'/g, "''")}'`)
+      .join(', ');
+    whereParts.push(Prisma.raw(`"occasionContext" && ARRAY[${values}]::text[]`));
+  }
+
+  // Problem solutions (array) - GIN && operator
+  if (whereFilters.problemSolutions && whereFilters.problemSolutions.hasSome?.length) {
+    const values = whereFilters.problemSolutions.hasSome
+      .map((v) => `'${v.replace(/'/g, "''")}'`)
+      .join(', ');
+    whereParts.push(Prisma.raw(`"problemSolutions" && ARRAY[${values}]::text[]`));
+  }
+
+  // Function features (array) - GIN && operator
+  if (whereFilters.functionFeatures && whereFilters.functionFeatures.hasSome?.length) {
+    const values = whereFilters.functionFeatures.hasSome
+      .map((v) => `'${v.replace(/'/g, "''")}'`)
+      .join(', ');
+    whereParts.push(Prisma.raw(`"functionFeatures" && ARRAY[${values}]::text[]`));
+  }
+
+  // Color shade (Light, Medium, Dark)
+  if (whereFilters.colorShade && whereFilters.colorShade.length > 0) {
+    const values = whereFilters.colorShade.map((v) => `'${v.replace(/'/g, "''")}'`).join(', ');
+    whereParts.push(Prisma.raw(`"colorShade" = ANY(ARRAY[${values}]::text[])`));
+  }
+
+  // Color undertone (Warm, Cool, Neutral)
+  if (whereFilters.colorUndertone && whereFilters.colorUndertone.length > 0) {
+    const values = whereFilters.colorUndertone.map((v) => `'${v.replace(/'/g, "''")}'`).join(', ');
+    whereParts.push(Prisma.raw(`"colorUndertone" = ANY(ARRAY[${values}]::text[])`));
+  }
+
+  // Multicolor (boolean)
+  if (typeof whereFilters.multicolor === 'boolean') {
+    whereParts.push(Prisma.sql`"multicolor" = ${whereFilters.multicolor}`);
+  }
+
   const whereClause =
     whereParts.length > 0
       ? (() => {
@@ -342,6 +431,105 @@ export async function dbRankedSearch(
       return Prisma.sql`${acc} + ${boost}`;
     });
     rankParts.push(Prisma.sql`(${joinedBoosts})`);
+  }
+
+  // Enriched attribute ranking boosts (SQL path)
+  // Formality level match: +2.0 boost
+  if (whereFilters.formalityLevel?.length) {
+    const formalityConditions = whereFilters.formalityLevel.map(
+      (f) => Prisma.sql`"formalityLevel" = ${f}`,
+    );
+    const formalityJoined = formalityConditions.reduce((acc, condition, idx) => {
+      if (idx === 0) return condition;
+      return Prisma.sql`${acc} OR ${condition}`;
+    });
+    rankParts.push(Prisma.sql`(CASE WHEN ${formalityJoined} THEN 2.0 ELSE 0 END)`);
+  }
+
+  // Temperature intent match: +2.5 boost (high priority for weather queries)
+  if (whereFilters.temperatureIntent) {
+    rankParts.push(
+      Prisma.sql`(CASE WHEN "temperatureIntent" = ${whereFilters.temperatureIntent} THEN 2.5 ELSE 0 END)`,
+    );
+  }
+
+  // Humidity friendly match: +1.5 boost
+  if (typeof whereFilters.humidityFriendly === 'boolean') {
+    rankParts.push(
+      Prisma.sql`(CASE WHEN "humidityFriendly" = ${whereFilters.humidityFriendly} THEN 1.5 ELSE 0 END)`,
+    );
+  }
+
+  // Occasion context match (array overlap): +2.0 boost
+  if (whereFilters.occasionContext?.hasSome?.length) {
+    const values = whereFilters.occasionContext.hasSome
+      .map((v) => `'${v.replace(/'/g, "''")}'`)
+      .join(', ');
+    rankParts.push(
+      Prisma.raw(
+        `(CASE WHEN "occasionContext" && ARRAY[${values}]::text[] THEN 2.0 ELSE 0 END)`,
+      ),
+    );
+  }
+
+  // Problem solutions match: +2.0 boost per matching solution
+  // Count matches using array overlap and unnest
+  if (whereFilters.problemSolutions?.hasSome?.length) {
+    const values = whereFilters.problemSolutions.hasSome
+      .map((v) => `'${v.replace(/'/g, "''")}'`)
+      .join(', ');
+    // Count matching solutions: use array_length with filtered unnest
+    rankParts.push(
+      Prisma.raw(
+        `(CASE WHEN "problemSolutions" && ARRAY[${values}]::text[] THEN (SELECT COUNT(*) FROM unnest("problemSolutions") AS ps WHERE ps = ANY(ARRAY[${values}]::text[])) * 2.0 ELSE 0 END)`,
+      ),
+    );
+  }
+
+  // Function features match: +1.5 boost per matching feature
+  // Count matches using array overlap and unnest
+  if (whereFilters.functionFeatures?.hasSome?.length) {
+    const values = whereFilters.functionFeatures.hasSome
+      .map((v) => `'${v.replace(/'/g, "''")}'`)
+      .join(', ');
+    // Count matching features: use array_length with filtered unnest
+    rankParts.push(
+      Prisma.raw(
+        `(CASE WHEN "functionFeatures" && ARRAY[${values}]::text[] THEN (SELECT COUNT(*) FROM unnest("functionFeatures") AS ff WHERE ff = ANY(ARRAY[${values}]::text[])) * 1.5 ELSE 0 END)`,
+      ),
+    );
+  }
+
+  // Color shade match: +1.0 boost
+  if (whereFilters.colorShade?.length) {
+    const shadeConditions = whereFilters.colorShade.map((s) => Prisma.sql`"colorShade" = ${s}`);
+    const shadeJoined = shadeConditions.reduce((acc, condition, idx) => {
+      if (idx === 0) return condition;
+      return Prisma.sql`${acc} OR ${condition}`;
+    });
+    rankParts.push(Prisma.sql`(CASE WHEN ${shadeJoined} THEN 1.0 ELSE 0 END)`);
+  }
+
+  // Color undertone match: +1.0 boost
+  if (whereFilters.colorUndertone?.length) {
+    const undertoneConditions = whereFilters.colorUndertone.map(
+      (u) => Prisma.sql`"colorUndertone" = ${u}`,
+    );
+    const undertoneJoined = undertoneConditions.reduce((acc, condition, idx) => {
+      if (idx === 0) return condition;
+      return Prisma.sql`${acc} OR ${condition}`;
+    });
+    rankParts.push(Prisma.sql`(CASE WHEN ${undertoneJoined} THEN 1.0 ELSE 0 END)`);
+  }
+
+  // Length match
+  if (whereFilters.length?.length) {
+    const lengthConditions = whereFilters.length.map((l) => Prisma.sql`"length" = ${l}`);
+    const lengthJoined = lengthConditions.reduce((acc, condition, idx) => {
+      if (idx === 0) return condition;
+      return Prisma.sql`${acc} OR ${condition}`;
+    });
+    rankParts.push(Prisma.sql`(CASE WHEN ${lengthJoined} THEN 6.0 ELSE 0 END)`);
   }
 
   // Keyword match ranking boost (exact phrase > combinations > individual words)
@@ -401,6 +589,27 @@ export async function dbRankedSearch(
         "reviewsJson",
         "createdAt",
         "updatedAt",
+        "color",
+        "fabric",
+        "material",
+        "occasion",
+        "season",
+        "fit",
+        "length",
+        "sleeve",
+        "neckline",
+        "formalityLevel",
+        "temperatureIntent",
+        "humidityFriendly",
+        "occasionContext",
+        "problemSolutions",
+        "functionFeatures",
+        "colorShade",
+        "colorUndertone",
+        "multicolor",
+        "seasonalPalette",
+        "enrichedColor",
+        "ageGroup",
         (${rankExpression}) AS rank
       FROM "Product"
       ${whereClause}
@@ -426,216 +635,245 @@ export async function dbRankedSearch(
   }
 
   // Prisma fallback (always used when raw SQL is disabled or fails)
-  {
-    // Build Prisma where clause
-    const prismaWhere: Prisma.ProductWhereInput = {};
+  // Build Prisma where clause
+  const prismaWhere: Prisma.ProductWhereInput = {};
 
-    // Multi-tenant isolation: filter by merchantId
-    if (merchantId) {
-      prismaWhere.merchantId = merchantId;
+  // Multi-tenant isolation: filter by merchantId
+  if (merchantId) {
+    prismaWhere.merchantId = merchantId;
+  }
+
+  if (whereFilters.stockStatus.length > 0) {
+    prismaWhere.stockStatus = { in: whereFilters.stockStatus as any };
+  }
+
+  // Handle categoryOr for tolerant matching
+  // IMPORTANT: Also check subcategory field, as products may have matching subcategories
+  // even if their main category is different (e.g., "Perfume" subcategory under "Fragrance" category)
+  if (whereFilters.categoryOr && whereFilters.categoryOr.length > 0) {
+    const categoryConditions = whereFilters.categoryOr
+      .filter((c) => c.category)
+      .flatMap((c) => [
+        { category: { contains: c.category!, mode: Prisma.QueryMode.insensitive } },
+        { subcategory: { contains: c.category!, mode: Prisma.QueryMode.insensitive } },
+      ]);
+    if (categoryConditions.length > 0) {
+      prismaWhere.OR = [...(prismaWhere.OR || []), ...categoryConditions];
     }
+  } else if (whereFilters.category) {
+    // Check both category and subcategory fields
+    prismaWhere.OR = [
+      ...(prismaWhere.OR || []),
+      { category: { contains: whereFilters.category, mode: Prisma.QueryMode.insensitive } },
+      { subcategory: { contains: whereFilters.category, mode: Prisma.QueryMode.insensitive } },
+    ];
+  }
 
-    if (whereFilters.stockStatus.length > 0) {
-      prismaWhere.stockStatus = { in: whereFilters.stockStatus as any };
+  // Fix: Only add priceCents filter if values are defined and not null
+  const hasMinPrice = whereFilters.priceMinCents !== undefined && whereFilters.priceMinCents !== null;
+  const hasMaxPrice = whereFilters.priceMaxCents !== undefined && whereFilters.priceMaxCents !== null;
+  if (hasMinPrice || hasMaxPrice) {
+    prismaWhere.priceCents = {};
+    if (hasMinPrice) {
+      prismaWhere.priceCents.gte = whereFilters.priceMinCents!;
     }
+    if (hasMaxPrice) {
+      prismaWhere.priceCents.lte = whereFilters.priceMaxCents!;
+    }
+  }
 
-    // Handle categoryOr for tolerant matching
-    // IMPORTANT: Also check subcategory field, as products may have matching subcategories
-    // even if their main category is different (e.g., "Perfume" subcategory under "Fragrance" category)
-    if (whereFilters.categoryOr && whereFilters.categoryOr.length > 0) {
-      const categoryConditions = whereFilters.categoryOr
-        .filter((c) => c.category)
-        .flatMap((c) => [
-          { category: { contains: c.category!, mode: Prisma.QueryMode.insensitive } },
-          { subcategory: { contains: c.category!, mode: Prisma.QueryMode.insensitive } },
-        ]);
-      if (categoryConditions.length > 0) {
-        prismaWhere.OR = [...(prismaWhere.OR || []), ...categoryConditions];
+  if (whereFilters.brands?.length) {
+    prismaWhere.brand = { in: whereFilters.brands };
+  }
+  if (whereFilters.excludeProductIds?.length) {
+    prismaWhere.id = { notIn: whereFilters.excludeProductIds };
+  }
+  if (whereFilters.excludedCategories.length > 0) {
+    prismaWhere.NOT = { category: { in: whereFilters.excludedCategories } };
+  }
+
+  // Gender filter: hard filter at DB level using JSON path
+  // Note: Prisma JSON path filtering may not be available in all versions
+  // We'll use Prisma.sql for JSON filtering to ensure compatibility
+  // Supports both normalized (mens/womens) and raw CSV values (male/female)
+  if (whereFilters.genders?.length) {
+    // Build gender filter using raw SQL for JSON path access
+    const genderSqlConditions: Prisma.Sql[] = [];
+    for (const gender of whereFilters.genders) {
+      if (gender === 'mens') {
+        // mens OR male (CSV) OR unisex
+        genderSqlConditions.push(
+          Prisma.sql`(attributes->>'gender' = 'mens' OR attributes->>'gender' = 'male' OR attributes->>'gender' = 'unisex')`,
+        );
+      } else if (gender === 'womens') {
+        // womens OR female (CSV) OR unisex
+        genderSqlConditions.push(
+          Prisma.sql`(attributes->>'gender' = 'womens' OR attributes->>'gender' = 'female' OR attributes->>'gender' = 'unisex')`,
+        );
+      } else if (gender === 'unisex') {
+        // unisex only (strict)
+        genderSqlConditions.push(Prisma.sql`attributes->>'gender' = 'unisex'`);
       }
-    } else if (whereFilters.category) {
-      // Check both category and subcategory fields
+    }
+    if (genderSqlConditions.length > 0) {
+      // For Prisma fallback, we need to add this as a raw SQL condition
+      // Since Prisma doesn't support JSON path filtering directly in all versions,
+      // we'll filter in-memory after fetch but add it to the WHERE clause using Prisma.sql
+      // Actually, we can't mix Prisma.sql with Prisma.where, so we'll need to filter after fetch
+      // But that defeats the purpose. Let's use a workaround: add to existing AND conditions
+      // For now, we'll handle this in the post-processing step
+      // Store gender filter for post-processing
+      (prismaWhere as any).__genderFilter = whereFilters.genders;
+    }
+  }
+
+  // Enriched attribute filters (Prisma path)
+  if (whereFilters.length && whereFilters.length.length > 0) {
+    (prismaWhere as any).length = { in: whereFilters.length };
+  }
+  if (whereFilters.formalityLevel && whereFilters.formalityLevel.length > 0) {
+    (prismaWhere as any).formalityLevel = { in: whereFilters.formalityLevel };
+  }
+  if (whereFilters.temperatureIntent) {
+    (prismaWhere as any).temperatureIntent = whereFilters.temperatureIntent;
+  }
+  if (typeof whereFilters.humidityFriendly === 'boolean') {
+    (prismaWhere as any).humidityFriendly = whereFilters.humidityFriendly;
+  }
+  if (whereFilters.occasionContext && whereFilters.occasionContext.hasSome?.length) {
+    (prismaWhere as any).occasionContext = { hasSome: whereFilters.occasionContext.hasSome };
+  }
+  if (whereFilters.problemSolutions && whereFilters.problemSolutions.hasSome?.length) {
+    (prismaWhere as any).problemSolutions = { hasSome: whereFilters.problemSolutions.hasSome };
+  }
+  if (whereFilters.functionFeatures && whereFilters.functionFeatures.hasSome?.length) {
+    (prismaWhere as any).functionFeatures = { hasSome: whereFilters.functionFeatures.hasSome };
+  }
+  if (whereFilters.colorShade && whereFilters.colorShade.length > 0) {
+    (prismaWhere as any).colorShade = { in: whereFilters.colorShade };
+  }
+  if (whereFilters.colorUndertone && whereFilters.colorUndertone.length > 0) {
+    (prismaWhere as any).colorUndertone = { in: whereFilters.colorUndertone };
+  }
+  if (typeof whereFilters.multicolor === 'boolean') {
+    (prismaWhere as any).multicolor = whereFilters.multicolor;
+  }
+
+  // Keyword prefilter: Use keywordFilters or queryText for text search
+  // Generate keyword combinations with priority: exact phrase > 2-word combinations > individual words
+  // Note: Prisma doesn't support JSON path filtering directly in where clauses,
+  // so we'll search in title/description/category here, and include attributes in ranking
+  const keywordFiltersForPrisma = whereFilters.keywordFilters || hardTextFilters;
+  let keywordRankingData: {
+    exactPhrases: string[];
+    twoWordCombos: string[];
+    individualWords: string[];
+  } | null = null;
+
+  if (keywordFiltersForPrisma && keywordFiltersForPrisma.length > 0) {
+    // Organize keywords by priority: exact phrases, 2-word combinations, individual words
+    const exactPhrases: string[] = [];
+    const twoWordCombos: string[] = [];
+    const individualWords: string[] = [];
+    const allKeywordsForWhere: string[] = [];
+
+    for (const keyword of keywordFiltersForPrisma) {
+      const lowerKeyword = keyword.toLowerCase();
+      const words = lowerKeyword.split(/\s+/).filter((w) => w.length >= 2);
+
+      if (words.length > 1) {
+        // Multi-word phrase: prioritize exact phrase, then combinations, then individual words
+        exactPhrases.push(lowerKeyword);
+        allKeywordsForWhere.push(lowerKeyword);
+
+        // Generate 2-word combinations (e.g., "bath gift", "gift set" from "bath gift set")
+        for (let i = 0; i < words.length - 1; i++) {
+          const combo = `${words[i]} ${words[i + 1]}`;
+          if (!twoWordCombos.includes(combo)) {
+            twoWordCombos.push(combo);
+            allKeywordsForWhere.push(combo);
+          }
+        }
+
+        // Add individual words
+        for (const word of words) {
+          if (!individualWords.includes(word)) {
+            individualWords.push(word);
+            allKeywordsForWhere.push(word);
+          }
+        }
+      } else {
+        // Single word: treat as exact phrase
+        exactPhrases.push(lowerKeyword);
+        allKeywordsForWhere.push(lowerKeyword);
+      }
+    }
+
+    // Store for ranking later
+    keywordRankingData = { exactPhrases, twoWordCombos, individualWords };
+
+    // Build WHERE conditions (all keywords, no priority)
+    const keywordConditions = allKeywordsForWhere.map((keyword) => ({
+      OR: [
+        { title: { contains: keyword, mode: Prisma.QueryMode.insensitive } },
+        { description: { contains: keyword, mode: Prisma.QueryMode.insensitive } },
+        { category: { contains: keyword, mode: Prisma.QueryMode.insensitive } },
+        { subcategory: { contains: keyword, mode: Prisma.QueryMode.insensitive } },
+      ],
+    }));
+    const existingAnd = Array.isArray(prismaWhere.AND)
+      ? prismaWhere.AND
+      : prismaWhere.AND
+        ? [prismaWhere.AND]
+        : [];
+    prismaWhere.AND = [...existingAnd, { OR: keywordConditions }];
+  } else if (queryText?.trim()) {
+    // Fallback: simple text search in Prisma
+    const words = queryText
+      .split(/\s+/)
+      .map((w) => w.trim())
+      .filter((w) => w.length >= 3)
+      .slice(0, 5);
+    if (words.length) {
+      const existingOr = Array.isArray(prismaWhere.OR)
+        ? prismaWhere.OR
+        : prismaWhere.OR
+          ? [prismaWhere.OR]
+          : [];
       prismaWhere.OR = [
-        ...(prismaWhere.OR || []),
-        { category: { contains: whereFilters.category, mode: Prisma.QueryMode.insensitive } },
-        { subcategory: { contains: whereFilters.category, mode: Prisma.QueryMode.insensitive } },
+        ...existingOr,
+        ...words.map((word) => ({
+          title: { contains: word, mode: Prisma.QueryMode.insensitive },
+        })),
+        ...words.map((word) => ({
+          description: { contains: word, mode: Prisma.QueryMode.insensitive },
+        })),
       ];
     }
-
-    // Fix: Only add priceCents filter if values are defined and not null
-    const hasMinPrice = whereFilters.priceMinCents !== undefined && whereFilters.priceMinCents !== null;
-    const hasMaxPrice = whereFilters.priceMaxCents !== undefined && whereFilters.priceMaxCents !== null;
-    if (hasMinPrice || hasMaxPrice) {
-      prismaWhere.priceCents = {};
-      if (hasMinPrice) {
-        prismaWhere.priceCents.gte = whereFilters.priceMinCents!;
-      }
-      if (hasMaxPrice) {
-        prismaWhere.priceCents.lte = whereFilters.priceMaxCents!;
-      }
-    }
-
-    if (whereFilters.brands?.length) {
-      prismaWhere.brand = { in: whereFilters.brands };
-    }
-    if (whereFilters.excludeProductIds?.length) {
-      prismaWhere.id = { notIn: whereFilters.excludeProductIds };
-    }
-    if (whereFilters.excludedCategories.length > 0) {
-      prismaWhere.NOT = { category: { in: whereFilters.excludedCategories } };
-    }
-
-    // Gender filter: hard filter at DB level using JSON path
-    // Note: Prisma JSON path filtering may not be available in all versions
-    // We'll use Prisma.sql for JSON filtering to ensure compatibility
-    // Supports both normalized (mens/womens) and raw CSV values (male/female)
-    if (whereFilters.genders?.length) {
-      // Build gender filter using raw SQL for JSON path access
-      const genderSqlConditions: Prisma.Sql[] = [];
-      for (const gender of whereFilters.genders) {
-        if (gender === 'mens') {
-          // mens OR male (CSV) OR unisex
-          genderSqlConditions.push(
-            Prisma.sql`(attributes->>'gender' = 'mens' OR attributes->>'gender' = 'male' OR attributes->>'gender' = 'unisex')`,
-          );
-        } else if (gender === 'womens') {
-          // womens OR female (CSV) OR unisex
-          genderSqlConditions.push(
-            Prisma.sql`(attributes->>'gender' = 'womens' OR attributes->>'gender' = 'female' OR attributes->>'gender' = 'unisex')`,
-          );
-        } else if (gender === 'unisex') {
-          // unisex only (strict)
-          genderSqlConditions.push(Prisma.sql`attributes->>'gender' = 'unisex'`);
-        }
-      }
-      if (genderSqlConditions.length > 0) {
-        // For Prisma fallback, we need to add this as a raw SQL condition
-        // Since Prisma doesn't support JSON path filtering directly in all versions,
-        // we'll filter in-memory after fetch but add it to the WHERE clause using Prisma.sql
-        // Actually, we can't mix Prisma.sql with Prisma.where, so we'll need to filter after fetch
-        // But that defeats the purpose. Let's use a workaround: add to existing AND conditions
-        // For now, we'll handle this in the post-processing step
-        // Store gender filter for post-processing
-        (prismaWhere as any).__genderFilter = whereFilters.genders;
-      }
-    }
-
-    // Keyword prefilter: Use keywordFilters or queryText for text search
-    // Generate keyword combinations with priority: exact phrase > 2-word combinations > individual words
-    // Note: Prisma doesn't support JSON path filtering directly in where clauses,
-    // so we'll search in title/description/category here, and include attributes in ranking
-    const keywordFiltersForPrisma = whereFilters.keywordFilters || hardTextFilters;
-    let keywordRankingData: {
-      exactPhrases: string[];
-      twoWordCombos: string[];
-      individualWords: string[];
-    } | null = null;
-
-    if (keywordFiltersForPrisma && keywordFiltersForPrisma.length > 0) {
-      // Organize keywords by priority: exact phrases, 2-word combinations, individual words
-      const exactPhrases: string[] = [];
-      const twoWordCombos: string[] = [];
-      const individualWords: string[] = [];
-      const allKeywordsForWhere: string[] = [];
-
-      for (const keyword of keywordFiltersForPrisma) {
-        const lowerKeyword = keyword.toLowerCase();
-        const words = lowerKeyword.split(/\s+/).filter((w) => w.length >= 2);
-
-        if (words.length > 1) {
-          // Multi-word phrase: prioritize exact phrase, then combinations, then individual words
-          exactPhrases.push(lowerKeyword);
-          allKeywordsForWhere.push(lowerKeyword);
-
-          // Generate 2-word combinations (e.g., "bath gift", "gift set" from "bath gift set")
-          for (let i = 0; i < words.length - 1; i++) {
-            const combo = `${words[i]} ${words[i + 1]}`;
-            if (!twoWordCombos.includes(combo)) {
-              twoWordCombos.push(combo);
-              allKeywordsForWhere.push(combo);
-            }
-          }
-
-          // Add individual words
-          for (const word of words) {
-            if (!individualWords.includes(word)) {
-              individualWords.push(word);
-              allKeywordsForWhere.push(word);
-            }
-          }
-        } else {
-          // Single word: treat as exact phrase
-          exactPhrases.push(lowerKeyword);
-          allKeywordsForWhere.push(lowerKeyword);
-        }
-      }
-
-      // Store for ranking later
-      keywordRankingData = { exactPhrases, twoWordCombos, individualWords };
-
-      // Build WHERE conditions (all keywords, no priority)
-      const keywordConditions = allKeywordsForWhere.map((keyword) => ({
-        OR: [
-          { title: { contains: keyword, mode: Prisma.QueryMode.insensitive } },
-          { description: { contains: keyword, mode: Prisma.QueryMode.insensitive } },
-          { category: { contains: keyword, mode: Prisma.QueryMode.insensitive } },
-          { subcategory: { contains: keyword, mode: Prisma.QueryMode.insensitive } },
-        ],
-      }));
-      const existingAnd = Array.isArray(prismaWhere.AND)
-        ? prismaWhere.AND
-        : prismaWhere.AND
-          ? [prismaWhere.AND]
-          : [];
-      prismaWhere.AND = [...existingAnd, { OR: keywordConditions }];
-    } else if (queryText?.trim()) {
-      // Fallback: simple text search in Prisma
-      const words = queryText
-        .split(/\s+/)
-        .map((w) => w.trim())
-        .filter((w) => w.length >= 3)
-        .slice(0, 5);
-      if (words.length) {
-        const existingOr = Array.isArray(prismaWhere.OR)
-          ? prismaWhere.OR
-          : prismaWhere.OR
-            ? [prismaWhere.OR]
-            : [];
-        prismaWhere.OR = [
-          ...existingOr,
-          ...words.map((word) => ({
-            title: { contains: word, mode: Prisma.QueryMode.insensitive },
-          })),
-          ...words.map((word) => ({
-            description: { contains: word, mode: Prisma.QueryMode.insensitive },
-          })),
-        ];
-      }
-    }
-
-    // Extract gender filter before passing to Prisma (can't use JSON path in Prisma.where directly)
-    const genderFilter = (prismaWhere as any).__genderFilter;
-    delete (prismaWhere as any).__genderFilter;
-
-    // Fetch WITHOUT ordering first - we'll rank and sort after
-    // Fetch 3-5x take to have a good pool for relevance ranking
-    const fetchTake = Math.min(MAX_TAKE, take * (genderFilter ? 5 : 3));
-    const results = await prisma.product.findMany({
-      where: prismaWhere,
-      // NO orderBy here - we'll rank and sort after
-      take: fetchTake,
-    });
-
-    // Apply relevance scoring (includes stock and gender filtering)
-    const rankedResults = applyRelevanceScoring(
-      results as any,
-      queryText,
-      keywordRankingData,
-      whereFilters,
-      genderFilter,
-      take,
-    );
-
-    return rankedResults as RankedSearchResult[];
   }
-}
 
+  // Extract gender filter before passing to Prisma (can't use JSON path in Prisma.where directly)
+  const genderFilter = (prismaWhere as any).__genderFilter;
+  delete (prismaWhere as any).__genderFilter;
+
+  // Fetch WITHOUT ordering first - we'll rank and sort after
+  // Fetch 3-5x take to have a good pool for relevance ranking
+  const fetchTake = Math.min(MAX_TAKE, take * (genderFilter ? 5 : 3));
+  const results = await prisma.product.findMany({
+    where: prismaWhere,
+    // NO orderBy here - we'll rank and sort after
+    take: fetchTake,
+  });
+
+  // Apply relevance scoring (includes stock and gender filtering)
+  const rankedResults = applyRelevanceScoring(
+    results as any,
+    queryText,
+    keywordRankingData,
+    whereFilters,
+    genderFilter,
+    take,
+  );
+
+  return rankedResults as RankedSearchResult[];
+}

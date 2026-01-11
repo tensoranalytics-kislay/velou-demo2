@@ -7,10 +7,17 @@
 
 import { callLLM } from '../llm/provider';
 import { logger } from '../telemetry/logger';
+import { categoryExists, findClosestCategory, getAllCategories } from '../catalog/category-tree';
 
 const CATEGORY_CLASSIFIER_PROMPT = `You are a category classification system for a fashion shopping assistant.
 
 Your job is to map user shopping queries to the most relevant product categories from the catalog.
+
+**CRITICAL: AGE GROUP INFERENCE - HIGHEST PRIORITY**
+You MUST infer age groups from context clues, not just explicit age mentions. This is ESSENTIAL for accurate category classification. Use the SAME age group inference logic as the constraint classifier:
+- "daughter" or "son" without explicit age → Use context clues (modest, muslim, conservative, traditional) to infer Kids vs Adult categories
+- Context signals like "modest", "muslim", "conservative", "traditional" + "daughter" → STRONGLY suggest Kids categories (Girls Dresses, Girls Tops, etc.)
+- When in doubt about ambiguous "daughter" queries, prefer Kids categories unless explicit adult signals exist (teen, teenage, wedding for adult, etc.)
 
 AVAILABLE CATEGORIES (48 total):
 
@@ -74,9 +81,13 @@ AVAILABLE CATEGORIES (48 total):
 
 INSTRUCTIONS:
 1. Analyze the user's query and identify the most relevant product categories
-2. **CRITICAL: Only return categories if you are confident (confidence >= 0.5). If the query is too vague to determine category (e.g., "something elegant", "gift for someone"), return an empty categories array and set confidence < 0.5.**
-3. **For specific single-item queries (e.g., "blazer", "black blazer", "dress"), return ONLY the most relevant category (e.g., ["Tops"] for blazer, ["Women's Dresses"] for dress)**
-4. **For ambiguous queries (e.g., "suits", "matching sets"), return up to 3 categories in order of relevance**
+2. **CRITICAL: Only return categories that EXIST in the dataset. The system will validate your output against the actual categories in the database.**
+3. **CRITICAL: Only return categories if you are confident (confidence >= 0.5). If the query is too vague to determine category (e.g., "something elegant", "gift for someone"), return an empty categories array and set confidence < 0.5.**
+4. **Return up to 3 categories in order of relevance. Prioritize returning multiple categories when:**
+   - The query could reasonably match multiple age-specific categories (e.g., "cardigan for 12 year old" could match both "Girls Tops" and "Tween Sweaters")
+   - The query mentions composite product types (e.g., "suit", "matching set")
+   - The product type could exist in multiple categories (e.g., "sweater" could be in "Tops" or "Sweaters" or age-specific categories)
+   - For specific single-item queries without age context, you may return just 1 category for precision (e.g., "blazer" → ["Tops"])
 5. Return categories in order of relevance (most relevant first)
 6. **CRITICAL: Return ONLY the category name (the text before the "—" em dash), NOT the description**
    - Correct: "Girls Tops"
@@ -85,19 +96,52 @@ INSTRUCTIONS:
    - Wrong: "Baby & Toddler Bottoms — Baby/toddler bottoms..."
 7. Use the exact category names as listed above (e.g., "Women's Dresses", "Tops", "Girls Dresses", "Baby & Toddler Bottoms")
 8. **DO NOT return "Uncategorized" - it is not a valid category for filtering**
-9. If the query is ambiguous or could match multiple categories, prioritize the most specific match
-10. Consider age groups: 
-    - **Kids categories (Girls Dresses, Girls Tops, etc.)**: queries mentioning "kids", "children", "toddler", "baby", "infant", "little girl", "little boy" (typically ages 0-12)
-    - **Teen/Adult categories (Women's Dresses, Tops, etc.)**: queries mentioning "teen", "teenager", "teenage", "teenage daughter", "teenage son", "teenage girl", "teenage boy", "juvenile", "youth", "adolescent", "young adult", "pre-teen", "tween" (ages 13-19) should map to ADULT categories like "Women's Dresses", "Tops", etc., NOT kids categories
-    - **CRITICAL**: "teen", "teenager", "teenage" → "Women's Dresses" (NOT "Girls Dresses")
-    - **CRITICAL**: "for my teen daughter" or "for teenage daughter" → "Women's Dresses" (NOT "Girls Dresses")
-11. Consider product types: "dress" → "Women's Dresses", "top" → "Tops", "swim" → "Swimsuits" or "Bikini Sets"
-12. Consider context: "beach" might map to "Swimsuits", "Swim Cover-ups", or "Beach Towels"
-13. **For specific single-item queries, be precise**:
-    - "blazer" → ["Tops"] (blazers are in Tops category, NOT Bottoms or Accessories)
-    - "jacket" → ["Tops"] (jackets are in Tops category)
-    - "sweater" → ["Tops", "Sweaters"] if Sweaters is a separate category, otherwise ["Tops"]
-14. **For composite product types** (items made of multiple pieces):
+9. If the query could match multiple categories, prioritize the most specific match but include all relevant ones
+10. **IMPORTANT: If you're unsure about a category name, return only categories you're certain exist. The system will map close matches automatically.**
+11. **Consider age groups carefully - USE AGE GROUP INFERENCE LOGIC**:
+    - **CRITICAL: Infer age group from context clues, not just explicit age mentions**:
+      - **Explicit age mentions**:
+        - "baby", "infant", "babies" → Baby/Toddler categories (Baby & Toddler Bottoms)
+        - "toddler" → Baby/Toddler categories (Baby & Toddler Bottoms)
+        - "kids", "children", "child" → Kids categories (Girls Dresses, Girls Tops, Girls Bottoms, Girls Swimwear)
+        - "tween", "pre-teen", "preteen", ages 10-12 → Tween categories (Tween Pants, Tween Sweaters, Tween Dresses)
+        - "teen", "teenager", "teenage", ages 13-19 → Teen/Adult categories (Women's Dresses, Tops, etc.)
+        - "adult", "women", "womens", "for women" → Teen/Adult categories (Women's Dresses, Tops, etc.)
+      
+      - **Context-based age inference** (CRITICAL - similar to age group classifier logic):
+        - **"daughter" or "son" without explicit age**: Use context clues to infer age group:
+          - "modest" + "daughter" → **Kids categories** (Girls Dresses, Girls Tops, etc.) - modest clothing requests for daughters are typically for children
+          - "muslim" + "daughter" → **Kids categories** (Girls Dresses, Girls Tops, etc.) - religious modesty requests for daughters are typically for children
+          - "conservative" + "daughter" → **Kids categories** (Girls Dresses, Girls Tops, etc.) - conservative requests for daughters are typically for children
+          - "traditional" + "daughter" → **Kids categories** (Girls Dresses, Girls Tops, etc.) - traditional requests for daughters are typically for children
+          - "long sleeves" + "daughter" + context suggesting modesty → **Kids categories** (Girls Dresses, Girls Tops, etc.)
+          - "daughter" + "school", "play", "children's" → **Kids categories**
+          - "daughter" + "teen" or "teenage" → **Teen/Adult categories** (Women's Dresses, Tops, etc.)
+          - "daughter" + "baby" or "toddler" → **Kids categories** (Girls Dresses, Girls Tops, etc.)
+          - "daughter" without any context clues → Default to **Kids categories** unless other signals suggest adult (e.g., "wedding dress for daughter" without age → consider both Kids and Adult, but lean towards Kids if no adult signals)
+        
+        - **Product category context** (infer age from product category mentions):
+          - "baby items", "onesie", "bodysuit" → Baby/Toddler categories
+          - "girls dresses", "girls tops", "children's clothes" → Kids categories (Girls Dresses, Girls Tops, etc.)
+          - "women's dresses", "women's clothes", "adult items" → Teen/Adult categories (Women's Dresses, Tops, etc.)
+        
+        - **Combined context signals**:
+          - "modest dress for my muslim daughter" → **Girls Dresses** (modest + muslim + daughter = Kids category)
+          - "conservative dress with long sleeves for my daughter" → **Girls Dresses** (conservative + long sleeves + daughter = Kids category)
+          - "traditional dress for daughter" → **Girls Dresses** (traditional + daughter = Kids category)
+          - "wedding dress for daughter" (no age, no modesty context) → Consider both **Girls Dresses** and **Women's Dresses**, but if modesty context exists, prefer **Girls Dresses**
+    
+    - **CRITICAL**: "tween" or "10/11/12 year old" → "Tween Sweaters", "Tween Dresses", "Tween Pants" (NOT "Girls" categories or "Adult" categories)
+    - **CRITICAL**: "teen", "teenager", "teenage", or ages 13-19 → "Women's Dresses", "Tops", etc. (NOT "Girls Dresses")
+    - **IMPORTANT**: When age is mentioned (e.g., "for 12 year old"), return ALL relevant age-specific categories. For example: "cardigan for 12 year old" → ["Tween Sweaters", "Girls Tops"] (both are relevant)
+    - **IMPORTANT**: When inferring age from context clues (modest, muslim, conservative, traditional + daughter), ALWAYS return Kids categories - do NOT default to Adult categories
+12. Consider product types: "dress" → "Women's Dresses", "top" → "Tops", "swim" → "Swimsuits" or "Bikini Sets", "sweater"/"cardigan" → "Sweaters" or "Tops" or age-specific categories
+13. Consider context: "beach" might map to "Swimsuits", "Swim Cover-ups", or "Beach Towels"
+14. **For product types that could exist in multiple age groups, return multiple categories**:
+    - "cardigan for 12 year old" → ["Tween Sweaters", "Girls Tops"] (both are relevant)
+    - "dress for 12 year old" → ["Tween Dresses", "Girls Dresses"] (both could be relevant)
+    - "sweater" (no age) → ["Tops", "Sweaters"] if Sweaters is a separate category, otherwise ["Tops"]
+15. **For composite product types** (items made of multiple pieces):
     - "suits" → ["Tops", "Bottoms"] (suits are matching sets of jacket + pants/skirt)
     - "matching sets" → ["Tops", "Bottoms"] or ["Tops", "Skirts"] depending on context
     - "co-ords" or "coords" → ["Tops", "Bottoms"] or ["Tops", "Skirts"]
@@ -111,14 +155,25 @@ EXAMPLES:
 - "for teenage girl" → ["Women's Dresses"] (NOT "Girls Dresses")
 - "dress for my baby daughter" → ["Girls Dresses"] (babies/toddlers can wear kids dresses, NOT "Women's Dresses" or "Baby & Toddler Bottoms" since dresses aren't in that category)
 - "baby daughter dress" → ["Girls Dresses"] (babies/toddlers can wear kids dresses)
+- **"modest dress for my daughter" → ["Girls Dresses"] (modest + daughter without age → Kids category)**
+- **"modest dress with long sleeves for my muslim daughter" → ["Girls Dresses"] (modest + muslim + daughter + long sleeves → Kids category)**
+- **"conservative dress for my daughter" → ["Girls Dresses"] (conservative + daughter → Kids category)**
+- **"traditional dress for daughter" → ["Girls Dresses"] (traditional + daughter → Kids category)**
+- **"dress for my daughter" (no age, no context) → ["Girls Dresses"] (default to Kids unless other signals suggest adult)**
+- "dress for my daughter for wedding" (no modesty context, wedding typically adult) → Consider both ["Girls Dresses", "Women's Dresses"], but if modesty context exists (e.g., "modest wedding dress for daughter"), prefer ["Girls Dresses"]
+- "white cardigan for my 12 year old" → ["Tween Sweaters", "Girls Tops"] (12 year old is tween age, cardigan/sweater could be in both categories)
+- "cardigan for 12 year old" → ["Tween Sweaters", "Girls Tops"] (return multiple relevant categories)
+- "sweater for 10 year old" → ["Tween Sweaters", "Girls Tops"] (10 year old is tween, include both relevant categories)
+- "dress for 12 year old" → ["Tween Dresses", "Girls Dresses"] (both could be relevant)
+- "tween cardigan" → ["Tween Sweaters"] (specific tween category)
 - "swimwear" → ["Swimsuits", "Bikini Sets", "Swim Cover-ups"]
 - "pajamas" → ["Pajama Set", "Loungewear"]
 - "perfume" → ["Perfumes"]
 - "bedding" → ["Bedding"]
 - "accessories" → ["Accessories", "Jewelry", "Hair Accessories"]
 - "onesies for babies" → ["Baby & Toddler Bottoms", "Girls Tops"]
-- "blazer" → ["Tops"] (blazers are specifically in Tops category)
-- "black blazer" → ["Tops"] (blazers are in Tops, not Bottoms or Accessories)
+- "blazer" → ["Tops"] (blazers are specifically in Tops category, no age context, return single category for precision)
+- "black blazer" → ["Tops"] (blazers are in Tops, not Bottoms or Accessories, no age context)
 - "suits" → ["Tops", "Bottoms"] (suits are matching sets of jacket + pants/skirt)
 - "tailored suits" → ["Tops", "Bottoms"] (professional suits)
 - "matching sets" → ["Tops", "Bottoms"] or ["Tops", "Skirts"] depending on context
@@ -137,7 +192,7 @@ const CATEGORY_CLASSIFIER_SCHEMA = {
         items: { type: 'string' },
         minItems: 1,
         maxItems: 3,
-        description: '1-3 most relevant categories in order of relevance (most relevant first). For specific single-item queries (e.g., "blazer", "dress"), return only the most relevant category. For ambiguous queries, return up to 3 categories.',
+        description: '1-3 most relevant categories in order of relevance (most relevant first). Return multiple categories (up to 3) when the query could match multiple age-specific categories, composite product types, or when product type could exist in multiple categories. For specific single-item queries without age context (e.g., "blazer"), you may return just 1 category for precision.',
       },
       confidence: {
         type: 'number',
@@ -172,7 +227,7 @@ export async function classifyQueryToCategories(
       messages: [
         {
           role: 'system',
-          content: 'You are a category classification system for a shopping assistant. The catalog includes multiple verticals: Kids, Women\'s/Adult Apparel, Accessories, Personal Care, and Home & Living (48 total categories). Map user queries to the most relevant product categories from any of these verticals.',
+          content: 'You are a category classification system for a shopping assistant. The catalog includes multiple verticals: Kids, Women\'s/Adult Apparel, Accessories, Personal Care, and Home & Living (48 total categories). Map user queries to the most relevant product categories from any of these verticals. CRITICAL: Infer age groups from context clues (modest, muslim, conservative, traditional + daughter) to determine Kids vs Adult categories. Use the SAME age group inference logic as the constraint classifier.',
         },
         {
           role: 'user',
@@ -203,11 +258,45 @@ export async function classifyQueryToCategories(
 
         // Extract only the category name (before "—" em dash or " - " dash)
         // This handles cases where the LLM returns the full description
-        const categories = (classification.categories || []).map(cat => {
+        let categories = (classification.categories || []).map(cat => {
           // Remove description after em dash (—) or regular dash (-)
           const nameOnly = cat.split('—')[0].split(' - ')[0].trim();
           return nameOnly;
         }).filter(cat => cat.length > 0); // Remove empty strings
+        
+        // Post-process: Filter to only existing categories and map non-existent ones
+        const validCategories: string[] = [];
+        const invalidCategories: string[] = [];
+        
+        for (const cat of categories) {
+          if (categoryExists(cat)) {
+            validCategories.push(cat);
+          } else {
+            invalidCategories.push(cat);
+            // Try to find closest match
+            const closest = findClosestCategory(cat);
+            if (closest && !validCategories.includes(closest)) {
+              validCategories.push(closest);
+              logger.debug('category_classifier: mapped_invalid_category', {
+                original: cat,
+                mapped: closest,
+                query: query.substring(0, 100),
+                merchantId,
+              });
+            }
+          }
+        }
+        
+        if (invalidCategories.length > 0) {
+          logger.warn('category_classifier: invalid_categories_filtered', {
+            invalid: invalidCategories,
+            valid: validCategories,
+            query: query.substring(0, 100),
+            merchantId,
+          });
+        }
+        
+        categories = validCategories;
         
         const elapsed = Date.now() - startTime;
 
@@ -280,7 +369,7 @@ export async function classifyQueryToCategoriesWithConfidence(
       messages: [
         {
           role: 'system',
-          content: 'You are a category classification system for a shopping assistant. The catalog includes multiple verticals: Kids, Women\'s/Adult Apparel, Accessories, Personal Care, and Home & Living (48 total categories). Map user queries to the most relevant product categories from any of these verticals.',
+          content: 'You are a category classification system for a shopping assistant. The catalog includes multiple verticals: Kids, Women\'s/Adult Apparel, Accessories, Personal Care, and Home & Living (48 total categories). Map user queries to the most relevant product categories from any of these verticals. CRITICAL: Infer age groups from context clues (modest, muslim, conservative, traditional + daughter) to determine Kids vs Adult categories. Use the SAME age group inference logic as the constraint classifier.',
         },
         {
           role: 'user',
@@ -340,4 +429,8 @@ export async function classifyQueryToCategoriesWithConfidence(
   }
 }
 
+/**
+ * Maps user queries to the top 3 most relevant categories from the 49 category list
+ * for hard SQL-level filtering before producttype-constraint filtering.
+ */
 

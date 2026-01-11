@@ -7,8 +7,9 @@
  */
 
 import type { SearchResultItem } from '../../search/types';
-import type { QueryConstraints } from '../query-parser';
+import type { FashionConstraints } from '../classifier';
 import { calculateConstraintMatchScore, type QueryContext } from './constraint-matcher';
+import type { EnrichedColumnValues } from '../../search/filtering/attributes';
 import { logger } from '../../telemetry/logger';
 
 export type ProductWithVectorScore = {
@@ -43,7 +44,7 @@ export type ProductWithFinalScore = {
  */
 export async function rankWithConstraints(
   products: ProductWithVectorScore[],
-  constraints: QueryConstraints,
+  constraints: FashionConstraints,
   maxConstraintBoost: number = 0.6,
   queryContext?: QueryContext
 ): Promise<ProductWithFinalScore[]> {
@@ -67,11 +68,41 @@ export async function rankWithConstraints(
   // Using Promise.all() to allow event loop interleaving for better responsiveness
   const productsWithConstraintScores = await Promise.all(
     products.map(async ({ product, vectorScore }) => {
+      // Extract enriched columns from SearchResultItem for constraint matching
+      // Extract ALL database columns first, then fallback to JSONB attributes
+      const enrichedColumns: EnrichedColumnValues = {
+        // Core indexed columns
+        color: product.color ?? null,
+        fabric: product.fabric ?? null,
+        material: product.material ?? null,
+        occasion: product.occasion ?? null,
+        season: product.season ?? null,
+        fit: product.fit ?? null,
+        
+        // Enriched attributes
+        length: product.length ?? null,
+        sleeve: product.sleeve ?? null,
+        neckline: product.neckline ?? null,
+        formalityLevel: product.formalityLevel ?? null,
+        temperatureIntent: product.temperatureIntent ?? null,
+        humidityFriendly: product.humidityFriendly ?? null,
+        occasionContext: product.occasionContext ?? null,
+        problemSolutions: product.problemSolutions ?? null,
+        functionFeatures: product.functionFeatures ?? null,
+        colorShade: product.colorShade ?? null,
+        colorUndertone: product.colorUndertone ?? null,
+        multicolor: product.multicolor ?? null,
+        seasonalPalette: product.seasonalPalette ?? null,
+        enrichedColor: product.enrichedColor ?? null,
+        ageGroup: product.ageGroup ?? null,
+      };
+      
       // Calculate constraint score (synchronous, but wrapped in Promise for parallel processing)
       const constraintScore = calculateConstraintMatchScore(
         product, // Pass full product object so ageGroup can be inferred from title/description
         constraints,
-        queryContext // Pass query context for dynamic weight adjustment
+        queryContext, // Pass query context for dynamic weight adjustment
+        enrichedColumns // Pass enriched columns for database column matching (occasion, occasionContext, etc.)
       );
       
       return {
@@ -130,7 +161,7 @@ export async function rankWithConstraints(
     effectiveBoost,
     avgFinalScore: productsWithScores.reduce((sum, p) => sum + p.finalScore, 0) / productsWithScores.length,
     topFinalScore: productsWithScores[0]?.finalScore,
-    constraintFields: Object.keys(constraints).filter(k => constraints[k as keyof QueryConstraints] !== null && constraints[k as keyof QueryConstraints] !== undefined),
+    constraintFields: Object.keys(constraints).filter(k => constraints[k as keyof FashionConstraints] !== null && constraints[k as keyof FashionConstraints] !== undefined),
     topProducts,
     constraintValues: {
       colors: constraints.colors,
@@ -150,9 +181,8 @@ export async function rankWithConstraints(
     effectiveBoost,
     avgFinalScore: productsWithScores.reduce((sum, p) => sum + p.finalScore, 0) / productsWithScores.length,
     topFinalScore: productsWithScores[0]?.finalScore,
-    constraintFields: Object.keys(constraints).filter(k => constraints[k as keyof QueryConstraints] !== null && constraints[k as keyof QueryConstraints] !== undefined),
+    constraintFields: Object.keys(constraints).filter(k => constraints[k as keyof FashionConstraints] !== null && constraints[k as keyof FashionConstraints] !== undefined),
   });
   
   return productsWithScores;
 }
-

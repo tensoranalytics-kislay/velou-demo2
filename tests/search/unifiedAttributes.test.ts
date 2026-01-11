@@ -178,14 +178,11 @@ describe('Unified attributes – no-op behavior without facet constraints', () =
     // With no explicit facets, attribute filter must be a no-op
     expect(results).toEqual([true, true]);
   });
-}
+});
 
 /**
  * Tests for unified catalog attribute filtering in search
  */
-
-import { describe, it, expect } from 'vitest';
-import type { ProductAttributes, SearchConstraints } from '../../src/lib/search/types';
 
 // Import the matchesAttributeFilters function (we'll need to export it or test indirectly)
 // For now, we'll test the logic by importing searchProducts and mocking

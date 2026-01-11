@@ -33,6 +33,30 @@ type ProductForScoring = {
   salePriceCents: number | null;
   updatedAt: Date;
   attributes: unknown;
+  // Core indexed columns (Phase 2)
+  color?: string | null;
+  fabric?: string | null;
+  material?: string | null;
+  occasion?: string | null;
+  season?: string | null;
+  fit?: string | null;
+  
+  // Enriched columns (for ranking boosts)
+  length?: string | null;
+  sleeve?: string | null;
+  neckline?: string | null;
+  formalityLevel?: string | null;
+  temperatureIntent?: string | null;
+  humidityFriendly?: boolean | null;
+  occasionContext?: string[] | null;
+  problemSolutions?: string[] | null;
+  functionFeatures?: string[] | null;
+  colorShade?: string | null;
+  colorUndertone?: string | null;
+  multicolor?: boolean | null;
+  seasonalPalette?: string | null;
+  enrichedColor?: string | null;
+  ageGroup?: string | null;
 };
 
 /**
@@ -240,6 +264,86 @@ export function calculateRelevanceScore(
   }
 
   // -----------------------------
+  // H) Enriched attribute matches (boost products that match enriched constraints)
+  // -----------------------------
+  // Formality level match: +2.0 boost
+  if (whereFilters.formalityLevel?.length && product.formalityLevel) {
+    const productFormality = safeLower(product.formalityLevel);
+    if (whereFilters.formalityLevel.some((f) => safeLower(f) === productFormality)) {
+      rank += 2.0;
+    }
+  }
+
+  // Temperature intent match: +2.5 boost (high priority for weather queries)
+  if (whereFilters.temperatureIntent && product.temperatureIntent) {
+    if (safeLower(product.temperatureIntent) === safeLower(whereFilters.temperatureIntent)) {
+      rank += 2.5;
+    }
+  }
+
+  // Humidity friendly match: +1.5 boost
+  if (whereFilters.humidityFriendly === true && product.humidityFriendly === true) {
+    rank += 1.5;
+  }
+
+  // Occasion context match: +2.0 boost
+  if (whereFilters.occasionContext?.hasSome?.length && product.occasionContext?.length) {
+    const productOccasions = product.occasionContext.map((o) => safeLower(o));
+    const hasMatch = whereFilters.occasionContext.hasSome.some((constraintOccasion) =>
+      productOccasions.includes(safeLower(constraintOccasion))
+    );
+    if (hasMatch) {
+      rank += 2.0;
+    }
+  }
+
+  // Problem solutions match: +2.0 boost per matching solution
+  if (whereFilters.problemSolutions?.hasSome?.length && product.problemSolutions?.length) {
+    const productSolutions = product.problemSolutions.map((s) => safeLower(s));
+    const matchingSolutions = whereFilters.problemSolutions.hasSome.filter((constraintSolution) =>
+      productSolutions.includes(safeLower(constraintSolution))
+    );
+    if (matchingSolutions.length > 0) {
+      rank += matchingSolutions.length * 2.0;
+    }
+  }
+
+  // Function features match: +1.5 boost per matching feature
+  if (whereFilters.functionFeatures?.hasSome?.length && product.functionFeatures?.length) {
+    const productFeatures = product.functionFeatures.map((f) => safeLower(f));
+    const matchingFeatures = whereFilters.functionFeatures.hasSome.filter((constraintFeature) =>
+      productFeatures.includes(safeLower(constraintFeature))
+    );
+    if (matchingFeatures.length > 0) {
+      rank += matchingFeatures.length * 1.5;
+    }
+  }
+
+  // Color shade match: +1.0 boost
+  if (whereFilters.colorShade?.length && product.colorShade) {
+    const productShade = safeLower(product.colorShade);
+    if (whereFilters.colorShade.some((s) => safeLower(s) === productShade)) {
+      rank += 1.0;
+    }
+  }
+
+  // Color undertone match: +1.0 boost
+  if (whereFilters.colorUndertone?.length && product.colorUndertone) {
+    const productUndertone = safeLower(product.colorUndertone);
+    if (whereFilters.colorUndertone.some((u) => safeLower(u) === productUndertone)) {
+      rank += 1.0;
+    }
+  }
+
+  // Length match
+  if (whereFilters.length?.length && product.length) {
+    const productLength = safeLower(product.length);
+    if (whereFilters.length.some((l) => safeLower(l) === productLength)) {
+      rank += 6.0; // Boost for length matches
+    }
+  }
+
+  // -----------------------------
   // H) Price & availability as tie-breakers (small bonuses, only reorder already-good matches)
   // -----------------------------
   // NOTE: Stock status is now a HARD FILTER (applied above), not a scoring bonus
@@ -349,5 +453,3 @@ export function applyRelevanceScoring(
 
   return rankedResults.slice(0, take);
 }
-
-

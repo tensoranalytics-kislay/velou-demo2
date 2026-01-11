@@ -5,7 +5,7 @@
  * in the database, combining vector similarity with constraint scores.
  */
 
-import type { QueryConstraints } from '../query-parser';
+import type { FashionConstraints } from '../classifier';
 import { prisma } from '../../db';
 import { logger } from '../../telemetry/logger';
 import type { SearchResultItem } from '../../search/types';
@@ -165,7 +165,7 @@ function buildPriceMatchSQL(
  * Returns SQL that calculates weighted constraint match scores
  */
 function buildConstraintScoreSQL(
-  constraints: QueryConstraints,
+  constraints: FashionConstraints,
   startParamIndex: number
 ): { sql: string; params: unknown[]; nextParamIndex: number } {
   const params: unknown[] = [];
@@ -375,7 +375,7 @@ function buildConstraintScoreSQL(
 export async function searchVectorIndexWithRanking(
   queryEmbedding: number[],
   productIds: string[],
-  constraints: QueryConstraints | null,
+  constraints: FashionConstraints | null,
   limit: number,
   filters?: { inStockOnly?: boolean; merchantId?: string }
 ): Promise<ProductWithScore[]> {

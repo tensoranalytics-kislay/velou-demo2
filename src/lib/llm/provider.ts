@@ -43,7 +43,7 @@ class LLMError extends Error {
  *   Uses: GPT-4.1-mini for cost-effectiveness while maintaining quality.
  */
 const REASONING_PURPOSES: Record<LlmCallOptions['purpose'], boolean> = {
-  intent: false,        // Use lightweight model for speed (gpt-4.1-mini)
+  intent: false,        // Use primary model (gpt-4.1) for accuracy, not reasoning model
   final_reply: false,   // Natural language generation
   pdp_suitability: false, // Use primary model, not reasoning model
   card_reason: false,   // Simple text generation
@@ -53,7 +53,7 @@ const REASONING_PURPOSES: Record<LlmCallOptions['purpose'], boolean> = {
 };
 
 const PRIMARY_PURPOSES: Record<LlmCallOptions['purpose'], boolean> = {
-  intent: false, // Use lightweight model (gpt-4.1-mini) for fast classification
+  intent: true, // Use primary model (gpt-4.1) for accurate constraint extraction - CRITICAL for product discovery accuracy
   final_reply: true,
   pdp_suitability: true,
   card_reason: false,

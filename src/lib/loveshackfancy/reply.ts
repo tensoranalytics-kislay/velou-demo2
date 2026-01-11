@@ -8,6 +8,7 @@ import { callLLM } from '../llm/provider';
 import { logger } from '../telemetry/logger';
 import type { SearchResultItem } from '../search/types';
 import type { FashionConstraints } from './classifier';
+import { extractConstraintValues } from './constraint-utils';
 
 export type ReplyResult = {
   replyText: string; // First 2 paragraphs (before product cards)
@@ -19,6 +20,7 @@ export type ReplyContext = {
   currentQuery?: string; // Most recent user query
   previousQuery?: string; // Previous query in the conversation
   enhancedQuery?: string; // Enhanced/merged query used for search
+  classificationConstraints?: FashionConstraints; // Classification constraints for reference/fallback
 };
 
 function extractAttr(attrs: Record<string, unknown>, key: string): string | null {
@@ -118,14 +120,61 @@ function extractProductDetailsForReply(
     if (color !== 'N/A') details.push(`Color: ${color}`);
   } else {
     // Apparel (default): Extract fashion-specific attributes
+    // Prioritize database columns over JSONB attributes
     const style = extractAttr(attrs, 'Style') || extractAttr(attrs, 'style') || 'N/A';
-    const occasion = extractAttr(attrs, 'Occasion') || extractAttr(attrs, 'occasion') || 'N/A';
+    
+    // Occasion: Check database columns first (occasion or occasionContext), then JSONB fallback
+    const occasion = product.occasion ?? 
+                     (product.occasionContext && product.occasionContext.length > 0 ? product.occasionContext.join(', ') : null) ??
+                     extractAttr(attrs, 'Occasion') ?? 
+                     extractAttr(attrs, 'occasion') ?? 
+                     'N/A';
+    
+    // Pattern: JSONB only (no database column)
     const pattern = extractAttr(attrs, 'Pattern') || extractAttr(attrs, 'pattern') || 'N/A';
-    const material = extractAttr(attrs, 'Material') || extractAttr(attrs, 'material') || 'N/A';
-    const length = extractAttr(attrs, 'Length') || extractAttr(attrs, 'length') || 'N/A';
-    const color = extractAttr(attrs, 'Color') || extractAttr(attrs, 'color') || 'N/A';
-    const fit = extractAttr(attrs, 'Fit') || extractAttr(attrs, 'fit') || 'N/A';
-    const season = extractAttr(attrs, 'Season') || extractAttr(attrs, 'season') || 'N/A';
+    
+    // Material: Check database columns first (material or fabric), then JSONB fallback
+    const material = product.material ?? 
+                     product.fabric ?? 
+                     extractAttr(attrs, 'Material') ?? 
+                     extractAttr(attrs, 'material') ?? 
+                     'N/A';
+    
+    // Length: Already uses database column with JSONB fallback
+    const length = product.length ?? extractAttr(attrs, 'Length') ?? extractAttr(attrs, 'length') ?? 'N/A';
+    
+    // Color: Check database columns first (enrichedColor or color), then JSONB fallback
+    const color = product.enrichedColor ?? 
+                  product.color ?? 
+                  extractAttr(attrs, 'Color') ?? 
+                  extractAttr(attrs, 'color') ?? 
+                  'N/A';
+    
+    // Fit: Check database column first, then JSONB fallback
+    const fit = product.fit ?? 
+                extractAttr(attrs, 'Fit') ?? 
+                extractAttr(attrs, 'fit') ?? 
+                'N/A';
+    
+    // Season: Check database column first, then JSONB fallback
+    const season = product.season ?? 
+                   extractAttr(attrs, 'Season') ?? 
+                   extractAttr(attrs, 'season') ?? 
+                   'N/A';
+    
+    // Sleeve: Check database column first, then JSONB fallback
+    const sleeve = product.sleeve ?? 
+                   extractAttr(attrs, 'Sleeve') ?? 
+                   extractAttr(attrs, 'sleeve') ?? 
+                   extractAttr(attrs, 'SleeveLength') ?? 
+                   extractAttr(attrs, 'sleeveLength') ?? 
+                   'N/A';
+    
+    // Neckline: Check database column first, then JSONB fallback
+    const neckline = product.neckline ?? 
+                     extractAttr(attrs, 'Neckline') ?? 
+                     extractAttr(attrs, 'neckline') ?? 
+                     'N/A';
     
     if (style !== 'N/A') details.push(`Style: ${style}`);
     if (occasion !== 'N/A') details.push(`Occasion: ${occasion}`);
@@ -135,6 +184,98 @@ function extractProductDetailsForReply(
     if (color !== 'N/A') details.push(`Color: ${color}`);
     if (fit !== 'N/A') details.push(`Fit: ${fit}`);
     if (season !== 'N/A') details.push(`Season: ${season}`);
+    if (sleeve !== 'N/A') details.push(`Sleeve: ${sleeve}`);
+    if (neckline !== 'N/A') details.push(`Neckline: ${neckline}`);
+  }
+  
+  // Add enriched attributes (prioritize enriched columns over JSON attributes)
+  if (product.formalityLevel) {
+    details.push(`Formality Level: ${product.formalityLevel}`);
+  } else {
+    const formalityLevel = extractAttr(attrs, 'formalityLevel') || extractAttr(attrs, 'FormalityLevel');
+    if (formalityLevel) details.push(`Formality Level: ${formalityLevel}`);
+  }
+  
+  if (product.temperatureIntent) {
+    details.push(`Temperature Intent: ${product.temperatureIntent}`);
+  } else {
+    const temperatureIntent = extractAttr(attrs, 'temperatureIntent') || extractAttr(attrs, 'TemperatureIntent');
+    if (temperatureIntent) details.push(`Temperature Intent: ${temperatureIntent}`);
+  }
+  
+  if (product.humidityFriendly !== null && product.humidityFriendly !== undefined) {
+    details.push(`Humidity Friendly: ${product.humidityFriendly ? 'Yes' : 'No'}`);
+  } else {
+    const humidityFriendly = (attrs as any).humidityFriendly;
+    if (typeof humidityFriendly === 'boolean') {
+      details.push(`Humidity Friendly: ${humidityFriendly ? 'Yes' : 'No'}`);
+    }
+  }
+  
+  if (product.occasionContext && product.occasionContext.length > 0) {
+    details.push(`Occasion Context: ${product.occasionContext.join(', ')}`);
+  } else {
+    const occasionContext = extractAttr(attrs, 'occasionContext') || extractAttr(attrs, 'OccasionContext');
+    if (occasionContext) {
+      const contextArray = Array.isArray(occasionContext) ? occasionContext : [occasionContext];
+      if (contextArray.length > 0) {
+        details.push(`Occasion Context: ${contextArray.join(', ')}`);
+      }
+    }
+  }
+  
+  if (product.problemSolutions && product.problemSolutions.length > 0) {
+    details.push(`Problem Solutions: ${product.problemSolutions.join(', ')}`);
+  } else {
+    const problemSolutions = extractAttr(attrs, 'problemSolutions') || extractAttr(attrs, 'ProblemSolutions');
+    if (problemSolutions) {
+      const solutionsArray = Array.isArray(problemSolutions) ? problemSolutions : [problemSolutions];
+      if (solutionsArray.length > 0) {
+        details.push(`Problem Solutions: ${solutionsArray.join(', ')}`);
+      }
+    }
+  }
+  
+  if (product.functionFeatures && product.functionFeatures.length > 0) {
+    details.push(`Function Features: ${product.functionFeatures.join(', ')}`);
+  } else {
+    const functionFeatures = extractAttr(attrs, 'functionFeatures') || extractAttr(attrs, 'FunctionFeatures');
+    if (functionFeatures) {
+      const featuresArray = Array.isArray(functionFeatures) ? functionFeatures : [functionFeatures];
+      if (featuresArray.length > 0) {
+        details.push(`Function Features: ${featuresArray.join(', ')}`);
+      }
+    }
+  }
+  
+  if (product.colorShade) {
+    details.push(`Color Shade: ${product.colorShade}`);
+  } else {
+    const colorShade = extractAttr(attrs, 'colorShade') || extractAttr(attrs, 'ColorShade');
+    if (colorShade) details.push(`Color Shade: ${colorShade}`);
+  }
+  
+  if (product.colorUndertone) {
+    details.push(`Color Undertone: ${product.colorUndertone}`);
+  } else {
+    const colorUndertone = extractAttr(attrs, 'colorUndertone') || extractAttr(attrs, 'ColorUndertone');
+    if (colorUndertone) details.push(`Color Undertone: ${colorUndertone}`);
+  }
+  
+  if (product.multicolor !== null && product.multicolor !== undefined) {
+    details.push(`Multicolor: ${product.multicolor ? 'Yes' : 'No'}`);
+  } else {
+    const multicolor = (attrs as any).multicolor;
+    if (typeof multicolor === 'boolean') {
+      details.push(`Multicolor: ${multicolor ? 'Yes' : 'No'}`);
+    }
+  }
+  
+  if (product.seasonalPalette) {
+    details.push(`Seasonal Palette: ${product.seasonalPalette}`);
+  } else {
+    const seasonalPalette = extractAttr(attrs, 'seasonalPalette') || extractAttr(attrs, 'SeasonalPalette');
+    if (seasonalPalette) details.push(`Seasonal Palette: ${seasonalPalette}`);
   }
   
   // Fallback: If no category-specific attributes found, try unified attributes
@@ -168,6 +309,24 @@ USER QUERY: "{QUERY}"
 
 CONSTRAINTS EXTRACTED:
 {CONSTRAINTS}
+
+CRITICAL: CONSTRAINT ACKNOWLEDGMENT REQUIREMENT
+You MUST acknowledge ALL constraints extracted from the user query, including:
+- Basic constraints: colors, sizes, ageGroups, price ranges
+- Category/Product type: categories, subcategories, product terms
+- Style attributes: styles, patterns, collections, embellishments
+- Occasion & context: occasions, occasionContext, formalityLevel
+- Seasonal: seasons, seasonalPalette
+- Material & fabric: materials, fabrics
+- Fit & sizing: fits, lengths
+- Design details: sleeves (Short, Long, Sleeveless, etc.), necklines (Round, V-Neck, Scoop, etc.), sleeveLengths
+- Color details: colorShade, colorUndertone, multicolor, enrichedColor
+- Functional: problemSolutions, functionFeatures, temperatureIntent, humidityFriendly
+- Other: careRequirements, travelFeatures, pockets, layeringIntent, pairingIntent
+
+For follow-up queries: Acknowledge BOTH what was mentioned in the previous query AND what they're adding/changing in the current query. Show you understand the full context of their search.
+
+For product-specific paragraphs: Reference actual product attributes from PRODUCT_DETAILS (which includes database column values like season, sleeve, neckline, occasion, color, material, fit, length, etc.) to explain why each product matches their request.
 
 PRODUCTS TO SHOW (exactly {PRODUCT_COUNT}):
 {PRODUCT_DETAILS}
@@ -204,7 +363,7 @@ STYLE GUIDELINES - LOVE SHACK FANCY BRAND VOICE:
 - BEFORE PRODUCTS: Write with warm, elegant confidence - ONE sentence per paragraph. Use natural, conversational language with subtle poetic touches. Mention key details naturally. Use shorter sentences (8-12 words). Be warm, helpful, and polished. Keep it conversational.
 - AFTER PRODUCTS: Warm, conversational voice - one paragraph per product with ONE sentence. Highlight how each product works with natural language. Be honest about fit with restraint. Use shorter sentences (8-12 words). Keep it elegant and helpful.
 - Reference specific details (colors, sizes, occasions, etc.) naturally - provide context conversationally
-- ACKNOWLEDGMENT REQUIREMENT: In your before-products paragraphs, acknowledge each part of their request—every color, style detail, occasion, size/material/constraint. Show understanding naturally, don't just list. Make them feel understood.
+- ACKNOWLEDGMENT REQUIREMENT: In your before-products paragraphs, acknowledge EVERY constraint extracted from the user query—including colors, sizes, ageGroups, seasons, occasions, materials, lengths, sleeves, necklines, formalityLevel, colorShade, and all other constraints listed above. Show understanding naturally, don't just list. Make them feel understood. For follow-up queries, acknowledge both what was mentioned before AND what they're adding/changing now.
 - For each product paragraph after cards: Explain why that product matches, highlight key features naturally, acknowledge which parts of their request it addresses, and be honest about match quality with restraint. Use ONE sentence with shorter sentences (8-12 words) - warm, conversational, elegant.
 - Reference actual product facts (materials, styles, occasions, colors, scents, room types, etc.) naturally - provide thoughtful context in both before-products (ONE sentence per paragraph) and after-products (ONE sentence per product)
 - When mentioning product names, use the product name directly (e.g., "Mystara Satin Maxi Dress") - do NOT prefix with "The" (e.g., avoid "The Mystara Satin Maxi Dress")
@@ -274,13 +433,45 @@ export async function generateReply(
   categories?: string[] // Top categories for attribute extraction
 ): Promise<ReplyResult> {
   try {
+    // Format constraints for prompt, handling both array format and ConstraintWithIntent format
     const constraintsText = Object.entries(constraints)
-      .filter(([_, value]) => value !== null && value !== undefined && (Array.isArray(value) ? value.length > 0 : true))
+      .filter(([_, value]) => {
+        if (value === null || value === undefined) return false;
+        // Handle ConstraintWithIntent format (extracts .values if present)
+        const extractedValues = extractConstraintValues(value as any);
+        if (extractedValues !== null && extractedValues !== undefined) {
+          return Array.isArray(extractedValues) ? extractedValues.length > 0 : true;
+        }
+        // Handle array format
+        if (Array.isArray(value)) {
+          return value.length > 0;
+        }
+        // Handle boolean/number/string values (temperatureIntent, humidityFriendly, priceMinCents, etc.)
+        // These are valid constraint values even if extractConstraintValues returns undefined
+        if (typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string') {
+          return true;
+        }
+        return false;
+      })
       .map(([key, value]) => {
+        // Extract values from ConstraintWithIntent format if needed
+        const extractedValues = extractConstraintValues(value as any);
+        if (extractedValues !== null && extractedValues !== undefined) {
+          if (Array.isArray(extractedValues)) {
+            return `${key}: ${extractedValues.join(', ')}`;
+          }
+          return `${key}: ${extractedValues}`;
+        }
+        // Handle array format
         if (Array.isArray(value)) {
           return `${key}: ${value.join(', ')}`;
         }
-        return `${key}: ${value}`;
+        // Handle boolean/number/string values (temperatureIntent, humidityFriendly, priceMinCents, etc.)
+        if (typeof value === 'boolean' || typeof value === 'number' || typeof value === 'string') {
+          return `${key}: ${value}`;
+        }
+        // Fallback for other types
+        return `${key}: ${String(value)}`;
       })
       .join('\n') || 'None specified';
 
@@ -1062,17 +1253,16 @@ ${constraintsText}
 
 We found ${productCount} products matching these criteria. This means the combination of constraints might be too restrictive, or we don't have products that match this specific combination.
 
-Your task: Generate an intelligent, warm, and helpful reply in ${brandName}'s brand voice that:
-1. Acknowledges their request naturally and shows you understand what they're looking for
+Your task: Generate a concise, warm, and helpful reply in ${brandName}'s brand voice that:
+1. Acknowledges their request briefly and shows you understand what they're looking for
 2. Expresses gentle regret (with elegant restraint) that we couldn't find perfect matches
-3. Intelligently suggests alternatives:
-   - If there are many constraints, suggest they could try dropping one or two (mention which ones might be most flexible)
-   - Suggest related product types or styles that might work
-   - Invite them to explore our collection with slightly different criteria
+3. Suggests one or two specific alternatives:
+   - If there are many constraints, suggest dropping one constraint (mention which one is most flexible)
+   - Suggest one related product type or style that might work
+   - Briefly invite them to explore with slightly different criteria
 4. Maintains the warm, elegant, conversational tone with subtle romantic touches
-5. Keep it to 2-3 paragraphs (ONE sentence per paragraph - each paragraph should be a single, complete sentence)
-6. Be specific and helpful - don't be vague. Show you understand their needs and offer concrete alternatives.
-7. The reply can be as long as needed (2-3 paragraphs), but each paragraph must contain exactly ONE sentence.
+5. Keep it CONCISE: 2-3 paragraphs maximum, with 1-2 SHORT sentences per paragraph (8-15 words per sentence)
+6. Be specific and helpful - don't be vague. Show you understand their needs and offer one concrete alternative.
 
 BRAND VOICE - LOVE SHACK FANCY:
 - Warm, elegant confidence: Conversational and polished, with subtle romantic touches
@@ -1080,25 +1270,38 @@ BRAND VOICE - LOVE SHACK FANCY:
 - Conversational poetic touches: Use subtle imagery naturally, not forced
 - Elegant restraint: Polished, curated, subtly sophisticated
 
-Write naturally as if having a friendly conversation. Be warm, helpful, and elegant.
+Write naturally as if having a friendly conversation. Be warm, helpful, and elegant. Keep it brief and easy to read.
 
-IMPORTANT: Write a complete, thoughtful reply with one sentence per paragraph. The reply can be as long as needed (2-3 paragraphs), but CRITICAL: each paragraph must contain exactly ONE sentence. Sentence length can vary as needed for clarity and completeness.`;
+CRITICAL FORMATTING RULES:
+- Write 2-3 paragraphs maximum
+- Each paragraph should contain 1-2 SHORT sentences (8-15 words per sentence)
+- Keep sentences concise and easy to read - avoid long, complex sentences
+- Break thoughts into separate sentences rather than combining them
+- The total reply should be brief (around 50-80 words total)
+- Use line breaks (newlines) to separate paragraphs
+
+EXAMPLE FORMAT:
+"I understand you're looking for [item] in [color], but we don't have that exact combination right now.
+
+If you're open to [alternative color] or [similar style], I'd love to show you some options. Or we could explore [related category] which might work beautifully.
+
+Would you like me to show you those alternatives?"`;
 
     const systemPrompt = `You are a shopping assistant for ${brandName}, embodying the brand's warm, elegant voice. Your task is to generate an intelligent, context-aware reply when no products are found. 
 
 You must:
 - Analyze the constraints and understand which ones might be too restrictive
-- Suggest specific alternatives (e.g., "try dropping the color constraint" or "explore similar styles")
+- Suggest ONE specific alternative (e.g., "try dropping the color constraint" or "explore similar styles")
 - Show you understand their needs based on the conversation context
 - Write with warm, elegant confidence—conversational with subtle romantic touches
 - Use natural, feminine language that feels intimate but polished
 - Be warm, helpful, and celebratory—inviting them to explore—while keeping elegant restraint
-- Be specific and actionable in your suggestions
-- Keep it to 2-3 paragraphs (ONE sentence per paragraph - each paragraph must be exactly one sentence)
-- Each paragraph should be a single, complete sentence (can be longer than 8-12 words if needed for clarity)
-- The reply can be as long as needed to be helpful (2-3 paragraphs), but CRITICAL: each paragraph must contain exactly ONE sentence
+- Be specific and actionable, but keep it BRIEF
+- Keep it to 2-3 paragraphs maximum, with 1-2 SHORT sentences per paragraph (8-15 words per sentence)
+- Each sentence should be concise and easy to read - avoid long, complex sentences
+- The total reply should be brief (around 50-80 words total)
 - NEVER use phrases like "you searched for", "your query", "I found options matching your search" - write naturally as if responding organically
-- CRITICAL: Generate a complete, thoughtful reply with one sentence per paragraph. The overall length can be substantial (2-3 paragraphs), but each paragraph must be exactly one sentence.`;
+- CRITICAL: Keep it concise and readable. Break thoughts into short, clear sentences. Use 1-2 sentences per paragraph, maximum 3 paragraphs total.`;
 
     const result = await callLLM({
       messages: [
@@ -1112,7 +1315,7 @@ You must:
         },
       ],
       purpose: 'final_reply',
-      maxTokens: 400, // Increased to ensure we get a substantial reply
+      maxTokens: 150, // Keep it concise - aim for 50-80 words total
     });
 
     const fullReply = result.rawText.trim();

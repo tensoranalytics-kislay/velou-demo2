@@ -73,3 +73,12 @@ async function checkProductIdColumn() {
 
 checkProductIdColumn();
 
+
+
+
+
+
+
+
+
+

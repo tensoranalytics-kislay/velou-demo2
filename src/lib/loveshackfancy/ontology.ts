@@ -517,4 +517,30 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'OS',
     'OSFM',
   ],
+
+  // Age Groups (from actual dataset - must match exactly)
+  // These are the canonical values found in the database
+  ageGroups: [
+    'Adult',
+    'Kids',
+    'Teen',
+    'Tween',
+    'Toddler',
+    'Baby',
+    // Combinations (comma-separated)
+    'Kids, Teen',
+    'Teen, Adult',
+    'Kids, Teen, Adult',
+    'Baby, Toddler',
+    'Kids, Tween',
+    'Tween, Kids',
+    'Kids, Toddler',
+    'Adult, Kids',
+    'Adult, Teen',
+    'Tween, Adult',
+    // Age ranges (less common but exist in dataset)
+    '0-3 months, 3-6 months, 6-12 months, 12-18 months, 18-24 months',
+    '2-3 years, Toddler',
+    '2-6 years, Toddler',
+  ],
 } as const;

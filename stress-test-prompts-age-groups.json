@@ -1,0 +1,253 @@
+{
+  "testSets": [
+    {
+      "name": "Age Group Hard Filtering",
+      "description": "Test age group extraction, normalization, and hard filtering",
+      "queries": [
+        {
+          "type": "initial",
+          "query": "dresses for kids",
+          "expectedAgeGroups": ["Kids"],
+          "expectedHardFilter": true
+        },
+        {
+          "type": "initial",
+          "query": "baby clothes",
+          "expectedAgeGroups": ["Baby"],
+          "expectedHardFilter": true
+        },
+        {
+          "type": "initial",
+          "query": "toddler outfits",
+          "expectedAgeGroups": ["Toddler"],
+          "expectedHardFilter": true
+        },
+        {
+          "type": "initial",
+          "query": "teenage dresses",
+          "expectedAgeGroups": ["Teen"],
+          "expectedHardFilter": true
+        },
+        {
+          "type": "initial",
+          "query": "clothes for a 5-year-old",
+          "expectedAgeGroups": ["Kids"],
+          "expectedHardFilter": true
+        },
+        {
+          "type": "initial",
+          "query": "dresses for my 2-year-old daughter",
+          "expectedAgeGroups": ["Toddler"],
+          "expectedHardFilter": true
+        },
+        {
+          "type": "follow-up",
+          "query": "make them pink",
+          "previousQuery": "dresses for kids",
+          "expectedAgeGroups": ["Kids"],
+          "expectedColors": ["Pink"]
+        },
+        {
+          "type": "follow-up",
+          "query": "not red",
+          "previousQuery": "toddler outfits",
+          "expectedAgeGroups": ["Toddler"],
+          "expectedExcludedColors": ["Red"]
+        }
+      ]
+    },
+    {
+      "name": "Color Hard Filtering & Exclusions",
+      "description": "Test color extraction, hard filtering, and excluded colors",
+      "queries": [
+        {
+          "type": "initial",
+          "query": "red dresses",
+          "expectedColors": ["Red"],
+          "expectedHardFilter": true
+        },
+        {
+          "type": "initial",
+          "query": "blue dresses for kids",
+          "expectedColors": ["Blue"],
+          "expectedAgeGroups": ["Kids"],
+          "expectedHardFilter": true
+        },
+        {
+          "type": "initial",
+          "query": "cherry red dresses",
+          "expectedColors": ["Red"],
+          "expectedHardFilter": true
+        },
+        {
+          "type": "initial",
+          "query": "dresses in any colour, not red",
+          "expectedExcludedColors": ["Red"],
+          "expectedHardFilter": true
+        },
+        {
+          "type": "follow-up",
+          "query": "not red",
+          "previousQuery": "red dresses",
+          "expectedExcludedColors": ["Red"]
+        },
+        {
+          "type": "follow-up",
+          "query": "any color except blue",
+          "previousQuery": "blue dresses for kids",
+          "expectedExcludedColors": ["Blue"],
+          "expectedAgeGroups": ["Kids"]
+        }
+      ]
+    },
+    {
+      "name": "Multi-Constraint Complex Queries",
+      "description": "Test multiple constraints together",
+      "queries": [
+        {
+          "type": "initial",
+          "query": "red dresses for kids under $100",
+          "expectedColors": ["Red"],
+          "expectedAgeGroups": ["Kids"],
+          "expectedPriceMax": 10000
+        },
+        {
+          "type": "initial",
+          "query": "baby clothes in pink, not cotton",
+          "expectedColors": ["Pink"],
+          "expectedAgeGroups": ["Baby"],
+          "expectedExcludedMaterials": ["Cotton"]
+        },
+        {
+          "type": "initial",
+          "query": "teenage dresses for prom, not black, under $200",
+          "expectedAgeGroups": ["Teen"],
+          "expectedOccasions": ["Prom"],
+          "expectedExcludedColors": ["Black"],
+          "expectedPriceMax": 20000
+        },
+        {
+          "type": "initial",
+          "query": "dresses for kids, pink or blue, under $80, not floral",
+          "expectedAgeGroups": ["Kids"],
+          "expectedColors": ["Pink", "Blue"],
+          "expectedPriceMax": 8000,
+          "expectedExcludedPatterns": ["Floral"]
+        }
+      ]
+    },
+    {
+      "name": "Follow-up Refinement & Constraint Merging",
+      "description": "Test follow-up queries and constraint merging",
+      "querySequences": [
+        {
+          "sequence": [
+            {
+              "query": "dresses for kids",
+              "expectedAgeGroups": ["Kids"]
+            },
+            {
+              "query": "make them pink",
+              "expectedAgeGroups": ["Kids"],
+              "expectedColors": ["Pink"]
+            },
+            {
+              "query": "under $100",
+              "expectedAgeGroups": ["Kids"],
+              "expectedColors": ["Pink"],
+              "expectedPriceMax": 10000
+            },
+            {
+              "query": "not red",
+              "expectedAgeGroups": ["Kids"],
+              "expectedColors": ["Pink"],
+              "expectedPriceMax": 10000,
+              "expectedExcludedColors": ["Red"]
+            }
+          ]
+        },
+        {
+          "sequence": [
+            {
+              "query": "baby clothes",
+              "expectedAgeGroups": ["Baby"]
+            },
+            {
+              "query": "in blue",
+              "expectedAgeGroups": ["Baby"],
+              "expectedColors": ["Blue"]
+            },
+            {
+              "query": "not cotton",
+              "expectedAgeGroups": ["Baby"],
+              "expectedColors": ["Blue"],
+              "expectedExcludedMaterials": ["Cotton"]
+            },
+            {
+              "query": "price doesn't matter",
+              "expectedAgeGroups": ["Baby"],
+              "expectedColors": ["Blue"],
+              "expectedExcludedMaterials": ["Cotton"],
+              "expectedPriceMax": null,
+              "expectedPriceMin": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Edge Cases & Boundary Conditions",
+      "description": "Test edge cases and boundary conditions",
+      "queries": [
+        {
+          "type": "edge-case",
+          "query": "dresses for 18-year-old",
+          "expectedAgeGroups": ["Teen", "Adult"],
+          "note": "Should match both Teen and Adult"
+        },
+        {
+          "type": "edge-case",
+          "query": "dresses in cherry red",
+          "expectedColors": ["Red"],
+          "note": "Should match red color family"
+        },
+        {
+          "type": "edge-case",
+          "query": "dresses for kids, not red, not blue, not green",
+          "expectedAgeGroups": ["Kids"],
+          "expectedExcludedColors": ["Red", "Blue", "Green"]
+        },
+        {
+          "type": "edge-case",
+          "query": "baby clothes, not cotton, not polyester",
+          "expectedAgeGroups": ["Baby"],
+          "expectedExcludedMaterials": ["Cotton", "Polyester"]
+        },
+        {
+          "type": "edge-case",
+          "query": "dresses for kids under $1",
+          "expectedAgeGroups": ["Kids"],
+          "expectedPriceMax": 100,
+          "note": "Should return 0 results"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "created": "2025-01-20",
+    "purpose": "Stress test age group normalization, hard filtering, excluded constraints, and follow-up refinement",
+    "testAreas": [
+      "Age group extraction and normalization",
+      "Age group hard filtering",
+      "Color hard filtering",
+      "Excluded constraint handling",
+      "Multi-constraint queries",
+      "Follow-up refinement",
+      "Constraint merging",
+      "Edge cases"
+    ]
+  }
+}
+
+

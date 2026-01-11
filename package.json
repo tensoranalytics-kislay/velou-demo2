@@ -17,7 +17,12 @@
     "migrate:deploy": "prisma migrate deploy",
     "seed:catalog": "tsx scripts/importCatalogFromCsv.ts",
     "backfill:embeddings": "tsx scripts/backfillProductEmbeddings.ts",
-    "backfill:loccitane-structured": "tsx scripts/backfillLoccitaneStructured.ts"
+    "backfill:loccitane-structured": "tsx scripts/backfillLoccitaneStructured.ts",
+    "analyze:database": "tsx scripts/analyze-database.ts",
+    "migrate:prepare": "tsx scripts/migration-prep.ts",
+    "verify:phase2": "tsx scripts/verify-phase2-migration.ts",
+    "migrate:data": "tsx scripts/migrate-to-variant-model.ts",
+    "verify:phase3": "tsx scripts/verify-phase3-migration.ts"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",

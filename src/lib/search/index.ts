@@ -41,6 +41,7 @@ import {
   keepOnlyCategoryAndPrice,
   keepOnlyQuery,
 } from './filtering/relaxation';
+import { extractIntentConstraints } from './intent/extractIntent';
 
 // Constants
 const DEFAULT_LIMIT = 8;
@@ -215,38 +216,57 @@ export async function searchProducts(
   userMessage?: string,
   merchantId?: string, // Multi-tenant isolation
 ): Promise<ProductSearchResult> {
+  const intentConstraints = extractIntentConstraints(userMessage || '', constraints);
+  const effectiveConstraints: SearchConstraints = { ...constraints, ...intentConstraints };
   const merchContext = await buildMerchContext();
 
   // Debug logging
   logger.debug('searchProducts constraints', {
-    category: constraints.category,
-    priceMinCents: constraints.priceMinCents,
-    priceMaxCents: constraints.priceMaxCents,
-    fabrics: constraints.fabrics?.length ? `${constraints.fabrics.length} fabrics` : undefined,
-    colors: constraints.colors?.length ? `${constraints.colors.length} colors` : undefined,
-    seasons: constraints.seasons?.length ? `${constraints.seasons.length} seasons` : undefined,
-    occasions: constraints.occasions?.length ? `${constraints.occasions.length} occasions` : undefined,
-    sizes: constraints.sizes?.length ? `${constraints.sizes.length} sizes` : undefined,
-    fit: constraints.fit,
-    inStockOnly: constraints.inStockOnly,
-    query: constraints.query,
-    brands: constraints.brands?.length ? `${constraints.brands.length} brands` : undefined,
-    expandedKeywords: constraints.expandedKeywords,
-    expandedKeywordsCount: constraints.expandedKeywords?.length || 0,
-    hasHardTextFilters: !!(constraints as any).hardTextFilters,
-    hardTextFilters: (constraints as any).hardTextFilters,
+    category: effectiveConstraints.category,
+    priceMinCents: effectiveConstraints.priceMinCents,
+    priceMaxCents: effectiveConstraints.priceMaxCents,
+    fabrics: effectiveConstraints.fabrics?.length
+      ? `${effectiveConstraints.fabrics.length} fabrics`
+      : undefined,
+    colors: effectiveConstraints.colors?.length
+      ? `${effectiveConstraints.colors.length} colors`
+      : undefined,
+    seasons: effectiveConstraints.seasons?.length
+      ? `${effectiveConstraints.seasons.length} seasons`
+      : undefined,
+    occasions: effectiveConstraints.occasions?.length
+      ? `${effectiveConstraints.occasions.length} occasions`
+      : undefined,
+    sizes: effectiveConstraints.sizes?.length
+      ? `${effectiveConstraints.sizes.length} sizes`
+      : undefined,
+    fit: effectiveConstraints.fit,
+    inStockOnly: effectiveConstraints.inStockOnly,
+    query: effectiveConstraints.query,
+    brands: effectiveConstraints.brands?.length
+      ? `${effectiveConstraints.brands.length} brands`
+      : undefined,
+    expandedKeywords: effectiveConstraints.expandedKeywords,
+    expandedKeywordsCount: effectiveConstraints.expandedKeywords?.length || 0,
+    hasHardTextFilters: !!(effectiveConstraints as any).hardTextFilters,
+    hardTextFilters: (effectiveConstraints as any).hardTextFilters,
   });
 
-  const limit = constraints.limit ?? DEFAULT_LIMIT;
-  const broadFilters = await buildBroadWhereFilters(constraints, merchContext, userMessage);
+  const limit = effectiveConstraints.limit ?? DEFAULT_LIMIT;
+  const broadFilters = await buildBroadWhereFilters(
+    effectiveConstraints,
+    merchContext,
+    userMessage,
+  );
 
   // Extract keyword filters for take calculation
-  const keywordFilters = broadFilters.keywordFilters || (constraints as any).hardTextFilters;
-  const dynamicTake = calculateDynamicTake(constraints, limit, keywordFilters);
+  const keywordFilters =
+    broadFilters.keywordFilters || (effectiveConstraints as any).hardTextFilters;
+  const dynamicTake = calculateDynamicTake(effectiveConstraints, limit, keywordFilters);
 
   // Debug logging for canonical category and keyword filters
   logger.debug('searchProducts canonicalCategory', {
-    category: constraints.category,
+    category: effectiveConstraints.category,
     categoryOr: broadFilters.categoryOr?.length,
     keywordFiltersEnabled: !!broadFilters.keywordFilters && broadFilters.keywordFilters.length > 0,
     keywordFilters: broadFilters.keywordFilters?.slice(0, 5),
@@ -256,7 +276,7 @@ export async function searchProducts(
   // Step 1: Database-level ranked search
   const dbCandidates = await dbRankedSearch(
     broadFilters,
-    constraints.query,
+    effectiveConstraints.query,
     merchContext.boostByCategory,
     dynamicTake,
     broadFilters.keywordFilters, // Pass keyword filters for SQL prefilter
@@ -266,29 +286,63 @@ export async function searchProducts(
   logger.debug('searchProducts dbRankedSearch', {
     dbCandidates: dbCandidates.length,
     take: dynamicTake,
-    hasQuery: !!constraints.query,
-    category: constraints.category,
-    categoryType: Array.isArray(constraints.category) ? 'array' : typeof constraints.category,
+    hasQuery: !!effectiveConstraints.query,
+    category: effectiveConstraints.category,
+    categoryType: Array.isArray(effectiveConstraints.category)
+      ? 'array'
+      : typeof effectiveConstraints.category,
     expandedDbCategories: broadFilters.categoryOr?.map((c) => c.category).filter(Boolean),
-    genders: constraints.genders,
+    genders: effectiveConstraints.genders,
     genderFilter: broadFilters.genders,
   });
 
   // Step 2: In-memory attribute filtering (includes canonical category matching)
   // Get ontology for color validation
   const ontology = await getCatalogOntology();
-  const constraintMeta = deriveAttributeConstraintMeta(constraints, broadFilters.categoryOr);
+  const constraintMeta = deriveAttributeConstraintMeta(
+    effectiveConstraints,
+    broadFilters.categoryOr,
+  );
   let filtered = dbCandidates;
   if (constraintMeta.hasHardAttributeConstraints) {
     filtered = dbCandidates.filter((product) => {
       const attrs = (product.attributes ?? {}) as ProductAttributes;
+      // Pass enriched columns for primary filtering, JSON attributes as fallback
+      // Extract ALL database columns first, then fallback to JSONB attributes
+      const enrichedColumns = {
+        // Core indexed columns
+        color: (product as any).color ?? null,
+        fabric: (product as any).fabric ?? null,
+        material: (product as any).material ?? null,
+        occasion: (product as any).occasion ?? null,
+        season: (product as any).season ?? null,
+        fit: (product as any).fit ?? null,
+        
+        // Enriched attributes
+        length: product.length ?? null,
+        sleeve: product.sleeve ?? null,
+        neckline: product.neckline ?? null,
+        formalityLevel: product.formalityLevel ?? null,
+        temperatureIntent: product.temperatureIntent ?? null,
+        humidityFriendly: product.humidityFriendly ?? null,
+        occasionContext: product.occasionContext ?? null,
+        problemSolutions: product.problemSolutions ?? null,
+        functionFeatures: product.functionFeatures ?? null,
+        colorShade: product.colorShade ?? null,
+        colorUndertone: product.colorUndertone ?? null,
+        multicolor: product.multicolor ?? null,
+        seasonalPalette: product.seasonalPalette ?? null,
+        enrichedColor: product.enrichedColor ?? null,
+        ageGroup: product.ageGroup ?? null,
+      };
       return matchesAttributeFilters(
         attrs,
-        constraints,
+        effectiveConstraints,
         broadFilters.categoryOr,
         ontology.colors,
         constraintMeta,
-      ); // Pass color ontology for strict matching
+        enrichedColumns,
+      ); // Pass enriched columns and color ontology for strict matching
     });
   }
 
@@ -309,7 +363,7 @@ export async function searchProducts(
     constraintMeta.hasHardAttributeConstraints && filtered.length === 0 && dbCandidates.length > 0;
 
   if (attributeFilterEliminatedAll) {
-    const wideningTiers = buildWideningTiers(broadFilters, constraints.query);
+    const wideningTiers = buildWideningTiers(broadFilters, effectiveConstraints.query);
     let widened = false;
 
     for (const tier of wideningTiers) {

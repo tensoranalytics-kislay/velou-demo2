@@ -11,11 +11,11 @@
 
 import { prisma } from '../db';
 import { logger } from '../telemetry/logger';
-import { ingestUnifiedCsvStream } from '../catalog/ingestUnifiedCsv';
+import { ingestEnrichedCsvStream } from '../catalog/ingestEnrichedCsv';
 import { Readable } from 'stream';
 import type { Product, IngestionMode } from '@prisma/client';
 import type { SearchConstraints } from '../search/types';
-import type { IngestionSummary } from '../catalog/ingestUnifiedCsv';
+import type { EnrichedIngestionSummary } from '../catalog/ingestEnrichedCsv';
 
 /**
  * Get products for a merchant with optional filters
@@ -217,7 +217,7 @@ export async function importCatalogCSV(
     currency?: string;
     enableContextInference?: boolean;
   }
-): Promise<IngestionSummary> {
+): Promise<EnrichedIngestionSummary> {
   try {
     // Verify merchant exists
     const merchant = await prisma.merchant.findUnique({
@@ -235,38 +235,9 @@ export async function importCatalogCSV(
     const vendorId = options?.vendorId || merchantId;
 
     // Import catalog
-    const summary = await ingestUnifiedCsvStream(stream, vendorId, merchantId, {
-      adminHints: {
-        vertical: options?.vertical,
-        currency: options?.currency,
-      },
-      enableContextInference: options?.enableContextInference ?? true,
+    const summary = await ingestEnrichedCsvStream(stream, vendorId, merchantId, {
       mode,
     });
-
-    // Update merchant's datasetContext if available
-    if (summary.datasetContext) {
-      try {
-        await prisma.merchant.update({
-          where: { id: merchantId },
-          data: {
-            datasetContext: summary.datasetContext as any,
-            updatedAt: new Date(),
-          },
-        });
-
-        logger.info('dataset_context_updated', {
-          merchantId,
-          vertical: summary.datasetContext.vertical,
-        });
-      } catch (error) {
-        logger.warn('dataset_context_update_failed', {
-          merchantId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-        // Don't fail the import if context update fails
-      }
-    }
 
     logger.info('catalog_import_complete', {
       merchantId,

@@ -232,8 +232,17 @@ export async function handleAssistantQuery(
     }
     
     // Extract last classification constraints from conversation context if available
+    // FALLBACK: Also check conversationState.memory if not in conversationContext
     if (input.conversationContext && 'lastClassificationConstraints' in input.conversationContext) {
       lastClassificationConstraints = (input.conversationContext as any).lastClassificationConstraints || null;
+    } else if (conversationState.memory && typeof conversationState.memory === 'object' && 'lastClassificationConstraints' in conversationState.memory) {
+      // Fallback: get from conversationState.memory if stored
+      lastClassificationConstraints = (conversationState.memory as any).lastClassificationConstraints || null;
+      logger.debug('using_stored_last_classification_constraints', {
+        hasAgeGroups: !!lastClassificationConstraints?.ageGroups,
+        ageGroups: lastClassificationConstraints?.ageGroups,
+        source: 'conversationState.memory',
+      });
     }
 
     // Prepare merchant data for orchestrator

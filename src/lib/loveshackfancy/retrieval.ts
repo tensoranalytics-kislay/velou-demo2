@@ -6,7 +6,7 @@
  */
 
 import { searchProducts } from '../search/index';
-import { searchVectorIndex, searchVectorIndexWithDeduplication, embedText, deduplicateProductsByCategory, searchProductsByKeyword } from '../search/vector/index';
+import { searchVectorIndex, searchVectorIndexWithDeduplication, embedText, deduplicateProductsByCategory, deduplicateProductsByCategoryForPostFiltering, searchProductsByKeyword } from '../search/vector/index';
 import { searchConceptIndex, type ConceptIndex } from '../search/concept/index';
 import { getConceptIndex } from '../search/concept/cache';
 import { logger } from '../telemetry/logger';
@@ -15,6 +15,13 @@ import type { QueryClassification, FashionConstraints } from './classifier';
 import { expandColorsWithSimilarity } from './color-similarity';
 import { LOVESHACKFANCY_ONTOLOGY } from './ontology';
 import { getContextAwareConstraints } from './constraint-context';
+import { validateProductCategory } from './validation/category-validator';
+import { expandCategoriesForOptimalCoverage } from '../search/filtering/category';
+import { buildCategorySpecificDictionaries } from '../search/filtering/category-dictionaries';
+import { applyPostSQLFilters, extractSleeveFromSleeveLengths } from '../search/filtering/post-filter';
+import { extractConstraintValues } from './constraint-utils';
+import { prisma } from '../db';
+import type { SearchResultItem } from '../search/types';
 
 /**
  * Generate a simple hash from query text for consistent but diverse variant selection
@@ -56,54 +63,67 @@ export async function multiViewRetrieval(
     semantic: true,  // Primary: vector search captures semantic meaning
     concept: false,  // Disable concept - attributes aren't structured in this dataset
   },
-  topCategories?: string[] // Optional: top 3 categories for hard SQL-level filtering
+  topCategories?: string[], // Optional: top 3 categories for hard SQL-level filtering
+  categoryConfidence?: number // Optional: category classification confidence for post-filtering
 ): Promise<MultiViewRetrievalResult> {
   const candidateIds = new Set<string>();
   const lexicalScores = new Map<string, number>();
   const semanticScores = new Map<string, number>();
   const conceptMatches = new Map<string, Set<string>>();
 
+  // Expand categories to maximize product coverage
+  // This handles singular/plural variations and parent-child relationships
+  // Example: "Maxi Dress" → ["Maxi Dress", "Women's Dresses"] to catch both standalone category and subcategory
+  // This ensures maximum product coverage when products exist in both category field and subcategory field
+  const expandedCategories = topCategories && topCategories.length > 0
+    ? expandCategoriesForOptimalCoverage(topCategories)
+    : undefined;
+
   // Convert classification constraints to search constraints
   // Include top categories for hard SQL-level filtering if provided
   // This hard filters the catalog BEFORE retrieval (applied at SQL level)
-  const searchConstraints = classificationToSearchConstraints(classification, topCategories);
+  const searchConstraints = classificationToSearchConstraints(classification, expandedCategories || topCategories);
   
   // Expand colors using embedding similarity ONLY when:
   // 1. User explicitly requests "similar colours" (handled in orchestrator)
   // 2. Colors are vague (like "light colours", "dark colours") - these are already expanded by classifier
   // 3. For explicit color queries, use original colors without expansion (unless user explicitly asks for similar)
   // Use higher threshold (0.8) to ensure only truly similar colors are included (e.g., red → burgundy, crimson, NOT blue)
-  let expandedColors = searchConstraints.colors;
-  if (searchConstraints.colors && searchConstraints.colors.length > 0) {
+  // Extract color values from intent format if needed
+  const colorValues = Array.isArray(searchConstraints.colors) 
+    ? searchConstraints.colors 
+    : (searchConstraints.colors as any)?.values || [];
+  let expandedColors = colorValues;
+  if (colorValues.length > 0) {
     // Only expand if we have a single color (more likely to be vague or need expansion)
     // For multiple explicit colors (e.g., ["Red", "Cherry"]), don't expand (user already specified what they want)
     // Also check if any color is not in the ontology - if so, don't expand (user might have added a custom color)
-    const hasNonOntologyColor = searchConstraints.colors.some(color => {
+    const hasNonOntologyColor = colorValues.some((color: string) => {
       const colorLower = color.toLowerCase();
       return !LOVESHACKFANCY_ONTOLOGY.colors.some(ontColor => ontColor.toLowerCase() === colorLower);
     });
-    const shouldExpand = searchConstraints.colors.length === 1 && !hasNonOntologyColor;
+    const shouldExpand = colorValues.length === 1 && !hasNonOntologyColor;
     
     if (shouldExpand) {
       try {
         expandedColors = await expandColorsWithSimilarity(
-          searchConstraints.colors,
+          colorValues,
           0.8, // Higher threshold (0.8) to ensure only truly similar colors (e.g., red → burgundy, crimson, rose, NOT blue, purple, pink)
           5    // Limit to 5 similar colors max
         );
         
         // Only log if expansion actually happened
-        if (expandedColors.length > searchConstraints.colors.length) {
+        if (expandedColors.length > colorValues.length) {
           logger.info('color_expansion_applied', {
             query: query.substring(0, 100),
-            originalColors: searchConstraints.colors,
+            originalColors: colorValues,
             expandedColors,
-            expansionCount: expandedColors.length - searchConstraints.colors.length,
+            expansionCount: expandedColors.length - colorValues.length,
           });
         } else {
           logger.debug('color_expansion_no_similar_colors_found', {
             query: query.substring(0, 100),
-            originalColors: searchConstraints.colors,
+            originalColors: colorValues,
             threshold: 0.8,
             note: 'No similar colors found above threshold, using original colors only',
           });
@@ -111,22 +131,22 @@ export async function multiViewRetrieval(
       } catch (error) {
         logger.warn('color_expansion_failed', {
           error: error instanceof Error ? error.message : String(error),
-          colors: searchConstraints.colors,
+          colors: colorValues,
         });
         // Fallback to original colors if expansion fails
-        expandedColors = searchConstraints.colors;
+        expandedColors = colorValues;
       }
     } else {
       // Multiple explicit colors or non-ontology color - use as-is without expansion
-      const skipReason = searchConstraints.colors.length > 1 
+      const skipReason = colorValues.length > 1 
         ? 'Multiple explicit colors specified, using as-is'
         : hasNonOntologyColor 
           ? 'Non-ontology color present, using as-is'
           : 'Unknown reason';
       logger.debug('color_expansion_skipped', {
         query: query.substring(0, 100),
-        colors: searchConstraints.colors,
-        colorCount: searchConstraints.colors.length,
+        colors: colorValues,
+        colorCount: colorValues.length,
         hasNonOntologyColor,
         reason: skipReason,
       });
@@ -215,7 +235,9 @@ export async function multiViewRetrieval(
             query: query.substring(0, 100),
             categories: topCategories,
             originalColors: searchConstraints.colors,
+            originalAgeGroups: searchConstraints.ageGroups,
             sqlFiltersColors: contextAware.sqlFilters.colors,
+            sqlFiltersAgeGroups: contextAware.sqlFilters.ageGroups,
             keywordTerms: contextAware.keywordTerms,
             keywordTermsSample: contextAware.keywordTerms.slice(0, 5),
             textOnlyConstraints: contextAware.metadata.textOnlyConstraints,
@@ -226,35 +248,168 @@ export async function multiViewRetrieval(
           let result: Array<{ productId: string; similarity: number }> = [];
           let fallbackTier = 'strict';
 
+          // Feature flag for post-SQL filtering
+          const USE_POST_SQL_FILTERING = process.env.ENABLE_POST_SQL_FILTERING === 'true';
+
+          logger.debug('fashion_semantic_search: post_sql_filtering_flag', {
+            query: query.substring(0, 100),
+            usePostSQLFiltering: USE_POST_SQL_FILTERING,
+            flagValue: process.env.ENABLE_POST_SQL_FILTERING,
+          });
+
           // TIER 1: Strict filtering with context-aware constraints
-          if (topCategories && topCategories.length > 0) {
+          if (expandedCategories && expandedCategories.length > 0) {
             logger.info('fashion_semantic_search: tier1_strict_filtering', {
               query: query.substring(0, 100),
-              categories: topCategories,
+              originalCategories: topCategories,
+              expandedCategories,
+              usePostSQLFiltering: USE_POST_SQL_FILTERING,
               sqlFilters: {
                 colors: contextAware.sqlFilters.colors?.length || 0,
                 materials: contextAware.sqlFilters.materials?.length || 0,
                 fabrics: contextAware.sqlFilters.fabrics?.length || 0,
+                lengths: contextAware.sqlFilters.lengths?.length || 0,
+                sleeves: contextAware.sqlFilters.sleeves?.length || 0,
+                necklines: contextAware.sqlFilters.necklines?.length || 0,
+                formalityLevel: contextAware.sqlFilters.formalityLevel?.length || 0,
+                colorShade: contextAware.sqlFilters.colorShade?.length || 0,
               },
               keywordTerms: contextAware.keywordTerms.length,
             });
 
-            const productIdsToSearch = await deduplicateProductsByCategory(
+            let productIdsToSearch: string[] = [];
+
+            logger.info('fashion_semantic_search: tier1_before_post_sql_check', {
+              query: query.substring(0, 100),
+              USE_POST_SQL_FILTERING,
+              envValue: process.env.ENABLE_POST_SQL_FILTERING,
+              expandedCategories,
+              ageGroups: contextAware.sqlFilters.ageGroups,
+              note: 'Checking which mode to use (post-SQL filtering vs existing mode)',
+            });
+
+            if (USE_POST_SQL_FILTERING) {
+              logger.info('fashion_semantic_search: post_sql_filtering_mode_enabled', {
+                query: query.substring(0, 100),
+                expandedCategories,
+                ageGroups: contextAware.sqlFilters.ageGroups,
+                note: 'Post-SQL filtering mode enabled - Stage 1: Category-only SQL filter starting',
+              });
+
+              // POST-SQL FILTERING MODE: Two-stage filtration
+              // Stage 1: Category-only SQL filter (skip post-filterable attributes)
+              const categoryFilteredIds = await deduplicateProductsByCategoryForPostFiltering(
+                {
+                  categories: expandedCategories,
+                  ageGroups: contextAware.sqlFilters.ageGroups,
+                  priceMinCents: contextAware.sqlFilters.priceMinCents,
+                  priceMaxCents: contextAware.sqlFilters.priceMaxCents,
+                  merchantId,
+                  inStockOnly: true,
+                },
+                1500
+              );
+
+              logger.info('fashion_semantic_search: post_sql_filtering_stage1_complete', {
+                query: query.substring(0, 100),
+                categoryFilteredCount: categoryFilteredIds.length,
+                note: 'Stage 1: Category-only SQL filter completed',
+              });
+
+              // Stage 2: Build category-specific dictionaries
+              if (categoryFilteredIds.length === 0) {
+                logger.warn('fashion_semantic_search: post_sql_filtering_stage1_returned_zero', {
+                  query: query.substring(0, 100),
+                  expandedCategories,
+                  ageGroups: contextAware.sqlFilters.ageGroups,
+                  note: 'Stage 1 returned 0 products - skipping post-SQL filtering stages',
+                });
+                productIdsToSearch = [];
+              } else {
+                const categoryDictionaries = await buildCategorySpecificDictionaries(
+                  categoryFilteredIds,
+                  merchantId || ''
+                );
+
+                logger.info('fashion_semantic_search: post_sql_filtering_stage2_complete', {
+                  query: query.substring(0, 100),
+                  dictionaryCount: categoryDictionaries.size,
+                  categoryFilteredCount: categoryFilteredIds.length,
+                  note: 'Stage 2: Category-specific dictionaries built',
+                });
+
+                // Stage 3: Apply post-SQL filters using category-specific dictionaries
+                // Helper to convert null to undefined
+                const nullToUndefined = <T>(value: T | null | undefined): T | undefined => 
+                  value === null ? undefined : value;
+                
+                const postFilteredIds = await applyPostSQLFilters(
+                  categoryFilteredIds,
+                  {
+                    colors: nullToUndefined(extractConstraintValues(contextAware.sqlFilters.colors)),
+                    lengths: nullToUndefined(contextAware.sqlFilters.lengths),
+                    sleeves: contextAware.sqlFilters.sleeves ? extractSleeveFromSleeveLengths(contextAware.sqlFilters.sleeves) : undefined,
+                    necklines: nullToUndefined(contextAware.sqlFilters.necklines),
+                    formalityLevels: nullToUndefined(contextAware.sqlFilters.formalityLevel),
+                    colorShades: nullToUndefined(contextAware.sqlFilters.colorShade),
+                  },
+                  categoryDictionaries
+                );
+
+                logger.info('fashion_semantic_search: post_sql_filtering_stage3_complete', {
+                  query: query.substring(0, 100),
+                  originalCount: categoryFilteredIds.length,
+                  postFilteredCount: postFilteredIds.length,
+                  reductionPercentage: categoryFilteredIds.length > 0 
+                    ? ((categoryFilteredIds.length - postFilteredIds.length) / categoryFilteredIds.length * 100).toFixed(2) + '%'
+                    : '0%',
+                  filtersApplied: {
+                    colors: extractConstraintValues(contextAware.sqlFilters.colors)?.length || 0,
+                    colorValues: extractConstraintValues(contextAware.sqlFilters.colors),
+                    lengths: contextAware.sqlFilters.lengths?.length || 0,
+                    lengthValues: contextAware.sqlFilters.lengths,
+                    sleeves: contextAware.sqlFilters.sleeves?.length || 0,
+                    sleeveValues: contextAware.sqlFilters.sleeves,
+                    necklines: contextAware.sqlFilters.necklines?.length || 0,
+                    necklineValues: contextAware.sqlFilters.necklines,
+                    formalityLevels: contextAware.sqlFilters.formalityLevel?.length || 0,
+                    formalityLevelValues: contextAware.sqlFilters.formalityLevel,
+                    colorShades: contextAware.sqlFilters.colorShade?.length || 0,
+                    colorShadeValues: contextAware.sqlFilters.colorShade,
+                  },
+                  note: 'Stage 3: Post-SQL filters applied using category-specific dictionaries',
+                });
+
+                productIdsToSearch = postFilteredIds;
+              }
+            } else {
+              logger.info('fashion_semantic_search: using_existing_mode_not_post_sql', {
+                query: query.substring(0, 100),
+                USE_POST_SQL_FILTERING,
+                envValue: process.env.ENABLE_POST_SQL_FILTERING,
+                note: 'Using existing mode (all filters in SQL) - post-SQL filtering is disabled',
+              });
+              // EXISTING MODE: All filters in SQL
+              productIdsToSearch = await deduplicateProductsByCategory(
               {
                 inStockOnly: true,
                 merchantId,
-                categories: topCategories,
+                  categories: expandedCategories,
                 priceMinCents: contextAware.sqlFilters.priceMinCents,
                 priceMaxCents: contextAware.sqlFilters.priceMaxCents,
-                colors: contextAware.sqlFilters.colors, // Only if applicable (not text-only)
+                  colors: contextAware.sqlFilters.colors,
+                  excludedColors: (contextAware.sqlFilters as any).excludedColors,
                 ageGroups: contextAware.sqlFilters.ageGroups,
+                  lengths: contextAware.sqlFilters.lengths,
               },
               1500,
               queryHash,
-              (contextAware.metadata.textOnlyConstraints as string[]).includes('colors') // Skip color filter if text-only
+                (contextAware.metadata.textOnlyConstraints as string[]).includes('colors')
             );
+            }
 
             if (productIdsToSearch.length > 0) {
+              // Stage 4: Vector search on filtered IDs
               result = await searchVectorIndexWithDeduplication(
                 queryEmbedding,
                 150,
@@ -264,8 +419,12 @@ export async function multiViewRetrieval(
                   categories: undefined, // Already filtered
                   priceMinCents: contextAware.sqlFilters.priceMinCents,
                   priceMaxCents: contextAware.sqlFilters.priceMaxCents,
-                  colors: contextAware.sqlFilters.colors, // Only if applicable
-                  ageGroups: contextAware.sqlFilters.ageGroups,
+                  // NOTE: If post-SQL filtering is enabled, colors, lengths, sleeves, necklines, formalityLevels, colorShades
+                  // are already filtered, so we don't need to apply them again in SQL
+                  colors: USE_POST_SQL_FILTERING ? undefined : contextAware.sqlFilters.colors,
+                  excludedColors: USE_POST_SQL_FILTERING ? undefined : (contextAware.sqlFilters as any).excludedColors,
+                  ageGroups: contextAware.sqlFilters.ageGroups, // Always apply age group filter
+                  lengths: USE_POST_SQL_FILTERING ? undefined : contextAware.sqlFilters.lengths,
                 },
                 undefined,
                 productIdsToSearch
@@ -276,11 +435,15 @@ export async function multiViewRetrieval(
               logger.info('fashion_semantic_search: tier1_success', {
                 query: query.substring(0, 100),
                 resultCount: result.length,
+                usePostSQLFiltering: USE_POST_SQL_FILTERING,
+                productIdsToSearchCount: productIdsToSearch.length,
               });
             } else {
               logger.warn('fashion_semantic_search: tier1_no_results', {
                 query: query.substring(0, 100),
                 categories: topCategories,
+                usePostSQLFiltering: USE_POST_SQL_FILTERING,
+                productIdsToSearchCount: productIdsToSearch.length,
               });
             }
           }
@@ -299,7 +462,7 @@ export async function multiViewRetrieval(
 
             keywordResults = await searchProductsByKeyword(
               contextAware.keywordTerms,
-              topCategories,
+              expandedCategories || topCategories, // Use expanded categories for maximum coverage
               queryEmbedding,
               150,
               {
@@ -363,10 +526,12 @@ export async function multiViewRetrieval(
                   {
                     inStockOnly: true,
                     merchantId,
-                    categories: topCategories,
+                    categories: expandedCategories || topCategories, // Use expanded categories for maximum coverage
                     priceMinCents: contextAware.sqlFilters.priceMinCents,
                     priceMaxCents: contextAware.sqlFilters.priceMaxCents,
                     ageGroups: contextAware.sqlFilters.ageGroups,
+                    // NOTE: If post-SQL filtering is enabled, lengths are post-filtered, so skip here
+                    lengths: USE_POST_SQL_FILTERING ? undefined : contextAware.sqlFilters.lengths,
                   },
                   undefined,
                   undefined // No pre-deduplicated IDs, search all products in category
@@ -422,18 +587,31 @@ export async function multiViewRetrieval(
 
           // TIER 2: Relaxed constraints (drop inapplicable filters)
           // If strict filtering failed and there are many colors (>5), drop color filter to find any products
+          // CRITICAL: Skip Tier 2 if post-SQL filtering is enabled and Tier 1 returned 0 results
+          // This is because Tier 1's post-SQL filtering is more accurate (respects sleeves/necklines/formalityLevel/colorShade)
+          // and Tier 2 uses the old function that doesn't filter by these attributes
           if (result.length === 0 && topCategories && topCategories.length > 0) {
+            if (USE_POST_SQL_FILTERING) {
+              logger.info('fashion_semantic_search: tier2_skipped_due_to_post_sql_filtering', {
+                query: query.substring(0, 100),
+                categories: topCategories,
+                note: 'Tier 2 skipped because post-SQL filtering is enabled and Tier 1 correctly filtered out non-matching products (e.g., sleeveless vs long sleeves). Returning 0 results to respect user constraints.',
+              });
+              // Don't fall back to Tier 2 - post-SQL filtering correctly filtered products, so return 0 results
+            } else {
             fallbackTier = 'relaxed';
             
             // Smart color relaxation: if there are many colors (>5), drop color filter entirely
             // This helps when users specify many colors (e.g., 11 colors) which is too restrictive
-            const shouldDropColors = contextAware.relaxedConstraints.colors && 
-                                     contextAware.relaxedConstraints.colors.length > 5;
+            const relaxedColors = Array.isArray(contextAware.relaxedConstraints.colors) 
+              ? contextAware.relaxedConstraints.colors 
+              : (contextAware.relaxedConstraints.colors as any)?.values || [];
+            const shouldDropColors = relaxedColors.length > 5;
             
             logger.info('fashion_semantic_search: tier2_relaxed_filtering', {
               query: query.substring(0, 100),
               categories: topCategories,
-              originalColorCount: contextAware.relaxedConstraints.colors?.length || 0,
+              originalColorCount: relaxedColors.length,
               droppingColors: shouldDropColors,
               reason: shouldDropColors ? 'Too many colors (>5), dropping color filter to find products' : 'Using relaxed constraints',
             });
@@ -442,11 +620,13 @@ export async function multiViewRetrieval(
               {
                 inStockOnly: true,
                 merchantId,
-                categories: topCategories,
+                  categories: expandedCategories || topCategories, // Use expanded categories for maximum coverage
                 priceMinCents: contextAware.relaxedConstraints.priceMinCents,
                 priceMaxCents: contextAware.relaxedConstraints.priceMaxCents,
-                colors: shouldDropColors ? undefined : contextAware.relaxedConstraints.colors, // Drop colors if too many
+                colors: shouldDropColors ? undefined : relaxedColors, // Drop colors if too many
+                excludedColors: shouldDropColors ? undefined : (contextAware.relaxedConstraints as any).excludedColors, // Excluded colors
                 ageGroups: contextAware.relaxedConstraints.ageGroups,
+                  lengths: contextAware.relaxedConstraints.lengths, // Hard SQL filter for length (preserve in relaxed tier)
               },
               1500,
               queryHash,
@@ -463,8 +643,10 @@ export async function multiViewRetrieval(
                   categories: undefined,
                   priceMinCents: contextAware.relaxedConstraints.priceMinCents,
                   priceMaxCents: contextAware.relaxedConstraints.priceMaxCents,
-                  colors: shouldDropColors ? undefined : contextAware.relaxedConstraints.colors, // Drop colors if too many
+                  colors: shouldDropColors ? undefined : relaxedColors, // Drop colors if too many
+                  excludedColors: shouldDropColors ? undefined : (contextAware.relaxedConstraints as any).excludedColors, // Excluded colors
                   ageGroups: contextAware.relaxedConstraints.ageGroups,
+                    lengths: contextAware.relaxedConstraints.lengths, // Hard SQL filter for length (preserve in relaxed tier)
                 },
                 undefined,
                 productIdsToSearch
@@ -480,11 +662,22 @@ export async function multiViewRetrieval(
               logger.warn('fashion_semantic_search: tier2_no_results', {
                 query: query.substring(0, 100),
               });
+              }
             }
           }
 
           // TIER 3: Keyword search (for context-dependent words)
+          // CRITICAL: Skip Tier 3 if post-SQL filtering is enabled and Tier 1 returned 0 results
+          // (same reason as Tier 2 - post-SQL filtering is more accurate)
           if (result.length === 0 && contextAware.keywordTerms.length > 0 && topCategories && topCategories.length > 0 && contextAware.metadata.allowKeywordMatching) {
+            if (USE_POST_SQL_FILTERING) {
+              logger.info('fashion_semantic_search: tier3_skipped_due_to_post_sql_filtering', {
+                query: query.substring(0, 100),
+                keywords: contextAware.keywordTerms,
+                categories: topCategories,
+                note: 'Tier 3 skipped because post-SQL filtering is enabled and Tier 1 correctly filtered out non-matching products. Returning 0 results to respect user constraints.',
+              });
+            } else {
             fallbackTier = 'keyword';
             logger.info('fashion_semantic_search: tier3_keyword_search', {
               query: query.substring(0, 100),
@@ -494,7 +687,7 @@ export async function multiViewRetrieval(
 
             const keywordResults = await searchProductsByKeyword(
               contextAware.keywordTerms,
-              topCategories,
+                expandedCategories || topCategories, // Use expanded categories for maximum coverage
               queryEmbedding,
               150,
               {
@@ -517,51 +710,100 @@ export async function multiViewRetrieval(
               logger.warn('fashion_semantic_search: tier3_no_results', {
                 query: query.substring(0, 100),
               });
+              }
             }
           }
 
           // TIER 4: Pure vector search (no constraint filters, only category)
           // This is the final fallback - drop all constraint filters to find any products in the category
+          // BUT: If colors or age groups are explicitly mentioned, don't drop them - they are hard filters
+          // CRITICAL: Skip Tier 4 if post-SQL filtering is enabled and Tier 1 returned 0 results
+          // (same reason as Tier 2 and Tier 3 - post-SQL filtering is more accurate)
           if (result.length === 0 && topCategories && topCategories.length > 0) {
-            fallbackTier = 'vector';
-            logger.info('fashion_semantic_search: tier4_pure_vector', {
-              query: query.substring(0, 100),
-              categories: topCategories,
-              note: 'Dropping all constraint filters (including age groups) to find any products in category',
-            });
-
-            const productIdsToSearch = await deduplicateProductsByCategory(
-              {
-                inStockOnly: true,
-                merchantId,
-                categories: topCategories,
-                // No price, color, age groups, or other filters - pure category-based search
-              },
-              1500,
-              queryHash,
-              true // Skip color filter
-            );
-
-            if (productIdsToSearch.length > 0) {
-              result = await searchVectorIndexWithDeduplication(
-                queryEmbedding,
-                150,
-                {
-                  inStockOnly: true,
-                  merchantId,
-                  categories: undefined,
-                  // No constraint filters - pure vector similarity search
-                },
-                undefined,
-                productIdsToSearch
-              );
-            }
-
-            if (result.length > 0) {
-              logger.info('fashion_semantic_search: tier4_success', {
+            if (USE_POST_SQL_FILTERING) {
+              logger.info('fashion_semantic_search: tier4_skipped_due_to_post_sql_filtering', {
                 query: query.substring(0, 100),
-                resultCount: result.length,
+                categories: topCategories,
+                note: 'Tier 4 skipped because post-SQL filtering is enabled and Tier 1 correctly filtered out non-matching products. Returning 0 results to respect user constraints.',
               });
+              // Don't fall back to Tier 4 - post-SQL filtering correctly filtered products
+            } else {
+              // Check if colors are explicitly mentioned (not text-only, meaning they should be hard filters)
+              const colorValues = Array.isArray(searchConstraints.colors) 
+                ? searchConstraints.colors 
+                : (searchConstraints.colors as any)?.values || [];
+              const hasExplicitColorFilter = colorValues.length > 0 &&
+                                           !(contextAware.metadata.textOnlyConstraints as string[]).includes('colors');
+              
+              // Check if age groups are explicitly mentioned (they should be hard filters)
+              // Check both searchConstraints and contextAware.sqlFilters (age groups might be in either)
+              const ageGroupValuesFromSearch = Array.isArray(searchConstraints.ageGroups) 
+                ? searchConstraints.ageGroups 
+                : (searchConstraints.ageGroups as any)?.values || [];
+              const ageGroupValuesFromContext = Array.isArray(contextAware.sqlFilters.ageGroups)
+                ? contextAware.sqlFilters.ageGroups
+                : (contextAware.sqlFilters.ageGroups as any)?.values || [];
+              const ageGroupValues = ageGroupValuesFromSearch.length > 0 ? ageGroupValuesFromSearch : ageGroupValuesFromContext;
+              const hasExplicitAgeGroupFilter = ageGroupValues && ageGroupValues.length > 0;
+              
+              if (hasExplicitColorFilter || hasExplicitAgeGroupFilter) {
+                // Colors or age groups are explicitly mentioned - don't drop them, return 0 results instead
+                const skippedFilters = [];
+                if (hasExplicitColorFilter) skippedFilters.push('colors');
+                if (hasExplicitAgeGroupFilter) skippedFilters.push('ageGroups');
+                
+                logger.info('fashion_semantic_search: tier4_skipped_explicit_filters', {
+                  query: query.substring(0, 100),
+                  categories: topCategories,
+                  colors: hasExplicitColorFilter ? colorValues : undefined,
+                  ageGroups: hasExplicitAgeGroupFilter ? ageGroupValues : undefined,
+                  skippedFilters,
+                  note: `Skipping tier 4 fallback because ${skippedFilters.join(' and ')} are explicitly mentioned and should be hard filters`,
+                });
+                // result remains empty (0 results) - this is correct behavior for explicit filters
+              } else {
+                // No explicit hard filters - proceed with tier 4 (drop all filters)
+                fallbackTier = 'vector';
+                logger.info('fashion_semantic_search: tier4_pure_vector', {
+                  query: query.substring(0, 100),
+                  categories: topCategories,
+                  note: 'Dropping all constraint filters to find any products in category',
+                });
+
+                const productIdsToSearch = await deduplicateProductsByCategory(
+                  {
+                    inStockOnly: true,
+                    merchantId,
+                    categories: expandedCategories || topCategories, // Use expanded categories for maximum coverage
+                    // No price, color, age groups, or other filters - pure category-based search
+                  },
+                  1500,
+                  queryHash,
+                  true // Skip color filter
+                );
+
+                if (productIdsToSearch.length > 0) {
+                  result = await searchVectorIndexWithDeduplication(
+                    queryEmbedding,
+                    150,
+                    {
+                      inStockOnly: true,
+                      merchantId,
+                      categories: undefined,
+                      // No constraint filters - pure vector similarity search
+                    },
+                    undefined,
+                    productIdsToSearch
+                  );
+                }
+
+                if (result.length > 0) {
+                  logger.info('fashion_semantic_search: tier4_success', {
+                    query: query.substring(0, 100),
+                    resultCount: result.length,
+                  });
+                }
+              }
             }
           }
           
@@ -578,6 +820,7 @@ export async function multiViewRetrieval(
               priceMaxCents: searchConstraints.priceMaxCents,
               colors: expandedColors,
               ageGroups: searchConstraints.ageGroups,
+              lengths: searchConstraints.lengths, // Hard SQL filter for length
             },
               450,
               undefined
@@ -685,9 +928,66 @@ export async function multiViewRetrieval(
     conceptCount: Array.from(conceptMatches.values()).reduce((sum, set) => sum + set.size, 0),
   });
 
+  // Post-filter by category if categories and confidence are provided
+  // This prevents cross-category contamination (e.g., "dresses" query returning "towels")
+  let filteredCandidateIds = Array.from(candidateIds);
+  if (topCategories && topCategories.length > 0 && categoryConfidence !== undefined) {
+    try {
+      // Load products to validate their categories
+      const productsToValidate = await prisma.product.findMany({
+        where: {
+          id: { in: filteredCandidateIds },
+          ...(merchantId ? { merchantId } : {}),
+        },
+        select: {
+          id: true,
+          category: true,
+        },
+      });
+
+      const beforeFilterCount = filteredCandidateIds.length;
+      
+      // Filter products by category validation
+      const validProductIds = productsToValidate
+        .filter(product => {
+          const validation = validateProductCategory(
+            product as SearchResultItem,
+            topCategories,
+            categoryConfidence
+          );
+          return validation.isValid;
+        })
+        .map(p => p.id);
+
+      // Keep only valid product IDs, preserving order from semantic scores
+      filteredCandidateIds = filteredCandidateIds.filter(id => validProductIds.includes(id));
+
+      const afterFilterCount = filteredCandidateIds.length;
+      const filteredCount = beforeFilterCount - afterFilterCount;
+
+      if (filteredCount > 0) {
+        logger.info('products_filtered_by_category_post_vector_search', {
+          query: query.substring(0, 100),
+          categories: topCategories,
+          categoryConfidence,
+          beforeFilterCount,
+          afterFilterCount,
+          filteredCount,
+          note: 'Products filtered by category validation after vector search to prevent cross-category contamination',
+        });
+      }
+    } catch (error) {
+      logger.error('category_post_filtering_failed', {
+        error: error instanceof Error ? error.message : String(error),
+        query: query.substring(0, 100),
+      });
+      // Continue with unfiltered results if filtering fails
+    }
+  }
+
   // Sort candidate IDs by vector similarity (if available) to preserve database ranking
   // This ensures products are returned in order of relevance from the database
-  const sortedCandidateIds = Array.from(candidateIds).sort((a, b) => {
+  const sortedCandidateIds = filteredCandidateIds.sort((a, b) => {
     const scoreA = semanticScores.get(a) || 0;
     const scoreB = semanticScores.get(b) || 0;
     return scoreB - scoreA; // Descending order (higher similarity first)
@@ -756,6 +1056,12 @@ export function classificationToSearchConstraints(
       ...(constraints.styles || []),
       ...(constraints.patterns || []),
     ] : undefined),
+    // Map post-filterable attributes (preserved in sqlFilters for post-SQL filtering)
+    // sleeveLengths -> sleeves (map FashionConstraints.sleeveLengths to SearchConstraints.sleeves)
+    sleeves: nullToUndefined(constraints.sleeveLengths),
+    necklines: nullToUndefined(constraints.necklines),
+    formalityLevel: nullToUndefined(constraints.formalityLevel),
+    colorShade: nullToUndefined(constraints.colorShade),
     // Map category-specific constraints
     // scents -> sensoryProfile (convert array to string description)
     sensoryProfile: mergedSensoryProfile || undefined,
@@ -775,4 +1081,3 @@ export function classificationToSearchConstraints(
   
   return searchConstraints;
 }
-

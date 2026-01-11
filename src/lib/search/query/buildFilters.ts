@@ -25,9 +25,33 @@ import {
 } from '../canonicalize';
 import type { SearchConstraints } from '../types';
 import type { BroadWhereFilters, MerchContext } from './types';
+import { prisma } from '../../db';
 
 // Default stock filter: only in-stock products are shown (hard filter)
 const DEFAULT_STOCK_STATUS: Array<'in_stock'> = ['in_stock'];
+
+/**
+ * Get subcategories for given categories from database
+ * Used for post-classification subcategory filtering
+ */
+export async function getSubcategoriesForCategories(
+  categories: string[]
+): Promise<string[]> {
+  if (categories.length === 0) return [];
+  
+  const products = await prisma.product.findMany({
+    where: { 
+      category: { in: categories },
+      isActive: true,
+    },
+    select: { subcategory: true },
+    distinct: ['subcategory'],
+  });
+  
+  return products
+    .map(p => p.subcategory)
+    .filter((subcat): subcat is string => subcat !== null);
+}
 
 /**
  * Builds broad WHERE filters (only indexed/structured fields)
@@ -69,6 +93,25 @@ export async function buildBroadWhereFilters(
     excludedCategories: Array.from(merchContext.excludedCategories),
     // Gender filter: hard filter at DB level
     genders: constraints.genders?.length ? constraints.genders : undefined,
+    // Enriched indexed filters
+    length: constraints.lengths?.length ? constraints.lengths : undefined,
+    formalityLevel: constraints.formalityLevel?.length ? constraints.formalityLevel : undefined,
+    temperatureIntent: constraints.temperatureIntent,
+    humidityFriendly:
+      constraints.humidityFriendly === undefined ? undefined : constraints.humidityFriendly,
+    occasionContext: constraints.occasionContext?.length
+      ? { hasSome: constraints.occasionContext }
+      : undefined,
+    problemSolutions: constraints.problemSolutions?.length
+      ? { hasSome: constraints.problemSolutions }
+      : undefined,
+    functionFeatures: constraints.functionFeatures?.length
+      ? { hasSome: constraints.functionFeatures }
+      : undefined,
+    colorShade: constraints.colorShade?.length ? constraints.colorShade : undefined,
+    colorUndertone: constraints.colorUndertone?.length ? constraints.colorUndertone : undefined,
+    multicolor:
+      constraints.multicolor === undefined ? undefined : constraints.multicolor === true ? true : false,
   };
 
   const ontology = await getCatalogOntology();

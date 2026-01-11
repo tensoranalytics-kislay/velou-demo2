@@ -39,6 +39,17 @@ export type ConversationMemory = {
   lastIntent?: string;
   pendingFollowups?: PendingFollowups;
   lastEnhancedQuery?: string; // Store the last enhanced query from constraint merging for cumulative context
+  lastCategories?: string[]; // Store the last categories for intent-aware constraint preservation
+  // NEW: Store last classification constraints for age group switch detection
+  lastClassificationConstraints?: {
+    ageGroups?: string[];
+    colors?: string[];
+    occasions?: string[];
+    seasons?: string[];
+    formalityLevel?: string;
+    priceMinCents?: number;
+    priceMaxCents?: number;
+  };
 };
 
 export type ConversationStateData = {

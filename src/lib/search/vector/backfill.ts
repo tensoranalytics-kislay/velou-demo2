@@ -42,6 +42,19 @@ function buildSearchResultItemFromDb(product: {
   category: string;
   subcategory: string | null;
   attributes: unknown;
+  enrichedColor?: string | null;
+  ageGroup?: string | null;
+  length?: string | null;
+  formalityLevel?: string | null;
+  temperatureIntent?: string | null;
+  humidityFriendly?: boolean | null;
+  occasionContext?: string[] | null;
+  problemSolutions?: string[] | null;
+  functionFeatures?: string[] | null;
+  colorShade?: string | null;
+  colorUndertone?: string | null;
+  multicolor?: boolean | null;
+  seasonalPalette?: string | null;
 }): SearchResultItem {
   return {
     id: product.id,
@@ -52,8 +65,22 @@ function buildSearchResultItemFromDb(product: {
     priceCents: 0, // Not needed for embedding
     currency: 'USD', // Not needed for embedding
     category: product.category,
+    subcategory: product.subcategory ?? undefined,
     stockStatus: 'in_stock', // Not needed for embedding
     attributes: product.attributes as Record<string, unknown>,
+    enrichedColor: product.enrichedColor ?? undefined,
+    ageGroup: product.ageGroup ?? undefined,
+    length: product.length ?? undefined,
+    formalityLevel: product.formalityLevel ?? undefined,
+    temperatureIntent: product.temperatureIntent ?? undefined,
+    humidityFriendly: product.humidityFriendly ?? undefined,
+    occasionContext: product.occasionContext ?? undefined,
+    problemSolutions: product.problemSolutions ?? undefined,
+    functionFeatures: product.functionFeatures ?? undefined,
+    colorShade: product.colorShade ?? undefined,
+    colorUndertone: product.colorUndertone ?? undefined,
+    multicolor: product.multicolor ?? undefined,
+    seasonalPalette: product.seasonalPalette ?? undefined,
   };
 }
 
@@ -162,7 +189,20 @@ export async function backfillProductEmbeddings(
           p.description,
           p.category,
           p.subcategory,
-          p.attributes
+          p.attributes,
+          p."enrichedColor",
+          p."ageGroup",
+          p.length,
+          p."formalityLevel",
+          p."temperatureIntent",
+          p."humidityFriendly",
+          p."occasionContext",
+          p."problemSolutions",
+          p."functionFeatures",
+          p."colorShade",
+          p."colorUndertone",
+          p.multicolor,
+          p."seasonalPalette"
         FROM "Product" p
         WHERE ${whereConditions.join(' AND ')}
         ORDER BY p."createdAt" ASC
@@ -177,6 +217,19 @@ export async function backfillProductEmbeddings(
         category: string;
         subcategory: string | null;
         attributes: unknown;
+        enrichedColor: string | null;
+        ageGroup: string | null;
+        length: string | null;
+        formalityLevel: string | null;
+        temperatureIntent: string | null;
+        humidityFriendly: boolean | null;
+        occasionContext: string[] | null;
+        problemSolutions: string[] | null;
+        functionFeatures: string[] | null;
+        colorShade: string | null;
+        colorUndertone: string | null;
+        multicolor: boolean | null;
+        seasonalPalette: string | null;
       }>>(query, ...params);
       
       if (products.length === 0) {

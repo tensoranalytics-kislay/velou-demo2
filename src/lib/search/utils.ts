@@ -118,18 +118,156 @@ export function buildIndexedText(
     if (product.title) parts.push(product.title);
     if (product.description) parts.push(product.description);
     if (product.category) parts.push(product.category);
-    // Note: SearchResultItem doesn't have subcategory, but it might be in attributes
-    const subcategory = (product.attributes as any)?.subcategory;
-    if (subcategory) parts.push(subcategory);
+    if (product.subcategory) parts.push(product.subcategory);
     
-    // Searchable attributes
+    // Enriched color (highest priority for color matching)
+    if (product.enrichedColor) parts.push(product.enrichedColor);
+    
+    // Enriched attributes from columns (for semantic search)
+    if (product.formalityLevel) parts.push(`formality: ${product.formalityLevel}`);
+    if (product.temperatureIntent) parts.push(`temperature: ${product.temperatureIntent}`);
+    if (product.occasionContext?.length) parts.push(`occasion: ${product.occasionContext.join(', ')}`);
+    if (product.problemSolutions?.length) parts.push(`features: ${product.problemSolutions.join(', ')}`);
+    if (product.functionFeatures?.length) parts.push(`functions: ${product.functionFeatures.join(', ')}`);
+    if (product.seasonalPalette) parts.push(`season: ${product.seasonalPalette}`);
+    if (product.length) parts.push(`length: ${product.length}`);
+    
+    // Additional enriched columns from product
+    if ((product as any).silhouetteCut) parts.push(`silhouette: ${(product as any).silhouetteCut}`);
+    if ((product as any).sleeve) parts.push(`sleeve: ${(product as any).sleeve}`);
+    if ((product as any).neckline) parts.push(`neckline: ${(product as any).neckline}`);
+    if ((product as any).closureConstruction) parts.push(`closure: ${(product as any).closureConstruction}`);
+    if ((product as any).fitPreference) parts.push(`fit: ${(product as any).fitPreference}`);
+    if ((product as any).riseWaist) parts.push(`rise: ${(product as any).riseWaist}`);
+    if ((product as any).stretchLevel) parts.push(`stretch: ${(product as any).stretchLevel}`);
+    if ((product as any).bodyIntent) parts.push(`body: ${(product as any).bodyIntent}`);
+    if ((product as any).comfortIntent) parts.push(`comfort: ${(product as any).comfortIntent}`);
+    if ((product as any).fabricFamily) parts.push(`fabric: ${(product as any).fabricFamily}`);
+    if ((product as any).handfeel) parts.push(`handfeel: ${(product as any).handfeel}`);
+    if ((product as any).warmthWeight) parts.push(`warmth: ${(product as any).warmthWeight}`);
+    if ((product as any).breathability) parts.push(`breathability: ${(product as any).breathability}`);
+    if ((product as any).opacity) parts.push(`opacity: ${(product as any).opacity}`);
+    if ((product as any).wrinkleBehavior) parts.push(`wrinkle: ${(product as any).wrinkleBehavior}`);
+    if ((product as any).dressCode) parts.push(`dresscode: ${(product as any).dressCode}`);
+    if ((product as any).seasonalCues) parts.push(`seasonal: ${(product as any).seasonalCues}`);
+    if ((product as any).movementNeeds) parts.push(`movement: ${(product as any).movementNeeds}`);
+    if ((product as any).inclusivitySizing) parts.push(`sizing: ${(product as any).inclusivitySizing}`);
+    
+    // Searchable attributes from JSON (fallback)
     const attrs = product.attributes;
     const searchableText = extractSearchableTextFromAttributes(attrs);
     if (searchableText) {
       parts.push(searchableText);
     }
     
-    return parts.join(' ');
+    // Style and mood from attributes
+    if ((attrs as any).style_labels) {
+      const styleLabels = (attrs as any).style_labels;
+      if (Array.isArray(styleLabels)) {
+        parts.push(...styleLabels);
+      }
+    }
+    if ((attrs as any).vibe_mood) {
+      const vibeMood = (attrs as any).vibe_mood;
+      if (Array.isArray(vibeMood)) {
+        parts.push(...vibeMood);
+      }
+    }
+    if ((attrs as any).pattern_print) {
+      const patternPrint = (attrs as any).pattern_print;
+      if (Array.isArray(patternPrint)) {
+        parts.push(...patternPrint);
+      }
+    }
+    if ((attrs as any).detailing) {
+      const detailing = (attrs as any).detailing;
+      if (Array.isArray(detailing)) {
+        parts.push(...detailing);
+      } else if (typeof detailing === 'string') {
+        parts.push(detailing);
+      }
+    }
+    
+    // Fabric and material
+    if ((attrs as any).fabric_family) parts.push(`fabric: ${(attrs as any).fabric_family}`);
+    if (attrs.material) parts.push(`material: ${attrs.material}`);
+    
+    // Care and sizing
+    if ((attrs as any).care_requirements) {
+      const care = (attrs as any).care_requirements;
+      if (Array.isArray(care)) {
+        parts.push(...care);
+      } else if (typeof care === 'string') {
+        parts.push(care);
+      }
+    }
+    if ((attrs as any).sizing_notes) parts.push(`sizing: ${(attrs as any).sizing_notes}`);
+    
+    // Finish and construction details
+    if ((attrs as any).finish) parts.push(`finish: ${(attrs as any).finish}`);
+    if ((attrs as any).modesty_cues) {
+      const modesty = (attrs as any).modesty_cues;
+      if (Array.isArray(modesty)) {
+        parts.push(...modesty);
+      } else if (typeof modesty === 'string') {
+        parts.push(modesty);
+      }
+    }
+    
+    // Weather and travel
+    if ((attrs as any).rain_wind) parts.push(`weather: ${(attrs as any).rain_wind}`);
+    if ((attrs as any).travel_features) {
+      const travel = (attrs as any).travel_features;
+      if (Array.isArray(travel)) {
+        parts.push(...travel);
+      } else if (typeof travel === 'string') {
+        parts.push(travel);
+      }
+    }
+    
+    // Construction details
+    if ((attrs as any).layering_intent) parts.push(`layering: ${(attrs as any).layering_intent}`);
+    if ((attrs as any).pairing_intent) parts.push(`pairing: ${(attrs as any).pairing_intent}`);
+    if ((attrs as any).pockets) parts.push(`pockets: ${(attrs as any).pockets}`);
+    if ((attrs as any).lining_type) parts.push(`lining: ${(attrs as any).lining_type}`);
+    if ((attrs as any).bra_solution) parts.push(`bra: ${(attrs as any).bra_solution}`);
+    if ((attrs as any).slit) parts.push(`slit: ${(attrs as any).slit}`);
+    if ((attrs as any).neckline_depth) parts.push(`neckline_depth: ${(attrs as any).neckline_depth}`);
+    if ((attrs as any).waist_structure) parts.push(`waist: ${(attrs as any).waist_structure}`);
+    if ((attrs as any).hem_style) parts.push(`hem: ${(attrs as any).hem_style}`);
+    if ((attrs as any).collar_type) parts.push(`collar: ${(attrs as any).collar_type}`);
+    
+    // Commercial and value
+    if ((attrs as any).price_band) parts.push(`price_band: ${(attrs as any).price_band}`);
+    if ((attrs as any).deal_intent) parts.push(`deal: ${(attrs as any).deal_intent}`);
+    if ((attrs as any).value_framing) parts.push(`value: ${(attrs as any).value_framing}`);
+    
+    // Sustainability and quality
+    if ((attrs as any).eco_materials) {
+      const eco = (attrs as any).eco_materials;
+      if (Array.isArray(eco)) {
+        parts.push(...eco);
+      } else if (typeof eco === 'string') {
+        parts.push(eco);
+      }
+    }
+    if ((attrs as any).certifications) parts.push(`certified: ${(attrs as any).certifications}`);
+    if ((attrs as any).origin) parts.push(`origin: ${(attrs as any).origin}`);
+    if ((attrs as any).durability_notes) parts.push(`durability: ${(attrs as any).durability_notes}`);
+    
+    // Inclusivity
+    if ((attrs as any).adaptive_features) parts.push(`adaptive: ${(attrs as any).adaptive_features}`);
+    if ((attrs as any).sensory_friendly) parts.push(`sensory: ${(attrs as any).sensory_friendly}`);
+    if ((attrs as any).social_proof) parts.push(`proof: ${(attrs as any).social_proof}`);
+    
+    // Product structure
+    if ((attrs as any).set_vs_single) parts.push(`type: ${(attrs as any).set_vs_single}`);
+    if ((attrs as any).pack_size) parts.push(`pack: ${(attrs as any).pack_size}`);
+    
+    // Age group
+    if (product.ageGroup) parts.push(`age: ${product.ageGroup}`);
+    
+    return parts.filter(Boolean).join(' ');
   } else {
     // For queries, just return the query text
     return queryText || '';

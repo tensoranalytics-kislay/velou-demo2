@@ -24,6 +24,17 @@ export type BroadWhereFilters = {
   keywordFilters?: string[];
   // Gender filter: hard filter at DB level
   genders?: string[]; // ["mens", "womens", "unisex"]
+  // Enriched indexed filters
+  length?: string[]; // Dress/skirt length
+  formalityLevel?: string[];
+  temperatureIntent?: string;
+  humidityFriendly?: boolean;
+  occasionContext?: { hasSome: string[] };
+  problemSolutions?: { hasSome: string[] };
+  functionFeatures?: { hasSome: string[] };
+  colorShade?: string[];
+  colorUndertone?: string[];
+  multicolor?: boolean;
 };
 
 /**

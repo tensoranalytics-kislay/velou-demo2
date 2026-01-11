@@ -64,6 +64,7 @@ PROD-C,Product C,https://example.com/c,39.99,USD,Category2`;
     const initialBatchId = 'batch-initial';
     vi.mocked(prisma.catalogIngestionRun.create).mockResolvedValue({
       id: initialBatchId,
+      merchantId: 'test-merchant',
       vendorId,
       mode: IngestionMode.FULL_REPLACE,
       createdAt: new Date(),
@@ -76,6 +77,7 @@ PROD-C,Product C,https://example.com/c,39.99,USD,Category2`;
 
     vi.mocked(prisma.catalogIngestionRun.update).mockResolvedValue({
       id: initialBatchId,
+      merchantId: 'test-merchant',
       vendorId,
       mode: IngestionMode.FULL_REPLACE,
       createdAt: new Date(),
@@ -90,6 +92,7 @@ PROD-C,Product C,https://example.com/c,39.99,USD,Category2`;
     vi.mocked(prisma.product.upsert)
       .mockResolvedValueOnce({
         id: `${vendorId}_PROD-A`,
+        merchantId: 'test-merchant',
         title: 'Product A',
         description: 'Product A description',
         imageUrl: '',
@@ -108,9 +111,10 @@ PROD-C,Product C,https://example.com/c,39.99,USD,Category2`;
         lastIngestBatchId: initialBatchId,
         createdAt: new Date(),
         updatedAt: new Date(),
-      })
+      } as any)
       .mockResolvedValueOnce({
         id: `${vendorId}_PROD-B`,
+        merchantId: 'test-merchant',
         title: 'Product B',
         description: 'Product B description',
         imageUrl: '',
@@ -188,6 +192,7 @@ PROD-D,Product D,https://example.com/d,49.99,USD,Category1`;
 
     vi.mocked(prisma.catalogIngestionRun.update).mockResolvedValue({
       id: secondBatchId,
+      merchantId: 'test-merchant',
       vendorId,
       mode: IngestionMode.FULL_REPLACE,
       createdAt: new Date(),
@@ -202,6 +207,7 @@ PROD-D,Product D,https://example.com/d,49.99,USD,Category1`;
     vi.mocked(prisma.product.upsert)
       .mockResolvedValueOnce({
         id: `${vendorId}_PROD-B`,
+        merchantId: 'test-merchant',
         title: 'Product B Updated',
         description: 'Product B description',
         imageUrl: '',
@@ -244,6 +250,7 @@ PROD-D,Product D,https://example.com/d,49.99,USD,Category1`;
       })
       .mockResolvedValueOnce({
         id: `${vendorId}_PROD-D`,
+        merchantId: 'test-merchant',
         title: 'Product D',
         description: 'Product D description',
         imageUrl: '',
@@ -314,6 +321,7 @@ PROD-1,Product 1,https://example.com/1,19.99,USD,Category1`;
 
     vi.mocked(prisma.catalogIngestionRun.create).mockResolvedValue({
       id: batchId,
+      merchantId: 'test-merchant',
       vendorId,
       mode: IngestionMode.FULL_REPLACE,
       createdAt: new Date(),
@@ -326,6 +334,7 @@ PROD-1,Product 1,https://example.com/1,19.99,USD,Category1`;
 
     vi.mocked(prisma.catalogIngestionRun.update).mockResolvedValue({
       id: batchId,
+      merchantId: 'test-merchant',
       vendorId,
       mode: IngestionMode.FULL_REPLACE,
       createdAt: new Date(),
@@ -338,6 +347,7 @@ PROD-1,Product 1,https://example.com/1,19.99,USD,Category1`;
 
     vi.mocked(prisma.product.upsert).mockResolvedValue({
       id: `${vendorId}_PROD-1`,
+      merchantId: 'test-merchant',
       title: 'Product 1',
       description: 'Product 1',
       imageUrl: '',

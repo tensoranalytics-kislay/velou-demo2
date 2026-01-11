@@ -39,8 +39,148 @@ Only mark as "unrelated" if the query doesn't relate to ANY of these 48 categori
 QUERY: {QUERY}
 LAST_CONSTRAINTS: {LAST_CONSTRAINTS}
 
+**CRITICAL: PRODUCT TERMS EXTRACTION**
+Extract clean product terms for vector search. This is the core product type mentioned (e.g., "maxi dress", "cardigan", "swimsuit", "onesie").
+
+RULES:
+- Remove filler words ("find", "show me", "I want", "looking for")
+- Remove constraint attributes from product terms (e.g., "red maxi dress" → productTerms: "maxi dress", NOT "red maxi dress")
+- **CRITICAL**: When you remove constraint attributes from product terms, you MUST still extract them as separate constraints:
+  * "red maxi dress" → productTerms: "maxi dress" AND colors: ["Red"] AND lengths: ["Maxi"]
+  * "blue long sleeve top" → productTerms: "top" AND colors: ["Blue"] AND sleeveLengths: ["Long Sleeve"]
+  * "mini pink dress" → productTerms: "dress" AND colors: ["Pink"] AND lengths: ["Mini"]
+- Include synonyms and interpretations:
+  * "onesie" → "onesie" OR "bodysuit" OR "romper"
+  * "suit" → "blazer" (prioritize blazer since blazers are in Tops category)
+  * "dress" → "dress"
+  * "top" → "top" OR "blouse" OR "shirt"
+- For age-specific queries, preserve product type: "baby girl clothes" → productTerms: "clothes" (age is in ageGroups, not productTerms)
+- Product terms should be clean, searchable keywords ready for vector search
+
+EXAMPLES:
+- "find red maxi dresses" → productTerms: "maxi dress" AND colors: ["Red"] AND lengths: ["Maxi"]
+- "blue maxi dresses with long sleeves for kids" → productTerms: "maxi dress" AND colors: ["Blue"] AND lengths: ["Maxi"] AND sleeveLengths: ["Long Sleeve"] AND ageGroups: ["Kids"]
+- "show me cardigans" → productTerms: "cardigan"
+- "onesies for babies" → productTerms: "onesie" AND ageGroups: ["Baby"]
+- "swimsuits for beach" → productTerms: "swimsuit" AND occasions: ["Beach"]
+
+**CRITICAL: EXPLICIT CONSTRAINT EXTRACTION - HIGHEST PRIORITY**
+You MUST extract ALL explicitly mentioned constraints from the query. This is the most important rule.
+
+EXAMPLES OF MANDATORY EXTRACTION:
+- "blue maxi dresses with long sleeves for kids" → 
+  * colors: ["Blue"] (REQUIRED - "blue" is explicitly mentioned)
+  * lengths: ["Maxi"] (REQUIRED - "maxi" is explicitly mentioned)
+  * sleeveLengths: ["Long Sleeve"] (REQUIRED - "long sleeves" is explicitly mentioned)
+  * ageGroups: ["Kids"] (REQUIRED - "kids" is explicitly mentioned)
+
+- "red mini dress" → 
+  * colors: ["Red"] (REQUIRED)
+  * lengths: ["Mini"] (REQUIRED)
+
+- "white cardigan" → 
+  * colors: ["White"] (REQUIRED)
+
+- "blue maxi dresses" → 
+  * colors: ["Blue"] (REQUIRED)
+  * lengths: ["Maxi"] (REQUIRED)
+
+COMMON EXTRACTION PATTERNS:
+- Color words: "blue", "red", "white", "black", "pink", "yellow", "green", "navy", "gray", "beige", etc. → colors: [ColorName]
+- Length words in product context: "maxi", "mini", "midi", "long dress", "short dress", "knee-length" → lengths: [LengthName]
+- Sleeve words: "long sleeves", "short sleeves", "sleeveless", "cap sleeves" → sleeveLengths: [SleeveType]
+- Age words: "kids", "children", "toddler", "baby", "adult", "teen", "12 year old" → ageGroups: [AgeGroup]
+
+**CRITICAL RULE**: If a constraint is explicitly mentioned in the query, you MUST extract it. Do NOT skip any explicitly mentioned constraints. When the user says "blue", extract it as a color. When they say "maxi", extract it as a length. When they say "long sleeves", extract it as sleeveLengths.
+
+**CRITICAL: CONSTRAINT INTENT LEVELS**
+Each constraint can have an intent level indicating how strongly the user wants it:
+
+- **REQUIRED** ("only wants", "must be", "only", "just", "exactly", "specifically")
+  * Example: "only red dresses" → colors: { values: ["Red"], intent: "required" }
+  * Example: "must be under $100" → priceMaxCents: { value: 10000, intent: "required" }
+
+- **STRONG** ("seriously wants", "really want", "preferably", "ideally", "or similar", "would prefer")
+  * Example: "red dresses, preferably" → colors: { values: ["Red"], intent: "strong" }
+  * Example: "ideally under $200" → priceMaxCents: { value: 20000, intent: "strong" }
+
+- **PREFERRED** ("mildly wants", "would like", "if possible", "maybe", "could be")
+  * Example: "maybe something in blue" → colors: { values: ["Blue"], intent: "preferred" }
+
+- **EXCLUDED** ("does not want", "not", "avoid", "no", "without", "don't want")
+  * Example: "not floral" → patterns: { values: ["Floral"], intent: "excluded" }
+  * Example: "avoid silk" → materials: { values: ["Silk"], intent: "excluded" }
+
+DEFAULT RULES:
+- Explicit mentions → "strong" (e.g., "red dress" → colors: { values: ["Red"], intent: "strong" })
+- Vague mentions → "preferred" (e.g., "maybe something blue" → colors: { values: ["Blue"], intent: "preferred" })
+- Negative mentions → "excluded" (e.g., "not red" → colors: { values: ["Red"], intent: "excluded" })
+
+FORMAT:
+- Array constraints: { values: ["Red", "Blue"], intent: "strong" }
+- Single-value constraints: { value: "Machine Washable", intent: "preferred" }
+- Boolean constraints: { value: true, intent: "strong" }
+- Price constraints: { value: 10000, intent: "required" }
+
+You can also return old format (array) for backward compatibility, but prefer intent format when intent is clear.
+
+**CRITICAL: PRICE EXTRACTION**
+- "under $400" or "below $400" or "up to $400" → priceMaxCents: 40000
+- "over $100" or "above $100" or "at least $100" → priceMinCents: 10000
+- "more than $100" → priceMinCents: 10001 (strictly greater than)
+- "between $50 and $100" → priceMinCents: 5000, priceMaxCents: 10000
+- "cheaper" or "less expensive" → if LAST_CONSTRAINTS has priceMaxCents, reduce it by 20% or set to lower value
+- "price doesn't matter" or "any price" → priceMinCents: null, priceMaxCents: null
+- Independent updates: "over $50" when max exists → set priceMinCents: 5000, keep existing priceMaxCents
+- Always extract price in CENTS (multiply dollars by 100)
+
+**FOLLOW-UP CONSTRAINT HANDLING**
+If LAST_CONSTRAINTS is provided, this is likely a FOLLOW-UP refinement query.
+
+RULES:
+- CARRY FORWARD all constraints from LAST_CONSTRAINTS that are NOT explicitly changed in current query
+- UPDATE only the constraints mentioned in the current query
+- For price constraints:
+  * "under $X" or "below $X" → update priceMaxCents (keep existing priceMinCents if present)
+  * "over $X" or "above $X" → update priceMinCents (keep existing priceMaxCents if present)
+  * "between $X and $Y" → update both priceMinCents and priceMaxCents
+  * "cheaper" or "less expensive" → reduce priceMaxCents by 20% or set to lower value
+  * "price doesn't matter" → set priceMinCents: null, priceMaxCents: null
+- For occasions: "more casual" → replace formal occasions with ["Casual", "Daytime"], KEEP other constraints
+- Price constraints can be explicitly removed (null) or independently updated
+- FOLLOW-UP REFINEMENT SIGNALS: "make it", "more", "instead", "change to", "also", "and", "but"
+- NEW SEARCH SIGNALS: completely different product type, different age group (e.g., "baby" → "adult")
+
+**ADDITIONAL ENRICHED ATTRIBUTES** (extract when user mentions):
+- careRequirements: Extract when user mentions care (e.g., "machine washable", "dry clean only", "hand wash", "washable")
+- rainWind: Extract when user mentions weather resistance (e.g., "weather resistant", "waterproof", "windproof", "not weather resistant")
+- travelFeatures: Extract when user mentions travel (e.g., "travel friendly", "packable", "lightweight for travel", "wrinkle free for travel")
+- pockets: Extract when user mentions pockets (e.g., "with pockets", "has pockets", "no pockets", "pocketless")
+- liningType: Extract when user mentions lining (e.g., "lined", "unlined", "fully lined", "partially lined")
+- braSolution: Extract when user mentions bra compatibility (e.g., "bra friendly", "built-in bra", "no bra needed")
+- ecoMaterials: Extract when user mentions sustainability (e.g., "organic", "recycled", "sustainable", "eco-friendly materials")
+- certifications: Extract when user mentions certifications (e.g., "GOTS certified", "OEKO-TEX", "certified organic", "B Corp")
+- origin: Extract when user mentions origin (e.g., "made in USA", "imported", "made in Italy", "local")
+- adaptiveFeatures: Extract when user mentions adaptive/inclusive features (e.g., "adaptive", "inclusive", "accessible")
+- sensoryFriendly: Extract when user mentions sensory needs (e.g., "sensory friendly", "soft textures", "tagless")
+- finish: Extract when user mentions finish/texture (e.g., "matte", "glossy", "satin finish")
+- modestyCues: Extract when user mentions modesty (e.g., "modest", "coverage", "conservative")
+- layeringIntent: Extract when user mentions layering (e.g., "for layering", "standalone", "base layer")
+- pairingIntent: Extract when user mentions pairing (e.g., "versatile", "matching set", "coordinates")
+- formalityLevel: Extract when user mentions formality (e.g., "formal", "casual", "semi-formal")
+- temperatureIntent: Extract when user mentions temperature (e.g., "warm", "cool", "breathable")
+- humidityFriendly: Extract when user mentions humidity (e.g., "humidity friendly", "not humidity friendly")
+- occasionContext: Extract context-specific occasions
+- problemSolutions: Extract solutions to specific problems
+- functionFeatures: Extract functional features
+- colorShade: Extract color shade (e.g., "light", "dark", "medium")
+- colorUndertone: Extract color undertone (e.g., "warm", "cool", "neutral")
+- multicolor: Extract when user mentions multi-color products (e.g., "multicolor", "multi-color", "not multicolor")
+- seasonalPalette: Extract seasonal color palettes
+
 FASHION ONTOLOGY:
 
+Age Groups: ${LOVESHACKFANCY_ONTOLOGY.ageGroups.join(', ')} (CRITICAL: Use EXACT values, case-sensitive)
 Collections: ${LOVESHACKFANCY_ONTOLOGY.collections.join(', ')}
 Styles: ${LOVESHACKFANCY_ONTOLOGY.styles.join(', ')}
 Lengths: ${LOVESHACKFANCY_ONTOLOGY.lengths.join(', ')}
@@ -126,10 +266,18 @@ CONSTRAINT EXTRACTION RULES:
     * When user mentions colors like "Cherry", "Crimson", "Scarlet", etc., extract them EXACTLY as the user said (capitalized), even if they're not in the ontology
     * **DO NOT** convert "Cherry" to "Red" or "Crimson" to "Red" - preserve the exact color term
     * **DO NOT** map non-ontology colors to ontology colors - the system will handle fuzzy matching later
+    * **CRITICAL: PRESERVE NON-ONTOLOGY COLORS FROM LAST_CONSTRAINTS**
+      * If LAST_CONSTRAINTS is provided and contains a color (e.g., "Cherry"), and the user mentions the same color in the current query, preserve the EXACT color from LAST_CONSTRAINTS
+      * Example: LAST_CONSTRAINTS has colors: ["Cherry"], user says "cherry coloured dresses" → extract colors: ["Cherry"] (NOT ["Red"])
+      * Do NOT convert non-ontology colors to ontology colors - preserve them as-is
     * Examples:
       * User says "cherry coloured dresses" → colors: ["Cherry"] (NOT ["Red"])
       * User says "crimson dresses" → colors: ["Crimson"] (NOT ["Red"])
       * User says "scarlet red" → colors: ["Scarlet"] (NOT ["Red"])
+      * If LAST_CONSTRAINTS has colors: ["Cherry"], user says "cherry coloured dresses" → colors: ["Cherry"] (preserve from LAST_CONSTRAINTS, NOT convert to ["Red"])
+      * "red, maroon, or brown" → colors: ["Red", "Maroon", "Brown"]
+      * "cherry also works" (in follow-up) → colors: ["Cherry"] (will be merged with previous colors)
+      * "red or similar coloured" → colors: ["Red"] (don't expand)
 - **CRITICAL: INTELLIGENT COLOR INFERENCE** - You MUST infer colors from context even when not explicitly mentioned. Use your understanding of color semantics, lighting, locations, occasions, skin tones, and cultural contexts:
   - **Skin tone/complexion context**:
     - "wheatish", "wheatish skin", "wheatish complexion" → infer warm earth tones and jewel tones: ["Burgundy", "Emerald", "Navy", "Coral", "Peach", "Olive", "Sage", "Rust", "Terracotta", "Gold"]
@@ -330,23 +478,38 @@ CONSTRAINT EXTRACTION RULES:
     - "petite" → can infer smaller sizes if context suggests, but primarily extract as style/fit preference
     - "plus size" → can infer larger sizes if context suggests, but primarily extract as style/fit preference
   - **IMPORTANT**: Always distinguish between age and size. Age mentions go to ageGroups, explicit size mentions go to sizes. When in doubt, prefer ageGroups for age-related mentions.
-- **CRITICAL: INTELLIGENT AGE GROUPS INFERENCE** - Enhanced inference from context:
-  - **Age mentions**:
-    - "5-year-old", "5 years old", "age 5", "turning 5", "she is 5" → ageGroups: ["kids"]
-    - "2-year-old", "3-year-old", "toddler" → ageGroups: ["toddler"]
-    - "baby", "infant", "babies" → ageGroups: ["baby"]
-    - "baby girl", "for my baby girl", "baby daughter" → ageGroups: ["baby"] (NOT "Baby Girl" - "girl" is gender, not age)
-    - "baby boy", "for my baby boy", "baby son" → ageGroups: ["baby"] (NOT "Baby Boy" - "boy" is gender, not age)
-    - "for kids", "children", "child" → ageGroups: ["kids"]
-    - "adult", "women", "womens", "for women" → ageGroups: ["adult"]
-    - "teen", "teenager", "teenage", "teenagers", "juvenile", "youth", "adolescent", "young", "pre-teen", "preteen", "tween" → ageGroups: ["Teen"] or ["kids"] depending on context (typically ["Teen"] for 13-19 age range)
-    - "for teenage daughter", "for teenage son", "teenage girl", "teenage boy" → ageGroups: ["Teen"]
-    - "juvenile", "youth", "adolescent" → ageGroups: ["Teen"] or ["kids"] depending on context
-  - **Product category context**:
-    - "baby items", "onesie", "bodysuit" (for babies) → ageGroups: ["baby"]
-    - "kids items", "children's clothes" → ageGroups: ["kids"]
-    - "adult items", "women's clothes" → ageGroups: ["adult"]
-  - **IMPORTANT**: Infer age groups from age mentions and product category context. Always distinguish between age (ageGroups) and size (sizes). Map inferred age groups to the closest ontology terms. Explicit mentions override inferred age groups.
+- **CRITICAL: INTELLIGENT AGE GROUPS INFERENCE** - Enhanced inference from context using EXACT dictionary values:
+  - **MANDATORY EXTRACTION RULE**: If the query contains ANY age-related information (explicit or inferred), you MUST extract AT LEAST 1 age group from the dictionary, even if confidence is low. Age groups are HARD FILTERS and must be applied for accurate product filtering.
+  - **MULTIPLE AGE GROUPS**: You can extract 1-6 age groups from the dictionary if the query mentions multiple age ranges or if context suggests multiple applicable age groups (e.g., "for kids and teens" → ageGroups: ["Kids", "Teen"] or ["Kids, Teen"] if the combination exists in dictionary).
+  - **ENHANCED QUERY INTELLIGENCE**: Use semantic understanding of the ENHANCED query (if provided) to find the closest resembling age group(s) from the dictionary. The enhanced query may contain additional context that helps identify the most appropriate age group(s).
+  - **Age mentions** (map to EXACT dictionary values):
+    - "5-year-old", "5 years old", "age 5", "turning 5", "she is 5" → ageGroups: ["Kids"] (EXACT dictionary value)
+    - "10-year-old", "10 years old", "age 10", "turning 10", "she is 10" → ageGroups: ["Tween"] (EXACT dictionary value for 10-12 age range)
+    - "11-year-old", "11 years old", "age 11", "turning 11", "she is 11" → ageGroups: ["Tween"] (EXACT dictionary value for 10-12 age range)
+    - "12-year-old", "12 years old", "age 12", "turning 12", "she is 12", "for my 12 year old" → ageGroups: ["Tween"] (EXACT dictionary value for 10-12 age range)
+    - "2-year-old", "3-year-old", "toddler" → ageGroups: ["Toddler"] (EXACT dictionary value)
+    - "baby", "infant", "babies" → ageGroups: ["Baby"] (EXACT dictionary value)
+    - "baby girl", "for my baby girl", "baby daughter" → ageGroups: ["Baby"] (EXACT dictionary value - "girl" is gender, not age)
+    - "baby boy", "for my baby boy", "baby son" → ageGroups: ["Baby"] (EXACT dictionary value - "boy" is gender, not age)
+    - "for kids", "children", "child" → ageGroups: ["Kids"] (EXACT dictionary value)
+    - "adult", "women", "womens", "for women" → ageGroups: ["Adult"] (EXACT dictionary value)
+    - "teen", "teenager", "teenage", "teenagers", "juvenile", "youth", "adolescent", "young" → ageGroups: ["Teen"] (EXACT dictionary value for 13-19 age range)
+    - "pre-teen", "preteen", "tween" → ageGroups: ["Tween"] (EXACT dictionary value for 10-12 age range)
+    - "for teenage daughter", "for teenage son", "teenage girl", "teenage boy" → ageGroups: ["Teen"] (EXACT dictionary value)
+  - **Product category context** (infer from category if age not explicitly mentioned):
+    - "baby items", "onesie", "bodysuit" (for babies) → ageGroups: ["Baby"] (EXACT dictionary value)
+    - "kids items", "children's clothes", "girls dresses", "girls tops" → ageGroups: ["Kids"] (EXACT dictionary value)
+    - "adult items", "women's clothes", "women's dresses" → ageGroups: ["Adult"] (EXACT dictionary value)
+  - **Combination age groups** (use if query mentions multiple ages):
+    - "for kids and teens" → ageGroups: ["Kids, Teen"] (if exists in dictionary) OR ["Kids", "Teen"] (if combination doesn't exist)
+    - "for toddlers and babies" → ageGroups: ["Baby, Toddler"] (if exists in dictionary) OR ["Baby", "Toddler"] (if combination doesn't exist)
+  - **IMPORTANT**: 
+    * Use EXACT dictionary values only. NO synonyms, NO hierarchical relationships. Map inferred age groups to EXACT ontology terms.
+    * ALWAYS extract at least 1 age group when age-related information is present (explicit or inferred from category).
+    * Extract 1-6 age groups when multiple age ranges are mentioned or when context suggests multiple applicable groups.
+    * Use the enhanced query (if provided) for better semantic understanding and more accurate age group classification.
+    * Explicit mentions override inferred age groups.
+    * Age groups act as HARD FILTERS alongside category classification - both must be applied for accurate product filtering.
 
 - **CONSTRAINT EXTRACTION - Category-Specific Constraints**:
   **Perfumes/Candles**:
@@ -464,243 +627,592 @@ export const LOVESHACKFANCY_QUERY_CLASSIFIER_SCHEMA = {
   schema: {
     type: 'object',
     additionalProperties: false,
-    required: ['type', 'constraints', 'confidence'],
+    required: ['type', 'productTerms', 'constraints', 'confidence'],
     properties: {
       type: {
         type: 'string',
         enum: ['direct_product_search', 'occasion_based', 'style_exploration', 'fit_and_size', 'gift_or_vague', 'unrelated'],
       },
-      constraints: {
-        type: 'object',
-        additionalProperties: false,
-        properties: {
-          styles: { type: ['array', 'null'], items: { type: 'string' } },
-          lengths: { type: ['array', 'null'], items: { type: 'string' } },
-          occasions: { type: ['array', 'null'], items: { type: 'string' } },
-          seasons: { type: ['array', 'null'], items: { type: 'string' } },
-          materials: { type: ['array', 'null'], items: { type: 'string' } },
-          patterns: { type: ['array', 'null'], items: { type: 'string' } },
-          colors: { type: ['array', 'null'], items: { type: 'string' } },
-          sizes: { type: ['array', 'null'], items: { type: 'string' } },
-          fits: { type: ['array', 'null'], items: { type: 'string' } },
-          collections: { type: ['array', 'null'], items: { type: 'string' } },
-          priceMinCents: { type: ['integer', 'null'] },
-          priceMaxCents: { type: ['integer', 'null'] },
-          embellishments: { type: ['array', 'null'], items: { type: 'string' } },
-          necklines: { type: ['array', 'null'], items: { type: 'string' } },
-          sleeveLengths: { type: ['array', 'null'], items: { type: 'string' } },
-          ageGroups: { type: ['array', 'null'], items: { type: 'string' } },
-          scents: { type: ['array', 'null'], items: { type: 'string' } },
-          rooms: { type: ['array', 'null'], items: { type: 'string' } },
-          useCases: { type: ['array', 'null'], items: { type: 'string' } },
-          benefits: { type: ['array', 'null'], items: { type: 'string' } },
-          claims: { type: ['array', 'null'], items: { type: 'string' } },
-          sensoryProfile: { type: ['string', 'null'] },
-          compatibility: { type: ['array', 'null'], items: { type: 'string' } },
-        },
-      },
-      confidence: { type: 'number', minimum: 0, maximum: 1 },
-    },
-  },
-};
-
-// ============================================================================
-// QUERY PARSER PROMPT (for separating product terms from constraints)
-// ============================================================================
-
-export function buildQueryParserPrompt(query: string, lastConstraints?: import('./query-parser').QueryConstraints | null): string {
-  // Build a concise ontology summary (truncate if too long)
-  const colors = LOVESHACKFANCY_ONTOLOGY.colors.slice(0, 30).join(', ');
-  const sizes = LOVESHACKFANCY_ONTOLOGY.sizes.join(', ');
-  const occasions = LOVESHACKFANCY_ONTOLOGY.occasions.slice(0, 20).join(', ');
-  const seasons = LOVESHACKFANCY_ONTOLOGY.seasons.join(', ');
-  
-  const lastConstraintsSection = lastConstraints 
-    ? `\n\n**FOLLOW-UP CONTEXT - PREVIOUS CONSTRAINTS:**
-${JSON.stringify(lastConstraints, null, 2)}
-
-**CRITICAL**: If LAST_CONSTRAINTS is provided, this is likely a FOLLOW-UP refinement. You MUST:
-1. Detect if this is a follow-up (phrases like "make it", "more", "instead", "change to")
-2. CARRY FORWARD all constraints from LAST_CONSTRAINTS that are NOT explicitly changed
-3. UPDATE only the constraints mentioned in the current query
-4. For price constraints:
-   - "under $X" or "below $X" or "up to $X" → update priceMaxCents, KEEP priceMinCents if exists
-   - "over $X" or "above $X" or "at least $X" → update priceMinCents, KEEP priceMaxCents if exists
-   - "between $X and $Y" → set both priceMinCents and priceMaxCents
-   - "price doesn't matter" or "any price" → set priceMinCents: null, priceMaxCents: null (explicit removal)
-   - Independent updates: "over $50" when max exists → add/update min, keep max
-   - Independent updates: "under $200" when min exists → add/update max, keep min
-5. For occasions: "more casual" → replace formal occasions with ["Casual", "Daytime"], KEEP other constraints
-6. Price constraints can be explicitly removed (null) or independently updated (min without max, or max without min)
-
-FOLLOW-UP REFINEMENT SIGNALS:
-- "make it [attribute]" → follow-up, merge constraints
-- "more [attribute]" → follow-up, update that attribute
-- "instead" or "change to" → follow-up, replace that attribute
-- "cheaper" or "under $X" → follow-up, update priceMaxCents
-- Modifiers without new category → follow-up
-
-NEW SEARCH SIGNALS (ignore LAST_CONSTRAINTS):
-- "now show me [category]" → new search
-- "actually I want [category]" → new search
-- "something else" → new search`
-    : '';
-
-  return `Parse this shopping query into product terms and constraints. The catalog includes multiple category groups: Kids, Women's/Adult Apparel, Accessories, Personal Care, and Home & Living.
-
-QUERY: ${query}${lastConstraintsSection}
-
-**CRITICAL: PRICE EXTRACTION**
-- "under $400" or "below $400" or "up to $400" → priceMaxCents: 40000 (ALWAYS multiply dollars by 100 for cents)
-- "under 400" → priceMaxCents: 40000
-- "over $100" or "above $100" or "at least $100" → priceMinCents: 10000
-- "more than $100" → priceMinCents: 10001 (strictly greater than)
-- "between $50 and $100" → priceMinCents: 5000, priceMaxCents: 10000
-- "cheaper" or "less expensive" → if LAST_CONSTRAINTS has priceMaxCents, reduce it by 20% or set to lower value
-- "price doesn't matter" or "any price" → priceMinCents: null, priceMaxCents: null (explicit removal)
-- Independent updates: "over $50" when max exists → set priceMinCents: 5000, keep existing priceMaxCents
-- Independent updates: "under $200" when min exists → set priceMaxCents: 20000, keep existing priceMinCents
-- Always extract price in CENTS (multiply dollars by 100)
-- Price constraints can be set independently: min without max, max without min, or both
-
-**CRITICAL: AGE GROUPS EXTRACTION**
-If the query mentions age information, you MUST extract it in ageGroups:
-- "for kids", "for children", "kids", "children", "child" → ageGroups: ["kids"]
-- "5-year-old", "5 years old", "age 5", "turning 5", "she is 5", "5 year old" → ageGroups: ["kids"] (NOT sizes!)
-- "2-year-old", "3-year-old", "toddler" → ageGroups: ["toddler"]
-- "baby", "infant", "babies" → ageGroups: ["baby"]
-- "baby girl", "for my baby girl", "baby daughter" → ageGroups: ["baby"] (NOT "Baby Girl" - "girl" is gender, not age)
-- "baby boy", "for my baby boy", "baby son" → ageGroups: ["baby"] (NOT "Baby Boy" - "boy" is gender, not age)
-- "adult", "women", "womens" → ageGroups: ["adult"]
-- "teen", "teenager", "teenage", "teenagers", "juvenile", "youth", "adolescent", "young", "pre-teen", "preteen", "tween" → ageGroups: ["Teen"] (for 13-19 age range)
-- "for teenage daughter", "for teenage son", "teenage girl", "teenage boy" → ageGroups: ["Teen"]
-- IMPORTANT: "5-year-old" or "5 year old" is AGE (ageGroups), NOT size (sizes). Only extract as size if explicitly "size 5".
-- IMPORTANT: "boy" and "girl" are gender indicators, NOT age group modifiers. Extract "baby" as ageGroup, not "Baby Girl" or "Baby Boy".
-
-AVAILABLE VALUES (map user words to these):
-- Colors: ${colors}${LOVESHACKFANCY_ONTOLOGY.colors.length > 30 ? ' (and more)' : ''}
-- Sizes: ${sizes} (NOTE: Only extract as size if explicitly mentioned like "size 4", NOT "5-year-old")
-- Occasions: ${occasions}${LOVESHACKFANCY_ONTOLOGY.occasions.length > 20 ? ' (and more)' : ''}
-- Seasons: ${seasons}
-- Styles: ${LOVESHACKFANCY_ONTOLOGY.styles.slice(0, 15).join(', ')}${LOVESHACKFANCY_ONTOLOGY.styles.length > 15 ? ' (and more)' : ''}
-- Patterns: ${LOVESHACKFANCY_ONTOLOGY.patterns.slice(0, 15).join(', ')}${LOVESHACKFANCY_ONTOLOGY.patterns.length > 15 ? ' (and more)' : ''}
-- Materials: ${LOVESHACKFANCY_ONTOLOGY.materials.slice(0, 15).join(', ')}${LOVESHACKFANCY_ONTOLOGY.materials.length > 15 ? ' (and more)' : ''}
-
-INSTRUCTIONS:
-1. productTerms: Extract main product type with ALL possible synonyms and interpretations:
-   - "onesie" → "onesie" OR "bodysuit" OR "romper" OR "baby bodysuit"
-   - "dress" → "dress" (keep as is, but consider: "gown", "frock" if context suggests formal)
-   - "sweater" → "sweater" OR "pullover" OR "cardigan" OR "jumper"
-   - "top" → "top" OR "blouse" OR "shirt" OR "tee" OR "t-shirt"
-   - "pants" → "pants" OR "trousers" OR "slacks"
-   - "shorts" → "shorts" OR "bermuda shorts"
-   - "skirt" → "skirt"
-   - "romper" → "romper" OR "onesie" OR "jumpsuit" (for kids)
-   - "bodysuit" → "bodysuit" OR "onesie" OR "body suit"
-   - "jumpsuit" → "jumpsuit" OR "romper" (for kids) OR "onesie" (for babies)
-   - "suit" or "suits" → "blazer suit" OR "matching set" OR "co-ords" OR "two-piece set" OR "blazer set" OR "pantsuit" OR "skirt suit" OR "blazer" (since blazers are in Tops and suits typically include blazers)
-   - "matching set" → "matching set" OR "suit" OR "co-ords" OR "two-piece set" OR "blazer"
-   - "co-ords" or "coords" → "co-ords" OR "matching set" OR "suit" OR "blazer"
-   - For baby/toddler items: consider "onesie", "bodysuit", "romper" as interchangeable
-   - Include the most common synonym in productTerms (e.g., if user says "onesie", use "onesie" but the vector search will naturally match "bodysuit" and "romper" through embeddings)
-   - **For suits: prioritize "blazer" in productTerms since blazers are in Tops category and suits are typically blazer + pants/skirt combinations. The vector search will match products with "blazer", "suit", "matching set", "co-ords", "pantsuit", etc. in their titles/descriptions**
-   - Remove filler words and constraint attributes.
-2. constraints: Extract attributes mentioned. Match user words to available values (case-insensitive). Use arrays for multiple values. Only include fields that are mentioned.
-   **CRITICAL: COLOR EXTRACTION - EXTRACT ALL COLORS MENTIONED**
-   - **MOST IMPORTANT**: When user explicitly mentions multiple colors (e.g., "red and cherry", "red, maroon, or brown"), extract ALL of them: ["Red", "Cherry"] or ["Red", "Maroon", "Brown"]
-   - **CRITICAL**: Extract colors even if they're not in the ontology (e.g., "Cherry", "Crimson", "Scarlet") - use the exact word the user said, capitalized
-   - **CRITICAL: PRESERVE NON-ONTOLOGY COLORS FROM LAST_CONSTRAINTS**
-     * If LAST_CONSTRAINTS is provided and contains a color (e.g., "Cherry"), and the user mentions the same color in the current query, preserve the EXACT color from LAST_CONSTRAINTS
-     * Example: LAST_CONSTRAINTS has colors: ["Cherry"], user says "cherry coloured dresses" → extract colors: ["Cherry"] (NOT ["Red"])
-     * Do NOT convert non-ontology colors to ontology colors - preserve them as-is
-   - **CRITICAL: COLOR vs PATTERN DISAMBIGUATION - MOST IMPORTANT RULE**
-     * **ABSOLUTE RULE**: "Cherry" is ALWAYS a COLOR (cherry red), NEVER a pattern - extract as colors: ["Cherry"]
-     * **ABSOLUTE RULE**: "Crimson", "Scarlet", "Burgundy", "Maroon", "Rose", "Coral", "Salmon", "Rust", "Terracotta" are COLORS, NEVER patterns
-     * **CRITICAL**: When user says "red and cherry" or "red, cherry" or "red or cherry", extract BOTH as colors: ["Red", "Cherry"] (NOT colors: ["Red"], patterns: ["Cherry"])
-     * **CRITICAL**: When user says "cherry coloured" or "cherry color" or "in cherry", extract as colors: ["Cherry"] (NOT patterns: ["Cherry"])
-     * Only extract as patterns if the word is clearly a pattern type (e.g., "floral", "striped", "polka dot", "plaid", "geometric", "checkered", "paisley")
-     * **WHEN IN DOUBT**: ALWAYS prefer COLOR over pattern - if a word could be a color name, extract it as a color
-     * Examples:
-       * "red and cherry dresses" → colors: ["Red", "Cherry"] (NOT colors: ["Red"], patterns: ["Cherry"])
-       * "cherry coloured dresses" → colors: ["Cherry"] (NOT patterns: ["Cherry"])
-       * "cherry dress" → colors: ["Cherry"] (NOT patterns: ["Cherry"])
-       * "find me red and cherry dresses" → colors: ["Red", "Cherry"] (NOT colors: ["Red"], patterns: ["Cherry"])
-   - When user says "red or similar coloured" or "red, or similar colours", extract ONLY the base color: ["Red"] (expansion happens later)
-   - DO NOT pre-expand to similar colors (e.g., ["Red", "Maroon", "Brown", "Blue"]) - the system will handle expansion later
-   - When user says "similar colours to red", extract ONLY: ["Red"] (expansion happens later)
-   - The phrase "or similar" or "similar colours" is a signal for expansion, NOT a list of colors to extract
-   - Examples:
-     * "red and cherry dresses" → colors: ["Red", "Cherry"] (NOT patterns: ["Cherry"])
-     * "cherry coloured dresses" → colors: ["Cherry"] (NOT patterns: ["Cherry"])
-     * If LAST_CONSTRAINTS has colors: ["Cherry"], user says "cherry coloured dresses" → colors: ["Cherry"] (preserve from LAST_CONSTRAINTS, NOT convert to ["Red"])
-     * "red, maroon, or brown" → colors: ["Red", "Maroon", "Brown"]
-     * "cherry also works" (in follow-up) → colors: ["Cherry"] (will be merged with previous colors)
-     * "red or similar coloured" → colors: ["Red"] (don't expand)
-3. ageGroups: ALWAYS extract when age is mentioned (see CRITICAL section above). This is separate from sizes.
-
-EXAMPLES:
-**Fashion/Apparel:**
-Query: "find maxi dresses in pink" → { "productTerms": "maxi dress", "constraints": { "colors": ["Pink"] }, "confidence": 0.9 }
-Query: "red dresses" → { "productTerms": "dress", "constraints": { "colors": ["Red"] }, "confidence": 0.9 }
-Query: "red and cherry dresses" → { "productTerms": "dress", "constraints": { "colors": ["Red", "Cherry"] }, "confidence": 0.95 }
-Query: "find me red and cherry dresses" → { "productTerms": "dress", "constraints": { "colors": ["Red", "Cherry"] }, "confidence": 0.95 }
-Query: "wedding dresses size 4" → { "productTerms": "dress", "constraints": { "occasions": ["Wedding"], "sizes": ["4"] }, "confidence": 0.95 }
-Query: "floral summer dress" → { "productTerms": "dress", "constraints": { "patterns": ["Floral"], "seasons": ["Summer"] }, "confidence": 0.9 }
-Query: "swimsuits for beach" → { "productTerms": "swimsuit", "constraints": { "occasions": ["Beach"] }, "confidence": 0.9 }
-Query: "loungewear sets" → { "productTerms": "loungewear", "constraints": {}, "confidence": 0.9 }
-
-**Kids Categories:**
-Query: "birthday outfit for kids" → { "productTerms": "outfit", "constraints": { "occasions": ["Party"], "ageGroups": ["kids"] }, "confidence": 0.9 }
-Query: "pink dress for 5-year-old girl" → { "productTerms": "dress", "constraints": { "colors": ["Pink"], "ageGroups": ["kids"] }, "confidence": 0.95 }
-Query: "romper for 5 year old girl" → { "productTerms": "romper", "constraints": { "ageGroups": ["kids"] }, "confidence": 0.95 }
-Query: "birthday dresses for kids" → { "productTerms": "dress", "constraints": { "occasions": ["Party"], "ageGroups": ["kids"] }, "confidence": 0.9 }
-Query: "cherry onesies for babies" → { "productTerms": "onesie", "constraints": { "colors": ["Red"], "ageGroups": ["baby"] }, "confidence": 0.95 }
-Query: "baby bodysuits" → { "productTerms": "bodysuit", "constraints": { "ageGroups": ["baby"] }, "confidence": 0.9 }
-Query: "sweaters for babies" → { "productTerms": "sweater", "constraints": { "ageGroups": ["baby"] }, "confidence": 0.9 }
-
-**Accessories:**
-Query: "jewelry with pearls" → { "productTerms": "jewelry", "constraints": { "embellishments": ["Pearl"] }, "confidence": 0.9 }
-Query: "hair accessories" → { "productTerms": "hair accessories", "constraints": {}, "confidence": 0.9 }
-Query: "bags for travel" → { "productTerms": "bag", "constraints": { "occasions": ["Travel"] }, "confidence": 0.9 }
-
-**Personal Care:**
-Query: "perfumes for women" → { "productTerms": "perfume", "constraints": { "ageGroups": ["adult"] }, "confidence": 0.9 }
-Query: "fragrance under $100" → { "productTerms": "perfume", "constraints": { "priceMaxCents": 10000 }, "confidence": 0.9 }
-
-**Home & Living:**
-Query: "bedding sets with floral patterns" → { "productTerms": "bedding", "constraints": { "patterns": ["Floral"] }, "confidence": 0.9 }
-Query: "decorative dishes for living room" → { "productTerms": "decorative dishes", "constraints": {}, "confidence": 0.9 }
-Query: "candles for home" → { "productTerms": "candle", "constraints": {}, "confidence": 0.9 }
-Query: "towels for bathroom" → { "productTerms": "towel", "constraints": {}, "confidence": 0.9 }
-Query: "tabletop items" → { "productTerms": "tabletop", "constraints": {}, "confidence": 0.9 }
-
-Return valid JSON only.`;
-}
-
-export const LOVESHACKFANCY_QUERY_PARSER_SCHEMA = {
-  name: 'fashion_query_parsing',
-  schema: {
-    type: 'object',
-    properties: {
       productTerms: { type: 'string' },
       constraints: {
         type: 'object',
+        additionalProperties: false,
         properties: {
-          colors: { type: ['array', 'null'], items: { type: 'string' } },
-          sizes: { type: ['array', 'null'], items: { type: 'string' } },
-          occasions: { type: ['array', 'null'], items: { type: 'string' } },
-          styles: { type: ['array', 'null'], items: { type: 'string' } },
-          patterns: { type: ['array', 'null'], items: { type: 'string' } },
-          seasons: { type: ['array', 'null'], items: { type: 'string' } },
-          materials: { type: ['array', 'null'], items: { type: 'string' } },
-          fits: { type: ['array', 'null'], items: { type: 'string' } },
-          collections: { type: ['array', 'null'], items: { type: 'string' } },
-          priceMinCents: { type: ['integer', 'null'] },
-          priceMaxCents: { type: ['integer', 'null'] },
-          embellishments: { type: ['array', 'null'], items: { type: 'string' } },
-          necklines: { type: ['array', 'null'], items: { type: 'string' } },
-          sleeveLengths: { type: ['array', 'null'], items: { type: 'string' } },
-          ageGroups: { type: ['array', 'null'], items: { type: 'string' } },
+          // Array constraints with intent (new format) - supports both old array format and new intent format
+          colors: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } }, // Old format
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          sizes: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          occasions: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          styles: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          patterns: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          seasons: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          materials: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          fits: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          collections: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          embellishments: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          necklines: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          sleeveLengths: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          ageGroups: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          lengths: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          formalityLevel: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          occasionContext: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          problemSolutions: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          functionFeatures: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          colorShade: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          colorUndertone: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          seasonalPalette: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          modestyCues: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          careRequirements: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          travelFeatures: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          ecoMaterials: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ]
+          },
+          // Price constraints with intent
+          priceMinCents: { 
+            oneOf: [
+              { type: ['integer', 'null'] }, // Old format
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'integer' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          priceMaxCents: { 
+            oneOf: [
+              { type: ['integer', 'null'] }, // Old format
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'integer' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          // String constraints with intent
+          rainWind: { 
+            oneOf: [
+              { type: ['string', 'null'] },
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          pockets: { 
+            oneOf: [
+              { type: ['string', 'null'] },
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          liningType: { 
+            oneOf: [
+              { type: ['string', 'null'] },
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          braSolution: { 
+            oneOf: [
+              { type: ['string', 'null'] },
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          certifications: { 
+            oneOf: [
+              { type: ['string', 'null'] },
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          origin: { 
+            oneOf: [
+              { type: ['string', 'null'] },
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          adaptiveFeatures: { 
+            oneOf: [
+              { type: ['string', 'null'] },
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          sensoryFriendly: { 
+            oneOf: [
+              { type: ['string', 'null'] },
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          finish: { 
+            oneOf: [
+              { type: ['string', 'null'] },
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          layeringIntent: { 
+            oneOf: [
+              { type: ['string', 'null'] },
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          pairingIntent: { 
+            oneOf: [
+              { type: ['string', 'null'] },
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          temperatureIntent: { 
+            oneOf: [
+              { type: ['string', 'null'] },
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'string' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          // Boolean constraints with intent
+          humidityFriendly: { 
+            oneOf: [
+              { type: ['boolean', 'null'] },
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'boolean' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          multicolor: { 
+            oneOf: [
+              { type: ['boolean', 'null'] },
+              { 
+                type: 'object',
+                properties: {
+                  value: { type: 'boolean' },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] }
+                },
+                required: ['value', 'intent']
+              }
+            ]
+          },
+          // Category-specific constraints (no intent support for now)
           scents: { type: ['array', 'null'], items: { type: 'string' } },
           rooms: { type: ['array', 'null'], items: { type: 'string' } },
           useCases: { type: ['array', 'null'], items: { type: 'string' } },
@@ -709,15 +1221,15 @@ export const LOVESHACKFANCY_QUERY_PARSER_SCHEMA = {
           sensoryProfile: { type: ['string', 'null'] },
           compatibility: { type: ['array', 'null'], items: { type: 'string' } },
         },
-        required: [],
-        additionalProperties: false,
       },
       confidence: { type: 'number', minimum: 0, maximum: 1 },
     },
-    required: ['productTerms', 'constraints', 'confidence'],
-    additionalProperties: false,
   },
 };
+
+// ============================================================================
+// RAG REPLY PROMPT
+// ============================================================================
 
 // ============================================================================
 // RAG REPLY PROMPT
@@ -900,4 +1412,7 @@ OUTPUT JSON:
     "label": string | null
   } | null
 }`;
-
+/**
+ * All LLM prompts for fashion query classification, reply generation,
+ * and dialogue routing.
+ */

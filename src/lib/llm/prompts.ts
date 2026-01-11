@@ -67,6 +67,34 @@ SEARCH CONSTRAINT FIELDS (SearchConstraints)
 - category (string or string[]): Exact catalog category/product type path or synonym.
 - priceMinCents / priceMaxCents (number): Parse numeric budgets; leave null when missing.
 - colors / sizes / materials / fabrics / fit / seasons / occasions (arrays or string): Only when explicitly requested.
+- enriched fashion facets (for apparel/fashion catalogs):
+  * lengths (string[]): Dress/skirt lengths - "mini", "midi", "maxi", "knee-length", "ankle-length"
+  * formalityLevel (string[]): "Casual", "Semi-Formal", "Formal" - map "wedding", "black tie", "office", "work", "casual", "everyday"
+  * temperatureIntent (string): "Warm Weather" (hot/summer/humid), "Cool Weather" (cold/winter) - map weather-related queries
+  * humidityFriendly (boolean): true for "humid", "sweat", "breathable", "moisture-wicking" queries
+  * occasionContext (string[]): Specific occasions - "Wedding", "Vacation", "Beach", "Office", "Party", "Daytime", "Evening"
+  * problemSolutions (string[]): Problem-solving features - "Wrinkle-Free", "Pockets", "Bra-Friendly", "Travel-Friendly", "Stain-Resistant"
+  * functionFeatures (string[]): Functional features - "Pockets", "Adjustable", "Removable", "Convertible", "Reversible"
+  * colorShade (string[]): "Light", "Medium", "Dark" - map "light/pale/pastel" or "dark/deep/rich" color descriptions
+  * colorUndertone (string[]): "Warm", "Cool", "Neutral" - map "warm tones" or "cool tones" color descriptions
+  * multicolor (boolean): true for "multicolor", "patterned", "print"; false for "solid", "single color"
+  * seasonalPalette (string[]): "Spring", "Summer", "Fall", "Winter" - map seasonal color/style preferences
+  * careRequirements (string[]): Care instructions - "Machine Washable", "Dry Clean Only", "Hand Wash", "Lay Flat to Dry" - map care-related queries
+  * rainWind (string): Weather resistance - "Weather Resistant", "Not Weather Resistant" - map weather-related queries
+  * travelFeatures (string[]): Travel-friendly features - "Lightweight", "Packable", "Wrinkle-Free" - map travel-related queries
+  * pockets (string): Pocket availability - "Has Pockets", "No Pockets" - map pocket-related queries
+  * liningType (string): Lining details - "Fully Lined", "Unlined", "Partially Lined" - map lining-related queries
+  * braSolution (string): Bra compatibility - "Bra-Friendly", "Built-in Bra" - map bra-related queries
+  * ecoMaterials (string[]): Sustainable materials - "Organic", "Recycled", "Sustainable" - map sustainability queries
+  * certifications (string): Certifications - "GOTS Certified", "OEKO-TEX", "Certified Organic" - map certification queries
+  * origin (string): Product origin - "Made in USA", "Imported", "Made in Italy" - map origin queries
+  * adaptiveFeatures (string): Adaptive/inclusive features - "Adaptive", "Inclusive" - map accessibility queries
+  * sensoryFriendly (string): Sensory-friendly features - "Sensory Friendly", "Tagless" - map sensory needs queries
+  * finish (string): Finish/texture - "Matte", "Glossy", "Satin" - map finish-related queries
+  * modestyCues (string[]): Modesty features - "Coverage", "Modest" - map modesty queries
+  * layeringIntent (string): Layering purpose - "Standalone", "Layering" - map layering queries
+  * pairingIntent (string): Pairing purpose - "Versatile", "Matching Set" - map pairing queries
+  Populate enriched facets only when the user language clearly maps to them (e.g., "hot humid day" => temperatureIntent: "Warm Weather", humidityFriendly: true).
 - brands / genders / ageGroups: Capture audience or brand preferences when stated (e.g., "for men", "kids room"). IMPORTANT: Only extract brands that exist in the catalog ontology. If a brand is mentioned but not in the ontology, leave brands as null.
 - useCases / styleTags / benefits / claims / sensoryProfile / compatibility: Use when datasetContext or user language indicates they are supported.
 - customLabels4 / productTypes / googleCategories / conditions / excludeProductIds: Populate only when user language maps to them.
@@ -116,6 +144,32 @@ OUTPUT FORMAT (STRICT JSON ONLY)
     "productTypes": <string[] or null>,
     "googleCategories": <string[] or null>,
     "excludeProductIds": <string[] or null>,
+    "lengths": <string[] or null>,
+    "formalityLevel": <string[] or null>,
+    "temperatureIntent": <string or null>,
+    "humidityFriendly": <boolean or null>,
+    "occasionContext": <string[] or null>,
+    "problemSolutions": <string[] or null>,
+    "functionFeatures": <string[] or null>,
+    "colorShade": <string[] or null>,
+    "colorUndertone": <string[] or null>,
+    "multicolor": <boolean or null>,
+    "seasonalPalette": <string[] or null>,
+    "careRequirements": <string[] or null>,
+    "rainWind": <string or null>,
+    "travelFeatures": <string[] or null>,
+    "pockets": <string or null>,
+    "liningType": <string or null>,
+    "braSolution": <string or null>,
+    "ecoMaterials": <string[] or null>,
+    "certifications": <string or null>,
+    "origin": <string or null>,
+    "adaptiveFeatures": <string or null>,
+    "sensoryFriendly": <string or null>,
+    "finish": <string or null>,
+    "modestyCues": <string[] or null>,
+    "layeringIntent": <string or null>,
+    "pairingIntent": <string or null>,
     "inStockOnly": true,
     "query": <string or null>
   }
@@ -177,6 +231,17 @@ export const SEARCH_CONSTRAINTS_JSON_SCHEMA = {
           customLabels4: { type: ['array', 'null'], items: { type: 'string' } },
           conditions: { type: ['array', 'null'], items: { type: 'string' } },
           ageGroups: { type: ['array', 'null'], items: { type: 'string' } },
+          lengths: { type: ['array', 'null'], items: { type: 'string' } },
+          formalityLevel: { type: ['array', 'null'], items: { type: 'string' } },
+          temperatureIntent: { type: ['string', 'null'] },
+          humidityFriendly: { type: ['boolean', 'null'] },
+          occasionContext: { type: ['array', 'null'], items: { type: 'string' } },
+          problemSolutions: { type: ['array', 'null'], items: { type: 'string' } },
+          functionFeatures: { type: ['array', 'null'], items: { type: 'string' } },
+          colorShade: { type: ['array', 'null'], items: { type: 'string' } },
+          colorUndertone: { type: ['array', 'null'], items: { type: 'string' } },
+          multicolor: { type: ['boolean', 'null'] },
+          seasonalPalette: { type: ['array', 'null'], items: { type: 'string' } },
           inStockOnly: { type: 'boolean' },
           excludeProductIds: { type: ['array', 'null'], items: { type: 'string' } },
         },
@@ -511,6 +576,29 @@ ${verticalHint}
 You will receive:
 - The product's title, description, price, attributes, highlights, and key details
 - The user's question about this product
+
+ENRICHED ATTRIBUTES - PRIMARY SOURCE:
+The product data includes enriched attributes that should be your PRIMARY source for answering questions. Always check these enriched attributes FIRST before falling back to JSON attributes:
+- **Formality Level**: "Casual", "Semi-Formal", "Formal" - use when user asks about dress code, occasion appropriateness
+- **Temperature Intent**: "Warm Weather", "Cool Weather" - use when user asks about weather suitability, hot/cold days, seasonal wear
+- **Humidity Friendly**: true/false - use when user asks about humid conditions, sweat, breathability, moisture-wicking
+- **Occasion Context**: Array of occasions (e.g., ["Wedding", "Vacation", "Beach"]) - use when user asks about specific occasions
+- **Problem Solutions**: Array of solutions (e.g., ["Wrinkle-Free", "Pockets", "Bra-Friendly"]) - use when user asks about specific features or problems solved
+- **Function Features**: Array of features (e.g., ["Pockets", "Adjustable", "Removable"]) - use when user asks about functional features
+- **Color Shade**: "Light", "Medium", "Dark" - use when user asks about color depth, lightness/darkness
+- **Color Undertone**: "Warm", "Cool", "Neutral" - use when user asks about color undertones, warm/cool tones
+- **Multicolor**: true/false - use when user asks about patterns, prints, multiple colors
+- **Seasonal Palette**: "Spring", "Summer", "Fall", "Winter" - use when user asks about seasonal colors/styles
+- **Length**: "Mini", "Midi", "Maxi", etc. - use when user asks about dress/skirt length
+
+EXAMPLES OF USING ENRICHED ATTRIBUTES:
+- User asks "Is this good for a hot humid day?" → Check temperatureIntent ("Warm Weather") AND humidityFriendly (true)
+- User asks "Does this have pockets?" → Check problemSolutions and functionFeatures arrays for "Pockets"
+- User asks "Is this wrinkle-free?" → Check problemSolutions array for "Wrinkle-Free"
+- User asks "What occasions is this good for?" → Check occasionContext array
+- User asks "Is this formal enough for a wedding?" → Check formalityLevel ("Formal" or "Semi-Formal") AND occasionContext for "Wedding"
+- User asks "What color undertone does this have?" → Check colorUndertone ("Warm", "Cool", or "Neutral")
+- User asks "Is this a light or dark color?" → Check colorShade ("Light", "Medium", or "Dark")
 
 TONE & STYLE - CRITICAL RULES:
 - Write EXACTLY as if you're texting a friend right now. This is a direct conversation, not a report.
@@ -966,6 +1054,19 @@ Catalog schema:
 - occasions (string[]): office/work, smart casual, casual, formal, party, vacation, lounge, gym.
 - query (string): soft text ONLY for style/usage words NOT already captured above.
 - expandedKeywords (string[]): synonym-expanded recall keywords derived from category + style.
+
+Enriched fashion facets (for apparel/fashion catalogs - populate only when user language clearly maps):
+- lengths (string[]): Dress/skirt lengths - "mini", "midi", "maxi", "knee-length", "ankle-length"
+- formalityLevel (string[]): "Casual", "Semi-Formal", "Formal" - map "wedding", "black tie", "office", "work", "casual", "everyday"
+- temperatureIntent (string): "Warm Weather" (hot/summer/humid), "Cool Weather" (cold/winter) - map weather-related queries
+- humidityFriendly (boolean): true for "humid", "sweat", "breathable", "moisture-wicking" queries
+- occasionContext (string[]): Specific occasions - "Wedding", "Vacation", "Beach", "Office", "Party", "Daytime", "Evening"
+- problemSolutions (string[]): Problem-solving features - "Wrinkle-Free", "Pockets", "Bra-Friendly", "Travel-Friendly", "Stain-Resistant"
+- functionFeatures (string[]): Functional features - "Pockets", "Adjustable", "Removable", "Convertible", "Reversible"
+- colorShade (string[]): "Light", "Medium", "Dark" - map "light/pale/pastel" or "dark/deep/rich" color descriptions
+- colorUndertone (string[]): "Warm", "Cool", "Neutral" - map "warm tones" or "cool tones" color descriptions
+- multicolor (boolean): true for "multicolor", "patterned", "print"; false for "solid", "single color"
+- seasonalPalette (string[]): "Spring", "Summer", "Fall", "Winter" - map seasonal color/style preferences
 
 Generic facet fields (use ONLY when dataset supports them via primaryFacets or catalog hints):
 - useCases (string[]): Usage contexts or scenarios. Examples: "travel", "office", "gift", "beginner-friendly", "night routine", "daily commute", "outdoor adventure", "home office", "gift giving".
