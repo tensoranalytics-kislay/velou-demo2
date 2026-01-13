@@ -79,6 +79,18 @@ export async function multiViewRetrieval(
     ? expandCategoriesForOptimalCoverage(topCategories)
     : undefined;
 
+  // Extract intent from classification.constraints BEFORE conversion
+  // Intent is lost when converting FashionConstraints → SearchConstraints, so we preserve it separately
+  // This will be used later for intent-aware post-SQL filtering
+  const constraintIntents = {
+    colors: extractConstraintIntent(classification.constraints.colors),
+    lengths: extractConstraintIntent(classification.constraints.lengths),
+    sleeveLengths: extractConstraintIntent(classification.constraints.sleeveLengths),
+    necklines: extractConstraintIntent(classification.constraints.necklines),
+    formalityLevel: extractConstraintIntent(classification.constraints.formalityLevel),
+    colorShade: extractConstraintIntent(classification.constraints.colorShade),
+  };
+
   // Convert classification constraints to search constraints
   // Include top categories for hard SQL-level filtering if provided
   // This hard filters the catalog BEFORE retrieval (applied at SQL level)
@@ -231,6 +243,33 @@ export async function multiViewRetrieval(
                 metadata: { applicableConstraints: [], textOnlyConstraints: [], fallbackStrategy: 'vector', allowKeywordMatching: false },
               };
 
+          // Map intents to context-aware filter names
+          // Note: getContextAwareConstraints might move some constraints to keywordTerms
+          // but we still need intent for post-SQL filtering if they remain in sqlFilters
+          // sleeveLengths maps to sleeves in SearchConstraints
+          const contextAwareIntents = {
+            colors: constraintIntents.colors,
+            lengths: constraintIntents.lengths,
+            sleeves: constraintIntents.sleeveLengths, // sleeveLengths maps to sleeves
+            necklines: constraintIntents.necklines,
+            formalityLevels: constraintIntents.formalityLevel,
+            colorShades: constraintIntents.colorShade,
+          };
+
+          logger.info('fashion_semantic_search: intent_extraction_for_post_sql_filtering', {
+            query: query.substring(0, 100),
+            constraintIntents: {
+              colors: constraintIntents.colors,
+              lengths: constraintIntents.lengths,
+              sleeveLengths: constraintIntents.sleeveLengths,
+              necklines: constraintIntents.necklines,
+              formalityLevel: constraintIntents.formalityLevel,
+              colorShade: constraintIntents.colorShade,
+            },
+            contextAwareIntents,
+            note: 'Intent information extracted and mapped for post-SQL filtering',
+          });
+
           logger.info('fashion_semantic_search: context_aware_constraints_applied', {
             query: query.substring(0, 100),
             categories: topCategories,
@@ -343,6 +382,17 @@ export async function multiViewRetrieval(
                 const nullToUndefined = <T>(value: T | null | undefined): T | undefined => 
                   value === null ? undefined : value;
                 
+                logger.info('fashion_semantic_search: calling_applyPostSQLFilters_with_intents', {
+                  query: query.substring(0, 100),
+                  contextAwareIntents,
+                  hasColorsIntent: !!contextAwareIntents.colors,
+                  hasLengthsIntent: !!contextAwareIntents.lengths,
+                  hasSleevesIntent: !!contextAwareIntents.sleeves,
+                  hasNecklinesIntent: !!contextAwareIntents.necklines,
+                  hasFormalityIntent: !!contextAwareIntents.formalityLevels,
+                  note: 'About to call applyPostSQLFilters with intent information',
+                });
+
                 const postFilteredIds = await applyPostSQLFilters(
                   categoryFilteredIds,
                   {
@@ -353,7 +403,8 @@ export async function multiViewRetrieval(
                     formalityLevels: nullToUndefined(contextAware.sqlFilters.formalityLevel),
                     colorShades: nullToUndefined(contextAware.sqlFilters.colorShade),
                   },
-                  categoryDictionaries
+                  categoryDictionaries,
+                  contextAwareIntents // Pass intent information for intent-aware filtering
                 );
 
                 logger.info('fashion_semantic_search: post_sql_filtering_stage3_complete', {

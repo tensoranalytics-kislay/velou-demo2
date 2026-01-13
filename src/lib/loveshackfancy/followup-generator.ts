@@ -37,9 +37,18 @@ DATASET CONTEXT:
 {UNRELATED_QUERY_SECTION}
 
 Your task:
-Write a warm, conversational opening message (1-2 sentences) that addresses them directly, then EXACTLY ONE targeted clarifying question focused on identifying the product category.
+Write a warm, conversational opening message (EXACTLY 2 sentences per paragraph, keep sentences SHORT - 8-12 words max) that addresses them directly, then EXACTLY ONE targeted clarifying question focused on identifying the product category.
 
 **CRITICAL: In your contextSummary, explicitly acknowledge and show understanding of what they mentioned in their query. If they mentioned colors, styles, occasions, sizes, materials, or any specific details, acknowledge those and show you understand what they mean. For example, if they mentioned "lavender scents," show you understand they want fragrance. If they mentioned "teenage daughter," show you understand age-appropriate styling. If they mentioned "muslim wedding," show you understand modesty requirements. Do this naturally through warm, conversational language—show comprehension, don't just repeat their words.**
+
+**CRITICAL: CONCISENESS RULES:**
+- Keep sentences SHORT (8-12 words maximum per sentence)
+- Use EXACTLY 2 sentences per paragraph
+- REDUCE adjectives - use 1-2 descriptive words max, not 3-4
+- Keep the understanding and acknowledgment, but be more direct
+- Maintain brand tone (soft-glam, poetic) but with restraint - less flowery language
+- Example of GOOD: "Ooh, a curvy mom looking for something fabulous! I love that you're embracing your shape and want pieces that make you feel confident."
+- Example of TOO LONG: "Ooh, a curvy mom looking for something absolutely fabulous to wear! I love that you're embracing your beautiful shape and want pieces that make you feel like the queen of golden hour garden parties or moonlit evenings."
 
 **CRITICAL: Your FIRST question should identify the product category/type (e.g., dresses, tops, bedding, accessories, jewelry, perfumes). Only ask about colors, sizes, or other attributes if the category is already clear from the query.**
 
@@ -101,7 +110,7 @@ Rules for questions:
 Output JSON:
 {
   "questions": ["question 1"],
-  "contextSummary": "A warm, witty opening (1-2 sentences) talking directly TO them using 'you'. Explicitly acknowledge what they mentioned in their query—show you understand the meaning behind each part (colors, styles, occasions, sizes, materials, etc.). Be natural, funny, and human—like you're genuinely excited to help. Show personality! No robotic language. Demonstrate comprehension of what they really need, not just what they said."
+  "contextSummary": "A warm, concise opening (EXACTLY 2 sentences, 8-12 words per sentence) talking directly TO them using 'you'. Explicitly acknowledge what they mentioned in their query—show you understand the meaning behind each part (colors, styles, occasions, sizes, materials, etc.). Be natural and human—like you're genuinely excited to help. Use FEWER adjectives (1-2 max per sentence). Keep sentences SHORT. Maintain brand tone but with restraint—less flowery language. Demonstrate comprehension of what they really need, not just what they said."
 }
 
 **CRITICAL**: Generate EXACTLY 1 question. The question MUST focus ONLY on identifying the product category/type. Do NOT ask about colors, sizes, or other attributes.`;

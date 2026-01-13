@@ -161,7 +161,7 @@ export async function rankWithConstraints(
     }));
   }
   
-  // PHASE 1: Hard filter products matching excluded constraints BEFORE scoring
+  // PHASE 1: Hard filter products matching excluded constraints OR not matching required constraints BEFORE scoring
   // Extract enriched columns for all products to use in filtering
   const productsWithEnriched = products.map(({ product }) => {
     const enrichedColumns: EnrichedColumnValues = {
@@ -190,21 +190,22 @@ export async function rankWithConstraints(
     return { product, enrichedColumns };
   });
   
-  // Filter out products that match excluded constraints
+  // Filter out products that match excluded constraints OR don't match required constraints
   const filteredProductsWithEnriched = productsWithEnriched.filter(({ product, enrichedColumns }) => {
     const attrs = product.attributes;
     
-    // Check each constraint type for excluded intent
+    // Check each constraint type for excluded and required intent
     // Colors
     if (constraints.colors) {
       const intent = extractConstraintIntent(constraints.colors);
-      if (intent === 'excluded') {
-        const excludedColors = extractConstraintValues(constraints.colors) || [];
-        if (excludedColors.length > 0) {
-          const matchScore = matchColor(attrs, excludedColors, enrichedColumns);
-          if (matchScore > 0) {
-            return false; // Filter out - product matches excluded color
-          }
+      const colorValues = extractConstraintValues(constraints.colors) || [];
+      if (colorValues.length > 0) {
+        const matchScore = matchColor(attrs, colorValues, enrichedColumns);
+        if (intent === 'excluded' && matchScore > 0) {
+          return false; // Filter out - product matches excluded color
+        }
+        if (intent === 'required' && matchScore === 0) {
+          return false; // Filter out - product doesn't match required color
         }
       }
     }
@@ -212,13 +213,14 @@ export async function rankWithConstraints(
     // Materials
     if (constraints.materials) {
       const intent = extractConstraintIntent(constraints.materials);
-      if (intent === 'excluded') {
-        const excludedMaterials = extractConstraintValues(constraints.materials) || [];
-        if (excludedMaterials.length > 0) {
-          const matchScore = matchMaterial(attrs, excludedMaterials);
-          if (matchScore > 0) {
-            return false; // Filter out
-          }
+      const materialValues = extractConstraintValues(constraints.materials) || [];
+      if (materialValues.length > 0) {
+        const matchScore = matchMaterial(attrs, materialValues);
+        if (intent === 'excluded' && matchScore > 0) {
+          return false; // Filter out - product matches excluded material
+        }
+        if (intent === 'required' && matchScore === 0) {
+          return false; // Filter out - product doesn't match required material
         }
       }
     }
@@ -226,13 +228,14 @@ export async function rankWithConstraints(
     // Patterns
     if (constraints.patterns) {
       const intent = extractConstraintIntent(constraints.patterns);
-      if (intent === 'excluded') {
-        const excludedPatterns = extractConstraintValues(constraints.patterns) || [];
-        if (excludedPatterns.length > 0) {
-          const matchScore = matchPattern(attrs, excludedPatterns);
-          if (matchScore > 0) {
-            return false; // Filter out
-          }
+      const patternValues = extractConstraintValues(constraints.patterns) || [];
+      if (patternValues.length > 0) {
+        const matchScore = matchPattern(attrs, patternValues);
+        if (intent === 'excluded' && matchScore > 0) {
+          return false; // Filter out - product matches excluded pattern
+        }
+        if (intent === 'required' && matchScore === 0) {
+          return false; // Filter out - product doesn't match required pattern
         }
       }
     }
@@ -240,19 +243,20 @@ export async function rankWithConstraints(
     // Occasions
     if (constraints.occasions) {
       const intent = extractConstraintIntent(constraints.occasions);
-      if (intent === 'excluded') {
-        const excludedOccasions = extractConstraintValues(constraints.occasions) || [];
-        if (excludedOccasions.length > 0) {
-          const matchScore = matchOccasion(attrs, excludedOccasions, { 
-            title: product.title, 
-            description: product.description, 
-            category: product.category, 
-            subcategory: product.subcategory || undefined,
-            attributes: product.attributes 
-          }, enrichedColumns);
-          if (matchScore > 0) {
-            return false; // Filter out
-          }
+      const occasionValues = extractConstraintValues(constraints.occasions) || [];
+      if (occasionValues.length > 0) {
+        const matchScore = matchOccasion(attrs, occasionValues, { 
+          title: product.title, 
+          description: product.description, 
+          category: product.category, 
+          subcategory: product.subcategory || undefined,
+          attributes: product.attributes 
+        }, enrichedColumns);
+        if (intent === 'excluded' && matchScore > 0) {
+          return false; // Filter out - product matches excluded occasion
+        }
+        if (intent === 'required' && matchScore === 0) {
+          return false; // Filter out - product doesn't match required occasion
         }
       }
     }
@@ -260,13 +264,14 @@ export async function rankWithConstraints(
     // Sizes
     if (constraints.sizes) {
       const intent = extractConstraintIntent(constraints.sizes);
-      if (intent === 'excluded') {
-        const excludedSizes = extractConstraintValues(constraints.sizes) || [];
-        if (excludedSizes.length > 0) {
-          const matchScore = matchSize(attrs, excludedSizes);
-          if (matchScore > 0) {
-            return false; // Filter out
-          }
+      const sizeValues = extractConstraintValues(constraints.sizes) || [];
+      if (sizeValues.length > 0) {
+        const matchScore = matchSize(attrs, sizeValues);
+        if (intent === 'excluded' && matchScore > 0) {
+          return false; // Filter out - product matches excluded size
+        }
+        if (intent === 'required' && matchScore === 0) {
+          return false; // Filter out - product doesn't match required size
         }
       }
     }
@@ -274,13 +279,14 @@ export async function rankWithConstraints(
     // Seasons
     if (constraints.seasons) {
       const intent = extractConstraintIntent(constraints.seasons);
-      if (intent === 'excluded') {
-        const excludedSeasons = extractConstraintValues(constraints.seasons) || [];
-        if (excludedSeasons.length > 0) {
-          const matchScore = matchSeason(attrs, excludedSeasons, enrichedColumns);
-          if (matchScore > 0) {
-            return false; // Filter out
-          }
+      const seasonValues = extractConstraintValues(constraints.seasons) || [];
+      if (seasonValues.length > 0) {
+        const matchScore = matchSeason(attrs, seasonValues, enrichedColumns);
+        if (intent === 'excluded' && matchScore > 0) {
+          return false; // Filter out - product matches excluded season
+        }
+        if (intent === 'required' && matchScore === 0) {
+          return false; // Filter out - product doesn't match required season
         }
       }
     }
@@ -288,13 +294,14 @@ export async function rankWithConstraints(
     // Fits
     if (constraints.fits) {
       const intent = extractConstraintIntent(constraints.fits);
-      if (intent === 'excluded') {
-        const excludedFits = extractConstraintValues(constraints.fits) || [];
-        if (excludedFits.length > 0) {
-          const matchScore = matchFit(attrs, excludedFits, enrichedColumns);
-          if (matchScore > 0) {
-            return false; // Filter out
-          }
+      const fitValues = extractConstraintValues(constraints.fits) || [];
+      if (fitValues.length > 0) {
+        const matchScore = matchFit(attrs, fitValues, enrichedColumns);
+        if (intent === 'excluded' && matchScore > 0) {
+          return false; // Filter out - product matches excluded fit
+        }
+        if (intent === 'required' && matchScore === 0) {
+          return false; // Filter out - product doesn't match required fit
         }
       }
     }
@@ -302,18 +309,22 @@ export async function rankWithConstraints(
     // Lengths (use fuzzyMatch pattern from constraint-matcher)
     if (constraints.lengths) {
       const intent = extractConstraintIntent(constraints.lengths);
-      if (intent === 'excluded') {
-        const excludedLengths = extractConstraintValues(constraints.lengths) || [];
-        if (excludedLengths.length > 0) {
-          const dbLength = enrichedColumns?.length ?? null;
-          const attrLength = extractAttrValue(attrs, 'length') || extractAttrValue(attrs, 'Length');
-          const finalLength = dbLength || attrLength;
-          if (finalLength) {
-            const matchScore = fuzzyMatch(finalLength, excludedLengths);
-            if (matchScore > 0) {
-              return false; // Filter out
-            }
+      const lengthValues = extractConstraintValues(constraints.lengths) || [];
+      if (lengthValues.length > 0) {
+        const dbLength = enrichedColumns?.length ?? null;
+        const attrLength = extractAttrValue(attrs, 'length') || extractAttrValue(attrs, 'Length');
+        const finalLength = dbLength || attrLength;
+        if (finalLength) {
+          const matchScore = fuzzyMatch(finalLength, lengthValues);
+          if (intent === 'excluded' && matchScore > 0) {
+            return false; // Filter out - product matches excluded length
           }
+          if (intent === 'required' && matchScore === 0) {
+            return false; // Filter out - product doesn't match required length
+          }
+        } else if (intent === 'required') {
+          // If required and product has no length attribute, filter out
+          return false;
         }
       }
     }
@@ -321,19 +332,20 @@ export async function rankWithConstraints(
     // Styles (use matchStyle pattern)
     if (constraints.styles) {
       const intent = extractConstraintIntent(constraints.styles);
-      if (intent === 'excluded') {
-        const excludedStyles = extractConstraintValues(constraints.styles) || [];
-        if (excludedStyles.length > 0) {
-          const matchScore = matchStyle(attrs, excludedStyles, { 
-            title: product.title, 
-            description: product.description, 
-            category: product.category, 
-            subcategory: product.subcategory || undefined,
-            attributes: product.attributes 
-          });
-          if (matchScore > 0) {
-            return false; // Filter out
-          }
+      const styleValues = extractConstraintValues(constraints.styles) || [];
+      if (styleValues.length > 0) {
+        const matchScore = matchStyle(attrs, styleValues, { 
+          title: product.title, 
+          description: product.description, 
+          category: product.category, 
+          subcategory: product.subcategory || undefined,
+          attributes: product.attributes 
+        });
+        if (intent === 'excluded' && matchScore > 0) {
+          return false; // Filter out - product matches excluded style
+        }
+        if (intent === 'required' && matchScore === 0) {
+          return false; // Filter out - product doesn't match required style
         }
       }
     }
@@ -341,13 +353,14 @@ export async function rankWithConstraints(
     // Collections
     if (constraints.collections) {
       const intent = extractConstraintIntent(constraints.collections);
-      if (intent === 'excluded') {
-        const excludedCollections = extractConstraintValues(constraints.collections) || [];
-        if (excludedCollections.length > 0) {
-          const matchScore = matchCollection(attrs, excludedCollections);
-          if (matchScore > 0) {
-            return false; // Filter out
-          }
+      const collectionValues = extractConstraintValues(constraints.collections) || [];
+      if (collectionValues.length > 0) {
+        const matchScore = matchCollection(attrs, collectionValues);
+        if (intent === 'excluded' && matchScore > 0) {
+          return false; // Filter out - product matches excluded collection
+        }
+        if (intent === 'required' && matchScore === 0) {
+          return false; // Filter out - product doesn't match required collection
         }
       }
     }
@@ -355,18 +368,22 @@ export async function rankWithConstraints(
     // Necklines (use fuzzyMatch pattern)
     if (constraints.necklines) {
       const intent = extractConstraintIntent(constraints.necklines);
-      if (intent === 'excluded') {
-        const excludedNecklines = extractConstraintValues(constraints.necklines) || [];
-        if (excludedNecklines.length > 0) {
-          const dbNeckline = enrichedColumns?.neckline ?? null;
-          const attrNeckline = extractAttrValue(attrs, 'neckline') || extractAttrValue(attrs, 'Neckline');
-          const finalNeckline = dbNeckline || attrNeckline;
-          if (finalNeckline) {
-            const matchScore = fuzzyMatch(finalNeckline, excludedNecklines);
-            if (matchScore > 0) {
-              return false; // Filter out
-            }
+      const necklineValues = extractConstraintValues(constraints.necklines) || [];
+      if (necklineValues.length > 0) {
+        const dbNeckline = enrichedColumns?.neckline ?? null;
+        const attrNeckline = extractAttrValue(attrs, 'neckline') || extractAttrValue(attrs, 'Neckline');
+        const finalNeckline = dbNeckline || attrNeckline;
+        if (finalNeckline) {
+          const matchScore = fuzzyMatch(finalNeckline, necklineValues);
+          if (intent === 'excluded' && matchScore > 0) {
+            return false; // Filter out - product matches excluded neckline
           }
+          if (intent === 'required' && matchScore === 0) {
+            return false; // Filter out - product doesn't match required neckline
+          }
+        } else if (intent === 'required') {
+          // If required and product has no neckline attribute, filter out
+          return false;
         }
       }
     }
@@ -374,18 +391,22 @@ export async function rankWithConstraints(
     // SleeveLengths (use fuzzyMatch pattern)
     if (constraints.sleeveLengths) {
       const intent = extractConstraintIntent(constraints.sleeveLengths);
-      if (intent === 'excluded') {
-        const excludedSleeveLengths = extractConstraintValues(constraints.sleeveLengths) || [];
-        if (excludedSleeveLengths.length > 0) {
-          const dbSleeve = enrichedColumns?.sleeve ?? null;
-          const attrSleeveLength = extractAttrValue(attrs, 'sleeveLength') || extractAttrValue(attrs, 'Sleeve Length') || extractAttrValue(attrs, 'sleeve');
-          const finalSleeveLength = dbSleeve || attrSleeveLength;
-          if (finalSleeveLength) {
-            const matchScore = fuzzyMatch(finalSleeveLength, excludedSleeveLengths);
-            if (matchScore > 0) {
-              return false; // Filter out
-            }
+      const sleeveLengthValues = extractConstraintValues(constraints.sleeveLengths) || [];
+      if (sleeveLengthValues.length > 0) {
+        const dbSleeve = enrichedColumns?.sleeve ?? null;
+        const attrSleeveLength = extractAttrValue(attrs, 'sleeveLength') || extractAttrValue(attrs, 'Sleeve Length') || extractAttrValue(attrs, 'sleeve');
+        const finalSleeveLength = dbSleeve || attrSleeveLength;
+        if (finalSleeveLength) {
+          const matchScore = fuzzyMatch(finalSleeveLength, sleeveLengthValues);
+          if (intent === 'excluded' && matchScore > 0) {
+            return false; // Filter out - product matches excluded sleeve length
           }
+          if (intent === 'required' && matchScore === 0) {
+            return false; // Filter out - product doesn't match required sleeve length
+          }
+        } else if (intent === 'required') {
+          // If required and product has no sleeve length attribute, filter out
+          return false;
         }
       }
     }
@@ -393,19 +414,23 @@ export async function rankWithConstraints(
     // FormalityLevel
     if (constraints.formalityLevel) {
       const intent = extractConstraintIntent(constraints.formalityLevel);
-      if (intent === 'excluded') {
-        const excludedFormalityLevels = extractConstraintValues(constraints.formalityLevel) || [];
-        if (excludedFormalityLevels.length > 0) {
-          // Extract formalityLevel from product (database column or attributes)
-          const dbFormalityLevel = enrichedColumns?.formalityLevel ?? null;
-          const attrFormalityLevel = extractAttrValue(attrs, 'formalityLevel') || extractAttrValue(attrs, 'FormalityLevel');
-          const finalFormalityLevel = dbFormalityLevel || attrFormalityLevel;
-          if (finalFormalityLevel) {
-            const matchScore = matchFormalityLevel(finalFormalityLevel, excludedFormalityLevels);
-            if (matchScore > 0) {
-              return false; // Filter out
-            }
+      const formalityLevelValues = extractConstraintValues(constraints.formalityLevel) || [];
+      if (formalityLevelValues.length > 0) {
+        // Extract formalityLevel from product (database column or attributes)
+        const dbFormalityLevel = enrichedColumns?.formalityLevel ?? null;
+        const attrFormalityLevel = extractAttrValue(attrs, 'formalityLevel') || extractAttrValue(attrs, 'FormalityLevel');
+        const finalFormalityLevel = dbFormalityLevel || attrFormalityLevel;
+        if (finalFormalityLevel) {
+          const matchScore = matchFormalityLevel(finalFormalityLevel, formalityLevelValues);
+          if (intent === 'excluded' && matchScore > 0) {
+            return false; // Filter out - product matches excluded formality level
           }
+          if (intent === 'required' && matchScore === 0) {
+            return false; // Filter out - product doesn't match required formality level
+          }
+        } else if (intent === 'required') {
+          // If required and product has no formality level attribute, filter out
+          return false;
         }
       }
     }
@@ -413,18 +438,19 @@ export async function rankWithConstraints(
     // AgeGroups
     if (constraints.ageGroups) {
       const intent = extractConstraintIntent(constraints.ageGroups);
-      if (intent === 'excluded') {
-        const excludedAgeGroups = extractConstraintValues(constraints.ageGroups) || [];
-        if (excludedAgeGroups.length > 0) {
-          const matchScore = matchAgeGroup(product, excludedAgeGroups, enrichedColumns);
-          if (matchScore > 0) {
-            return false; // Filter out
-          }
+      const ageGroupValues = extractConstraintValues(constraints.ageGroups) || [];
+      if (ageGroupValues.length > 0) {
+        const matchScore = matchAgeGroup(product, ageGroupValues, enrichedColumns);
+        if (intent === 'excluded' && matchScore > 0) {
+          return false; // Filter out - product matches excluded age group
+        }
+        if (intent === 'required' && matchScore === 0) {
+          return false; // Filter out - product doesn't match required age group
         }
       }
     }
     
-    return true; // Keep product if no excluded matches
+    return true; // Keep product if no excluded/required constraint violations
   });
   
   // Convert back to ProductWithVectorScore format
@@ -436,11 +462,11 @@ export async function rankWithConstraints(
   // Log filtering results
   const filteredCount = products.length - filteredProducts.length;
   if (filteredCount > 0) {
-    logger.info('excluded_constraints_hard_filtered', {
+    logger.info('required_and_excluded_constraints_hard_filtered', {
       originalCount: products.length,
       filteredCount: filteredProducts.length,
       removedCount: filteredCount,
-      note: 'Products matching excluded constraints were hard filtered out',
+      note: 'Products matching excluded constraints or not matching required constraints were hard filtered out',
     });
   }
   
@@ -519,8 +545,16 @@ export async function rankWithConstraints(
     };
   });
   
-  // Sort by final score (descending)
-  productsWithScores.sort((a, b) => b.finalScore - a.finalScore);
+  // Sort by final score (descending), with tie-breaking by constraint score quality
+  // This ensures that when multiple products hit the 1.0 cap, products with better
+  // constraint matches rank higher
+  productsWithScores.sort((a, b) => {
+    if (Math.abs(a.finalScore - b.finalScore) < 0.001) {
+      // Tie-break by constraint score quality (higher constraint score = better match)
+      return b.constraintScore - a.constraintScore;
+    }
+    return b.finalScore - a.finalScore;
+  });
   
   // Log top 5 products with detailed scores
   const topProducts = productsWithScores.slice(0, 5).map((p, idx) => ({

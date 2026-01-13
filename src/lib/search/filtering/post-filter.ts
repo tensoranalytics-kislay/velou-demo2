@@ -8,7 +8,7 @@
 import { prisma } from '../../db';
 import { logger } from '../../telemetry/logger';
 import type { CategoryDictionary, CategoryDictionaryMap } from './category-dictionaries';
-import { extractConstraintValues } from '../../loveshackfancy/constraint-utils';
+import { extractConstraintValues, type ConstraintIntent } from '../../loveshackfancy/constraint-utils';
 
 /**
  * Normalize a value for matching (lowercase, trim)
@@ -144,6 +144,7 @@ function mapSleeveLengthsToSleeves(sleeveLengths: string[]): string[] {
  * 
  * @param productIds - Array of product IDs from category-filtered set
  * @param filters - Filter values to apply
+ * @param filterIntents - Optional intent information for each filter (if not provided, defaults to 'required' for backward compatibility)
  * @param categoryDictionaries - Category-specific dictionaries
  * @returns Array of product IDs that match all specified filters
  */
@@ -157,7 +158,15 @@ export async function applyPostSQLFilters(
     formalityLevels?: string[];
     colorShades?: string[];
   },
-  categoryDictionaries: CategoryDictionaryMap
+  categoryDictionaries: CategoryDictionaryMap,
+  filterIntents?: {  // NEW: Optional intent information (moved after required parameter)
+    colors?: ConstraintIntent | null;
+    lengths?: ConstraintIntent | null;
+    sleeves?: ConstraintIntent | null;
+    necklines?: ConstraintIntent | null;
+    formalityLevels?: ConstraintIntent | null;
+    colorShades?: ConstraintIntent | null;
+  }
 ): Promise<string[]> {
   if (!productIds || productIds.length === 0) {
     return [];
@@ -242,123 +251,228 @@ export async function applyPostSQLFilters(
     }
     
     let matchesAllFilters = true;
-    const filterResults: Record<string, { matched: boolean; productValue: string | null; queryValues: string[] }> = {};
+    const filterResults: Record<string, { matched: boolean; productValue: string | null; queryValues: string[]; intent?: ConstraintIntent | null }> = {};
     
-    // Filter by colors
+    // Filter by colors - Intent-aware filtering
     if (filters.colors && filters.colors.length > 0) {
-      const colorMatch = matchColorValue(
-        product.enrichedColor,
-        product.color,
-        filters.colors,
-        dictionary.availableColors
-      );
-      filterResults.colors = {
-        matched: colorMatch,
-        productValue: product.enrichedColor || product.color || null,
-        queryValues: filters.colors,
-      };
-      if (!colorMatch) {
-        matchesAllFilters = false;
+      const colorIntent = filterIntents?.colors;
+      
+      // Only apply as hard filter if intent is 'required' or 'excluded'
+      // If no intent provided (undefined), default to 'required' for backward compatibility
+      if (colorIntent === 'required' || colorIntent === 'excluded' || colorIntent === undefined) {
+        const colorMatch = matchColorValue(
+          product.enrichedColor,
+          product.color,
+          filters.colors,
+          dictionary.availableColors
+        );
+        filterResults.colors = {
+          matched: colorIntent === 'excluded' ? !colorMatch : colorMatch,
+          productValue: product.enrichedColor || product.color || null,
+          queryValues: filters.colors,
+          intent: colorIntent || 'required', // Default to 'required' if undefined
+        };
+        if (colorIntent === 'excluded' ? colorMatch : !colorMatch) {
+          matchesAllFilters = false;
+        }
+      } else {
+        // 'strong' or 'preferred' - skip hard filtering, will be used in ranking
+        filterResults.colors = {
+          matched: true, // Don't filter out
+          productValue: product.enrichedColor || product.color || null,
+          queryValues: filters.colors,
+          intent: colorIntent,
+        };
       }
     }
     
-    // Filter by lengths
+    // Filter by lengths - Intent-aware filtering
     if (filters.lengths && filters.lengths.length > 0 && matchesAllFilters) {
-      const lengthValue = product.length || 
-        (product.attributes as any)?.length || 
-        (product.attributes as any)?.Length;
-      const lengthMatch = matchAttributeValue(
-        lengthValue,
-        filters.lengths,
-        dictionary.availableLengths
-      );
-      filterResults.lengths = {
-        matched: lengthMatch,
-        productValue: lengthValue || null,
-        queryValues: filters.lengths,
-      };
-      if (!lengthMatch) {
-        matchesAllFilters = false;
+      const lengthIntent = filterIntents?.lengths;
+      
+      // Only apply as hard filter if intent is 'required' or 'excluded'
+      // If no intent provided (undefined), default to 'required' for backward compatibility
+      if (lengthIntent === 'required' || lengthIntent === 'excluded' || lengthIntent === undefined) {
+        const lengthValue = product.length || 
+          (product.attributes as any)?.length || 
+          (product.attributes as any)?.Length;
+        const lengthMatch = matchAttributeValue(
+          lengthValue,
+          filters.lengths,
+          dictionary.availableLengths
+        );
+        filterResults.lengths = {
+          matched: lengthIntent === 'excluded' ? !lengthMatch : lengthMatch,
+          productValue: lengthValue || null,
+          queryValues: filters.lengths,
+          intent: lengthIntent || 'required', // Default to 'required' if undefined
+        };
+        if (lengthIntent === 'excluded' ? lengthMatch : !lengthMatch) {
+          matchesAllFilters = false;
+        }
+      } else {
+        // 'strong' or 'preferred' - skip hard filtering, will be used in ranking
+        const lengthValue = product.length || 
+          (product.attributes as any)?.length || 
+          (product.attributes as any)?.Length;
+        filterResults.lengths = {
+          matched: true, // Don't filter out
+          productValue: lengthValue || null,
+          queryValues: filters.lengths,
+          intent: lengthIntent,
+        };
       }
     }
     
-    // Filter by sleeves
+    // Filter by sleeves - Intent-aware filtering
     if (filters.sleeves && filters.sleeves.length > 0 && matchesAllFilters) {
-      const sleeveValue = product.sleeve || 
-        (product.attributes as any)?.sleeve || 
-        (product.attributes as any)?.Sleeve;
-      const sleeveMatch = matchAttributeValue(
-        sleeveValue,
-        filters.sleeves,
-        dictionary.availableSleeves
-      );
-      filterResults.sleeves = {
-        matched: sleeveMatch,
-        productValue: sleeveValue || null,
-        queryValues: filters.sleeves,
-      };
-      if (!sleeveMatch) {
-        matchesAllFilters = false;
+      const sleeveIntent = filterIntents?.sleeves;
+      
+      // Only apply as hard filter if intent is 'required' or 'excluded'
+      // If no intent provided (undefined), default to 'required' for backward compatibility
+      if (sleeveIntent === 'required' || sleeveIntent === 'excluded' || sleeveIntent === undefined) {
+        const sleeveValue = product.sleeve || 
+          (product.attributes as any)?.sleeve || 
+          (product.attributes as any)?.Sleeve;
+        const sleeveMatch = matchAttributeValue(
+          sleeveValue,
+          filters.sleeves,
+          dictionary.availableSleeves
+        );
+        filterResults.sleeves = {
+          matched: sleeveIntent === 'excluded' ? !sleeveMatch : sleeveMatch,
+          productValue: sleeveValue || null,
+          queryValues: filters.sleeves,
+          intent: sleeveIntent || 'required', // Default to 'required' if undefined
+        };
+        if (sleeveIntent === 'excluded' ? sleeveMatch : !sleeveMatch) {
+          matchesAllFilters = false;
+        }
+      } else {
+        // 'strong' or 'preferred' - skip hard filtering, will be used in ranking
+        const sleeveValue = product.sleeve || 
+          (product.attributes as any)?.sleeve || 
+          (product.attributes as any)?.Sleeve;
+        filterResults.sleeves = {
+          matched: true, // Don't filter out
+          productValue: sleeveValue || null,
+          queryValues: filters.sleeves,
+          intent: sleeveIntent,
+        };
       }
     }
     
-    // Filter by necklines
+    // Filter by necklines - Intent-aware filtering
     if (filters.necklines && filters.necklines.length > 0 && matchesAllFilters) {
-      const necklineValue = product.neckline || 
-        (product.attributes as any)?.neckline || 
-        (product.attributes as any)?.Neckline;
-      const necklineMatch = matchAttributeValue(
-        necklineValue,
-        filters.necklines,
-        dictionary.availableNecklines
-      );
-      filterResults.necklines = {
-        matched: necklineMatch,
-        productValue: necklineValue || null,
-        queryValues: filters.necklines,
-      };
-      if (!necklineMatch) {
-        matchesAllFilters = false;
+      const necklineIntent = filterIntents?.necklines;
+      
+      // Only apply as hard filter if intent is 'required' or 'excluded'
+      // If no intent provided (undefined), default to 'required' for backward compatibility
+      if (necklineIntent === 'required' || necklineIntent === 'excluded' || necklineIntent === undefined) {
+        const necklineValue = product.neckline || 
+          (product.attributes as any)?.neckline || 
+          (product.attributes as any)?.Neckline;
+        const necklineMatch = matchAttributeValue(
+          necklineValue,
+          filters.necklines,
+          dictionary.availableNecklines
+        );
+        filterResults.necklines = {
+          matched: necklineIntent === 'excluded' ? !necklineMatch : necklineMatch,
+          productValue: necklineValue || null,
+          queryValues: filters.necklines,
+          intent: necklineIntent || 'required', // Default to 'required' if undefined
+        };
+        if (necklineIntent === 'excluded' ? necklineMatch : !necklineMatch) {
+          matchesAllFilters = false;
+        }
+      } else {
+        // 'strong' or 'preferred' - skip hard filtering, will be used in ranking
+        const necklineValue = product.neckline || 
+          (product.attributes as any)?.neckline || 
+          (product.attributes as any)?.Neckline;
+        filterResults.necklines = {
+          matched: true, // Don't filter out
+          productValue: necklineValue || null,
+          queryValues: filters.necklines,
+          intent: necklineIntent,
+        };
       }
     }
     
-    // Filter by formality levels
+    // Filter by formality levels - Intent-aware filtering
     if (filters.formalityLevels && filters.formalityLevels.length > 0 && matchesAllFilters) {
-      const formalityValue = product.formalityLevel || 
-        (product.attributes as any)?.formalityLevel || 
-        (product.attributes as any)?.FormalityLevel;
-      const formalityMatch = matchAttributeValue(
-        formalityValue,
-        filters.formalityLevels,
-        dictionary.availableFormalityLevels
-      );
-      filterResults.formalityLevels = {
-        matched: formalityMatch,
-        productValue: formalityValue || null,
-        queryValues: filters.formalityLevels,
-      };
-      if (!formalityMatch) {
-        matchesAllFilters = false;
+      const formalityIntent = filterIntents?.formalityLevels;
+      
+      // Only apply as hard filter if intent is 'required' or 'excluded'
+      // If no intent provided (undefined), default to 'required' for backward compatibility
+      if (formalityIntent === 'required' || formalityIntent === 'excluded' || formalityIntent === undefined) {
+        const formalityValue = product.formalityLevel || 
+          (product.attributes as any)?.formalityLevel || 
+          (product.attributes as any)?.FormalityLevel;
+        const formalityMatch = matchAttributeValue(
+          formalityValue,
+          filters.formalityLevels,
+          dictionary.availableFormalityLevels
+        );
+        filterResults.formalityLevels = {
+          matched: formalityIntent === 'excluded' ? !formalityMatch : formalityMatch,
+          productValue: formalityValue || null,
+          queryValues: filters.formalityLevels,
+          intent: formalityIntent || 'required', // Default to 'required' if undefined
+        };
+        if (formalityIntent === 'excluded' ? formalityMatch : !formalityMatch) {
+          matchesAllFilters = false;
+        }
+      } else {
+        // 'strong' or 'preferred' - skip hard filtering, will be used in ranking
+        const formalityValue = product.formalityLevel || 
+          (product.attributes as any)?.formalityLevel || 
+          (product.attributes as any)?.FormalityLevel;
+        filterResults.formalityLevels = {
+          matched: true, // Don't filter out
+          productValue: formalityValue || null,
+          queryValues: filters.formalityLevels,
+          intent: formalityIntent,
+        };
       }
     }
     
-    // Filter by color shades
+    // Filter by color shades - Intent-aware filtering
     if (filters.colorShades && filters.colorShades.length > 0 && matchesAllFilters) {
-      const colorShadeValue = product.colorShade || 
-        (product.attributes as any)?.colorShade || 
-        (product.attributes as any)?.ColorShade;
-      const colorShadeMatch = matchAttributeValue(
-        colorShadeValue,
-        filters.colorShades,
-        dictionary.availableColorShades
-      );
-      filterResults.colorShades = {
-        matched: colorShadeMatch,
-        productValue: colorShadeValue || null,
-        queryValues: filters.colorShades,
-      };
-      if (!colorShadeMatch) {
-        matchesAllFilters = false;
+      const colorShadeIntent = filterIntents?.colorShades;
+      
+      // Only apply as hard filter if intent is 'required' or 'excluded'
+      // If no intent provided (undefined), default to 'required' for backward compatibility
+      if (colorShadeIntent === 'required' || colorShadeIntent === 'excluded' || colorShadeIntent === undefined) {
+        const colorShadeValue = product.colorShade || 
+          (product.attributes as any)?.colorShade || 
+          (product.attributes as any)?.ColorShade;
+        const colorShadeMatch = matchAttributeValue(
+          colorShadeValue,
+          filters.colorShades,
+          dictionary.availableColorShades
+        );
+        filterResults.colorShades = {
+          matched: colorShadeIntent === 'excluded' ? !colorShadeMatch : colorShadeMatch,
+          productValue: colorShadeValue || null,
+          queryValues: filters.colorShades,
+          intent: colorShadeIntent || 'required', // Default to 'required' if undefined
+        };
+        if (colorShadeIntent === 'excluded' ? colorShadeMatch : !colorShadeMatch) {
+          matchesAllFilters = false;
+        }
+      } else {
+        // 'strong' or 'preferred' - skip hard filtering, will be used in ranking
+        const colorShadeValue = product.colorShade || 
+          (product.attributes as any)?.colorShade || 
+          (product.attributes as any)?.ColorShade;
+        filterResults.colorShades = {
+          matched: true, // Don't filter out
+          productValue: colorShadeValue || null,
+          queryValues: filters.colorShades,
+          intent: colorShadeIntent,
+        };
       }
     }
     
@@ -384,6 +498,77 @@ export async function applyPostSQLFilters(
     }
   }
   
+  // Track which constraints were hard filtered vs soft ranking only
+  const hardFiltered: string[] = [];
+  const softRankingOnly: string[] = [];
+  
+  if (filters.colors && filters.colors.length > 0) {
+    const intent = filterIntents?.colors;
+    if (intent === 'required' || intent === 'excluded') {
+      hardFiltered.push('colors');
+    } else if (intent === 'strong' || intent === 'preferred') {
+      softRankingOnly.push('colors');
+    } else {
+      // No intent provided - default to hard filter (backward compatibility)
+      hardFiltered.push('colors');
+    }
+  }
+  
+  if (filters.lengths && filters.lengths.length > 0) {
+    const intent = filterIntents?.lengths;
+    if (intent === 'required' || intent === 'excluded') {
+      hardFiltered.push('lengths');
+    } else if (intent === 'strong' || intent === 'preferred') {
+      softRankingOnly.push('lengths');
+    } else {
+      hardFiltered.push('lengths');
+    }
+  }
+  
+  if (filters.sleeves && filters.sleeves.length > 0) {
+    const intent = filterIntents?.sleeves;
+    if (intent === 'required' || intent === 'excluded') {
+      hardFiltered.push('sleeves');
+    } else if (intent === 'strong' || intent === 'preferred') {
+      softRankingOnly.push('sleeves');
+    } else {
+      hardFiltered.push('sleeves');
+    }
+  }
+  
+  if (filters.necklines && filters.necklines.length > 0) {
+    const intent = filterIntents?.necklines;
+    if (intent === 'required' || intent === 'excluded') {
+      hardFiltered.push('necklines');
+    } else if (intent === 'strong' || intent === 'preferred') {
+      softRankingOnly.push('necklines');
+    } else {
+      hardFiltered.push('necklines');
+    }
+  }
+  
+  if (filters.formalityLevels && filters.formalityLevels.length > 0) {
+    const intent = filterIntents?.formalityLevels;
+    if (intent === 'required' || intent === 'excluded') {
+      hardFiltered.push('formalityLevels');
+    } else if (intent === 'strong' || intent === 'preferred') {
+      softRankingOnly.push('formalityLevels');
+    } else {
+      hardFiltered.push('formalityLevels');
+    }
+  }
+  
+  if (filters.colorShades && filters.colorShades.length > 0) {
+    const intent = filterIntents?.colorShades;
+    if (intent === 'required' || intent === 'excluded') {
+      hardFiltered.push('colorShades');
+    } else if (intent === 'strong' || intent === 'preferred') {
+      softRankingOnly.push('colorShades');
+    } else {
+      hardFiltered.push('colorShades');
+    }
+  }
+
   logger.info('applyPostSQLFilters: completed', {
     originalCount: productIds.length,
     filteredCount: filteredIds.length,
@@ -393,16 +578,26 @@ export async function applyPostSQLFilters(
     filtersApplied: {
       colors: filters.colors?.length || 0,
       colorValues: filters.colors,
+      colorIntent: filterIntents?.colors, // NEW
       lengths: filters.lengths?.length || 0,
       lengthValues: filters.lengths,
+      lengthIntent: filterIntents?.lengths, // NEW
       sleeves: filters.sleeves?.length || 0,
       sleeveValues: filters.sleeves,
+      sleeveIntent: filterIntents?.sleeves, // NEW
       necklines: filters.necklines?.length || 0,
       necklineValues: filters.necklines,
+      necklineIntent: filterIntents?.necklines, // NEW
       formalityLevels: filters.formalityLevels?.length || 0,
       formalityLevelValues: filters.formalityLevels,
+      formalityLevelIntent: filterIntents?.formalityLevels, // NEW
       colorShades: filters.colorShades?.length || 0,
       colorShadeValues: filters.colorShades,
+      colorShadeIntent: filterIntents?.colorShades, // NEW
+    },
+    intentBasedFiltering: {
+      hardFiltered: hardFiltered, // Constraints with required/excluded intent (applied as hard filters)
+      softRankingOnly: softRankingOnly, // Constraints with strong/preferred intent (skipped filtering, used in ranking)
     },
     sampleFilteredIds: filteredIds.slice(0, 10),
   });

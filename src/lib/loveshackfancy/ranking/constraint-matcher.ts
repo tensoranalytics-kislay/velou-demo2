@@ -1769,6 +1769,7 @@ export function calculateConstraintMatchScore(
   const productCategory = 'category' in product ? product.category : undefined;
   
   const scores: number[] = [];
+  const weights: number[] = []; // Track actual weights for proper weighted average calculation
   const scoreDetails: Record<string, { queryValue: any; productValue: any; score: number; weighted: number }> = {};
   
   // Age Group (HIGHEST priority - critical for filtering kids vs adult products)
@@ -1799,6 +1800,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = ageGroupScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     
     // Get final product ageGroup value for logging (check all sources)
     let finalProductAgeGroup: string | string[] | undefined = productAgeGroup;
@@ -1848,6 +1850,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = colorScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.colors = {
       queryValue: extractConstraintValues(enhancedConstraints.colors) || enhancedConstraints.colors,
       productValue: finalEnrichedColor || finalColor || 'none',
@@ -1869,6 +1872,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = sizeScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.sizes = {
       queryValue: extractConstraintValues(enhancedConstraints.sizes) || enhancedConstraints.sizes,
       productValue: productSizes,
@@ -1899,6 +1903,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = occasionScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     
     // Get product occasion value for logging (check all sources)
     let productOccasionValue: string | string[] | undefined;
@@ -1973,6 +1978,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = styleScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.styles = {
       queryValue: extractConstraintValues(enhancedConstraints.styles) || enhancedConstraints.styles,
       productValue: productStyle || 'none',
@@ -1997,6 +2003,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = patternScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.patterns = {
       queryValue: extractConstraintValues(enhancedConstraints.patterns) || enhancedConstraints.patterns,
       productValue: productPattern,
@@ -2024,6 +2031,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = seasonScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.seasons = {
       queryValue: extractConstraintValues(enhancedConstraints.seasons) || enhancedConstraints.seasons,
       productValue: finalSeason || 'none',
@@ -2052,6 +2060,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = materialScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.materials = {
       queryValue: extractConstraintValues(enhancedConstraints.materials) || enhancedConstraints.materials,
       productValue: finalMaterial || 'none',
@@ -2078,6 +2087,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = fitScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.fits = {
       queryValue: extractConstraintValues(enhancedConstraints.fits) || enhancedConstraints.fits,
       productValue: finalFit || 'none',
@@ -2105,6 +2115,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = lengthScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.lengths = {
       queryValue: extractConstraintValues(enhancedConstraints.lengths) || enhancedConstraints.lengths,
       productValue: finalLength || 'none',
@@ -2132,6 +2143,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = necklineScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.necklines = {
       queryValue: extractConstraintValues(enhancedConstraints.necklines) || enhancedConstraints.necklines,
       productValue: finalNeckline || 'none',
@@ -2159,6 +2171,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = sleeveLengthScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.sleeveLengths = {
       queryValue: extractConstraintValues(enhancedConstraints.sleeveLengths) || enhancedConstraints.sleeveLengths,
       productValue: finalSleeveLength || 'none',
@@ -2180,6 +2193,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = collectionScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.collections = {
       queryValue: extractConstraintValues(enhancedConstraints.collections) || enhancedConstraints.collections,
       productValue: productCollection,
@@ -2214,6 +2228,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = priceScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.price = {
       queryValue: { min: priceMin, max: priceMax },
       productValue: product.priceCents,
@@ -2236,6 +2251,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = formalityScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.formalityLevel = {
       queryValue: formalityLevelValues,
       productValue: formalityValue,
@@ -2260,6 +2276,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = tempScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.temperatureIntent = {
       queryValue: temperatureIntentValue,
       productValue: tempValue,
@@ -2284,6 +2301,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = humidityScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.humidityFriendly = {
       queryValue: humidityFriendlyValue,
       productValue: humidityValue,
@@ -2306,6 +2324,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = occasionContextScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.occasionContext = {
       queryValue: occasionContextValues,
       productValue: occasionContextValue,
@@ -2328,6 +2347,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = problemSolutionsScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.problemSolutions = {
       queryValue: problemSolutionsValues,
       productValue: problemSolutionsValue,
@@ -2350,6 +2370,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = functionFeaturesScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.functionFeatures = {
       queryValue: functionFeaturesValues,
       productValue: functionFeaturesValue,
@@ -2372,6 +2393,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = colorShadeScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.colorShade = {
       queryValue: colorShadeValues,
       productValue: colorShadeValue,
@@ -2394,6 +2416,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = colorUndertoneScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.colorUndertone = {
       queryValue: colorUndertoneValues,
       productValue: colorUndertoneValue,
@@ -2418,6 +2441,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = multicolorScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.multicolor = {
       queryValue: multicolorValue,
       productValue: productMulticolorValue,
@@ -2440,6 +2464,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = seasonalPaletteScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.seasonalPalette = {
       queryValue: seasonalPaletteValues,
       productValue: seasonalPaletteValue,
@@ -2462,6 +2487,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = careScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.careRequirements = {
       queryValue: careRequirementsValues,
       productValue: productCare,
@@ -2483,6 +2509,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = rainWindScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.rainWind = {
       queryValue: rainWindValue,
       productValue: productRainWind,
@@ -2505,6 +2532,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = travelScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.travelFeatures = {
       queryValue: travelFeaturesValues,
       productValue: productTravel,
@@ -2526,6 +2554,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = pocketsScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.pockets = {
       queryValue: pocketsValue,
       productValue: productPockets,
@@ -2547,6 +2576,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = liningScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.liningType = {
       queryValue: liningTypeValue,
       productValue: productLining,
@@ -2568,6 +2598,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = braScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.braSolution = {
       queryValue: braSolutionValue,
       productValue: productBra,
@@ -2590,6 +2621,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = ecoScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.ecoMaterials = {
       queryValue: ecoMaterialsValues,
       productValue: productEco,
@@ -2611,6 +2643,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = certScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.certifications = {
       queryValue: certificationsValue,
       productValue: productCert,
@@ -2632,6 +2665,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = originScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.origin = {
       queryValue: originValue,
       productValue: productOrigin,
@@ -2653,6 +2687,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = adaptiveScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.adaptiveFeatures = {
       queryValue: adaptiveFeaturesValue,
       productValue: productAdaptive,
@@ -2674,6 +2709,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = sensoryScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.sensoryFriendly = {
       queryValue: sensoryFriendlyValue,
       productValue: productSensory,
@@ -2695,6 +2731,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = finishScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.finish = {
       queryValue: finishValue,
       productValue: productFinish,
@@ -2717,6 +2754,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = modestyScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.modestyCues = {
       queryValue: modestyCuesValues,
       productValue: productModesty,
@@ -2738,6 +2776,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = layeringScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.layeringIntent = {
       queryValue: layeringIntentValue,
       productValue: productLayering,
@@ -2759,6 +2798,7 @@ export function calculateConstraintMatchScore(
     const finalWeight = baseWeight * intentWeight;
     const weighted = pairingScore * finalWeight;
     scores.push(weighted);
+    weights.push(finalWeight);
     scoreDetails.pairingIntent = {
       queryValue: pairingIntentValue,
       productValue: productPairing,
@@ -2770,12 +2810,12 @@ export function calculateConstraintMatchScore(
   // If no constraints, return 0 (shouldn't happen but safety check)
   if (scores.length === 0) return 0;
   
-  // Calculate weighted average
-  const totalWeight = scores.reduce((sum, score) => sum + (score > 0 ? 1 : 0), 0);
-  if (totalWeight === 0) return 0;
-  
+  // Calculate weighted average using actual weights (not count of non-zero scores)
   const sumScores = scores.reduce((sum, score) => sum + score, 0);
-  const finalScore = sumScores / totalWeight;
+  const sumWeights = weights.reduce((sum, weight) => sum + weight, 0);
+  if (sumWeights === 0) return 0;
+  
+  const finalScore = sumScores / sumWeights;
   
   // Log detailed matching info for first few products (to avoid log spam)
   // Also log when constraint score is 0 but constraints are provided (to debug why matching fails)
@@ -2800,7 +2840,7 @@ export function calculateConstraintMatchScore(
       productId: 'id' in product ? product.id : 'unknown',
       productTitle: productTitle?.substring(0, 100),
       finalScore,
-      totalWeight,
+      sumWeights,
       sumScores,
       scoreDetails,
       constraintsProvided: Object.keys(constraints).filter(k => constraints[k as keyof FashionConstraints] !== undefined && constraints[k as keyof FashionConstraints] !== null),

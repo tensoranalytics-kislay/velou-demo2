@@ -346,12 +346,14 @@ STRUCTURE:
 {EXPLICIT_VS_INFERRED}
 
 CRITICAL: If PRODUCT_TYPE_MISMATCH is provided above, you MUST:
-- Acknowledge honestly that you couldn't find exact matches for what they asked for (e.g., "I couldn't find hoodies in black, but I found some similar pieces you might like")
-- Reference the specific product type they asked for (e.g., "hoodies") in your opening
-- Explain naturally why you're showing similar items instead
-- Be understanding and honest - don't pretend the products match exactly
+- **FIRST SENTENCE MUST ACKNOWLEDGE THE MISMATCH**: Start your reply by honestly saying you couldn't find what they asked for (e.g., "I couldn't find pink hoodies for curvy women" or "I don't have pink hoodies in the exact style you're looking for")
+- **THEN EXPLAIN WHAT YOU'RE SHOWING INSTEAD**: Clearly state what product types you're actually showing (e.g., "but I found some pullovers and tees that might work for you")
+- Reference the specific product type they asked for (e.g., "hoodies") prominently in your opening
+- Look at the PRODUCT_DETAILS below to see exactly what products are being shown - use those product titles/types to accurately describe what you're actually showing
+- Be understanding and honest - don't pretend the products match exactly what they asked for
 - Keep it concise and human - less flowery language, more direct honesty
 - Put MORE weight on what they just asked for (the latest update to the query) - acknowledge it first and prominently
+- **NEVER say "I found some [queryProductType]" or "Here are some [queryProductType]" if PRODUCT_TYPE_MISMATCH is detected - that's a lie!**
 - Paragraphs 3-{PRODUCT_COUNT_PLUS_2} (After products): Provide ONE separate paragraph for EACH of the {PRODUCT_COUNT} products. Focus on that specific product with natural, warm language. Highlight key features conversationally. Show how THIS product addresses their request—acknowledge which constraints it matches and why it works. Be honest about fit—if close but not perfect, acknowledge with restraint. If it's a great fit, express with warmth. Use ONE sentence per paragraph. Use shorter sentences (8-12 words). Keep it conversational and elegant.
 - Final paragraph (After products): Short closing line that's warm, inviting, and elegant (one sentence)
 
@@ -556,24 +558,92 @@ PRIORITY FOR NEW SEARCH WITH PREVIOUS CONTEXT:
       }
     }
 
+    // Extract actual product types from the products being shown
+    const extractProductTypeFromTitle = (title: string, category?: string): string | null => {
+      const titleLower = title.toLowerCase();
+      const categoryLower = (category || '').toLowerCase();
+      
+      // Product type keywords in order of specificity
+      const productTypeKeywords: Array<{ keywords: string[]; type: string }> = [
+        { keywords: ['hoodie', 'hoodies'], type: 'hoodies' },
+        { keywords: ['pullover', 'pullovers'], type: 'pullovers' },
+        { keywords: ['crew neck', 'crewneck'], type: 'crew necks' },
+        { keywords: ['tee', 'tees', 't-shirt', 't-shirts'], type: 'tees' },
+        { keywords: ['puffer', 'puffers'], type: 'puffers' },
+        { keywords: ['cardigan', 'cardigans'], type: 'cardigans' },
+        { keywords: ['jacket', 'jackets'], type: 'jackets' },
+        { keywords: ['sweater', 'sweaters'], type: 'sweaters' },
+        { keywords: ['dress', 'dresses'], type: 'dresses' },
+        { keywords: ['top', 'tops'], type: 'tops' },
+        { keywords: ['bottom', 'bottoms'], type: 'bottoms' },
+        { keywords: ['skirt', 'skirts'], type: 'skirts' },
+      ];
+      
+      // Check title first (more specific)
+      for (const { keywords, type } of productTypeKeywords) {
+        for (const keyword of keywords) {
+          if (titleLower.includes(keyword)) {
+            return type;
+          }
+        }
+      }
+      
+      // Fallback to category
+      if (categoryLower.includes('hoodie')) return 'hoodies';
+      if (categoryLower.includes('pullover')) return 'pullovers';
+      if (categoryLower.includes('tee') || categoryLower.includes('t-shirt')) return 'tees';
+      if (categoryLower.includes('puffer')) return 'puffers';
+      if (categoryLower.includes('cardigan')) return 'cardigans';
+      if (categoryLower.includes('jacket')) return 'jackets';
+      if (categoryLower.includes('dress')) return 'dresses';
+      if (categoryLower.includes('top')) return 'tops';
+      
+      return null;
+    };
+    
+    // Extract actual product types from products being shown
+    const actualProductTypes = new Set<string>();
+    products.forEach(product => {
+      const productType = extractProductTypeFromTitle(product.title || '', product.category || '');
+      if (productType) {
+        actualProductTypes.add(productType);
+      }
+    });
+    const actualProductTypesList = Array.from(actualProductTypes);
+    
     // Build product type mismatch handling section if mismatch detected
     let productTypeMismatchHandling = '';
     if (context?.productTypeMismatch) {
       const { queryProductType, returnedProductTypes } = context.productTypeMismatch;
+      // Use actual product types extracted from titles if available, otherwise use returnedProductTypes
+      const shownProductTypes = actualProductTypesList.length > 0 
+        ? actualProductTypesList 
+        : returnedProductTypes;
+      
       productTypeMismatchHandling = `
 PRODUCT_TYPE_MISMATCH DETECTED:
 - User asked for: "${queryProductType}"
-- Products returned are: ${returnedProductTypes.join(', ')}
+- Products actually being shown are: ${shownProductTypes.join(', ')} (extracted from product titles: ${products.slice(0, 3).map(p => `"${p.title}"`).join(', ')})
 - This means we couldn't find exact matches for what they asked for
 
-CRITICAL INSTRUCTIONS FOR PRODUCT_TYPE_MISMATCH:
-- In your opening paragraphs (before products), you MUST acknowledge honestly that you couldn't find exact matches
-- Reference the specific product type they asked for ("${queryProductType}") prominently in your opening
-- Explain naturally why you're showing similar items instead (e.g., "I couldn't find ${queryProductType} in black, but I found some similar pieces you might like")
+CRITICAL INSTRUCTIONS FOR PRODUCT_TYPE_MISMATCH - YOU MUST FOLLOW THESE EXACTLY:
+- In your FIRST opening paragraph (before products), you MUST acknowledge honestly that you couldn't find exact matches
+- Start your reply by acknowledging what they asked for: "I couldn't find ${queryProductType}..." or "I don't have ${queryProductType} in the exact style you're looking for..."
+- Then explain what you're showing instead: "but I found some ${shownProductTypes.join(' and ')} that might work for you" or "but I'm showing you some ${shownProductTypes.join(' and ')} that have a similar feel"
 - Be understanding and honest - don't pretend the products match exactly what they asked for
 - Keep it concise and human - use less flowery language, be more direct and honest
 - Put MORE weight on what they just asked for (the latest update to the query) - acknowledge "${queryProductType}" first and prominently
-- Example opening: "I couldn't find ${queryProductType} in black, but I found some similar pieces that might work for you. These ${returnedProductTypes.join(' and ')} have a similar feel and might be what you're looking for."
+- DO NOT say "I found some ${queryProductType}" or "Here are some ${queryProductType}" - that's a lie! You're showing ${shownProductTypes.join(' and ')}, not ${queryProductType}
+- Example opening: "I couldn't find ${queryProductType} in pink for curvy women, but I found some ${shownProductTypes.join(' and ')} that might work for you. These have a similar cozy feel and come in pink."
+- Look at the PRODUCT_DETAILS below to see exactly what products are being shown - use those product titles/types to describe what you're actually showing
+`;
+    } else if (actualProductTypesList.length > 0) {
+      // Even if no explicit mismatch was detected, if we can extract product types, include them for context
+      // This helps the LLM understand what's actually being shown
+      productTypeMismatchHandling = `
+ACTUAL PRODUCTS BEING SHOWN:
+- The products below are: ${actualProductTypesList.join(', ')} (extracted from product titles)
+- Use this information to accurately describe what you're showing in your reply
 `;
     }
 
