@@ -312,26 +312,37 @@ const REPLY_PROMPT = `Generate a reply in LoveShackFancy's brand voice: warm, el
 USER QUERY: "{QUERY}"
 {FOLLOW_UP_CONTEXT}
 
-CONSTRAINTS EXTRACTED:
-{CONSTRAINTS}
+[INTERNAL GUIDANCE - DO NOT EXPOSE TO USER:
+The system has interpreted the user's query and identified relevant product attributes for matching. Use this information to understand what the user is looking for, but DO NOT directly reference these constraints in your reply. Instead, interpret the user's query naturally and explain your interpretation in a logical, broad sense.
 
-CRITICAL: CONSTRAINT ACKNOWLEDGMENT REQUIREMENT
-You MUST acknowledge ALL constraints extracted from the user query, including:
-- Basic constraints: colors, sizes, ageGroups, price ranges
-- Category/Product type: categories, subcategories, product terms
-- Style attributes: styles, patterns, collections, embellishments
-- Occasion & context: occasions, occasionContext, formalityLevel
-- Seasonal: seasons, seasonalPalette
-- Material & fabric: materials, fabrics
-- Fit & sizing: fits, lengths
-- Design details: sleeves (Short, Long, Sleeveless, etc.), necklines (Round, V-Neck, Scoop, etc.), sleeveLengths
-- Color details: colorShade, colorUndertone, multicolor, enrichedColor
-- Functional: problemSolutions, functionFeatures, temperatureIntent, humidityFriendly
-- Other: careRequirements, travelFeatures, pockets, layeringIntent, pairingIntent
+INTERPRETED ATTRIBUTES: {CONSTRAINTS}
 
-For follow-up queries: Acknowledge BOTH what was mentioned in the previous query AND what they're adding/changing in the current query. Show you understand the full context of their search.
+ENHANCED QUERY: {ENHANCED_QUERY}
 
-For product-specific paragraphs: Reference actual product attributes from PRODUCT_DETAILS (which includes database column values like season, sleeve, neckline, occasion, color, material, fit, length, etc.) to explain why each product matches their request.
+PRODUCTS BEING RECOMMENDED:
+{PRODUCT_DETAILS}
+
+{PRODUCT_MISMATCH_GUIDANCE}
+]
+
+CRITICAL: QUERY INTERPRETATION REQUIREMENT
+You MUST understand the user's query and interpret what they're looking for naturally. The query is the ONLY direct input from the user—everything else (colors, styles, occasions, materials, etc.) is your interpretation of what they need.
+
+For the reply text BEFORE product cards:
+- Focus ONLY on understanding what the user said in their query
+- Interpret their query in a logical, broad sense (e.g., "looking for something elegant" not "formalityLevel: Formal")
+- Explain your interpretation naturally: "I understand you're looking for something elegant and sophisticated" NOT "You mentioned formal occasions"
+- Show you understand the meaning behind their query, not technical constraint names
+- For follow-up queries: Prioritize the RECENT CHANGE in the enhanced query - focus on what's NEW or DIFFERENT from what they said before
+- Reference what they said in previous queries naturally, not as extracted constraints
+- Keep it conversational—write as if you're understanding their request, not processing technical data
+- If the products don't match exactly what the enhanced query suggests, acknowledge this naturally in your opening (e.g., "I couldn't find exactly what you're looking for, but here are some options that might work")
+
+For product-specific paragraphs AFTER cards:
+- Reference actual product attributes from PRODUCT_DETAILS to explain why each product matches
+- Connect product features to what the user is looking for in natural language
+- Explain the connection conversationally (e.g., "This has the elegant style you're looking for" not "This matches formalityLevel: Formal")
+- Be honest about how well each product matches their request
 
 PRODUCTS TO SHOW (exactly {PRODUCT_COUNT}):
 {PRODUCT_DETAILS}
@@ -354,7 +365,7 @@ CRITICAL: If PRODUCT_TYPE_MISMATCH is provided above, you MUST:
 - Keep it concise and human - less flowery language, more direct honesty
 - Put MORE weight on what they just asked for (the latest update to the query) - acknowledge it first and prominently
 - **NEVER say "I found some [queryProductType]" or "Here are some [queryProductType]" if PRODUCT_TYPE_MISMATCH is detected - that's a lie!**
-- Paragraphs 3-{PRODUCT_COUNT_PLUS_2} (After products): Provide ONE separate paragraph for EACH of the {PRODUCT_COUNT} products. Focus on that specific product with natural, warm language. Highlight key features conversationally. Show how THIS product addresses their request—acknowledge which constraints it matches and why it works. Be honest about fit—if close but not perfect, acknowledge with restraint. If it's a great fit, express with warmth. Use ONE sentence per paragraph. Use shorter sentences (8-12 words). Keep it conversational and elegant.
+- Paragraphs 3-{PRODUCT_COUNT_PLUS_2} (After products): Provide ONE separate paragraph for EACH of the {PRODUCT_COUNT} products. Focus on that specific product with natural, warm language. Highlight key features conversationally. Show how THIS product addresses their request by connecting product attributes to what they're looking for in natural language. Be honest about fit—if close but not perfect, acknowledge with restraint. If it's a great fit, express with warmth. Use ONE sentence per paragraph. Use shorter sentences (8-12 words). Keep it conversational and elegant.
 - Final paragraph (After products): Short closing line that's warm, inviting, and elegant (one sentence)
 
 CRITICAL FORMATTING:
@@ -389,12 +400,8 @@ CRITICAL: CONCISE AND HUMAN LANGUAGE:
 - Put MORE weight on the latest update to the query - acknowledge what they just asked for prominently
 - If there's a product type mismatch, be honest and understanding - don't pretend everything matches perfectly
 - Reference specific details (colors, sizes, occasions, etc.) naturally - provide context conversationally
-- ACKNOWLEDGMENT REQUIREMENT: In your before-products paragraphs, acknowledge constraints naturally, but CRITICALLY distinguish between:
-  * EXPLICITLY MENTIONED constraints: Credit the user (e.g., "You mentioned [constraint]" or "You're looking for [constraint]")
-  * INFERRED constraints: Frame as your interpretation (e.g., "For [occasion], I'm thinking [constraint] would work well" or "I thought [constraint] might be perfect")
-  * NEVER credit the user for inferred constraints - don't say "you mentioned" or "you love" for things they didn't explicitly say
-  * Show understanding naturally, don't just list. Make them feel understood. For follow-up queries, acknowledge both what was mentioned before AND what they're adding/changing now.
-- For each product paragraph after cards: Explain why that product matches, highlight key features naturally, acknowledge which parts of their request it addresses, and be honest about match quality with restraint. Use ONE sentence with shorter sentences (8-12 words) - warm, conversational, elegant.
+- ACKNOWLEDGMENT REQUIREMENT: In your before-products paragraphs, interpret the user's query naturally and explain your interpretation in a logical, broad sense. Show you understand the meaning behind their query, not technical constraint names. For follow-up queries, prioritize the RECENT CHANGE in the enhanced query - focus on what's NEW or DIFFERENT from what they said before. Show understanding naturally, don't just list. Make them feel understood.
+- For each product paragraph after cards: Explain why that product matches, highlight key features naturally, connect product attributes to what they're looking for in natural language, and be honest about match quality with restraint. Use ONE sentence with shorter sentences (8-12 words) - warm, conversational, elegant.
 - Reference actual product facts (materials, styles, occasions, colors, scents, room types, etc.) naturally - provide thoughtful context in both before-products (ONE sentence per paragraph) and after-products (ONE sentence per product)
 - When mentioning product names, use the product name directly (e.g., "Mystara Satin Maxi Dress") - do NOT prefix with "The" (e.g., avoid "The Mystara Satin Maxi Dress")
 - Be honest about matches with restraint - acknowledge if something is close but not perfect, or if it's a great match, say so with warmth. Be authentic and conversational.
@@ -406,9 +413,9 @@ CRITICAL: CONCISE AND HUMAN LANGUAGE:
 {FOLLOW_UP_PRIORITY}
 
 Example structure (in LoveShackFancy brand voice):
-"I found some beautiful [occasion/style/color/etc.] pieces that are perfect for what you're looking for. They have [key detail 1] and [key detail 2] that will work wonderfully. [Acknowledge the constraints they mentioned naturally—show you understand what they need.]
+"I understand you're looking for [interpretation of their query in a logical, broad sense]. I found some beautiful pieces that capture what you need. They have [key detail 1] and [key detail 2] that will work wonderfully.
 
-These are ideal for [occasion/style/color/etc.] and will complement [previous context/current needs] beautifully. [Continue acknowledging each aspect of their request conversationally.]
+These are ideal for [interpretation of occasion/style/context] and will complement [previous context/current needs] beautifully.
 
 [After products - Paragraph 3: Product 1 - Conversational, warm voice. Example: "Mystara Satin Maxi Dress has that elegant [occasion] feel you're looking for, with beautiful [color/material] that brings [desired quality] perfectly." - ONE sentence, shorter sentences (8-12 words), natural and warm, acknowledging which parts of their request it addresses]
 
@@ -426,15 +433,16 @@ const FOLLOW_UP_CONTEXT_TEMPLATE = `
 FOLLOW-UP CONTEXT:
 This is a follow-up to what they said before. They just said: "{CURRENT_QUERY}"
 What they mentioned earlier: "{PREVIOUS_QUERY}"
-Overall context: "{ENHANCED_QUERY}"
+Enhanced query (your interpretation of what they need): "{ENHANCED_QUERY}"
 
 IMPORTANT: In your reply:
-- Prioritize addressing what they just said ("{CURRENT_QUERY}") FIRST - give it more weight and direct response
+- The user's input is ONLY what they said: "{CURRENT_QUERY}" and "{PREVIOUS_QUERY}"
+- The enhanced query ("{ENHANCED_QUERY}") is YOUR interpretation of what they need based on what they said
+- CRITICAL: Prioritize the RECENT CHANGE in the enhanced query - focus on what's NEW or DIFFERENT from the previous query
+- Give MORE weight and direct response to what they just said ("{CURRENT_QUERY}") FIRST
 - Acknowledge the overall context, but lead with what they just said
-- Show you understand the meaning behind each part of what they just said—acknowledge every aspect of their recent request naturally. Demonstrate comprehension of what they really need from their most recent message.
-- Show you understand both what they just said and the overall conversation
-- What they just said should be addressed more prominently in your opening paragraphs
-- Still reference the overall context, but make what they just said the primary focus
+- Reference what they said in previous queries naturally, not as extracted constraints
+- Show you understand the meaning behind what they said—interpret their query in a logical, broad sense
 - Write naturally like a human would respond, NOT like a system processing queries`;
 
 const NEW_SEARCH_WITH_PREVIOUS_CONTEXT_TEMPLATE = `
@@ -443,16 +451,28 @@ They were looking at: "{PREVIOUS_QUERY}"
 What they're asking about now: "{CURRENT_QUERY}"
 
 IMPORTANT: In your reply:
-- This is a NEW topic (not a follow-up), but acknowledge what they were looking at before naturally
-- Show you understand they were previously interested in "{PREVIOUS_QUERY}"
-- Show you understand the meaning behind each part of what they're asking about now—acknowledge every aspect of their current request naturally. Demonstrate comprehension of what they really need.
+- The user's input is ONLY what they said: "{PREVIOUS_QUERY}" and "{CURRENT_QUERY}"
+- Everything else (colors, styles, occasions, etc.) is YOUR interpretation of what they need
+- This is a NEW topic (not a follow-up), but acknowledge what they said before naturally
+- Show you understand they mentioned "{PREVIOUS_QUERY}" before
+- Show you understand what they're asking about now—interpret their query in a logical, broad sense
+- Reference what they said before naturally, not as extracted constraints
 - Rationalize and justify the current recommendations in relation to what they were looking at before when relevant
-- For example, if they were looking at dresses and now want tote bags, acknowledge that these tote bags would complement the dresses they were considering
 - Keep the acknowledgment brief and natural - don't over-explain, just show awareness of the conversation flow
 - What they're asking about now should be the primary focus, with what they were looking at before as supporting context
-- Only acknowledge what they were looking at before if it's relevant to the current recommendations (e.g., complementary items, styling together)
+- Only acknowledge what they were looking at before if it's relevant to the current recommendations
 - If what they were looking at before is completely unrelated, you can skip the acknowledgment
 - Write naturally like a human would respond, NOT like a system processing searches`;
+
+const ENHANCED_QUERY_PRIORITY_TEMPLATE = `
+CRITICAL: ENHANCED QUERY PRIORITY FOR FOLLOW-UPS:
+- The enhanced query ("{ENHANCED_QUERY}") represents your interpretation of what the user needs based on their most recent input
+- Prioritize the RECENT CHANGE in the enhanced query - focus on what's NEW or DIFFERENT from the previous query ("{PREVIOUS_QUERY}")
+- If this is a follow-up, the enhanced query includes the cumulative context from previous queries PLUS the new change
+- In your reply, prioritize addressing the NEW change from the most recent follow-up
+- Show you understand how the enhanced query builds on previous context, but focus on the recent addition
+- Reference the enhanced query changes naturally: "I understand you're looking for {interpretation}" NOT "The enhanced query is..."
+`;
 
 export async function generateReply(
   query: string,
@@ -521,23 +541,33 @@ export async function generateReply(
     // Build follow-up context if this is a follow-up OR if we have previous query context (for new searches)
     let followUpContext = '';
     let followUpPriority = '';
+    let enhancedQueryPriority = '';
+    const enhancedQueryText = context?.enhancedQuery || query;
     
     if (context?.previousQuery) {
       if (context.isFollowUp) {
         // This is a follow-up - use the existing follow-up template
-        const enhancedQueryText = context.enhancedQuery || query;
         followUpContext = FOLLOW_UP_CONTEXT_TEMPLATE
           .replace('{CURRENT_QUERY}', context.currentQuery || query)
           .replace('{PREVIOUS_QUERY}', context.previousQuery)
           .replace('{ENHANCED_QUERY}', enhancedQueryText);
         
+        // Add enhanced query priority if enhanced query differs from current query
+        if (enhancedQueryText !== (context.currentQuery || query)) {
+          enhancedQueryPriority = ENHANCED_QUERY_PRIORITY_TEMPLATE
+            .replace('{ENHANCED_QUERY}', enhancedQueryText)
+            .replace('{PREVIOUS_QUERY}', context.previousQuery || '');
+        }
+        
         followUpPriority = `
 PRIORITY FOR FOLLOW-UP REPLIES:
+- The user's input is ONLY what they said: "${context.currentQuery || query}" and "${context.previousQuery}"
+- Everything else is YOUR interpretation of what they need
+- Prioritize the RECENT CHANGE in the enhanced query - focus on what's NEW or DIFFERENT from the previous query
 - Give MORE weight and direct response to what they just said: "${context.currentQuery || query}"
 - Address what they just said FIRST in your opening paragraphs
-- Acknowledge and show understanding of EACH part of what they just said—every color, style, occasion, size, material, and constraint they mentioned in their most recent message. Demonstrate comprehension of the meaning behind each aspect—show you understand what they really need.
-- Acknowledge the overall context, but lead with their most recent request
-- Show you understand both what they just said and the overall conversation
+- Interpret what they just said in a logical, broad sense—show you understand the meaning behind their query, not technical attributes
+- Reference what they said in previous queries naturally, not as extracted constraints
 - What they just said should be the primary focus, with the overall context as supporting information
 - Write naturally like a human would respond, NOT like a system processing queries`;
       } else {
@@ -548,9 +578,12 @@ PRIORITY FOR FOLLOW-UP REPLIES:
         
         followUpPriority = `
 PRIORITY FOR NEW SEARCH WITH PREVIOUS CONTEXT:
+- The user's input is ONLY what they said: "${context.currentQuery || query}" and "${context.previousQuery}"
+- Everything else is YOUR interpretation of what they need
 - What they're asking about now ("${context.currentQuery || query}") is the PRIMARY focus
-- Acknowledge and show understanding of EACH part of what they're asking about now—every color, style, occasion, size, material, and constraint they mentioned. Demonstrate comprehension of the meaning behind each aspect—show you understand what they really need.
-- Acknowledge what they were looking at before ("${context.previousQuery}") briefly and naturally
+- Interpret what they're asking about now in a logical, broad sense—show you understand the meaning behind their query
+- Acknowledge what they mentioned before ("${context.previousQuery}") briefly and naturally
+- Reference what they said before naturally, not as extracted constraints
 - Rationalize how the current recommendations relate to or complement what they were looking at before when relevant
 - Keep the acknowledgment concise - one brief mention is enough
 - Focus on why these products work well for what they need now
@@ -647,6 +680,16 @@ ACTUAL PRODUCTS BEING SHOWN:
 `;
     }
 
+    // Build product mismatch guidance for internal section
+    let productMismatchGuidance = '';
+    if (context?.productTypeMismatch || actualProductTypesList.length > 0) {
+      if (context?.productTypeMismatch) {
+        productMismatchGuidance = `\n\nProduct mismatch detected: The products shown may not exactly match the enhanced query. Use this information when generating the reply to acknowledge any mismatches naturally.`;
+      } else {
+        productMismatchGuidance = `\n\nProducts being shown: ${actualProductTypesList.join(', ')} (extracted from product titles). Use this information to accurately describe what you're showing.`;
+      }
+    }
+
     // Build explicit vs inferred constraints section
     const explicitMentions = context?.explicitMentions || [];
     let explicitVsInferredSection = '';
@@ -693,6 +736,9 @@ CRITICAL RULES FOR ACKNOWLEDGING CONSTRAINTS:
     const prompt = REPLY_PROMPT
       .replace('{QUERY}', query)
       .replace('{FOLLOW_UP_CONTEXT}', followUpContext)
+      .replace('{ENHANCED_QUERY}', enhancedQueryText)
+      .replace('{ENHANCED_QUERY_PRIORITY}', enhancedQueryPriority)
+      .replace('{PRODUCT_MISMATCH_GUIDANCE}', productMismatchGuidance)
       .replace('{FOLLOW_UP_PRIORITY}', followUpPriority)
       .replace('{PRODUCT_TYPE_MISMATCH_HANDLING}', productTypeMismatchHandling)
       .replace('{EXPLICIT_VS_INFERRED}', explicitVsInferredSection)
@@ -704,7 +750,16 @@ CRITICAL RULES FOR ACKNOWLEDGING CONSTRAINTS:
 
     const systemPrompt = `You are a shopping assistant and style expert for ${brandName}, embodying the brand's warm, elegant voice. You're an expert across all categories - fashion, home decor, beauty, accessories, and more. You understand what users are looking for and can correlate their queries to specific products. You back up your recommendations with actual product facts (materials, styles, occasions, colors, scents, room types, use cases, etc.), communicated naturally and conversationally.
 
-ACKNOWLEDGMENT REQUIREMENT: You must acknowledge and show understanding of EACH part of the user's request. Demonstrate that you understand the MEANING behind every aspect—every color mentioned (and what it means for them), every style detail (and why it matters), every occasion (and what it requires), every constraint (and what it implies). Show comprehension naturally—don't just list constraints, but acknowledge them conversationally. Make them feel understood.
+CRITICAL: QUERY INTERPRETATION
+- The user's input is ONLY what they say in their query/enhanced query
+- Everything else (colors, styles, occasions, materials, etc.) is YOUR interpretation of what they need
+- Focus on understanding their query and interpreting what they're looking for in a logical, broad sense
+- DO NOT expose technical constraint names or attribute names in your reply
+- Show you understand the meaning behind their query conversationally, not as technical data
+- For follow-up queries: Prioritize the RECENT CHANGE in the enhanced query - focus on what's NEW or DIFFERENT from previous queries
+- For the reply text BEFORE product cards: Interpret their query naturally and explain your interpretation in a logical, broad sense
+- For product paragraphs AFTER cards: Connect product attributes to what they're looking for using natural language
+- If products don't match exactly what the enhanced query suggests, acknowledge this naturally and honestly
 
 BRAND VOICE - LOVE SHACK FANCY:
 - Warm, elegant confidence: Conversational and polished, with subtle romantic touches
