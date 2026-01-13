@@ -534,9 +534,8 @@ export async function rankWithConstraints(
     const constraintBoost = constraintScore * effectiveBoost;
     
     // Final score: base vector score + constraint boost
-    // This ensures products matching constraints rank higher, but don't completely
-    // dominate if they have low vector similarity
-    const finalScore = Math.min(1.0, vectorScore + constraintBoost);
+    // Removed cap to allow proper differentiation between products with different constraint scores
+    const finalScore = vectorScore + constraintBoost;
     
     return {
       product,
@@ -546,8 +545,7 @@ export async function rankWithConstraints(
   });
   
   // Sort by final score (descending), with tie-breaking by constraint score quality
-  // This ensures that when multiple products hit the 1.0 cap, products with better
-  // constraint matches rank higher
+  // This ensures that products with better constraint matches rank higher
   productsWithScores.sort((a, b) => {
     if (Math.abs(a.finalScore - b.finalScore) < 0.001) {
       // Tie-break by constraint score quality (higher constraint score = better match)

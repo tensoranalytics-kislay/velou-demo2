@@ -96,6 +96,13 @@ COMMON EXTRACTION PATTERNS:
 - Color words: "blue", "red", "white", "black", "pink", "yellow", "green", "navy", "gray", "beige", etc. → colors: [ColorName]
 - Length words in product context: "maxi", "mini", "midi", "long dress", "short dress", "knee-length" → lengths: [LengthName]
 - Sleeve words: "long sleeves", "short sleeves", "sleeveless", "cap sleeves" → sleeveLengths: [SleeveType]
+  **CRITICAL: Normalize sleeve synonyms to standard ontology terms:**
+  * "full sleeves", "full sleeve", "full" → normalize to "Long Sleeve" (full sleeves = long sleeves in fashion)
+  * "long sleeves", "long sleeve", "long" → "Long Sleeve"
+  * "short sleeves", "short sleeve", "short" → "Short Sleeve"
+  * "three-quarter sleeves", "3/4 sleeves", "three quarter sleeves" → "Three-Quarter Sleeve"
+  * "cap sleeves", "cap sleeve" → "Cap Sleeve"
+  * "sleeveless", "no sleeves", "no sleeve" → "Sleeveless"
 - Age words: "kids", "children", "toddler", "baby", "adult", "teen", "12 year old" → ageGroups: [AgeGroup]
 
 **CRITICAL RULE**: If a constraint is explicitly mentioned in the query, you MUST extract it. Do NOT skip any explicitly mentioned constraints. When the user says "blue", extract it as a color. When they say "maxi", extract it as a length. When they say "long sleeves", extract it as sleeveLengths.
@@ -273,6 +280,14 @@ Sleeve Lengths: ${LOVESHACKFANCY_ONTOLOGY.sleeveLengths.join(', ')}
 Seasons: ${LOVESHACKFANCY_ONTOLOGY.seasons.join(', ')}
 Fits: ${LOVESHACKFANCY_ONTOLOGY.fits.join(', ')}
 Embellishments: ${LOVESHACKFANCY_ONTOLOGY.embellishments.join(', ')}
+
+**CRITICAL: SYNONYM NORMALIZATION**
+You MUST normalize user queries to standard ontology terms. Common synonyms:
+- **Sleeve synonyms**: "full sleeves" / "full sleeve" / "full" → "Long Sleeve" (full = long in fashion terminology)
+- **Length synonyms**: "knee-length" → "Midi", "ankle-length" → "Maxi", "above knee" → "Mini"
+- **Color synonyms**: Use dictionary matching (e.g., "navy" → "Navy Blue" if in dictionary)
+- **Material synonyms**: "cotton blend" → "Cotton" if "Cotton" is in dictionary, "silk blend" → "Silk" if "Silk" is in dictionary
+Always map user terms to the closest matching ontology value. If multiple synonyms exist, prefer the most common/standard term.
 
 QUERY TYPES:
 1. direct_product_search: User mentions specific product types WITHOUT occasion context (e.g., "mini dress", "maxi dress", "blouse", "top", "bedding", "decor items", "tabletop", "towels")

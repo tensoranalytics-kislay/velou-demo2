@@ -18,6 +18,30 @@ function normalizeValue(value: string | null | undefined): string | null {
   return value.toLowerCase().trim();
 }
 
+/**
+ * Fashion synonym mappings for attribute matching
+ * Maps query terms to their equivalent product attribute values
+ */
+const FASHION_SYNONYMS: Record<string, string[]> = {
+  // Sleeve synonyms
+  'full': ['long'],
+  'full sleeve': ['long'],
+  'full sleeves': ['long'],
+  'long': ['full'], // Bidirectional
+  'long sleeve': ['full'],
+  'long sleeves': ['full'],
+};
+
+/**
+ * Get synonyms for a given value
+ */
+function getSynonyms(value: string): string[] {
+  const normalized = normalizeValue(value);
+  if (!normalized) return [];
+  
+  const synonyms = FASHION_SYNONYMS[normalized] || [];
+  return synonyms;
+}
 
 /**
  * Match a single attribute value against query values using dictionary
@@ -39,6 +63,24 @@ function matchAttributeValue(
   for (const queryValue of normalizedQueryValues) {
     // Exact match
     if (normalizedProductValue === queryValue) return true;
+    
+    // Check synonyms - if query value has synonyms, check if product value matches any synonym
+    const querySynonyms = getSynonyms(queryValue);
+    for (const synonym of querySynonyms) {
+      if (normalizedProductValue === synonym) {
+        // Validate that the synonym exists in dictionary
+        if (dictionary.has(synonym)) return true;
+      }
+    }
+    
+    // Check if product value has synonyms that match query value
+    const productSynonyms = getSynonyms(normalizedProductValue);
+    for (const synonym of productSynonyms) {
+      if (queryValue === synonym) {
+        // Validate that the synonym exists in dictionary
+        if (dictionary.has(synonym)) return true;
+      }
+    }
     
     // Partial match (contains)
     if (normalizedProductValue.includes(queryValue) || queryValue.includes(normalizedProductValue)) {
@@ -110,6 +152,9 @@ function mapSleeveLengthsToSleeves(sleeveLengths: string[]): string[] {
   const sleeveMapping: Record<string, string> = {
     'short sleeve': 'short',
     'long sleeve': 'long',
+    'full sleeve': 'long',
+    'full sleeves': 'long',
+    'full': 'long',
     'three-quarter sleeve': 'three-quarter',
     'three quarter sleeve': 'three-quarter',
     'cap sleeve': 'short',

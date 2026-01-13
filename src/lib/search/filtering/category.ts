@@ -154,9 +154,7 @@ export function expandCategoriesForOptimalCoverage(
       });
       // Still check for plural variations in subcategories (handled in Case 4 below)
       // Don't continue here - let it fall through to Case 4 to handle plural variations
-    }
-
-    // Case 2: Check if this category is a subcategory name
+    }    // Case 2: Check if this category is a subcategory name
     // CRITICAL: For specific dress subcategories (Maxi Dresses, Mini Dresses, Midi Dresses),
     // DO NOT expand to parent "Women's Dresses" because that would be too broad and match other subcategories
     // The SQL filter already checks subcategory field, so products with category="Women's Dresses" AND subcategory="Maxi Dresses"

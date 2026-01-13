@@ -1775,7 +1775,19 @@ Answer the user's question about this product:`;
   // Classification constraints are used as fallback for fields not in merged constraints (styles, materials, seasons)
   // SPECIAL CASE: When mergedConstraints exists but ageGroups is null (new_search due to age group switch),
   // use classifier's age groups (it already has the correct new age group)
-  const finalConstraintsForRanking = (isFollowUp && mergedConstraints) || (!isFollowUp && mergedConstraints && mergedConstraints.ageGroups === null)
+  // CRITICAL FIX: For new searches, check if mergedConstraints is a complete reset (all fields null)
+  // vs an age group switch (only ageGroups null, but portable constraints exist)
+  // If it's a complete reset, use classification.constraints directly to preserve inferred constraints
+  const isCompleteReset = mergedConstraints && !isFollowUp && (
+    (mergedConstraints.colors === null || mergedConstraints.colors === undefined) &&
+    (mergedConstraints.occasions === null || mergedConstraints.occasions === undefined) &&
+    (mergedConstraints.seasons === null || mergedConstraints.seasons === undefined) &&
+    (mergedConstraints.formalityLevel === null || mergedConstraints.formalityLevel === undefined) &&
+    (mergedConstraints.priceMinCents === null || mergedConstraints.priceMinCents === undefined) &&
+    (mergedConstraints.priceMaxCents === null || mergedConstraints.priceMaxCents === undefined) &&
+    mergedConstraints.ageGroups === null
+  );
+  const finalConstraintsForRanking = (isFollowUp && mergedConstraints) || (!isFollowUp && mergedConstraints && mergedConstraints.ageGroups === null && !isCompleteReset)
     ? {
         // Merged constraints take priority for explicitly merged fields
         // CRITICAL: Use getMergedConstraint to respect null (explicitly removed) vs undefined (not set)

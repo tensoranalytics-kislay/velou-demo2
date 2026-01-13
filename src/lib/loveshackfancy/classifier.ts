@@ -175,6 +175,60 @@ export async function classifyQuery(
       return null;
     };
 
+    // Helper to detect if constraints are inferred from modesty/cultural context
+    // Returns true if constraint should be wrapped in ConstraintWithIntent format with intent: 'strong'
+    const shouldWrapInferredConstraintAsStrong = (
+      constraint: string[] | ConstraintWithIntent | null | undefined,
+      query: string,
+      constraintType: 'necklines' | 'sleeveLengths' | 'lengths'
+    ): boolean => {
+      if (!constraint) return false;
+      
+      // Check if already in intent format
+      if (typeof constraint === 'object' && constraint !== null && 'values' in constraint) return false;
+      
+      // Must be an array (not ConstraintWithIntent)
+      if (!Array.isArray(constraint)) return false;
+      
+      const constraintArray: string[] = constraint;
+      if (constraintArray.length === 0) return false;
+      
+      const queryLower = query.toLowerCase();
+      const modestyKeywords = ['modest', 'muslim', 'islamic', 'conservative', 'traditional wedding', 'religious'];
+      const isModestyContext = modestyKeywords.some(kw => queryLower.includes(kw));
+      
+      if (!isModestyContext) return false;
+      
+      // For lengths: check if values match inferred modesty lengths
+      if (constraintType === 'lengths') {
+        const modestyLengths = ['maxi', 'midi'];
+        const hasModestyLength = constraintArray.some(v => 
+          modestyLengths.some(ml => v.toLowerCase().includes(ml.toLowerCase()))
+        );
+        return hasModestyLength;
+      }
+      
+      // For necklines: check if values match inferred modesty necklines
+      if (constraintType === 'necklines') {
+        const modestyNecklines = ['high neck', 'round neck', 'mock neck', 'turtleneck', 'boat neck'];
+        const hasModestyNeckline = constraintArray.some(v => 
+          modestyNecklines.some(mn => v.toLowerCase().includes(mn.toLowerCase()))
+        );
+        return hasModestyNeckline;
+      }
+      
+      // For sleeveLengths: check if values match inferred modesty sleeves
+      if (constraintType === 'sleeveLengths') {
+        const modestySleeves = ['long sleeve', 'three-quarter sleeve'];
+        const hasModestySleeve = constraintArray.some(v => 
+          modestySleeves.some(ms => v.toLowerCase().includes(ms.toLowerCase()))
+        );
+        return hasModestySleeve;
+      }
+      
+      return false;
+    };
+
     // Normalize product terms
     const productTerms = parsed.productTerms 
       ? normalizeQueryForSearch(parsed.productTerms)
@@ -366,8 +420,36 @@ export async function classifyQuery(
     if (normalizedConstraints.fits) constraintsSummary.fits = normalizedConstraints.fits;
     if (normalizedConstraints.collections) constraintsSummary.collections = normalizedConstraints.collections;
     if (normalizedConstraints.embellishments) constraintsSummary.embellishments = normalizedConstraints.embellishments;
-    if (normalizedConstraints.necklines) constraintsSummary.necklines = normalizedConstraints.necklines;
-    if (normalizedConstraints.sleeveLengths) constraintsSummary.sleeveLengths = normalizedConstraints.sleeveLengths;
+    
+    // Wrap inferred constraints in ConstraintWithIntent format with 'strong' intent
+    if (normalizedConstraints.necklines && Array.isArray(normalizedConstraints.necklines)) {
+      if (shouldWrapInferredConstraintAsStrong(normalizedConstraints.necklines, queryForClassification, 'necklines')) {
+        constraintsSummary.necklines = {
+          values: normalizedConstraints.necklines,
+          intent: 'strong'
+        };
+        normalizedConstraints.necklines = constraintsSummary.necklines;
+      } else {
+        constraintsSummary.necklines = normalizedConstraints.necklines;
+      }
+    } else if (normalizedConstraints.necklines) {
+      constraintsSummary.necklines = normalizedConstraints.necklines;
+    }
+    
+    if (normalizedConstraints.sleeveLengths && Array.isArray(normalizedConstraints.sleeveLengths)) {
+      if (shouldWrapInferredConstraintAsStrong(normalizedConstraints.sleeveLengths, queryForClassification, 'sleeveLengths')) {
+        constraintsSummary.sleeveLengths = {
+          values: normalizedConstraints.sleeveLengths,
+          intent: 'strong'
+        };
+        normalizedConstraints.sleeveLengths = constraintsSummary.sleeveLengths;
+      } else {
+        constraintsSummary.sleeveLengths = normalizedConstraints.sleeveLengths;
+      }
+    } else if (normalizedConstraints.sleeveLengths) {
+      constraintsSummary.sleeveLengths = normalizedConstraints.sleeveLengths;
+    }
+    
     if (normalizedConstraints.ageGroups) {
       // CRITICAL: First normalize, then validate against dictionary
       // This ensures only exact dataset values are used
@@ -667,7 +749,15 @@ export async function classifyQuery(
       const lengthIntent = extractConstraintIntent(normalizedConstraints.lengths);
       const validated = validateConstraintValues('lengths', lengthValues);
       if (validated && validated.length > 0) {
-        const finalLengths = lengthIntent ? { values: validated, intent: lengthIntent } : validated;
+        // Wrap in ConstraintWithIntent format with 'strong' intent if inferred and not already wrapped
+        let finalLengths: string[] | ConstraintWithIntent;
+        if (lengthIntent) {
+          finalLengths = { values: validated, intent: lengthIntent };
+        } else if (shouldWrapInferredConstraintAsStrong(validated, queryForClassification, 'lengths')) {
+          finalLengths = { values: validated, intent: 'strong' };
+        } else {
+          finalLengths = validated;
+        }
         constraintsSummary.lengths = finalLengths;
         normalizedConstraints.lengths = finalLengths;
       } else {
