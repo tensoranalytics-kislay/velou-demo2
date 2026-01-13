@@ -21,6 +21,11 @@ export type ReplyContext = {
   previousQuery?: string; // Previous query in the conversation
   enhancedQuery?: string; // Enhanced/merged query used for search
   classificationConstraints?: FashionConstraints; // Classification constraints for reference/fallback
+  productTypeMismatch?: {
+    queryProductType: string; // Product type mentioned in query (e.g., "hoodies")
+    returnedProductTypes: string[]; // Product types actually returned (e.g., ["jackets", "cardigans"])
+  };
+  explicitMentions?: string[]; // Constraints explicitly mentioned by the user (e.g., ["colors", "occasions"])
 };
 
 function extractAttr(attrs: Record<string, unknown>, key: string): string | null {
@@ -335,6 +340,18 @@ Generate a well-organized reply with multiple short paragraphs, separated by EXA
 
 STRUCTURE:
 - Paragraphs 1-2 (Before products): Write with warm, elegant confidence. Use natural, conversational language with subtle poetic touches. Acknowledge each constraint mentioned (colors, styles, occasions, sizes, materials, etc.) naturally. Show understanding of what each constraint means—for example, if they mentioned "lavender scents," show you understand they want fragrance. If there's previous context, weave it in naturally. Use ONE sentence per paragraph - warm and polished. Use shorter sentences (8-12 words). Be conversational and helpful. Avoid meta-references to "search", "query", etc.
+
+{PRODUCT_TYPE_MISMATCH_HANDLING}
+
+{EXPLICIT_VS_INFERRED}
+
+CRITICAL: If PRODUCT_TYPE_MISMATCH is provided above, you MUST:
+- Acknowledge honestly that you couldn't find exact matches for what they asked for (e.g., "I couldn't find hoodies in black, but I found some similar pieces you might like")
+- Reference the specific product type they asked for (e.g., "hoodies") in your opening
+- Explain naturally why you're showing similar items instead
+- Be understanding and honest - don't pretend the products match exactly
+- Keep it concise and human - less flowery language, more direct honesty
+- Put MORE weight on what they just asked for (the latest update to the query) - acknowledge it first and prominently
 - Paragraphs 3-{PRODUCT_COUNT_PLUS_2} (After products): Provide ONE separate paragraph for EACH of the {PRODUCT_COUNT} products. Focus on that specific product with natural, warm language. Highlight key features conversationally. Show how THIS product addresses their request—acknowledge which constraints it matches and why it works. Be honest about fit—if close but not perfect, acknowledge with restraint. If it's a great fit, express with warmth. Use ONE sentence per paragraph. Use shorter sentences (8-12 words). Keep it conversational and elegant.
 - Final paragraph (After products): Short closing line that's warm, inviting, and elegant (one sentence)
 
@@ -362,8 +379,19 @@ STYLE GUIDELINES - LOVE SHACK FANCY BRAND VOICE:
 - Avoid language that makes it feel like a system - no references to "search", "query", "results", "matching", etc.
 - BEFORE PRODUCTS: Write with warm, elegant confidence - ONE sentence per paragraph. Use natural, conversational language with subtle poetic touches. Mention key details naturally. Use shorter sentences (8-12 words). Be warm, helpful, and polished. Keep it conversational.
 - AFTER PRODUCTS: Warm, conversational voice - one paragraph per product with ONE sentence. Highlight how each product works with natural language. Be honest about fit with restraint. Use shorter sentences (8-12 words). Keep it elegant and helpful.
+
+CRITICAL: CONCISE AND HUMAN LANGUAGE:
+- Use FEWER adjectives - be more direct and honest
+- Be more human and less flowery - sound like you're actually talking to someone
+- Keep it concise - don't over-describe
+- Put MORE weight on the latest update to the query - acknowledge what they just asked for prominently
+- If there's a product type mismatch, be honest and understanding - don't pretend everything matches perfectly
 - Reference specific details (colors, sizes, occasions, etc.) naturally - provide context conversationally
-- ACKNOWLEDGMENT REQUIREMENT: In your before-products paragraphs, acknowledge EVERY constraint extracted from the user query—including colors, sizes, ageGroups, seasons, occasions, materials, lengths, sleeves, necklines, formalityLevel, colorShade, and all other constraints listed above. Show understanding naturally, don't just list. Make them feel understood. For follow-up queries, acknowledge both what was mentioned before AND what they're adding/changing now.
+- ACKNOWLEDGMENT REQUIREMENT: In your before-products paragraphs, acknowledge constraints naturally, but CRITICALLY distinguish between:
+  * EXPLICITLY MENTIONED constraints: Credit the user (e.g., "You mentioned [constraint]" or "You're looking for [constraint]")
+  * INFERRED constraints: Frame as your interpretation (e.g., "For [occasion], I'm thinking [constraint] would work well" or "I thought [constraint] might be perfect")
+  * NEVER credit the user for inferred constraints - don't say "you mentioned" or "you love" for things they didn't explicitly say
+  * Show understanding naturally, don't just list. Make them feel understood. For follow-up queries, acknowledge both what was mentioned before AND what they're adding/changing now.
 - For each product paragraph after cards: Explain why that product matches, highlight key features naturally, acknowledge which parts of their request it addresses, and be honest about match quality with restraint. Use ONE sentence with shorter sentences (8-12 words) - warm, conversational, elegant.
 - Reference actual product facts (materials, styles, occasions, colors, scents, room types, etc.) naturally - provide thoughtful context in both before-products (ONE sentence per paragraph) and after-products (ONE sentence per product)
 - When mentioning product names, use the product name directly (e.g., "Mystara Satin Maxi Dress") - do NOT prefix with "The" (e.g., avoid "The Mystara Satin Maxi Dress")
@@ -528,10 +556,76 @@ PRIORITY FOR NEW SEARCH WITH PREVIOUS CONTEXT:
       }
     }
 
+    // Build product type mismatch handling section if mismatch detected
+    let productTypeMismatchHandling = '';
+    if (context?.productTypeMismatch) {
+      const { queryProductType, returnedProductTypes } = context.productTypeMismatch;
+      productTypeMismatchHandling = `
+PRODUCT_TYPE_MISMATCH DETECTED:
+- User asked for: "${queryProductType}"
+- Products returned are: ${returnedProductTypes.join(', ')}
+- This means we couldn't find exact matches for what they asked for
+
+CRITICAL INSTRUCTIONS FOR PRODUCT_TYPE_MISMATCH:
+- In your opening paragraphs (before products), you MUST acknowledge honestly that you couldn't find exact matches
+- Reference the specific product type they asked for ("${queryProductType}") prominently in your opening
+- Explain naturally why you're showing similar items instead (e.g., "I couldn't find ${queryProductType} in black, but I found some similar pieces you might like")
+- Be understanding and honest - don't pretend the products match exactly what they asked for
+- Keep it concise and human - use less flowery language, be more direct and honest
+- Put MORE weight on what they just asked for (the latest update to the query) - acknowledge "${queryProductType}" first and prominently
+- Example opening: "I couldn't find ${queryProductType} in black, but I found some similar pieces that might work for you. These ${returnedProductTypes.join(' and ')} have a similar feel and might be what you're looking for."
+`;
+    }
+
+    // Build explicit vs inferred constraints section
+    const explicitMentions = context?.explicitMentions || [];
+    let explicitVsInferredSection = '';
+    if (explicitMentions.length > 0) {
+      explicitVsInferredSection = `
+CRITICAL: EXPLICITLY MENTIONED vs INFERRED CONSTRAINTS
+
+The following constraints were EXPLICITLY MENTIONED by the user in their query:
+${explicitMentions.map(m => `- ${m}`).join('\n')}
+
+ALL OTHER constraints in the CONSTRAINTS EXTRACTED section above were INFERRED by the system based on context, not explicitly stated by the user.
+
+CRITICAL RULES FOR ACKNOWLEDGING CONSTRAINTS:
+1. **ONLY credit the user for EXPLICITLY MENTIONED constraints** - Use phrases like:
+   - "You mentioned [constraint]" ONLY for explicitly mentioned constraints
+   - "You're looking for [constraint]" ONLY if they explicitly said it
+   - "You want [constraint]" ONLY if they explicitly said it
+
+2. **For INFERRED constraints, frame them as YOUR interpretation** - Use phrases like:
+   - "For a [occasion], I'm thinking [constraint] would work well"
+   - "For [context], [constraint] seems perfect"
+   - "I thought [constraint] might be what you're looking for"
+   - "For [occasion], [constraint] is ideal"
+   - "Since you're going to [occasion], I'm showing you [constraint]"
+   - DO NOT say "you mentioned" or "you said" for inferred constraints
+   - DO NOT say "you love" or "you're looking for" for inferred constraints
+
+3. **Examples:**
+   - If user said "Bahamas vacation" and system inferred "floral patterns":
+     ❌ WRONG: "You mentioned loving florals" or "You're looking for florals"
+     ✅ CORRECT: "For a Bahamas vacation, I'm thinking floral patterns would be perfect" or "I thought you might like pieces with floral details"
+   
+   - If user said "black dress" and system inferred "formal occasion":
+     ❌ WRONG: "You mentioned wanting something formal"
+     ✅ CORRECT: "For a black dress, I'm showing you some elegant options" or "I thought these formal styles might work well"
+   
+   - If user explicitly said "I want floral patterns":
+     ✅ CORRECT: "You mentioned wanting floral patterns" or "You're looking for florals"
+
+4. **Be honest and natural** - Don't pretend the user said things they didn't say. Frame inferred constraints as your thoughtful interpretation based on their context.
+`;
+    }
+
     const prompt = REPLY_PROMPT
       .replace('{QUERY}', query)
       .replace('{FOLLOW_UP_CONTEXT}', followUpContext)
       .replace('{FOLLOW_UP_PRIORITY}', followUpPriority)
+      .replace('{PRODUCT_TYPE_MISMATCH_HANDLING}', productTypeMismatchHandling)
+      .replace('{EXPLICIT_VS_INFERRED}', explicitVsInferredSection)
       .replace('{CONSTRAINTS}', constraintsText)
       .replace('{PRODUCT_DETAILS}', productDetails)
       .replace(/{PRODUCT_COUNT}/g, String(productCount))
@@ -1178,20 +1272,7 @@ export async function generateRegretfulReply(
   brandName: string,
   enhancedQuery?: string,
   previousQuery?: string,
-  constraints?: {
-    colors?: string[] | null;
-    occasions?: string[] | null;
-    materials?: string[] | null;
-    seasons?: string[] | null;
-    styles?: string[] | null;
-    patterns?: string[] | null;
-    lengths?: string[] | null;
-    fits?: string[] | null;
-    ageGroups?: string[] | null;
-    sizes?: string[] | null;
-    priceMinCents?: number | null;
-    priceMaxCents?: number | null;
-  },
+  constraints?: FashionConstraints,
   conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
 ): Promise<ReplyResult> {
   try {
@@ -1205,36 +1286,67 @@ export async function generateRegretfulReply(
     }
     
     // Analyze constraints to suggest what might be too restrictive
+    // Extract values from intent format if needed
     const activeConstraints: string[] = [];
-    if (constraints?.colors && constraints.colors.length > 0) {
-      activeConstraints.push(`colors: ${constraints.colors.join(', ')}`);
+    if (constraints?.colors) {
+      const colorValues = extractConstraintValues(constraints.colors) || (Array.isArray(constraints.colors) ? constraints.colors : []);
+      if (colorValues.length > 0) {
+        activeConstraints.push(`colors: ${colorValues.join(', ')}`);
+      }
     }
-    if (constraints?.occasions && constraints.occasions.length > 0) {
-      activeConstraints.push(`occasions: ${constraints.occasions.join(', ')}`);
+    if (constraints?.occasions) {
+      const occasionValues = extractConstraintValues(constraints.occasions) || (Array.isArray(constraints.occasions) ? constraints.occasions : []);
+      if (occasionValues.length > 0) {
+        activeConstraints.push(`occasions: ${occasionValues.join(', ')}`);
+      }
     }
-    if (constraints?.materials && constraints.materials.length > 0) {
-      activeConstraints.push(`materials: ${constraints.materials.join(', ')}`);
+    if (constraints?.materials) {
+      const materialValues = extractConstraintValues(constraints.materials) || (Array.isArray(constraints.materials) ? constraints.materials : []);
+      if (materialValues.length > 0) {
+        activeConstraints.push(`materials: ${materialValues.join(', ')}`);
+      }
     }
-    if (constraints?.seasons && constraints.seasons.length > 0) {
-      activeConstraints.push(`seasons: ${constraints.seasons.join(', ')}`);
+    if (constraints?.seasons) {
+      const seasonValues = extractConstraintValues(constraints.seasons) || (Array.isArray(constraints.seasons) ? constraints.seasons : []);
+      if (seasonValues.length > 0) {
+        activeConstraints.push(`seasons: ${seasonValues.join(', ')}`);
+      }
     }
-    if (constraints?.styles && constraints.styles.length > 0) {
-      activeConstraints.push(`styles: ${constraints.styles.join(', ')}`);
+    if (constraints?.styles) {
+      const styleValues = extractConstraintValues(constraints.styles) || (Array.isArray(constraints.styles) ? constraints.styles : []);
+      if (styleValues.length > 0) {
+        activeConstraints.push(`styles: ${styleValues.join(', ')}`);
+      }
     }
-    if (constraints?.patterns && constraints.patterns.length > 0) {
-      activeConstraints.push(`patterns: ${constraints.patterns.join(', ')}`);
+    if (constraints?.patterns) {
+      const patternValues = extractConstraintValues(constraints.patterns) || (Array.isArray(constraints.patterns) ? constraints.patterns : []);
+      if (patternValues.length > 0) {
+        activeConstraints.push(`patterns: ${patternValues.join(', ')}`);
+      }
     }
-    if (constraints?.lengths && constraints.lengths.length > 0) {
-      activeConstraints.push(`lengths: ${constraints.lengths.join(', ')}`);
+    if (constraints?.lengths) {
+      const lengthValues = extractConstraintValues(constraints.lengths) || (Array.isArray(constraints.lengths) ? constraints.lengths : []);
+      if (lengthValues.length > 0) {
+        activeConstraints.push(`lengths: ${lengthValues.join(', ')}`);
+      }
     }
-    if (constraints?.fits && constraints.fits.length > 0) {
-      activeConstraints.push(`fits: ${constraints.fits.join(', ')}`);
+    if (constraints?.fits) {
+      const fitValues = extractConstraintValues(constraints.fits) || (Array.isArray(constraints.fits) ? constraints.fits : []);
+      if (fitValues.length > 0) {
+        activeConstraints.push(`fits: ${fitValues.join(', ')}`);
+      }
     }
-    if (constraints?.ageGroups && constraints.ageGroups.length > 0) {
-      activeConstraints.push(`age groups: ${constraints.ageGroups.join(', ')}`);
+    if (constraints?.ageGroups) {
+      const ageGroupValues = extractConstraintValues(constraints.ageGroups) || (Array.isArray(constraints.ageGroups) ? constraints.ageGroups : []);
+      if (ageGroupValues.length > 0) {
+        activeConstraints.push(`age groups: ${ageGroupValues.join(', ')}`);
+      }
     }
-    if (constraints?.sizes && constraints.sizes.length > 0) {
-      activeConstraints.push(`sizes: ${constraints.sizes.join(', ')}`);
+    if (constraints?.sizes) {
+      const sizeValues = extractConstraintValues(constraints.sizes) || (Array.isArray(constraints.sizes) ? constraints.sizes : []);
+      if (sizeValues.length > 0) {
+        activeConstraints.push(`sizes: ${sizeValues.join(', ')}`);
+      }
     }
     if (constraints?.priceMinCents || constraints?.priceMaxCents) {
       const priceRange = [];

@@ -41,12 +41,13 @@ export type ConversationMemory = {
   lastEnhancedQuery?: string; // Store the last enhanced query from constraint merging for cumulative context
   lastCategories?: string[]; // Store the last categories for intent-aware constraint preservation
   // NEW: Store last classification constraints for age group switch detection
+  // Note: Runtime supports both string[] and ConstraintWithIntent formats for intent-based matching
   lastClassificationConstraints?: {
-    ageGroups?: string[];
-    colors?: string[];
-    occasions?: string[];
-    seasons?: string[];
-    formalityLevel?: string;
+    ageGroups?: string[] | { values: string[]; intent: string; similarValues?: string[] };
+    colors?: string[] | { values: string[]; intent: string; similarValues?: string[] };
+    occasions?: string[] | { values: string[]; intent: string; similarValues?: string[] };
+    seasons?: string[] | { values: string[]; intent: string; similarValues?: string[] };
+    formalityLevel?: string[] | { values: string[]; intent: string; similarValues?: string[] };
     priceMinCents?: number;
     priceMaxCents?: number;
   };

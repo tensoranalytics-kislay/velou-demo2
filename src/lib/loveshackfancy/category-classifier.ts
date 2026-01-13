@@ -82,7 +82,17 @@ AVAILABLE CATEGORIES (48 total):
 INSTRUCTIONS:
 1. Analyze the user's query and identify the most relevant product categories
 2. **CRITICAL: Only return categories that EXIST in the dataset. The system will validate your output against the actual categories in the database.**
-3. **CRITICAL: Only return categories if you are confident (confidence >= 0.5). If the query is too vague to determine category (e.g., "something elegant", "gift for someone"), return an empty categories array and set confidence < 0.5.**
+3. **CRITICAL: Only return categories if you are confident (confidence >= 0.5). If the query is too vague to determine category, return an empty categories array and set confidence < 0.5.**
+   - **Vague queries that should have confidence < 0.5:**
+     - Queries that don't mention a specific product type (dress, top, bottom, skirt, swimsuit, bedding, perfume, etc.)
+     - Examples: "suggest me something", "help me find something", "something to wear", "something elegant", "gift for someone"
+     - **IMPORTANT: Even if you can infer age group (adult, kids) or general category (clothing), if NO specific product type is mentioned, return confidence < 0.5**
+   - **Specific queries that should have confidence >= 0.5:**
+     - "wedding dress" (mentions "dress")
+     - "blue top" (mentions "top")
+     - "swimsuits" (mentions "swimsuits")
+     - "bedding" (mentions "bedding")
+     - "perfume" (mentions "perfume")
 4. **Return up to 3 categories in order of relevance. Prioritize returning multiple categories when:**
    - The query could reasonably match multiple age-specific categories (e.g., "cardigan for 12 year old" could match both "Girls Tops" and "Tween Sweaters")
    - The query mentions composite product types (e.g., "suit", "matching set")

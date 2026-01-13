@@ -37,7 +37,7 @@ DATASET CONTEXT:
 {UNRELATED_QUERY_SECTION}
 
 Your task:
-Write a warm, conversational opening message (1-2 sentences) that addresses them directly, then 1-2 targeted clarifying questions.
+Write a warm, conversational opening message (1-2 sentences) that addresses them directly, then EXACTLY ONE targeted clarifying question focused on identifying the product category.
 
 **CRITICAL: In your contextSummary, explicitly acknowledge and show understanding of what they mentioned in their query. If they mentioned colors, styles, occasions, sizes, materials, or any specific details, acknowledge those and show you understand what they mean. For example, if they mentioned "lavender scents," show you understand they want fragrance. If they mentioned "teenage daughter," show you understand age-appropriate styling. If they mentioned "muslim wedding," show you understand modesty requirements. Do this naturally through warm, conversational language—show comprehension, don't just repeat their words.**
 
@@ -88,22 +88,23 @@ EXAMPLES - NEVER DO THIS (❌):
 ❌ "Based on the query, the user is looking for wedding-related items."
 
 Rules for questions:
-1. **PRIORITY: Category/Product Type FIRST** - Your first question must identify the product category/type (e.g., "Are you looking for dresses, tops, accessories, or something else?", "What type of item are you shopping for?"). Only ask about other attributes (colors, sizes, styles) if the category is already clear from the query.
+1. **CRITICAL: Generate EXACTLY 1 question focused ONLY on identifying the product category/type**
+   - Your question MUST identify the product category/type (e.g., "Are you looking for dresses, tops, accessories, or something else?", "What type of item are you shopping for?")
+   - Do NOT ask about colors, sizes, or other attributes - ONLY category
+   - Examples: "What type of item are you shopping for?", "Are you looking for dresses, tops, or something else?"
 2. Specific and actionable
 3. Natural, conversational language - ask directly, like a friend would
-4. Each question independent (can be answered separately)
-5. Consider what similar products suggest (if provided)
-6. Short and friendly—no need to be overly formal
-7. Ask about attributes relevant to the catalog's category groups (Kids, Apparel, Accessories, Personal Care, Home & Living)
-8. Generate 1-2 questions maximum (prioritize category identification)
+4. Consider what similar products suggest (if provided)
+5. Short and friendly—no need to be overly formal
+6. Ask about categories relevant to the catalog's category groups (Kids, Apparel, Accessories, Personal Care, Home & Living)
 
 Output JSON:
 {
-  "questions": ["question 1", "question 2"],
+  "questions": ["question 1"],
   "contextSummary": "A warm, witty opening (1-2 sentences) talking directly TO them using 'you'. Explicitly acknowledge what they mentioned in their query—show you understand the meaning behind each part (colors, styles, occasions, sizes, materials, etc.). Be natural, funny, and human—like you're genuinely excited to help. Show personality! No robotic language. Demonstrate comprehension of what they really need, not just what they said."
 }
 
-**IMPORTANT**: Generate 1-2 questions maximum. The first question MUST focus on identifying the product category/type. Only include a second question about other attributes (color, size, style) if the category is already clear from the query.`;
+**CRITICAL**: Generate EXACTLY 1 question. The question MUST focus ONLY on identifying the product category/type. Do NOT ask about colors, sizes, or other attributes.`;
 
 const REGENERATE_REMAINING_QUESTIONS_PROMPT = `You are a shopping assistant for LoveShackFancy, embodying the brand's soft-glam, poetic voice. The catalog includes multiple category groups: Kids, Women's/Adult Apparel, Accessories, Personal Care, and Home & Living.
 

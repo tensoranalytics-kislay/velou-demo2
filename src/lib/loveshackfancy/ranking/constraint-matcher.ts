@@ -467,11 +467,16 @@ export function matchStyle(
 
 /**
  * Match pattern constraints
+ * Checks multiple attribute key variations: 'pattern', 'Pattern', 'pattern_print', 'patternPrint'
  */
 export function matchPattern(productAttrs: ProductAttributes | null | undefined, queryPatterns: string[] | undefined): number {
   if (!queryPatterns || queryPatterns.length === 0) return 0;
   
-  const productPattern = extractAttrValue(productAttrs, 'pattern') || extractAttrValue(productAttrs, 'Pattern');
+  // Try multiple attribute key variations
+  const productPattern = extractAttrValue(productAttrs, 'pattern') || 
+                         extractAttrValue(productAttrs, 'Pattern') ||
+                         extractAttrValue(productAttrs, 'pattern_print') ||
+                         extractAttrValue(productAttrs, 'patternPrint'); // camelCase converts to pattern_print
   return fuzzyMatch(productPattern, queryPatterns);
 }
 
@@ -1060,57 +1065,66 @@ function inferRelatedAttributes(constraints: FashionConstraints): Partial<Fashio
   
   // If occasion is "Wedding", boost formal styles and elegant materials
   // These are hints - products with these attributes will score higher
-  if (constraints.occasions?.some(o => /wedding/i.test(o))) {
-    if (!related.styles) related.styles = [];
-    if (!related.materials) related.materials = [];
+  const occasionValues = extractConstraintValues(constraints.occasions) || (Array.isArray(constraints.occasions) ? constraints.occasions : []);
+  if (occasionValues.some(o => /wedding/i.test(o))) {
+    if (!related.styles || !Array.isArray(related.styles)) related.styles = [];
+    if (!related.materials || !Array.isArray(related.materials)) related.materials = [];
     // Wedding implies formal, elegant styles (but don't require them)
-    if (!constraints.styles?.some(s => /formal|elegant|classic/i.test(s))) {
-      related.styles.push('Formal', 'Elegant');
+    const styleValues = extractConstraintValues(constraints.styles) || (Array.isArray(constraints.styles) ? constraints.styles : []);
+    if (!styleValues.some(s => /formal|elegant|classic/i.test(s))) {
+      (related.styles as string[]).push('Formal', 'Elegant');
     }
     // Wedding implies elegant materials (silk, satin, lace) - but cotton/polyester dresses can still work
     // We add these as hints, but products without them won't be penalized (they just won't get the boost)
-    if (!constraints.materials?.some(m => /silk|satin|lace/i.test(m))) {
-      related.materials.push('Silk', 'Satin', 'Lace');
+    const materialValues = extractConstraintValues(constraints.materials) || (Array.isArray(constraints.materials) ? constraints.materials : []);
+    if (!materialValues.some(m => /silk|satin|lace/i.test(m))) {
+      (related.materials as string[]).push('Silk', 'Satin', 'Lace');
     }
   }
   
   // If occasion is "Beach", boost casual styles, light materials, summer season
-  if (constraints.occasions?.some(o => /beach/i.test(o))) {
-    if (!related.styles) related.styles = [];
-    if (!related.materials) related.materials = [];
-    if (!related.seasons) related.seasons = [];
-    if (!constraints.styles?.some(s => /casual/i.test(s))) {
-      related.styles.push('Casual');
+  if (occasionValues.some(o => /beach/i.test(o))) {
+    if (!related.styles || !Array.isArray(related.styles)) related.styles = [];
+    if (!related.materials || !Array.isArray(related.materials)) related.materials = [];
+    if (!related.seasons || !Array.isArray(related.seasons)) related.seasons = [];
+    const styleValues = extractConstraintValues(constraints.styles) || (Array.isArray(constraints.styles) ? constraints.styles : []);
+    if (!styleValues.some(s => /casual/i.test(s))) {
+      (related.styles as string[]).push('Casual');
     }
-    if (!constraints.materials?.some(m => /cotton|linen|modal/i.test(m))) {
-      related.materials.push('Cotton', 'Linen', 'Modal');
+    const materialValues = extractConstraintValues(constraints.materials) || (Array.isArray(constraints.materials) ? constraints.materials : []);
+    if (!materialValues.some(m => /cotton|linen|modal/i.test(m))) {
+      (related.materials as string[]).push('Cotton', 'Linen', 'Modal');
     }
-    if (!constraints.seasons?.some(s => /summer/i.test(s))) {
-      related.seasons.push('Summer');
+    const seasonValues = extractConstraintValues(constraints.seasons) || (Array.isArray(constraints.seasons) ? constraints.seasons : []);
+    if (!seasonValues.some(s => /summer/i.test(s))) {
+      (related.seasons as string[]).push('Summer');
     }
   }
   
   // If material is "Silk", boost formal occasions
-  if (constraints.materials?.some(m => /silk/i.test(m))) {
-    if (!related.occasions) related.occasions = [];
-    if (!constraints.occasions?.some(o => /formal|wedding|evening/i.test(o))) {
-      related.occasions.push('Formal', 'Evening', 'Wedding');
+  const materialValues = extractConstraintValues(constraints.materials) || (Array.isArray(constraints.materials) ? constraints.materials : []);
+  if (materialValues.some(m => /silk/i.test(m))) {
+    if (!related.occasions || !Array.isArray(related.occasions)) related.occasions = [];
+    const occasionValues = extractConstraintValues(constraints.occasions) || (Array.isArray(constraints.occasions) ? constraints.occasions : []);
+    if (!occasionValues.some(o => /formal|wedding|evening/i.test(o))) {
+      (related.occasions as string[]).push('Formal', 'Evening', 'Wedding');
     }
   }
   
   // If season is "Winter", boost warm materials
-  if (constraints.seasons?.some(s => /winter/i.test(s))) {
-    if (!related.materials) related.materials = [];
-    if (!constraints.materials?.some(m => /wool|cashmere|fleece/i.test(m))) {
-      related.materials.push('Wool', 'Cashmere', 'Fleece');
+  const seasonValues = extractConstraintValues(constraints.seasons) || (Array.isArray(constraints.seasons) ? constraints.seasons : []);
+  if (seasonValues.some(s => /winter/i.test(s))) {
+    if (!related.materials || !Array.isArray(related.materials)) related.materials = [];
+    if (!materialValues.some(m => /wool|cashmere|fleece/i.test(m))) {
+      (related.materials as string[]).push('Wool', 'Cashmere', 'Fleece');
     }
   }
   
   // If season is "Summer", boost light materials
-  if (constraints.seasons?.some(s => /summer/i.test(s))) {
-    if (!related.materials) related.materials = [];
-    if (!constraints.materials?.some(m => /cotton|linen|modal/i.test(m))) {
-      related.materials.push('Cotton', 'Linen', 'Modal');
+  if (seasonValues.some(s => /summer/i.test(s))) {
+    if (!related.materials || !Array.isArray(related.materials)) related.materials = [];
+    if (!materialValues.some(m => /cotton|linen|modal/i.test(m))) {
+      (related.materials as string[]).push('Cotton', 'Linen', 'Modal');
     }
   }
   
@@ -1968,7 +1982,11 @@ export function calculateConstraintMatchScore(
   }
   
   if (enhancedConstraints.patterns) {
-    const productPattern = extractAttrValue(attrs, 'pattern') || extractAttrValue(attrs, 'Pattern');
+    // Extract pattern for logging/debugging (check multiple attribute key variations)
+    const productPattern = extractAttrValue(attrs, 'pattern') || 
+                           extractAttrValue(attrs, 'Pattern') ||
+                           extractAttrValue(attrs, 'pattern_print') ||
+                           extractAttrValue(attrs, 'patternPrint');
     const patternScore = calculateMatchScoreWithIntent(
       attrs,
       enhancedConstraints.patterns,

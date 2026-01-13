@@ -9,6 +9,7 @@ import type { FashionConstraints } from '../classifier';
 import { prisma } from '../../db';
 import { logger } from '../../telemetry/logger';
 import type { SearchResultItem } from '../../search/types';
+import { extractConstraintValues } from '../constraint-utils';
 
 export type ProductWithScore = SearchResultItem & {
   finalScore: number;
@@ -174,10 +175,11 @@ function buildConstraintScoreSQL(
   const weights: number[] = [];
 
   // Color (weight: 1.0)
-  if (constraints.colors && constraints.colors.length > 0) {
+  const colorValues = extractConstraintValues(constraints.colors) || (Array.isArray(constraints.colors) ? constraints.colors : []);
+  if (colorValues.length > 0) {
     const colorMatch = buildAttributeMatchSQL(
       'color',
-      constraints.colors,
+      colorValues,
       currentParamIndex
     );
     scoreExpressions.push(`(${colorMatch.sql} * 1.0)`);
@@ -187,8 +189,9 @@ function buildConstraintScoreSQL(
   }
 
   // Size (weight: 0.8)
-  if (constraints.sizes && constraints.sizes.length > 0) {
-    const sizeMatch = buildSizeMatchSQL(constraints.sizes, currentParamIndex);
+  const sizeValues = extractConstraintValues(constraints.sizes) || (Array.isArray(constraints.sizes) ? constraints.sizes : []);
+  if (sizeValues.length > 0) {
+    const sizeMatch = buildSizeMatchSQL(sizeValues, currentParamIndex);
     scoreExpressions.push(`(${sizeMatch.sql} * 0.8)`);
     params.push(...sizeMatch.params);
     weights.push(0.8);
@@ -196,10 +199,11 @@ function buildConstraintScoreSQL(
   }
 
   // Occasion (weight: 0.6)
-  if (constraints.occasions && constraints.occasions.length > 0) {
+  const occasionValues = extractConstraintValues(constraints.occasions) || (Array.isArray(constraints.occasions) ? constraints.occasions : []);
+  if (occasionValues.length > 0) {
     const occasionMatch = buildAttributeMatchSQL(
       'occasion',
-      constraints.occasions,
+      occasionValues,
       currentParamIndex
     );
     scoreExpressions.push(`(${occasionMatch.sql} * 0.6)`);
@@ -209,10 +213,11 @@ function buildConstraintScoreSQL(
   }
 
   // Style (weight: 0.4)
-  if (constraints.styles && constraints.styles.length > 0) {
+  const styleValues = extractConstraintValues(constraints.styles) || (Array.isArray(constraints.styles) ? constraints.styles : []);
+  if (styleValues.length > 0) {
     const styleMatch = buildAttributeMatchSQL(
       'style',
-      constraints.styles,
+      styleValues,
       currentParamIndex
     );
     scoreExpressions.push(`(${styleMatch.sql} * 0.4)`);
@@ -222,10 +227,11 @@ function buildConstraintScoreSQL(
   }
 
   // Pattern (weight: 0.4)
-  if (constraints.patterns && constraints.patterns.length > 0) {
+  const patternValues = extractConstraintValues(constraints.patterns) || (Array.isArray(constraints.patterns) ? constraints.patterns : []);
+  if (patternValues.length > 0) {
     const patternMatch = buildAttributeMatchSQL(
       'pattern',
-      constraints.patterns,
+      patternValues,
       currentParamIndex
     );
     scoreExpressions.push(`(${patternMatch.sql} * 0.4)`);
@@ -235,10 +241,11 @@ function buildConstraintScoreSQL(
   }
 
   // Season (weight: 0.3)
-  if (constraints.seasons && constraints.seasons.length > 0) {
+  const seasonValues = extractConstraintValues(constraints.seasons) || (Array.isArray(constraints.seasons) ? constraints.seasons : []);
+  if (seasonValues.length > 0) {
     const seasonMatch = buildAttributeMatchSQL(
       'season',
-      constraints.seasons,
+      seasonValues,
       currentParamIndex
     );
     scoreExpressions.push(`(${seasonMatch.sql} * 0.3)`);
@@ -248,10 +255,11 @@ function buildConstraintScoreSQL(
   }
 
   // Material (weight: 0.2)
-  if (constraints.materials && constraints.materials.length > 0) {
+  const materialValues = extractConstraintValues(constraints.materials) || (Array.isArray(constraints.materials) ? constraints.materials : []);
+  if (materialValues.length > 0) {
     const materialMatch = buildAttributeMatchSQL(
       'material',
-      constraints.materials,
+      materialValues,
       currentParamIndex
     );
     scoreExpressions.push(`(${materialMatch.sql} * 0.2)`);
@@ -261,10 +269,11 @@ function buildConstraintScoreSQL(
   }
 
   // Fit (weight: 0.2)
-  if (constraints.fits && constraints.fits.length > 0) {
+  const fitValues = extractConstraintValues(constraints.fits) || (Array.isArray(constraints.fits) ? constraints.fits : []);
+  if (fitValues.length > 0) {
     const fitMatch = buildAttributeMatchSQL(
       'fit',
-      constraints.fits,
+      fitValues,
       currentParamIndex
     );
     scoreExpressions.push(`(${fitMatch.sql} * 0.2)`);
@@ -274,10 +283,11 @@ function buildConstraintScoreSQL(
   }
 
   // Collection (weight: 0.2)
-  if (constraints.collections && constraints.collections.length > 0) {
+  const collectionValues = extractConstraintValues(constraints.collections) || (Array.isArray(constraints.collections) ? constraints.collections : []);
+  if (collectionValues.length > 0) {
     const collectionMatch = buildAttributeMatchSQL(
       'collection',
-      constraints.collections,
+      collectionValues,
       currentParamIndex
     );
     scoreExpressions.push(`(${collectionMatch.sql} * 0.2)`);

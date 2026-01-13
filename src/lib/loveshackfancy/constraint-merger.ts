@@ -9,6 +9,7 @@ import { callLLM } from '../llm/provider';
 import { logger } from '../telemetry/logger';
 import type { FashionConstraints } from './classifier';
 import { normalizeAgeGroups } from './age-group-normalizer';
+import { extractConstraintValues, extractConstraintIntent } from './constraint-utils';
 
 // Constraint portability classification
 const ALWAYS_PORTABLE_CONSTRAINTS = [
@@ -226,8 +227,62 @@ CRITICAL: PREVIOUS_QUERY may be an ENHANCED QUERY from a previous merge
   4. User: "under $150" → Merge with "light coloured floral dresses" → Enhanced: "light coloured floral dresses under $150"
 - Each merge builds on the previous enhanced query, creating cumulative context
 
+CRITICAL: DECOMPOSE THEN RECOMPOSE - NEVER CONCATENATE
+
+When PREVIOUS_QUERY contains multiple components, you MUST:
+1. **DECOMPOSE** PREVIOUS_QUERY into structured components:
+   - Product type: "hoodies", "dresses", "jewelry", "bedding", etc.
+   - Colors: "black", "red", "blue", etc. (if present)
+   - Materials: "silk", "cotton", etc. (if present)
+   - Audience/age group: "for curvy women", "for kids", "for adults", etc.
+   - Occasions: "for wedding", "for beach", etc. (if present)
+   - Other attributes: sizes, patterns, styles, etc.
+
+2. **EXTRACT** new constraints from CURRENT_MESSAGE:
+   - Identify what's being added/changed/removed
+   - Determine merge action: merge, replace, or remove
+
+3. **RECOMPOSE** using natural attribute ordering:
+   - Order: color → material → product type → style details → size → occasion → age group → price
+   - Remove redundant phrases (don't repeat "for curvy women" if already present)
+   - Integrate new constraints into their natural positions
+
+4. **NEVER CONCATENATE**: Do NOT append PREVIOUS_QUERY + CURRENT_MESSAGE as strings
+
+Examples of CORRECT decomposition/recomposition:
+- PREVIOUS="hoodies for curvy women" → Decompose: {productType: "hoodies", audience: "for curvy women"}
+  CURRENT="in black" → Extract: {color: "black"}
+  Recompose: "black hoodies for curvy women" ✓
+
+- PREVIOUS="red silk maxi dress" → Decompose: {color: "red", material: "silk", length: "maxi", productType: "dress"}
+  CURRENT="change to navy" → Extract: {color: "navy"} (REPLACE)
+  Recompose: "navy silk maxi dress" ✓
+
+- PREVIOUS="dresses for kids" → Decompose: {productType: "dresses", ageGroup: "for kids"}
+  CURRENT="in pink" → Extract: {color: "pink"}
+  Recompose: "pink dresses for kids" ✓
+
+- PREVIOUS="jewelry for wedding" → Decompose: {productType: "jewelry", occasion: "for wedding"}
+  CURRENT="in gold" → Extract: {color: "gold"}
+  Recompose: "gold jewelry for wedding" ✓
+
+- PREVIOUS="bedding sets" → Decompose: {productType: "bedding sets"}
+  CURRENT="with floral patterns" → Extract: {pattern: "floral"}
+  Recompose: "bedding sets with floral patterns" ✓
+
+Examples of WRONG concatenation (DO NOT DO THIS):
+- PREVIOUS="hoodies for curvy women" + CURRENT="in black" → "hoodies for curvy women black clothing for curvy women" ✗
+- PREVIOUS="dresses" + CURRENT="in pink" → "dresses pink clothing" ✗
+- PREVIOUS="jewelry" + CURRENT="in gold" → "jewelry gold accessories" ✗
+
 CRITICAL: ALWAYS Preserve Product Type from PREVIOUS_QUERY or CONVERSATION HISTORY
 - **MOST IMPORTANT RULE**: If PREVIOUS_QUERY mentions a product type (dresses, tops, swimsuits, bikinis, joggers, etc.), you MUST preserve it in enhancedQueryText, even if CURRENT_MESSAGE doesn't mention it
+- **EXCEPTION: Explicit Product Type Switch** (HIGHEST PRIORITY): If CURRENT_MESSAGE explicitly mentions a DIFFERENT product type (e.g., "looking for hoodies", "show me tops", "I want dresses"), this is a product type switch. The enhanced query should use ONLY the new product type from CURRENT_MESSAGE, NOT preserve the old one.
+  * Example: PREVIOUS="black dresses" + CURRENT="looking for hoodies" → enhancedQueryText="hoodies" (NOT "hoodies and dresses")
+  * Example: PREVIOUS="dresses in light colours" + CURRENT="show me tops instead" → enhancedQueryText="tops" (NOT "tops and dresses")
+  * Example: PREVIOUS="suggest me something to wear" (vague) + CURRENT="looking for hoodies" → enhancedQueryText="hoodies" (NOT "hoodies and dresses")
+  * **Key phrases that indicate explicit product type switch**: "looking for X", "show me X", "I want X", "need X", "want X", "X please", "X instead"
+  * **When user explicitly mentions a product type, that product type MUST be the ONLY one in the enhanced query**
 - **TRACE BACK THROUGH CONVERSATION HISTORY**: If PREVIOUS_QUERY doesn't mention a product type, look at CONVERSATION HISTORY to find where the product type was first mentioned
   * Example: If conversation history shows:
     1. "dresses in light colours"
@@ -235,7 +290,7 @@ CRITICAL: ALWAYS Preserve Product Type from PREVIOUS_QUERY or CONVERSATION HISTO
     3. "find floral ones" (CURRENT_MESSAGE)
   * You should trace back to query #1 to find "dresses" as the product type
   * Enhanced query should be: "light coloured floral dresses" (NOT "light coloured floral items")
-- **Examples of preserving product type**:
+- **Examples of preserving product type** (when NOT switching):
   * PREVIOUS_QUERY="dresses in light colours", CURRENT_MESSAGE="only in light colours" → enhancedQueryText="light coloured dresses" (PRESERVE "dresses")
   * PREVIOUS_QUERY="dresses in light colours", CURRENT_MESSAGE="find floral ones" → enhancedQueryText="light coloured floral dresses" (PRESERVE "dresses", merge "floral")
   * PREVIOUS_QUERY="only in light colours" (but history shows "dresses in light colours"), CURRENT_MESSAGE="find floral ones" → enhancedQueryText="light coloured floral dresses" (TRACE BACK to find "dresses")
@@ -292,6 +347,7 @@ Your task:
      * This is especially important for indirect searches - they should get follow-up questions again
    - If CURRENT_MESSAGE changes the product category completely (e.g., "show me tops" after "show me dresses") → NEW SEARCH
    - If CURRENT_MESSAGE asks for a completely different product type → NEW SEARCH
+   - **CRITICAL: If CURRENT_MESSAGE explicitly mentions a different product type** (e.g., "looking for hoodies" after "dresses") → NEW SEARCH or explicit REPLACE (do NOT preserve old product type)
    - If CURRENT_MESSAGE explicitly says "new search", "something else", "different item" → NEW SEARCH
    
    **FOLLOW-UP SIGNALS** (only if logically compatible):
@@ -532,6 +588,12 @@ MERGE (add/update constraints while keeping others):
   * Example: PREVIOUS_QUERY="dresses in red", CURRENT_MESSAGE="cherry also works"
     → mergedConstraints: { colors: ["Red", "Cherry"] } (keep Red, add Cherry)
     → enhancedQueryText: "red or cherry coloured dresses"
+- **COLOR MERGING** (all categories):
+  * PREVIOUS="hoodies for curvy women", CURRENT="in black" → "black hoodies for curvy women" ✓
+  * PREVIOUS="dresses", CURRENT="in pink" → "pink dresses" ✓
+  * PREVIOUS="jewelry", CURRENT="in gold" → "gold jewelry" ✓
+  * PREVIOUS="bedding sets", CURRENT="in white" → "white bedding sets" ✓
+  * PREVIOUS="perfumes", CURRENT="for women" → "perfumes for women" ✓ (no color, but audience merge)
 - "only in light colours" or "in light colours" → add/update colors: ["White", "Ivory", "Cream", "Beige", "Blush", "Pink", "Peach", "Lemon", "Mint", "Sky Blue", "Lavender", "Baby Blue"], keep all other constraints including product type
   * **CRITICAL**: Do NOT use generic terms like "Light" or "Dark" - expand to specific ontology colors
   * Enhanced query: "light coloured [previous product type]" (e.g., "light coloured dresses" if previous was "dresses in light colours" or "show me dresses")
@@ -539,9 +601,27 @@ MERGE (add/update constraints while keeping others):
 - "dark colours" or "dark colors" or "in dark colours" → add/update colors: ["Black", "Navy", "Burgundy", "Maroon", "Charcoal", "Brown", "Plum"], keep all other constraints
   * **CRITICAL**: Do NOT use generic terms like "Dark" - expand to specific ontology colors: ["Black", "Navy", "Burgundy", "Maroon", "Charcoal", "Brown", "Plum"]
   * Enhanced query: "dark coloured [previous product type]" (e.g., "dark coloured joggers" if previous was "joggers" and current is "dark colours")
+- **MATERIAL MERGING** (apparel):
+  * PREVIOUS="dresses", CURRENT="in silk" → "silk dresses" ✓
+  * PREVIOUS="hoodies", CURRENT="cotton" → "cotton hoodies" ✓
+- **PATTERN MERGING** (all categories):
+  * PREVIOUS="dresses", CURRENT="floral" → "floral dresses" ✓
+  * PREVIOUS="bedding", CURRENT="with floral patterns" → "bedding with floral patterns" ✓
 - "find floral ones" or "floral ones" → add/update patterns: ["Floral"], keep all other constraints including product type
   * Enhanced query: "[previous color/attributes] floral [previous product type]" (e.g., "light coloured floral dresses" if previous was "dresses in light colours")
   * **CRITICAL**: If PREVIOUS_QUERY="light coloured dresses" and CURRENT_MESSAGE="find floral ones", enhancedQueryText="light coloured floral dresses" (PRESERVE "dresses")
+- **SIZE MERGING** (apparel):
+  * PREVIOUS="dresses", CURRENT="size 4" → "size 4 dresses" or "dresses size 4" ✓
+- **OCCASION MERGING** (all categories):
+  * PREVIOUS="dresses", CURRENT="for wedding" → "dresses for wedding" ✓
+  * PREVIOUS="jewelry", CURRENT="for formal event" → "jewelry for formal event" ✓
+  * PREVIOUS="bedding", CURRENT="for bedroom" → "bedding for bedroom" ✓
+- **AGE GROUP MERGING** (all categories):
+  * PREVIOUS="dresses", CURRENT="for kids" → "dresses for kids" ✓
+  * PREVIOUS="tops", CURRENT="for adults" → "tops for adults" ✓
+- **MULTI-ATTRIBUTE MERGING**:
+  * PREVIOUS="dresses", CURRENT="black maxi for wedding" → "black maxi dresses for wedding" ✓
+  * PREVIOUS="hoodies", CURRENT="cotton in navy" → "navy cotton hoodies" ✓
 - "also in size 6" → add/update sizes: ["6"], keep all other constraints
   * Enhanced query: "[previous product type] size 6" (e.g., "one piece swimsuit size 6" if previous was "one piece swimsuit")
   * If PREVIOUS_QUERY was "one piece please" but PREVIOUS_CONSTRAINTS shows styles=["One-Piece", "Swimsuit"], use "one piece swimsuit size 6"
@@ -607,12 +687,23 @@ MERGE (add/update constraints while keeping others):
       → reason: "user repeated the same query, treating as new search"
 
 REPLACE (override specific constraints, keep others):
+- **COLOR REPLACEMENT** (all categories):
+  * PREVIOUS="red dresses", CURRENT="change to navy" → "navy dresses" ✓ (NOT "red dresses navy" or "red dresses change to navy")
+  * PREVIOUS="gold jewelry", CURRENT="in silver" → "silver jewelry" ✓
+  * PREVIOUS="white bedding", CURRENT="in beige" → "beige bedding" ✓
 - "instead, show me mini dresses" → replace lengths: ["Mini"], keep category, price, colors, and other constraints
   * Enhanced query: "[color] [material] mini dress [other attributes]" (natural ordering)
 - "change to navy" → replace colors: ["Navy"], keep price, occasion, pattern, and other constraints
   * Enhanced query: "navy [material] [product type] [other attributes]" (color first, natural flow)
   * Example: PREVIOUS_QUERY: "red silk maxi dress", CURRENT_MESSAGE: "change to navy"
     → enhancedQueryText: "navy silk maxi dress" (NOT "silk maxi dress navy" or "red silk maxi dress navy")
+- **MATERIAL REPLACEMENT** (apparel):
+  * PREVIOUS="silk dress", CURRENT="cotton instead" → "cotton dress" ✓
+- **LENGTH REPLACEMENT** (apparel):
+  * PREVIOUS="maxi dress", CURRENT="mini instead" → "mini dress" ✓
+- **PRODUCT TYPE REPLACEMENT** (all categories):
+  * PREVIOUS="dresses", CURRENT="show me tops" → "tops" ✓ (product type switch)
+  * PREVIOUS="jewelry", CURRENT="show me bags" → "bags" ✓
 - **CRITICAL: PRESERVE NON-ONTOLOGY COLORS IN REPLACE ACTIONS**
   * When user says "change to cherry" or "cherry coloured" or "only cherry", extract colors: ["Cherry"] (NOT ["Red"])
   * **DO NOT** convert non-ontology colors to ontology colors - preserve the exact color term
@@ -648,7 +739,13 @@ REPLACE (override specific constraints, keep others):
 - "under $200" when priceMinCents exists → replace priceMaxCents: 20000, keep priceMinCents, keep other constraints
 
 REMOVE (explicitly remove constraints, keep others):
+- **COLOR REMOVAL**:
+  * PREVIOUS="red silk maxi dress", CURRENT="any color is fine" → "silk maxi dress" ✓ (removed "red")
 - "any color is fine" → remove colors constraint (set to null), keep price, occasion, pattern, and other constraints
+- **MATERIAL REMOVAL**:
+  * PREVIOUS="silk maxi dress", CURRENT="any material" → "maxi dress" ✓ (removed "silk")
+- **PRICE REMOVAL**:
+  * PREVIOUS="dresses under $200", CURRENT="price doesn't matter" → "dresses" ✓ (removed "under $200")
 - "price doesn't matter" → remove priceMinCents and priceMaxCents (set to null), keep colors, occasion, pattern, and other constraints
 - "any occasion" → remove occasions constraint (set to null), keep price, colors, pattern, and other constraints
 - "no pattern preference" → remove patterns constraint (set to null), keep other constraints
@@ -758,8 +855,14 @@ RULES:
     - If PREVIOUS_QUERY was "red silk maxi dress..." and current message is "price can be higher", enhancedQueryText should be "red silk maxi dress [other constraints]" (preserve all constraints except price max)
     - **NEVER drop the product type** unless CURRENT_MESSAGE explicitly changes it (e.g., "show me tops instead" after "dresses")
 12. CRITICAL: enhancedQueryText must be NATURAL and COHERENT
+    - **DECOMPOSE THEN RECOMPOSE**: Always parse PREVIOUS_QUERY into components first, then merge CURRENT_MESSAGE's constraints into natural positions
     - Write the query as a natural, searchable phrase that flows well
-    - Use natural attribute ordering: color → material → product type → style attributes → size → occasion → price
+    - Use natural attribute ordering: color → material → product type → style attributes → size → occasion → age group → price
+    - **ANTI-CONCATENATION RULES**:
+      * NEVER append PREVIOUS_QUERY + CURRENT_MESSAGE as strings
+      * NEVER repeat phrases already in PREVIOUS_QUERY (e.g., don't add "for curvy women" if it's already there)
+      * ALWAYS merge new attributes into their natural positions (color before product type, not after)
+      * REMOVE redundant words/phrases when recomposing
     - Example good ordering: "chocolate silk maxi dress long sleeves floral formal wedding size 4"
     - Avoid redundant words: use "chocolate" not "chocolate color", "silk" not "silk material", "size 4" not "size 4 size"
     - When adding a constraint back after removal, integrate it naturally:
@@ -767,6 +870,14 @@ RULES:
       * → enhancedQueryText: "chocolate silk maxi dress..." (natural, flows well)
       * NOT: "silk maxi dress chocolate color" (awkward ordering)
       * NOT: "chocolate color silk maxi dress" (redundant "color" word)
+    - Examples of CORRECT merging:
+      * PREVIOUS="hoodies for curvy women", CURRENT="in black" → "black hoodies for curvy women" ✓
+      * PREVIOUS="red silk maxi dress", CURRENT="change to navy" → "navy silk maxi dress" ✓
+      * PREVIOUS="dresses for kids", CURRENT="in pink" → "pink dresses for kids" ✓
+    - Examples of WRONG concatenation (DO NOT DO THIS):
+      * PREVIOUS="hoodies for curvy women", CURRENT="in black" → "hoodies for curvy women black clothing for curvy women" ✗
+      * PREVIOUS="dresses", CURRENT="in pink" → "dresses pink clothing" ✗
+      * PREVIOUS="jewelry", CURRENT="in gold" → "jewelry gold accessories" ✗
     - Ensure the query reads like a complete, natural search query that a user might type
     - Group related attributes together (e.g., "long sleeves" together, not separated)
     - Use common fashion terminology (e.g., "v-neck" not "v neck", "maxi dress" not "maxi-dress")
@@ -845,12 +956,21 @@ CRITICAL: When mergeAction is "new_search":
   }
 
 CRITICAL REMINDERS FOR enhancedQueryText:
+- **MOST IMPORTANT: DECOMPOSE THEN RECOMPOSE, NEVER CONCATENATE**
+  * Parse PREVIOUS_QUERY into components (product type, colors, materials, audience, etc.)
+  * Extract new constraints from CURRENT_MESSAGE
+  * Merge new constraints into natural positions
+  * Remove redundant phrases
+  * DO NOT append strings together
 - Must read as a natural, searchable query (like a user would type)
 - Use natural attribute ordering: color → material → product type → style details → size → occasion → age group → price
 - Avoid redundant words ("chocolate color" → "chocolate", "silk material" → "silk")
 - When adding constraints back after removal, place them in natural positions (color first, not last)
 - Group related attributes together ("long sleeves" stays together)
 - The query should be complete and coherent, not a jumbled list of attributes
+- **REMOVE REDUNDANCY**: If a phrase is already in PREVIOUS_QUERY, don't add it again
+  * Example: PREVIOUS="hoodies for curvy women" already has "for curvy women", so don't add it again when merging "in black"
+  * Result: "black hoodies for curvy women" (NOT "hoodies for curvy women black clothing for curvy women")
 - For "similar colours" requests: Use natural phrasing like "[color] or similar coloured [product type]" NOT "[product type] or similar colours" (the latter is awkward)
 - **CRITICAL: Age Group Replacement in enhancedQueryText**: When age groups are REPLACED (not merged), REMOVE the old age group mentions from the enhanced query and use only the new age group
   * PREVIOUS_QUERY="clothes for my 6 year old and 12 year old", CURRENT_MESSAGE="only red dresses for adult" → enhancedQueryText: "red dresses for adult" (NOT "clothes for my 6 year old and 12 year old red dresses for adult")
@@ -858,6 +978,30 @@ CRITICAL REMINDERS FOR enhancedQueryText:
   * PREVIOUS_QUERY="red tops for kids", CURRENT_MESSAGE="for adult" → enhancedQueryText: "red tops for adult" (removes "for kids", uses "for adult")
   * When ADDING age groups (not replacing), include both: PREVIOUS="dresses for my 8 year old", CURRENT="and for my 12 year old" → enhancedQueryText: "dresses for my 8 year old and 12 year old"
 - The enhanced query should read like a complete sentence that flows naturally
+
+CATEGORY-SPECIFIC MERGING EXAMPLES:
+
+**Kids Categories**:
+- PREVIOUS="dresses for kids", CURRENT="in pink" → "pink dresses for kids" ✓
+- PREVIOUS="onesies for babies", CURRENT="in white" → "white onesies for babies" ✓
+
+**Women's/Adult Apparel**:
+- PREVIOUS="hoodies for curvy women", CURRENT="in black" → "black hoodies for curvy women" ✓
+- PREVIOUS="maxi dresses", CURRENT="in navy" → "navy maxi dresses" ✓
+- PREVIOUS="swimsuits", CURRENT="for beach" → "swimsuits for beach" ✓
+
+**Accessories**:
+- PREVIOUS="jewelry", CURRENT="in gold" → "gold jewelry" ✓
+- PREVIOUS="bags", CURRENT="for travel" → "bags for travel" ✓
+
+**Personal Care**:
+- PREVIOUS="perfumes", CURRENT="for women" → "perfumes for women" ✓
+- PREVIOUS="perfumes", CURRENT="lavender scented" → "lavender scented perfumes" ✓
+
+**Home & Living**:
+- PREVIOUS="bedding sets", CURRENT="with floral patterns" → "bedding sets with floral patterns" ✓
+- PREVIOUS="candles", CURRENT="lavender scented" → "lavender scented candles" ✓
+- PREVIOUS="towels", CURRENT="for bathroom" → "towels for bathroom" ✓
 `;
 
 /**
@@ -1511,7 +1655,14 @@ export async function mergeFollowUpConstraints(
     if (merged.mergedConstraints.sleeveLengths) mergedConstraintsSummary.sleeveLengths = merged.mergedConstraints.sleeveLengths;
     if (merged.mergedConstraints.ageGroups) {
       // Normalize age groups to match dataset values
-      mergedConstraintsSummary.ageGroups = normalizeAgeGroups(merged.mergedConstraints.ageGroups);
+      // Extract values if it's in intent format
+      const ageGroupValues = extractConstraintValues(merged.mergedConstraints.ageGroups) || (Array.isArray(merged.mergedConstraints.ageGroups) ? merged.mergedConstraints.ageGroups : []);
+      const ageGroupIntent = extractConstraintIntent(merged.mergedConstraints.ageGroups);
+      const normalized = normalizeAgeGroups(ageGroupValues);
+      // Preserve intent format
+      mergedConstraintsSummary.ageGroups = normalized.length > 0 
+        ? (ageGroupIntent ? { values: normalized, intent: ageGroupIntent } : normalized)
+        : undefined;
     }
     if (merged.mergedConstraints.priceMinCents !== undefined && merged.mergedConstraints.priceMinCents !== null) mergedConstraintsSummary.priceMinCents = merged.mergedConstraints.priceMinCents;
     if (merged.mergedConstraints.priceMaxCents !== undefined && merged.mergedConstraints.priceMaxCents !== null) mergedConstraintsSummary.priceMaxCents = merged.mergedConstraints.priceMaxCents;

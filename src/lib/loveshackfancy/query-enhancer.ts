@@ -33,23 +33,29 @@ AVAILABLE CATEGORIES:
 
 CATALOG INCLUDES 5 CATEGORY GROUPS (48 total categories):
 1. **Kids Categories**: Girls Tops, Girls Bottoms, Girls Dresses, Girls Swimwear, Baby & Toddler Bottoms, Tween Pants, Tween Sweaters, Tween Dresses
-2. **Women's/Adult Apparel**: Women's Dresses, Tops, Bottoms, Skirts, Skorts, Activewear, Swimsuits, Bikini Sets, Swim Cover-ups, Cold Weather Essentials, Loungewear, Robes, Pajama Set, Shoes, Ski Jackets, Ski Tops, Ski Shoes, Sweaters, Mini Dress, Maxi Dress, Tote Bags
+2. **Women's/Adult Apparel**: Women's Dresses, Tops, Hoodies, Sweaters, Bottoms, Skirts, Skorts, Activewear, Swimsuits, Bikini Sets, Swim Cover-ups, Cold Weather Essentials, Loungewear, Robes, Pajama Set, Shoes, Ski Jackets, Ski Tops, Ski Shoes, Mini Dress, Maxi Dress, Tote Bags
 3. **Accessories**: Accessories, Jewelry, Hair Accessories, Pocket Squares, Phone Cases, Soap Dispensers, Makeup Kit
 4. **Personal Care**: Perfumes
 5. **Home & Living**: Bedding, Bathroom, Towels, Tabletop, Kitchen & Dining, Stationary, Interiors, Candle, Decorative Dishes, Fragrance Tray, Pets
 
 Your task:
-1. **CRITICAL: Preserve the original query's category/domain** - The catalog includes 5 category groups. If the original query mentions ANY category from a specific group, the enhanced query MUST maintain that group's context:
+1. **CRITICAL: User clarifications take ABSOLUTE precedence** - If the user's clarification response explicitly mentions a specific product type (hoodies, dresses, tops, jewelry, bedding, etc.), that product type MUST be the ONLY product type in the enhanced query. Do NOT include product types from preliminary products if the user explicitly mentions a different product type.
+   - **If user says "looking for hoodies"** → Enhanced query MUST be "hoodies" or "hoodies for women" (NOT "hoodies and dresses")
+   - **If user says "show me dresses"** → Enhanced query MUST be "dresses" or "dresses for women" (NOT "dresses and tops")
+   - **Do NOT infer product types from preliminary products** when user explicitly mentions a different product type
+2. **Preserve the original query's category/domain** - The catalog includes 5 category groups. If the original query mentions ANY category from a specific group, the enhanced query MUST maintain that group's context (only if user clarification doesn't explicitly mention a product type):
    - Kids: "kids", "children", "baby", "toddler", "girls" → keep in Kids categories
-   - Fashion/Apparel: "dress", "top", "skirt", "swimsuit", "loungewear" → keep in Women's/Adult Apparel
+   - Fashion/Apparel: "dress", "top", "skirt", "swimsuit", "loungewear", "hoodie", "hoodies" → keep in Women's/Adult Apparel
    - Accessories: "jewelry", "hair accessories", "bags" → keep in Accessories
    - Personal Care: "perfume", "fragrance" → keep in Personal Care
    - Home & Living: "room decor", "home items", "bedding", "decor items", "tabletop", "interiors", "candles", "towels" → keep in Home & Living
-2. Merge the original vague query with user clarifications while preserving the original category group
-3. Create an enhanced, specific query text that captures all the information
-4. Extract structured constraints from the merged information
+3. Merge the original vague query with user clarifications, prioritizing the user's specific product type mention
+4. Create an enhanced, specific query text that captures all the information
+5. Extract structured constraints from the merged information
 
 The enhanced query should:
+- **INCLUDE ONLY the product type from user clarifications**: If user says "hoodies", "dresses", "tops", etc., the enhanced query MUST include ONLY that product type (e.g., "hoodies", "hoodies for women", "black hoodies"). Do NOT include product types from preliminary products if user explicitly mentions a different product type.
+- **IGNORE preliminary products if user explicitly mentions a product type**: If user says "looking for hoodies", ignore any dresses or other product types shown in preliminary products. The enhanced query should be "hoodies" or "hoodies for women", NOT "hoodies and dresses".
 - **PRESERVE the original query's category group**: Do NOT convert queries from one category group to another (e.g., don't convert "room decor" to "accessories", don't convert "kids dresses" to "women's dresses")
 - Be specific and searchable (e.g., "floral maxi dress for beach wedding under $400" OR "cute decorative dishes for living room" OR "bedding sets with floral patterns" OR "jewelry with pearls" OR "perfumes for women" OR "dresses for kids")
 - Include ALL relevant attributes mentioned (category, style, occasion, price, etc.)
@@ -68,6 +74,10 @@ The enhanced query should:
 - NOT include filler phrases like "show me" or "I want"
 
 Examples:
+- Original: "suggest me something to wear" + "hoodies" → Enhanced: "hoodies" or "hoodies for women" (user's clarification "hoodies" is included, NO dresses from preliminary products)
+- Original: "help me find something" + "dresses" → Enhanced: "dresses" or "dresses for women" (user's clarification "dresses" is included, NO other product types)
+- Original: "suggest me something to wear" (preliminary products show dresses) + "looking for hoodies" → Enhanced: "hoodies" or "hoodies for women" (ONLY hoodies, NOT "hoodies and dresses")
+- Original: "am a curvy mom, suggest me something" (preliminary products show dresses) + "looking for hoodies" → Enhanced: "hoodies for curvy women" (ONLY hoodies, NOT "hoodies and dresses")
 - Original: "room decor" + "just some cute stuffs" → Enhanced: "cute decorative items for room decor" or "cute home decor items" (NOT "cute women's accessories")
 - Original: "bedding" + "floral patterns" → Enhanced: "bedding sets with floral patterns" (NOT "floral dresses")
 - Original: "dress for wedding" + "maxi length" → Enhanced: "maxi dress for wedding" (fashion domain preserved)
@@ -126,6 +136,11 @@ export async function enhanceQuery(
       .replace('{DATASET_CONTEXT}', datasetHint)
       .replace('{CATEGORIES_LIST}', categoriesList);
 
+    // Check if user responses mention specific product types
+    const allResponses = userResponses.join(' ').toLowerCase();
+    const hasProductTypeInResponse = /(?:looking\s+for|show\s+me|I\s+want|need|want)\s+(?:hoodie|hoodies|dress|dresses|top|tops|skirt|skirts|pants|joggers|swimsuit|swimsuits|jewelry|perfume|bedding|decor|accessories|bag|bags|sweater|sweaters|cardigan|cardigans|jacket|jackets|coat|coats|blazer|blazers|loungewear|activewear|shoes|sneakers|boots|pajama|pajamas|pjs|robe|robes)/i.test(allResponses) ||
+      /^(?:hoodie|hoodies|dress|dresses|top|tops|skirt|skirts|pants|joggers|swimsuit|swimsuits|jewelry|perfume|bedding|decor|accessories|bag|bags|sweater|sweaters|cardigan|cardigans|jacket|jackets|coat|coats|blazer|blazers|loungewear|activewear|shoes|sneakers|boots|pajama|pajamas|pjs|robe|robes)/i.test(allResponses);
+    
     // Determine system prompt based on original query context - detect all category groups
     const isKidsQuery = /kids|children|child|baby|toddler|girls|tween/i.test(originalQuery);
     const isAccessoriesQuery = /jewelry|accessories|hair accessories|bags|phone case|soap dispenser|makeup/i.test(originalQuery);
@@ -134,7 +149,10 @@ export async function enhanceQuery(
     
     let systemPrompt = 'You are a query enhancement system for a shopping assistant. The catalog includes 5 category groups: Kids, Women\'s/Adult Apparel, Accessories, Personal Care, and Home & Living. Your key task is to convert vague/generic terms into specific product categories while preserving the original query\'s category group.';
     
-    if (isKidsQuery) {
+    // CRITICAL: If user responses mention specific product types, prioritize those
+    if (hasProductTypeInResponse) {
+      systemPrompt = 'You are a query enhancement system for a shopping assistant. CRITICAL: The user\'s clarification response explicitly mentions a specific product type (hoodies, dresses, tops, etc.). You MUST create an enhanced query that includes ONLY that product type. Do NOT include product types from preliminary products or the original vague query if the user explicitly mentioned a different product type. The enhanced query should start with or prominently feature the product type the user mentioned. If preliminary products show different product types (e.g., dresses), ignore them and use ONLY the product type the user explicitly mentioned (e.g., hoodies).';
+    } else if (isKidsQuery) {
       systemPrompt = 'You are a query enhancement system for a shopping assistant. CRITICAL: If the original query mentions "kids", "children", "baby", "toddler", "girls", you MUST preserve that Kids category context. Do NOT convert Kids queries to adult categories. Convert vague terms to specific product categories within Kids categories (e.g., "dress" → "kids dress", "onesie", "bodysuit").';
     } else if (isAccessoriesQuery) {
       systemPrompt = 'You are a query enhancement system for a shopping assistant. CRITICAL: If the original query mentions "jewelry", "accessories", "bags", "hair accessories", you MUST preserve that Accessories context. Do NOT convert Accessories queries to apparel. Convert vague terms to specific product categories within Accessories.';

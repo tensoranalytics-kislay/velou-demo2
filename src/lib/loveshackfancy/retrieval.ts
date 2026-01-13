@@ -19,7 +19,7 @@ import { validateProductCategory } from './validation/category-validator';
 import { expandCategoriesForOptimalCoverage } from '../search/filtering/category';
 import { buildCategorySpecificDictionaries } from '../search/filtering/category-dictionaries';
 import { applyPostSQLFilters, extractSleeveFromSleeveLengths } from '../search/filtering/post-filter';
-import { extractConstraintValues } from './constraint-utils';
+import { extractConstraintValues, extractConstraintIntent, type ConstraintWithIntent } from './constraint-utils';
 import { prisma } from '../db';
 import type { SearchResultItem } from '../search/types';
 
@@ -855,10 +855,13 @@ export async function multiViewRetrieval(
   // Only use if we have explicit structured constraints AND concept search is enabled
   // Note: Most products don't have structured "Occasion" attributes - they just mention
   // "wedding" in titles/descriptions, which vector search already handles!
+  const occasionValues = extractConstraintValues(classification.constraints.occasions) || (Array.isArray(classification.constraints.occasions) ? classification.constraints.occasions : []);
+  const styleValues = extractConstraintValues(classification.constraints.styles) || (Array.isArray(classification.constraints.styles) ? classification.constraints.styles : []);
+  const patternValues = extractConstraintValues(classification.constraints.patterns) || (Array.isArray(classification.constraints.patterns) ? classification.constraints.patterns : []);
   const hasConceptConstraints = (
-    (classification.constraints.occasions && classification.constraints.occasions.length > 0) ||
-    (classification.constraints.styles && classification.constraints.styles.length > 0) ||
-    (classification.constraints.patterns && classification.constraints.patterns.length > 0)
+    occasionValues.length > 0 ||
+    styleValues.length > 0 ||
+    patternValues.length > 0
   );
   
   if (searchMethods.concept && hasConceptConstraints) {
@@ -869,21 +872,24 @@ export async function multiViewRetrieval(
           const { searchConceptIndexFromDB } = await import('../search/concept/db');
           
           // Map fashion constraints to concept search
-          // Convert null to undefined for type compatibility
-          const nullToUndefined = <T>(value: T | null | undefined): T | undefined => 
-            value === null ? undefined : value;
+          // Extract values from intent format if needed
+          const extractValuesForConcept = (constraint: string[] | ConstraintWithIntent | null | undefined): string[] | undefined => {
+            if (constraint === null || constraint === undefined) return undefined;
+            const values = extractConstraintValues(constraint) || (Array.isArray(constraint) ? constraint : []);
+            return values.length > 0 ? values : undefined;
+          };
           
           const conceptConstraints = {
-            styles: nullToUndefined(classification.constraints.styles),
-            occasions: nullToUndefined(classification.constraints.occasions),
-            patterns: nullToUndefined(classification.constraints.patterns),
-            materials: nullToUndefined(classification.constraints.materials),
-            collections: nullToUndefined(classification.constraints.collections),
-            lengths: nullToUndefined(classification.constraints.lengths),
-            necklines: nullToUndefined(classification.constraints.necklines),
-            sleeveLengths: nullToUndefined(classification.constraints.sleeveLengths),
-            embellishments: nullToUndefined(classification.constraints.embellishments),
-            fits: nullToUndefined(classification.constraints.fits),
+            styles: extractValuesForConcept(classification.constraints.styles),
+            occasions: extractValuesForConcept(classification.constraints.occasions),
+            patterns: extractValuesForConcept(classification.constraints.patterns),
+            materials: extractValuesForConcept(classification.constraints.materials),
+            collections: extractValuesForConcept(classification.constraints.collections),
+            lengths: extractValuesForConcept(classification.constraints.lengths),
+            necklines: extractValuesForConcept(classification.constraints.necklines),
+            sleeveLengths: extractValuesForConcept(classification.constraints.sleeveLengths),
+            embellishments: extractValuesForConcept(classification.constraints.embellishments),
+            fits: extractValuesForConcept(classification.constraints.fits),
           };
           
           // Use database search for fashion attributes
@@ -1025,59 +1031,163 @@ export function classificationToSearchConstraints(
   const nullToUndefined = <T>(value: T | null | undefined): T | undefined => 
     value === null ? undefined : value;
   
+  // PHASE 3: Extract excluded values for all applicable constraints
+  // Extract values and intent for each constraint type
+  const colorValues = extractConstraintValues(constraints.colors);
+  const colorIntent = extractConstraintIntent(constraints.colors);
+  
+  const materialValues = extractConstraintValues(constraints.materials);
+  const materialIntent = extractConstraintIntent(constraints.materials);
+  
+  const patternValues = extractConstraintValues(constraints.patterns);
+  const patternIntent = extractConstraintIntent(constraints.patterns);
+  
+  const occasionValues = extractConstraintValues(constraints.occasions);
+  const occasionIntent = extractConstraintIntent(constraints.occasions);
+  
+  const sizeValues = extractConstraintValues(constraints.sizes);
+  const sizeIntent = extractConstraintIntent(constraints.sizes);
+  
+  const seasonValues = extractConstraintValues(constraints.seasons);
+  const seasonIntent = extractConstraintIntent(constraints.seasons);
+  
+  const fitValues = extractConstraintValues(constraints.fits);
+  const fitIntent = extractConstraintIntent(constraints.fits);
+  
+  const lengthValues = extractConstraintValues(constraints.lengths);
+  const lengthIntent = extractConstraintIntent(constraints.lengths);
+  
+  const styleValues = extractConstraintValues(constraints.styles);
+  const styleIntent = extractConstraintIntent(constraints.styles);
+  
+  const collectionValues = extractConstraintValues(constraints.collections);
+  const collectionIntent = extractConstraintIntent(constraints.collections);
+  
+  const necklineValues = extractConstraintValues(constraints.necklines);
+  const necklineIntent = extractConstraintIntent(constraints.necklines);
+  
+  const sleeveLengthValues = extractConstraintValues(constraints.sleeveLengths);
+  const sleeveLengthIntent = extractConstraintIntent(constraints.sleeveLengths);
+  
+  const formalityLevelValues = extractConstraintValues(constraints.formalityLevel);
+  const formalityLevelIntent = extractConstraintIntent(constraints.formalityLevel);
+  
+  const ageGroupValues = extractConstraintValues(constraints.ageGroups);
+  const ageGroupIntent = extractConstraintIntent(constraints.ageGroups);
+  
+  // Extract values for additional constraints
+  const colorShadeValues = extractConstraintValues(constraints.colorShade);
+  const benefitsValues = extractConstraintValues(constraints.benefits);
+  const claimsValues = extractConstraintValues(constraints.claims);
+  const compatibilityValues = extractConstraintValues(constraints.compatibility);
+  const roomsValues = extractConstraintValues(constraints.rooms);
+  const useCasesValues = extractConstraintValues(constraints.useCases);
+  
   // Map scents to sensoryProfile: combine scents into a string description
-  const sensoryProfileFromScents = constraints.scents && constraints.scents.length > 0
-    ? constraints.scents.join(', ') + ' scent'
+  const scentValues = extractConstraintValues(constraints.scents) || (Array.isArray(constraints.scents) ? constraints.scents : []);
+  const sensoryProfileFromScents = scentValues.length > 0
+    ? scentValues.join(', ') + ' scent'
     : undefined;
   
   // Merge sensoryProfile from scents with explicit sensoryProfile (prefer explicit if both exist)
   const mergedSensoryProfile = constraints.sensoryProfile || sensoryProfileFromScents;
   
   // Map FashionConstraints to SearchConstraints (only include fields that exist in SearchConstraints)
+  // PHASE 3: Handle excluded intent - set constraint to undefined and add to excluded* field
   const searchConstraints: SearchConstraints = {
     // Category filter: hard SQL-level filter using top 3 categories
     category: categoryFilter,
     // Map fashion constraints to SearchConstraints fields
-    colors: nullToUndefined(constraints.colors),
-    sizes: nullToUndefined(constraints.sizes),
-    materials: nullToUndefined(constraints.materials),
-    occasions: nullToUndefined(constraints.occasions),
-    seasons: nullToUndefined(constraints.seasons),
-    lengths: nullToUndefined(constraints.lengths),
+    // If intent is 'excluded', set to undefined (will be added to excluded* field below)
+    colors: colorIntent === 'excluded' ? undefined : nullToUndefined(colorValues),
+    sizes: sizeIntent === 'excluded' ? undefined : nullToUndefined(sizeValues),
+    materials: materialIntent === 'excluded' ? undefined : nullToUndefined(materialValues),
+    occasions: occasionIntent === 'excluded' ? undefined : nullToUndefined(occasionValues),
+    seasons: seasonIntent === 'excluded' ? undefined : nullToUndefined(seasonValues),
+    lengths: lengthIntent === 'excluded' ? undefined : nullToUndefined(lengthValues),
     priceMinCents: constraints.priceMinCents === null ? undefined : constraints.priceMinCents,
     priceMaxCents: constraints.priceMaxCents === null ? undefined : constraints.priceMaxCents,
-    ageGroups: nullToUndefined(constraints.ageGroups),
+    ageGroups: ageGroupIntent === 'excluded' ? undefined : nullToUndefined(ageGroupValues),
     // Map fashion-specific fields to generic SearchConstraints fields
     // styles + patterns -> styleTags (both are style descriptors)
-    styleTags: nullToUndefined([
-      ...(constraints.styles || []),
-      ...(constraints.patterns || []),
-    ].filter(Boolean).length > 0 ? [
-      ...(constraints.styles || []),
-      ...(constraints.patterns || []),
-    ] : undefined),
+    // If either has excluded intent, handle separately
+    styleTags: (styleIntent === 'excluded' || patternIntent === 'excluded') 
+      ? undefined 
+      : nullToUndefined([
+          ...(styleValues || []),
+          ...(patternValues || []),
+        ].filter(Boolean).length > 0 ? [
+          ...(styleValues || []),
+          ...(patternValues || []),
+        ] : undefined),
     // Map post-filterable attributes (preserved in sqlFilters for post-SQL filtering)
     // sleeveLengths -> sleeves (map FashionConstraints.sleeveLengths to SearchConstraints.sleeves)
-    sleeves: nullToUndefined(constraints.sleeveLengths),
-    necklines: nullToUndefined(constraints.necklines),
-    formalityLevel: nullToUndefined(constraints.formalityLevel),
-    colorShade: nullToUndefined(constraints.colorShade),
+    sleeves: sleeveLengthIntent === 'excluded' ? undefined : nullToUndefined(sleeveLengthValues),
+    necklines: necklineIntent === 'excluded' ? undefined : nullToUndefined(necklineValues),
+    formalityLevel: formalityLevelIntent === 'excluded' ? undefined : nullToUndefined(formalityLevelValues),
+    colorShade: nullToUndefined(colorShadeValues),
     // Map category-specific constraints
     // scents -> sensoryProfile (convert array to string description)
     sensoryProfile: mergedSensoryProfile || undefined,
     // rooms -> useCases (rooms are a type of useCase for home products)
     useCases: nullToUndefined([
-      ...(constraints.rooms || []),
-      ...(constraints.useCases || []),
+      ...(roomsValues || []),
+      ...(useCasesValues || []),
     ].filter(Boolean).length > 0 ? [
-      ...(constraints.rooms || []),
-      ...(constraints.useCases || []),
+      ...(roomsValues || []),
+      ...(useCasesValues || []),
     ] : undefined),
     // Direct mappings for generic constraints
-    benefits: nullToUndefined(constraints.benefits),
-    claims: nullToUndefined(constraints.claims),
-    compatibility: nullToUndefined(constraints.compatibility),
+    benefits: nullToUndefined(benefitsValues),
+    claims: nullToUndefined(claimsValues),
+    compatibility: nullToUndefined(compatibilityValues),
   };
+  
+  // Add excluded values to searchConstraints (will be used by constraint-context.ts for SQL filtering)
+  if (colorIntent === 'excluded' && colorValues && colorValues.length > 0) {
+    (searchConstraints as any).excludedColors = colorValues;
+  }
+  if (materialIntent === 'excluded' && materialValues && materialValues.length > 0) {
+    (searchConstraints as any).excludedMaterials = materialValues;
+  }
+  if (patternIntent === 'excluded' && patternValues && patternValues.length > 0) {
+    (searchConstraints as any).excludedStyleTags = patternValues; // Patterns are mapped to styleTags
+  }
+  if (occasionIntent === 'excluded' && occasionValues && occasionValues.length > 0) {
+    (searchConstraints as any).excludedOccasions = occasionValues;
+  }
+  if (sizeIntent === 'excluded' && sizeValues && sizeValues.length > 0) {
+    (searchConstraints as any).excludedSizes = sizeValues;
+  }
+  if (seasonIntent === 'excluded' && seasonValues && seasonValues.length > 0) {
+    (searchConstraints as any).excludedSeasons = seasonValues;
+  }
+  if (fitIntent === 'excluded' && fitValues && fitValues.length > 0) {
+    (searchConstraints as any).excludedFit = fitValues[0]; // Fit is single value
+  }
+  if (lengthIntent === 'excluded' && lengthValues && lengthValues.length > 0) {
+    (searchConstraints as any).excludedLengths = lengthValues;
+  }
+  if (styleIntent === 'excluded' && styleValues && styleValues.length > 0) {
+    // Styles are mapped to styleTags, so add to excludedStyleTags
+    const existingExcludedStyleTags = (searchConstraints as any).excludedStyleTags || [];
+    (searchConstraints as any).excludedStyleTags = [...existingExcludedStyleTags, ...styleValues];
+  }
+  if (collectionIntent === 'excluded' && collectionValues && collectionValues.length > 0) {
+    (searchConstraints as any).excludedCollections = collectionValues;
+  }
+  if (necklineIntent === 'excluded' && necklineValues && necklineValues.length > 0) {
+    (searchConstraints as any).excludedNecklines = necklineValues;
+  }
+  if (sleeveLengthIntent === 'excluded' && sleeveLengthValues && sleeveLengthValues.length > 0) {
+    (searchConstraints as any).excludedSleeves = sleeveLengthValues; // sleeveLengths mapped to sleeves
+  }
+  if (formalityLevelIntent === 'excluded' && formalityLevelValues && formalityLevelValues.length > 0) {
+    (searchConstraints as any).excludedFormalityLevels = formalityLevelValues;
+  }
+  if (ageGroupIntent === 'excluded' && ageGroupValues && ageGroupValues.length > 0) {
+    (searchConstraints as any).excludedAgeGroups = ageGroupValues;
+  }
   
   return searchConstraints;
 }

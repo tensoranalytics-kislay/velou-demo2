@@ -22,7 +22,8 @@
     "migrate:prepare": "tsx scripts/migration-prep.ts",
     "verify:phase2": "tsx scripts/verify-phase2-migration.ts",
     "migrate:data": "tsx scripts/migrate-to-variant-model.ts",
-    "verify:phase3": "tsx scripts/verify-phase3-migration.ts"
+    "verify:phase3": "tsx scripts/verify-phase3-migration.ts",
+    "build:dictionaries": "tsx scripts/build-constraint-dictionaries.ts"
   },
   "dependencies": {
     "@prisma/client": "5.19.1",

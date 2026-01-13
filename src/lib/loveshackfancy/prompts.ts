@@ -6,12 +6,19 @@
  */
 
 import { LOVESHACKFANCY_ONTOLOGY } from './ontology';
+import { formatDictionaryForPrompt, loadConstraintDictionaries } from './constraint-dictionaries';
 
 // ============================================================================
 // QUERY CLASSIFIER PROMPT
 // ============================================================================
 
-export const LOVESHACKFANCY_QUERY_CLASSIFIER_PROMPT = `You are a shopping assistant for LoveShackFancy, a brand specializing in romantic, feminine designs across multiple verticals.
+/**
+ * Build the query classifier prompt with dictionary-based constraint matching
+ */
+export function buildQueryClassifierPrompt(): string {
+  const dictionaries = loadConstraintDictionaries();
+  
+  return `You are a shopping assistant for LoveShackFancy, a brand specializing in romantic, feminine designs across multiple verticals.
 
 Classify the user's query and extract constraints. The catalog includes ALL of these categories across 5 category groups (48 total categories):
 
@@ -178,22 +185,94 @@ RULES:
 - multicolor: Extract when user mentions multi-color products (e.g., "multicolor", "multi-color", "not multicolor")
 - seasonalPalette: Extract seasonal color palettes
 
-FASHION ONTOLOGY:
+**CRITICAL: CONSTRAINT MATCHING FROM DATABASE DICTIONARIES**
+
+You MUST match user queries to values that ACTUALLY EXIST in the database. 
+Do NOT use values that are not in the dictionaries below.
+
+${formatDictionaryForPrompt('colors', 100)}
+
+${formatDictionaryForPrompt('materials', 100)}
+
+${formatDictionaryForPrompt('occasions', 100)}
+
+${formatDictionaryForPrompt('styles', 100)}
+
+${formatDictionaryForPrompt('patterns', 100)}
+
+${formatDictionaryForPrompt('sizes', 100)}
+
+${formatDictionaryForPrompt('lengths', 100)}
+
+${formatDictionaryForPrompt('formalityLevel', 100)}
+
+**INTENT-BASED MATCHING RULES:**
+- **REQUIRED intent** ("only wants", "must be", "only", "just", "exactly", "specifically") → **Conservative**: Use EXACT dictionary match only. Do NOT include similar values.
+- **STRONG intent** ("preferably", "or similar", "ideally", "would prefer") → **Moderate**: Use exact match + 1-2 semantically similar values from dictionary
+- **PREFERRED intent** ("maybe", "could be", "something like", "if possible") → **Relaxed**: Use exact match + all semantically similar values from dictionary
+- **EXCLUDED intent** ("not", "avoid", "no", "without", "don't want") → **Exclude**: Filter out products matching these dictionary values
+
+**MATCHING EXAMPLES:**
+
+Patterns:
+- "only floral dresses" (REQUIRED) → patterns: { values: ["Floral"], intent: "required" } (exact match only)
+- "floral or similar patterns" (STRONG) → patterns: { values: ["Floral", "Polka Dot"], intent: "strong" } (exact + 1-2 similar)
+- "something with pattern" (PREFERRED) → patterns: { values: ["Floral", "Polka Dot", "Striped", "Gingham", "Plaid", "Tie-Dye"], intent: "preferred" } (exact + all similar)
+- "not floral" (EXCLUDED) → patterns: { values: ["Floral"], intent: "excluded" }
+
+Colors:
+- "only red" (REQUIRED) → colors: { values: ["Red"], intent: "required" } (exact match only)
+- "red or similar" (STRONG) → colors: { values: ["Red", "Burgundy"], intent: "strong" } (exact + 1-2 similar)
+- "maybe something red" (PREFERRED) → colors: { values: ["Red", "Burgundy", "Coral", "Pink"], intent: "preferred" } (exact + all similar)
+- "not red" (EXCLUDED) → colors: { values: ["Red"], intent: "excluded" }
+
+Materials:
+- "only cotton" (REQUIRED) → materials: { values: ["Cotton"], intent: "required" } (exact match only)
+- "cotton or similar" (STRONG) → materials: { values: ["Cotton", "Linen"], intent: "strong" } (exact + 1-2 similar)
+- "something breathable" (PREFERRED) → materials: { values: ["Cotton", "Linen", "Modal"], intent: "preferred" } (exact + all similar)
+- "not silk" (EXCLUDED) → materials: { values: ["Silk"], intent: "excluded" }
+
+Occasions:
+- "only beach" (REQUIRED) → occasions: { values: ["Beach"], intent: "required" } (exact match only)
+- "beach or similar" (STRONG) → occasions: { values: ["Beach", "Vacation"], intent: "strong" } (exact + 1-2 similar)
+- "something for vacation" (PREFERRED) → occasions: { values: ["Beach", "Vacation", "Resort"], intent: "preferred" } (exact + all similar)
+- "not formal" (EXCLUDED) → occasions: { values: ["Formal"], intent: "excluded" }
+
+Sizes:
+- "only size 4" (REQUIRED) → sizes: { values: ["4"], intent: "required" } (exact match only)
+- "size 4 or similar" (STRONG) → sizes: { values: ["4", "6"], intent: "strong" } (exact + 1-2 similar)
+- "around size 4" (PREFERRED) → sizes: { values: ["4", "6", "2"], intent: "preferred" } (exact + all similar)
+
+Lengths:
+- "only maxi" (REQUIRED) → lengths: { values: ["Maxi"], intent: "required" } (exact match only)
+- "maxi or similar" (STRONG) → lengths: { values: ["Maxi", "Midi"], intent: "strong" } (exact + 1-2 similar)
+- "long dresses" (PREFERRED) → lengths: { values: ["Maxi", "Midi"], intent: "preferred" } (exact + all similar)
+
+FormalityLevel:
+- "only formal" (REQUIRED) → formalityLevel: { values: ["Formal"], intent: "required" } (exact match only)
+- "formal or similar" (STRONG) → formalityLevel: { values: ["Formal", "Semi-Formal"], intent: "strong" } (exact + 1-2 similar)
+- "something formal" (PREFERRED) → formalityLevel: { values: ["Formal", "Semi-Formal"], intent: "preferred" } (exact + all similar)
+
+**CRITICAL MATCHING RULES:**
+1. **Exact Match First**: Always check if the user's term exists exactly in the dictionary (case-insensitive)
+2. **Semantic Similarity**: If exact match not found, find the CLOSEST semantic match from dictionary
+3. **Intent Controls Similarity**: 
+   - REQUIRED: Only exact match, no similar values
+   - STRONG: Exact match + 1-2 most similar values
+   - PREFERRED: Exact match + all semantically similar values
+   - EXCLUDED: Mark for exclusion (negative filtering)
+4. **Generic Terms**: If user says "printed" but dictionary has ["Floral", "Polka Dot", "Striped"], match to ALL printed patterns if PREFERRED intent, or 1-2 if STRONG intent
+5. **Compound Terms**: If user says "beach wedding" but dictionary has separate "Beach" and "Wedding", use both if they exist
+
+FASHION ONTOLOGY (for reference - use dictionaries above for actual matching):
 
 Age Groups: ${LOVESHACKFANCY_ONTOLOGY.ageGroups.join(', ')} (CRITICAL: Use EXACT values, case-sensitive)
 Collections: ${LOVESHACKFANCY_ONTOLOGY.collections.join(', ')}
-Styles: ${LOVESHACKFANCY_ONTOLOGY.styles.join(', ')}
-Lengths: ${LOVESHACKFANCY_ONTOLOGY.lengths.join(', ')}
 Necklines: ${LOVESHACKFANCY_ONTOLOGY.necklines.join(', ')}
 Sleeve Lengths: ${LOVESHACKFANCY_ONTOLOGY.sleeveLengths.join(', ')}
-Materials: ${LOVESHACKFANCY_ONTOLOGY.materials.join(', ')}
-Patterns: ${LOVESHACKFANCY_ONTOLOGY.patterns.join(', ')}
-Occasions: ${LOVESHACKFANCY_ONTOLOGY.occasions.join(', ')}
 Seasons: ${LOVESHACKFANCY_ONTOLOGY.seasons.join(', ')}
 Fits: ${LOVESHACKFANCY_ONTOLOGY.fits.join(', ')}
 Embellishments: ${LOVESHACKFANCY_ONTOLOGY.embellishments.join(', ')}
-Colors: ${LOVESHACKFANCY_ONTOLOGY.colors.join(', ')}
-Sizes: ${LOVESHACKFANCY_ONTOLOGY.sizes.join(', ')}
 
 QUERY TYPES:
 1. direct_product_search: User mentions specific product types WITHOUT occasion context (e.g., "mini dress", "maxi dress", "blouse", "top", "bedding", "decor items", "tabletop", "towels")
@@ -621,6 +700,10 @@ OUTPUT JSON:
   },
   "confidence": number (0.0-1.0)
 }`;
+}
+
+// Export constant for backward compatibility (calls function)
+export const LOVESHACKFANCY_QUERY_CLASSIFIER_PROMPT = buildQueryClassifierPrompt();
 
 export const LOVESHACKFANCY_QUERY_CLASSIFIER_SCHEMA = {
   name: 'fashion_query_classification',

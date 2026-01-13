@@ -20,18 +20,34 @@ export type QueryCategorization = {
 
 const QUERY_CATEGORIZER_PROMPT = `Categorize the user's shopping query into one of three categories:
 
-1. **direct_search**: User mentions specific product types, categories, or attributes
+1. **direct_search**: User mentions SPECIFIC PRODUCT TYPES or CATEGORIES explicitly
+   - **REQUIRED**: Must mention at least one product type/category (dress, top, bottom, skirt, swimsuit, bedding, perfume, etc.)
    - Examples: "wedding dress", "maxi dress", "blue top", "swimsuits", "bedding", "towels", "perfume"
-   - User knows what they want and provides specific details
+   - **CRITICAL**: If user says "suggest me something", "help me find", "what should I wear", "something to wear" WITHOUT mentioning a specific product type → classify as "indirect_search"
+   - User knows what product category they want and provides specific details
 
 2. **indirect_search**: User gives vague requests, gift requests, or needs clarification
-   - Examples: "something for a wedding", "gift for mom", "what do you have?", "something elegant", "I need help finding..."
-   - User needs guidance or clarification
+   - **Key indicators**: "suggest me", "help me find", "what should I wear", "something to wear", "something for", "gift for", "what do you have?"
+   - Examples: "something for a wedding", "gift for mom", "what do you have?", "something elegant", "I need help finding...", "suggest me something to wear", "am a curvy mom, suggest me something"
+   - **CRITICAL**: If the query does NOT mention a specific product type/category (dress, top, bottom, etc.), it MUST be "indirect_search" even if it mentions attributes (curvy, elegant, etc.)
+   - User needs guidance or clarification to determine which product category they want
 
-3. **irrelevant**: Not shopping-related and doesn't match any of the 48 product categories
+3. **irrelevant**: Not shopping-related and does NOT match any of the 48 product categories
    - Examples: "what's the weather?", "tell me a joke", "do you sell cars?"
    - Completely unrelated to shopping
-   - **IMPORTANT**: If the query mentions a valid product category (perfumes, dresses, bedding, etc.), it should be "direct_search" even if combined with unusual modifiers (e.g., "perfumes for toddler" is still direct_search because "perfumes" is a valid category)
+
+**CRITICAL CLASSIFICATION RULES - FOLLOW THESE EXACTLY:**
+- **ANY query containing "suggest me something"** → ALWAYS "indirect_search" (even if attributes like "curvy", "mom", "elegant" are mentioned)
+- **ANY query containing "help me find something"** → ALWAYS "indirect_search" (even if attributes are mentioned)
+- **ANY query containing "what should I wear"** → ALWAYS "indirect_search" (even if attributes are mentioned)
+- **ANY query containing "something to wear"** → ALWAYS "indirect_search" (even if attributes are mentioned)
+- **"curvy mom, suggest me something"** → "indirect_search" (contains "suggest me something" - NO product type mentioned)
+- **"wedding dress"** → "direct_search" (mentions specific product type: "dress")
+- **"blue top"** → "direct_search" (mentions specific product type: "top")
+- **"something elegant"** → "indirect_search" (mentions attribute but NO product type)
+- **"gift for mom"** → "indirect_search" (NO product type mentioned)
+
+**REMEMBER: If the query contains phrases like "suggest me", "help me find", "something to wear" but does NOT mention a specific product type (dress, top, bottom, skirt, swimsuit, etc.), it MUST be "indirect_search" regardless of any attributes (curvy, elegant, etc.) mentioned.**
 
 The catalog includes 48 categories across 5 groups:
 - Kids: Girls Tops, Girls Bottoms, Girls Dresses, Girls Swimwear, Baby & Toddler Bottoms, Tween Pants, Tween Sweaters, Tween Dresses

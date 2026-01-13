@@ -40,7 +40,7 @@ import { matchAgeGroup } from './ranking/constraint-matcher';
 import { handleIrrelevantQuery, generateIntelligentDenial } from './irrelevant-query-handler';
 import { getAllCategories, findClosestCategory } from '../catalog/category-tree';
 import { extractCategoryKeywords, validateAllProducts as validateAllProductsByCategory, filterProductsByCategoryValidation } from './validation/category-validator';
-import { extractConstraintValues } from './constraint-utils';
+import { extractConstraintValues, extractConstraintIntent, type ConstraintWithIntent } from './constraint-utils';
 
 export type LoveshackfancyQueryInput = {
   sessionId: string;
@@ -266,6 +266,9 @@ export async function handleLoveshackfancyQuery(
   
   // Store categories found from safety check for unrelated queries (to use after categorization)
   let safetyCheckCategories: string[] | null = null;
+  
+  // Declare topCategories early so it's accessible throughout (including follow-up handling)
+  let topCategories: string[] = [];
   
   if (!safetyCheck.safe) {
     logger.info('handleLoveshackfancyQuery: unsafe or non-shopping query', {
@@ -597,103 +600,108 @@ Answer the user's question about this product:`;
           responseCount: [...pendingFollowups.responses, input.message].length,
         });
       } else {
-        // User answered a follow-up question
+        // User answered the clarification question (only ONE question now)
         const updatedResponses = [...pendingFollowups.responses, input.message];
-        const updatedFollowups = {
-          ...pendingFollowups,
-          responses: updatedResponses,
-        };
+        
+        // Enhance query with the response
+        onProgress?.('understanding', STAGE_PROGRESS.understanding + 5);
+        const enhancedQuery = await enhanceQuery(
+          pendingFollowups.originalQuery,
+          updatedResponses,
+          pendingFollowups.preliminaryProducts,
+          input.merchantData?.datasetContext
+        );
 
-        // Check if we have enough responses (2-3 questions, 2-3 responses)
-        if (updatedResponses.length >= pendingFollowups.questions.length) {
-          // We have all responses - enhance and search
-          onProgress?.('understanding', STAGE_PROGRESS.understanding + 5);
-          const enhancedQuery = await enhanceQuery(
-            pendingFollowups.originalQuery,
-            updatedResponses,
-            pendingFollowups.preliminaryProducts,
-            input.merchantData?.datasetContext
-          );
+        // Check category confidence again with the enhanced query
+        onProgress?.('classifying', STAGE_PROGRESS.classifying);
+        const categoryResult = await classifyQueryToCategoriesWithConfidence(
+          enhancedQuery.enhancedQueryText,
+          input.merchantId
+        );
 
-          // Note: We'll use enhancedQuery.enhancedQueryText for the search
-          // The embedding will be created during retrieval
-          // Clear pending followups (fire-and-forget - non-blocking)
-          if (input.merchantId) {
-            updateState(input.merchantId, input.sessionId, {
-              memory: {
-                ...conversationState.memory,
-                pendingFollowups: undefined,
-              },
-            }).catch(err => logger.warn('state_update_failed', { 
-              error: err instanceof Error ? err.message : String(err),
-              context: 'clear_pending_followups_enhanced'
-            }));
+        // Clear pending followups (fire-and-forget - non-blocking)
+        if (input.merchantId) {
+          updateState(input.merchantId, input.sessionId, {
+            memory: {
+              ...conversationState.memory,
+              pendingFollowups: undefined,
+            },
+          }).catch(err => logger.warn('state_update_failed', { 
+            error: err instanceof Error ? err.message : String(err),
+            context: 'clear_pending_followups_after_response'
+          }));
+        }
+
+        // Use enhanced query for search - replace message for remaining flow
+        input.message = enhancedQuery.enhancedQueryText;
+
+        // Extract product type from enhanced query to validate category classification
+        const enhancedQueryLower = enhancedQuery.enhancedQueryText.toLowerCase();
+        const productTypeKeywords = ['hoodie', 'hoodies', 'dress', 'dresses', 'top', 'tops', 'skirt', 'skirts', 'swimsuit', 'swimsuits', 'bikini', 'bikinis', 'jogger', 'joggers', 'pant', 'pants', 'short', 'shorts', 'sweater', 'sweaters', 'cardigan', 'cardigans', 'jacket', 'jackets', 'coat', 'coats', 'blazer', 'blazers', 'loungewear', 'activewear'];
+        const detectedProductType = productTypeKeywords.find(kw => enhancedQueryLower.includes(kw));
+        
+        // Set topCategories if category is now clear, otherwise proceed anyway
+        if (categoryResult.confidence >= 0.5 && categoryResult.categories.length > 0) {
+          topCategories = categoryResult.categories;
+          categoryConfidenceForThreshold = categoryResult.confidence;
+          
+          // Validate that categories match the detected product type
+          if (detectedProductType) {
+            const categoryMatchesProductType = topCategories.some(cat => {
+              const catLower = cat.toLowerCase();
+              // Check if category contains the product type or is a parent category
+              return catLower.includes(detectedProductType) || 
+                     (detectedProductType.includes('hoodie') && (catLower.includes('top') || catLower.includes('sweater'))) ||
+                     (detectedProductType.includes('dress') && catLower.includes('dress')) ||
+                     (detectedProductType.includes('top') && catLower.includes('top')) ||
+                     (detectedProductType.includes('skirt') && catLower.includes('skirt')) ||
+                     (detectedProductType.includes('swimsuit') && (catLower.includes('swim') || catLower.includes('bikini')));
+            });
+            
+            if (!categoryMatchesProductType) {
+              logger.warn('category_mismatch_with_product_type', {
+                originalQuery: pendingFollowups.originalQuery,
+                enhancedQuery: enhancedQuery.enhancedQueryText,
+                detectedProductType,
+                categories: topCategories,
+                note: 'Category classification does not match detected product type - may need re-classification'
+              });
+            } else {
+              logger.info('category_matches_product_type', {
+                enhancedQuery: enhancedQuery.enhancedQueryText,
+                detectedProductType,
+                categories: topCategories,
+                note: 'Category classification matches detected product type'
+              });
+            }
           }
-
-          // Use enhanced query for search - replace message for remaining flow
-          // We'll use enhancedQuery.enhancedQueryText for classification and retrieval
-          const originalMessage = input.message;
-          input.message = enhancedQuery.enhancedQueryText;
-
-          // Continue with normal flow using enhanced query
-          logger.info('query_enhanced_and_proceeding', {
+          
+          logger.info('category_clear_after_clarification_proceeding', {
             originalQuery: pendingFollowups.originalQuery,
             enhancedQuery: enhancedQuery.enhancedQueryText,
-            responseCount: updatedResponses.length,
+            categories: topCategories,
+            confidence: categoryResult.confidence,
+            detectedProductType: detectedProductType || null,
+            note: 'Category is now clear after clarification, proceeding with product discovery',
           });
         } else {
-          // Still waiting for more responses - regenerate next question based on accumulated responses
-          const remainingQuestions = pendingFollowups.questions.slice(updatedResponses.length);
-          
-          // Regenerate the next question to be more contextual based on user's responses
-          onProgress?.('generating', STAGE_PROGRESS.generating);
-          const nextQuestion = await regenerateNextQuestion(
-            pendingFollowups.originalQuery,
-            updatedResponses,
-            remainingQuestions,
-            pendingFollowups.preliminaryProducts,
-            input.merchantData?.datasetContext
-          );
-
-          // Update the questions list with the regenerated question
-          const updatedQuestions = [
-            ...pendingFollowups.questions.slice(0, updatedResponses.length),
-            nextQuestion,
-            ...remainingQuestions.slice(1), // Keep the rest as-is for now
-          ];
-
-          const updatedFollowupsWithQuestions = {
-            ...updatedFollowups,
-            questions: updatedQuestions,
-          };
-
-          // Update state with new response and regenerated questions (fire-and-forget - non-blocking)
-          if (input.merchantId) {
-            updateState(input.merchantId, input.sessionId, {
-              memory: {
-                ...conversationState.memory,
-                pendingFollowups: updatedFollowupsWithQuestions,
-              },
-            }).catch(err => logger.warn('state_update_failed', { 
-              error: err instanceof Error ? err.message : String(err),
-              context: 'update_pending_followups'
-            }));
-          }
-
-          logger.info('next_followup_question_regenerated', {
+          // Category still unclear, but proceed anyway (only one clarification question allowed)
+          logger.info('category_still_unclear_proceeding_anyway', {
             originalQuery: pendingFollowups.originalQuery,
-            responseCount: updatedResponses.length,
-            nextQuestion: nextQuestion.substring(0, 100),
+            enhancedQuery: enhancedQuery.enhancedQueryText,
+            categoryConfidence: categoryResult.confidence,
+            categories: categoryResult.categories,
+            note: 'Category still unclear after one clarification, proceeding with product discovery anyway',
           });
-
-          onProgress?.('complete', STAGE_PROGRESS.complete);
-          return {
-            replyText: nextQuestion, // Ask regenerated contextual question
-            productCards: [],
-            noExactMatch: true,
-            route: 'CLARIFICATION_NEEDED',
-          };
         }
+
+        // Continue with normal flow using enhanced query
+        // Note: We only ask ONE clarification question, so after one response we always proceed
+        logger.info('query_enhanced_and_proceeding_after_clarification', {
+          originalQuery: pendingFollowups.originalQuery,
+          enhancedQuery: enhancedQuery.enhancedQueryText,
+          responseCount: updatedResponses.length,
+        });
       }
   }
 
@@ -1016,8 +1024,17 @@ Answer the user's question about this product:`;
     input.merchantId
   );
 
-  // Declare topCategories early so it's accessible throughout (may be set for indirect_search or safety check)
-  let topCategories: string[] = safetyCheckCategories || [];
+  logger.info('query_categorization_result', {
+    query: input.message,
+    category: categorization.category,
+    confidence: categorization.confidence,
+    note: 'Query categorizer classification result',
+  });
+
+  // topCategories is already declared earlier - update it with safety check categories if available
+  if (safetyCheckCategories) {
+    topCategories = safetyCheckCategories;
+  }
 
   // Handle irrelevant queries - intelligently decide redirect vs deny
   // Skip this check if we already found categories from safety check
@@ -1134,16 +1151,15 @@ Answer the user's question about this product:`;
     }
   }
 
-  // Handle indirect/vague queries
-  // CRITICAL: If this is a merged follow-up, skip the indirect_search check and proceed with search
-  // The constraint merger has already determined this is a follow-up refinement, so we should proceed
-  // even if the categorizer thinks it's vague (e.g., "wedding outfits" after "bikinis" - the merger
-  // should have preserved the product type, but if it didn't, we still proceed since it's a follow-up)
-  if (categorization.category === 'indirect_search' && !isFollowUp) {
+  // CRITICAL: Check category confidence for ALL query types before proceeding to product discovery
+  // Category confidence must be validated regardless of categorization.category
+  // Skip this check for follow-ups (they already went through clarification)
+  if (!isFollowUp) {
     // NEW: Try category classification first before asking questions
-    // If we can confidently identify categories, proceed with discovery immediately
-    logger.info('indirect_search_attempting_category_classification', {
+    // Check category confidence for ALL query types before proceeding to product discovery
+    logger.info('category_confidence_check_for_all_query_types', {
       query: input.message,
+      categorizationCategory: categorization.category,
       hasPreliminaryProducts: !!categorization.preliminaryProducts?.length,
     });
     
@@ -1152,10 +1168,12 @@ Answer the user's question about this product:`;
     const categoryResult = await classifyQueryToCategoriesWithConfidence(input.message, input.merchantId);
     
     if (categoryResult.confidence >= 0.5 && categoryResult.categories.length > 0) {
-      // Category identified confidently - proceed with discovery instead of asking questions
+      // Category identified confidently - proceed with discovery
       topCategories = categoryResult.categories;
-      logger.info('indirect_search_category_identified_proceeding_with_discovery', {
+      categoryConfidenceForThreshold = categoryResult.confidence;
+      logger.info('category_identified_confidently_proceeding_with_discovery', {
         query: input.message,
+        categorizationCategory: categorization.category,
         categories: topCategories,
         categoryCount: topCategories.length,
         confidence: categoryResult.confidence,
@@ -1165,13 +1183,14 @@ Answer the user's question about this product:`;
       // Set topCategories so it's used in the search pipeline below
       // Continue to the classification and search pipeline (don't return early)
     } else {
-      // Category unclear or low confidence - generate follow-up questions with potential categories
+      // Category unclear or low confidence - generate ONE category-focused clarification question
       const potentialCategories = categoryResult.categories.length > 0 ? categoryResult.categories : [];
-      logger.info('indirect_search_category_unclear_generating_followup_questions', {
+      logger.info('category_unclear_requiring_clarification', {
         query: input.message,
+        categorizationCategory: categorization.category,
         potentialCategories,
         confidence: categoryResult.confidence,
-        note: 'Category classification returned low confidence or empty, asking follow-up questions with potential categories',
+        note: 'Category confidence too low or empty - requiring clarification before search',
       });
       
       onProgress?.('generating', STAGE_PROGRESS.generating);
@@ -1212,8 +1231,9 @@ Answer the user's question about this product:`;
         : '';
       const replyText = `${followups.contextSummary}${firstQuestion}`;
       console.log('[ORCHESTRATOR] FINAL replyText being returned:', replyText);
-      logger.info('indirect_search_reply_constructed', {
+      logger.info('category_clarification_reply_constructed', {
         query: input.message,
+        categorizationCategory: categorization.category,
         contextSummaryLength: followups.contextSummary.length,
         questionsCount: followups.questions.length,
         replyTextPreview: replyText.substring(0, 200),
@@ -1321,69 +1341,62 @@ Answer the user's question about this product:`;
       // For direct_search queries, use classifyQueryToCategoriesWithConfidence to get confidence info
       (async (): Promise<{ categories: string[]; confidence: number } | string[]> => {
         try {
+          // ALWAYS use confidence version for ALL query types
+          // Category confidence must be checked before product discovery
+          // CRITICAL: For follow-ups, use enhancedQueryText (the merged query) instead of input.message
+          // This ensures categories are classified based on the properly merged query (e.g., "black hoodies" not "in black")
+          const queryForCategoryClassification = isFollowUp && enhancedQueryText ? enhancedQueryText : input.message;
+          
           console.log('[ORCHESTRATOR] Calling category classification', {
-            query: input.message.substring(0, 100),
+            query: queryForCategoryClassification.substring(0, 100),
+            originalMessage: input.message.substring(0, 100),
+            isFollowUp,
+            usingEnhancedQuery: isFollowUp && enhancedQueryText,
             merchantId: input.merchantId,
             categorizationCategory: categorization.category,
           });
           logger.info('category_classification_calling_function', {
-            query: input.message.substring(0, 100),
+            query: queryForCategoryClassification.substring(0, 100),
+            originalMessage: input.message.substring(0, 100),
+            isFollowUp,
+            usingEnhancedQuery: isFollowUp && enhancedQueryText,
             merchantId: input.merchantId,
             categorizationCategory: categorization.category,
           });
           
-          // For direct_search queries, use the confidence version to check if category is clear
-          if (categorization.category === 'direct_search') {
-            const result = await classifyQueryToCategoriesWithConfidence(input.message, input.merchantId);
-            
-            console.log('[ORCHESTRATOR] Category classification result (with confidence)', {
-              categories: result.categories,
-              count: result.categories.length,
-              confidence: result.confidence,
-            });
-            logger.info('category_classification_complete_with_confidence', {
+          const result = await classifyQueryToCategoriesWithConfidence(queryForCategoryClassification, input.merchantId);
+          
+          console.log('[ORCHESTRATOR] Category classification result (with confidence)', {
+            query: queryForCategoryClassification.substring(0, 100),
+            originalMessage: input.message.substring(0, 100),
+            isFollowUp,
+            categories: result.categories,
+            count: result.categories.length,
+            confidence: result.confidence,
+            categorizationCategory: categorization.category,
+          });
+          logger.info('category_classification_complete_with_confidence', {
+            query: queryForCategoryClassification.substring(0, 100),
+            originalMessage: input.message.substring(0, 100),
+            isFollowUp,
+            usingEnhancedQuery: isFollowUp && enhancedQueryText,
+            categorizationCategory: categorization.category,
+            categories: result.categories,
+            categoryCount: result.categories.length,
+            confidence: result.confidence,
+          });
+          
+          if (result.categories.length > 0) {
+            logger.info('category_filter_will_be_applied', {
               query: input.message.substring(0, 100),
               categories: result.categories,
-              categoryCount: result.categories.length,
-              confidence: result.confidence,
+              filterType: 'hard_sql_level',
+              appliesTo: 'multi_view_retrieval',
             });
-            
-            if (result.categories.length > 0) {
-              logger.info('category_filter_will_be_applied', {
-                query: input.message.substring(0, 100),
-                categories: result.categories,
-                filterType: 'hard_sql_level',
-                appliesTo: 'multi_view_retrieval',
-              });
-            }
-            
-            // Return both categories and confidence for direct_search
-            return { categories: result.categories, confidence: result.confidence };
-          } else {
-            // For other query types, use the regular function
-            const categories = await classifyQueryToCategories(input.message, input.merchantId);
-            
-            console.log('[ORCHESTRATOR] Category classification result', {
-              categories: categories,
-              count: categories.length,
-            });
-            logger.info('category_classification_complete', {
-              query: input.message.substring(0, 100),
-              categories: categories,
-              categoryCount: categories.length,
-            });
-            
-            if (categories.length > 0) {
-              logger.info('category_filter_will_be_applied', {
-                query: input.message.substring(0, 100),
-                categories: categories,
-                filterType: 'hard_sql_level',
-                appliesTo: 'multi_view_retrieval',
-              });
-            }
-            
-            return categories;
           }
+          
+          // Return both categories and confidence for all query types
+          return { categories: result.categories, confidence: result.confidence };
         } catch (error) {
           console.error('[ORCHESTRATOR] Category classification error', error);
           logger.warn('category_classification_failed_continuing', {
@@ -1392,11 +1405,8 @@ Answer the user's question about this product:`;
             query: input.message.substring(0, 100),
           });
           // Continue without category filtering if classification fails
-          // Return empty array or object with empty categories
-          if (categorization.category === 'direct_search') {
-            return { categories: [], confidence: 0 };
-          }
-          return [];
+          // Return empty categories with 0 confidence for all query types
+          return { categories: [], confidence: 0 };
         }
       })(),
     ]);
@@ -1404,86 +1414,41 @@ Answer the user's question about this product:`;
     classification = classificationResult;
     
     // Store category confidence for later use in dynamic threshold calculation
-    categoryConfidenceForThreshold = undefined;
-    
-    // Handle category result - check confidence for direct_search queries
-    if (categorization.category === 'direct_search' && typeof categoryResult === 'object' && 'confidence' in categoryResult) {
+    // Category confidence check already happened earlier for all query types
+    // If we reach here, category was either confident (topCategories set) or we're in a follow-up
+    if (typeof categoryResult === 'object' && 'confidence' in categoryResult) {
       const categoryResultWithConfidence = categoryResult as { categories: string[]; confidence: number };
       categoryConfidenceForThreshold = categoryResultWithConfidence.confidence;
       
-      // Check if confidence is low or categories are empty
-      if (categoryResultWithConfidence.confidence < 0.5 || categoryResultWithConfidence.categories.length === 0) {
-        logger.info('direct_search_category_unclear_generating_followup', {
-          query: input.message,
-          categories: categoryResultWithConfidence.categories,
-          confidence: categoryResultWithConfidence.confidence,
-          note: 'Category classification returned low confidence or empty for direct_search, asking follow-up questions',
-        });
-        
-        // Generate follow-up questions
-        onProgress?.('generating', STAGE_PROGRESS.generating);
-        const potentialCategories = categoryResultWithConfidence.categories.length > 0 ? categoryResultWithConfidence.categories : [];
-        const followups = await generateFollowUpQuestions(
-          input.message,
-          undefined, // No preliminary products for unclear category
-          input.merchantData?.datasetContext,
-          potentialCategories
-        );
-        logger.info('direct_search_followup_questions_received', {
-          query: input.message,
-          contextSummary: followups.contextSummary.substring(0, 150),
-          questionCount: followups.questions.length,
-        });
-
-        // Store in conversation state for next turn (fire-and-forget - non-blocking)
-        if (input.merchantId) {
-          updateState(input.merchantId, input.sessionId, {
-            memory: {
-              ...conversationState.memory,
-              pendingFollowups: {
-                originalQuery: input.message,
-                questions: followups.questions,
-                responses: [],
-                preliminaryProducts: undefined,
-              },
-            },
-          }).catch(err => logger.warn('state_update_failed', { 
-            error: err instanceof Error ? err.message : String(err),
-            context: 'store_pending_followups_direct_search_low_confidence'
-          }));
+      // CRITICAL: For follow-ups, ALWAYS update topCategories with the enhanced query's categories
+      // The enhanced query may have a different product type (e.g., "hoodies" vs "dresses")
+      // For new queries, only set if topCategories is empty (wasn't set earlier)
+      if (isFollowUp) {
+        // Always update categories for follow-ups based on the enhanced query
+        if (categoryResultWithConfidence.categories.length > 0) {
+          topCategories = categoryResultWithConfidence.categories;
+          logger.info('category_categories_updated_for_followup_from_enhanced_query', {
+            query: input.message.substring(0, 100),
+            enhancedQuery: enhancedQueryText.substring(0, 100),
+            categories: topCategories,
+            confidence: categoryResultWithConfidence.confidence,
+            note: 'Categories re-classified based on enhanced query for follow-up',
+          });
         }
-
-        onProgress?.('complete', STAGE_PROGRESS.complete);
-        // Show contextSummary followed by first question only
-        const firstQuestion = followups.questions.length > 0 
-          ? `\n\n${followups.questions[0]}`
-          : '';
-        const replyText = `${followups.contextSummary}${firstQuestion}`;
-        logger.info('direct_search_reply_constructed', {
-          query: input.message,
-          contextSummaryLength: followups.contextSummary.length,
-          questionsCount: followups.questions.length,
-          replyTextPreview: replyText.substring(0, 200),
-        });
-        return {
-          replyText,
-          productCards: [],
-          noExactMatch: true,
-          route: 'CLARIFICATION_NEEDED',
-        };
-      } else {
-        // Confidence is high enough - proceed with product discovery
+      } else if (topCategories.length === 0 && categoryResultWithConfidence.categories.length > 0) {
+        // For new queries, only set if topCategories wasn't set earlier
         topCategories = categoryResultWithConfidence.categories;
-        logger.info('direct_search_category_confident_proceeding', {
-          query: input.message,
+        logger.info('category_categories_set_from_parallel_classification', {
+          query: input.message.substring(0, 100),
           categories: topCategories,
           confidence: categoryResultWithConfidence.confidence,
-          note: 'Category classification succeeded with high confidence, proceeding with product discovery',
         });
       }
     } else {
-      // Not a direct_search or result is a simple array
-      topCategories = Array.isArray(categoryResult) ? categoryResult : [];
+      // Fallback: result is a simple array (shouldn't happen with new logic, but keep for safety)
+      if (topCategories.length === 0) {
+        topCategories = Array.isArray(categoryResult) ? categoryResult : [];
+      }
     }
   } else {
     // Not a direct_search - only run query classification
@@ -1659,11 +1624,12 @@ Answer the user's question about this product:`;
   // Step 3.7: Fix misclassified colors in patterns (if any)
   // Move color terms that were incorrectly classified as patterns to colors
   const colorTerms = ['Cherry', 'Crimson', 'Scarlet', 'Burgundy', 'Maroon', 'Rose', 'Coral', 'Salmon', 'Rust', 'Terracotta'];
-  if (classification.constraints.patterns && classification.constraints.patterns.length > 0) {
+  const patternValues = extractConstraintValues(classification.constraints.patterns) || (Array.isArray(classification.constraints.patterns) ? classification.constraints.patterns : []);
+  if (patternValues.length > 0) {
     const misclassifiedColors: string[] = [];
     const remainingPatterns: string[] = [];
     
-    for (const pattern of classification.constraints.patterns) {
+    for (const pattern of patternValues) {
       const patternLower = pattern.toLowerCase();
       const isColorTerm = colorTerms.some(color => color.toLowerCase() === patternLower);
       
@@ -1676,11 +1642,17 @@ Answer the user's question about this product:`;
     
     if (misclassifiedColors.length > 0) {
       // Move misclassified colors from patterns to colors
-      classification.constraints.colors = Array.from(new Set([
-        ...(classification.constraints.colors || []),
-        ...misclassifiedColors
-      ]));
-      classification.constraints.patterns = remainingPatterns.length > 0 ? remainingPatterns : null;
+      const currentColors = extractConstraintValues(classification.constraints.colors) || (Array.isArray(classification.constraints.colors) ? classification.constraints.colors : []);
+      const colorIntent = extractConstraintIntent(classification.constraints.colors);
+      const updatedColors = Array.from(new Set([...currentColors, ...misclassifiedColors]));
+      // Preserve intent format if it existed
+      classification.constraints.colors = colorIntent ? { values: updatedColors, intent: colorIntent } : updatedColors;
+      
+      const patternIntent = extractConstraintIntent(classification.constraints.patterns);
+      // Preserve intent format if it existed
+      classification.constraints.patterns = remainingPatterns.length > 0 
+        ? (patternIntent ? { values: remainingPatterns, intent: patternIntent } : remainingPatterns)
+        : null;
       
       logger.debug('orchestrator_color_correction_from_classification_patterns', {
         query: input.message.substring(0, 100),
@@ -1691,6 +1663,9 @@ Answer the user's question about this product:`;
       });
     }
   }
+
+  // Step 3.8: Pattern matching is now handled by LLM using dictionaries
+  // No hardcoded synonym expansion - LLM finds closest matches from database dictionaries
 
   // Step 4: Multi-view retrieval
   // Use product terms from classification for vector search
@@ -1868,15 +1843,22 @@ Answer the user's question about this product:`;
     : classification.constraints;
   
   // CRITICAL: Color handling must respect null (explicitly removed) vs undefined (not set)
-  // If finalConstraintsForRanking.colors is null, it means the user explicitly removed colors
-  // Do NOT merge with classification in this case - respect the explicit removal
-  let finalColors: string[] | null | undefined;
+  // PHASE 2: Preserve intent format when building constraintsForRanking
+  // If finalConstraintsForRanking.colors has intent format, preserve it
+  let finalColors: string[] | ConstraintWithIntent | null | undefined;
   if (finalConstraintsForRanking.colors === null) {
     // Colors were explicitly removed - respect the removal, do NOT fall back to classification
     finalColors = null;
   } else if (finalConstraintsForRanking.colors !== undefined) {
-    // Colors from merged constraints are set (array), use them as base
-    finalColors = finalConstraintsForRanking.colors;
+    // Colors from merged constraints - preserve intent format if it exists
+    // Check if it's in intent format (has 'intent' property)
+    if (typeof finalConstraintsForRanking.colors === 'object' && !Array.isArray(finalConstraintsForRanking.colors) && 'intent' in finalConstraintsForRanking.colors) {
+      // Preserve intent format
+      finalColors = finalConstraintsForRanking.colors as ConstraintWithIntent;
+    } else {
+      // Old format (array) - keep as is for backward compatibility
+      finalColors = finalConstraintsForRanking.colors as string[];
+    }
   } else {
     // Colors not set in merged constraints, fall back to classification
     finalColors = classification.constraints.colors;
@@ -1886,60 +1868,97 @@ Answer the user's question about this product:`;
   // 1. This is a follow-up
   // 2. mergedConstraints.colors exists and is NOT null (explicitly removed)
   // 3. classification.colors exists
-  // This preserves non-ontology colors while respecting explicit removals
-  if (isFollowUp && mergedConstraints?.colors !== null && mergedConstraints?.colors !== undefined && classification.constraints.colors && classification.constraints.colors.length > 0) {
-    // Merge merged constraints colors with classification colors (union) to preserve non-ontology colors
-    // Extract values from mergedConstraints.colors (handles both array and ConstraintWithIntent formats)
-    const mergedColorsValues = extractConstraintValues(mergedConstraints.colors) || [];
-    const baseColors = finalColors || [];
-    const mergedColors = Array.from(new Set([...mergedColorsValues, ...classification.constraints.colors]));
-    finalColors = mergedColors;
-    logger.debug('colors_merged_from_merged_constraints_and_classification', {
-      query: input.message.substring(0, 100),
-      mergedConstraintsColors: mergedColorsValues,
-      classificationColors: classification.constraints.colors,
-      finalColors,
-      note: 'Merged colors from constraint merger and classification (union) to preserve non-ontology colors',
-    });
+  // 4. finalColors is NOT in excluded intent format (don't merge excluded colors)
+  // This preserves non-ontology colors while respecting explicit removals and excluded intent
+  const classificationColorValues = extractConstraintValues(classification.constraints.colors) || (Array.isArray(classification.constraints.colors) ? classification.constraints.colors : []);
+  if (isFollowUp && mergedConstraints?.colors !== null && mergedConstraints?.colors !== undefined && classificationColorValues.length > 0) {
+    // Check if finalColors has excluded intent - if so, don't merge
+    const colorIntent = extractConstraintIntent(finalColors);
+    if (colorIntent !== 'excluded') {
+      // Merge merged constraints colors with classification colors (union) to preserve non-ontology colors
+      // Extract values from mergedConstraints.colors (handles both array and ConstraintWithIntent formats)
+      const mergedColorsValues = extractConstraintValues(mergedConstraints.colors) || [];
+      const baseColors = extractConstraintValues(finalColors) || (Array.isArray(finalColors) ? finalColors : []);
+      const mergedColors = Array.from(new Set([...mergedColorsValues, ...classificationColorValues]));
+      
+      // Preserve intent format if original had it
+      if (finalColors != null && typeof finalColors === 'object' && !Array.isArray(finalColors) && 'intent' in finalColors) {
+        finalColors = {
+          values: mergedColors,
+          intent: (finalColors as ConstraintWithIntent).intent,
+          similarValues: (finalColors as ConstraintWithIntent).similarValues,
+        };
+      } else {
+        finalColors = mergedColors;
+      }
+      
+      logger.debug('colors_merged_from_merged_constraints_and_classification', {
+        query: input.message.substring(0, 100),
+        mergedConstraintsColors: mergedColorsValues,
+        classificationColors: classification.constraints.colors,
+        finalColors: extractConstraintValues(finalColors) || finalColors,
+        note: 'Merged colors from constraint merger and classification (union) to preserve non-ontology colors',
+      });
+    }
   }
   
-  if (finalColors && finalColors.length > 0) {
+  // Validate colors if they're in array format (not intent format with excluded)
+  const colorValues = extractConstraintValues(finalColors);
+  if (colorValues && colorValues.length > 0) {
     // Check if any colors are invalid (not in ontology)
     const { LOVESHACKFANCY_ONTOLOGY } = await import('./ontology');
     const validColors = new Set(LOVESHACKFANCY_ONTOLOGY.colors.map(c => c.toLowerCase()));
-    const invalidColors = finalColors.filter(c => !validColors.has(c.toLowerCase()));
+    const invalidColors = colorValues.filter(c => !validColors.has(c.toLowerCase()));
     
     if (invalidColors.length > 0) {
       // Keep invalid colors for ranking (fuzzy matching can handle them)
       // But also include valid colors from classification if available
-      // CRITICAL: Only merge if colors weren't explicitly removed (finalColors is not null)
-      logger.debug('non_ontology_colors_detected_keeping_for_ranking', {
-        nonOntologyColors: invalidColors,
-        allColors: finalColors,
-        note: 'Non-ontology colors (e.g., "Cherry") will be used for fuzzy matching in ranking',
-      });
-      
-      // Merge with classification colors if they exist (union) and colors weren't explicitly removed
-      if (finalColors !== null && classification.constraints.colors && classification.constraints.colors.length > 0) {
-        const mergedColors = Array.from(new Set([...finalColors, ...classification.constraints.colors]));
-        finalColors = mergedColors;
-        logger.debug('merged_colors_with_classification', {
-          originalColors: finalConstraintsForRanking.colors,
-          classificationColors: classification.constraints.colors,
-          mergedColors: finalColors,
+      // CRITICAL: Only merge if colors weren't explicitly removed (finalColors is not null) and not excluded
+      const colorIntent = extractConstraintIntent(finalColors);
+      if (colorIntent !== 'excluded') {
+        logger.debug('non_ontology_colors_detected_keeping_for_ranking', {
+          nonOntologyColors: invalidColors,
+          allColors: colorValues,
+          note: 'Non-ontology colors (e.g., "Cherry") will be used for fuzzy matching in ranking',
         });
+        
+        // Merge with classification colors if they exist (union) and colors weren't explicitly removed
+        if (finalColors != null && classificationColorValues.length > 0) {
+          const mergedColors = Array.from(new Set([...colorValues, ...classificationColorValues]));
+          
+          // Preserve intent format if original had it
+          if (typeof finalColors === 'object' && !Array.isArray(finalColors) && 'intent' in finalColors) {
+            finalColors = {
+              values: mergedColors,
+              intent: (finalColors as ConstraintWithIntent).intent,
+              similarValues: (finalColors as ConstraintWithIntent).similarValues,
+            };
+          } else {
+            finalColors = mergedColors;
+          }
+          
+          logger.debug('merged_colors_with_classification', {
+            originalColors: finalConstraintsForRanking.colors,
+            classificationColors: classification.constraints.colors,
+            mergedColors: extractConstraintValues(finalColors) || finalColors,
+          });
+        }
       }
       // Don't filter out invalid colors - keep them for fuzzy matching
     }
   }
   
   // Build constraints for ranking: CRITICAL - respect null (explicitly removed) vs undefined (not set)
+  // PHASE 2: Preserve intent format for ALL constraints (not just colors)
   // When finalConstraintsForRanking has null (from mergedConstraints), do NOT fall back to classification
   // Only use classification when finalConstraintsForRanking is undefined (not set)
   // Include ALL constraints to ensure dynamic weight system can access them for multi-constraint analysis
+  // Note: FashionConstraints type accepts string[] but runtime supports ConstraintWithIntent format
   const constraintsForRanking: FashionConstraints = {
-    colors: finalColors,
+    // Preserve intent format - don't extract just values (runtime supports both formats)
+    colors: finalColors as any, // Type assertion needed - runtime supports ConstraintWithIntent
     // CRITICAL: Check finalConstraintsForRanking first (respecting null = explicitly removed)
+    // PHASE 2: Preserve intent format for all constraints - use directly, don't extract values
     // Only fall back to classification when finalConstraintsForRanking is undefined (not set)
     patterns: finalConstraintsForRanking.patterns !== undefined ? finalConstraintsForRanking.patterns : classification.constraints.patterns,
     occasions: finalConstraintsForRanking.occasions !== undefined ? finalConstraintsForRanking.occasions : classification.constraints.occasions,
@@ -2010,8 +2029,9 @@ Answer the user's question about this product:`;
   // Filter out "Mini Dress" category products and products with "Mini" length when modesty constraints require longer lengths (Maxi, Midi only)
   // This must happen BEFORE ranking to prevent mini dresses from getting high scores
   let filteredCandidateProducts = candidateProducts;
-  if (constraintsForRanking.lengths && constraintsForRanking.lengths.length > 0) {
-    const lengthsLower = constraintsForRanking.lengths.map(l => l.toLowerCase());
+  const lengthValues = extractConstraintValues(constraintsForRanking.lengths) || (Array.isArray(constraintsForRanking.lengths) ? constraintsForRanking.lengths : []);
+  if (lengthValues.length > 0) {
+    const lengthsLower = lengthValues.map(l => l.toLowerCase());
     const hasMaxi = lengthsLower.includes('maxi');
     const hasMidi = lengthsLower.includes('midi');
     const hasMini = lengthsLower.includes('mini');
@@ -2103,6 +2123,12 @@ Answer the user's question about this product:`;
     const styleKeywords = ['elegant', 'casual', 'formal', 'romantic', 'vintage', 'modern', 'classic', 'bohemian', 'minimalist', 'feminine', 'sophisticated', 'chic', 'edgy', 'sporty', 'relaxed', 'polished'];
     if (styleKeywords.some(keyword => new RegExp(`\\b${keyword}\\b`).test(queryLower))) {
       explicitMentions.push('styles');
+    }
+  }
+  if (constraintsForRanking.patterns) {
+    const patternKeywords = ['floral', 'polka dot', 'polka', 'striped', 'stripes', 'plaid', 'checkered', 'paisley', 'geometric', 'abstract', 'print', 'printed', 'pattern', 'patterns', 'dots', 'dot'];
+    if (patternKeywords.some(keyword => new RegExp(`\\b${keyword}\\b`).test(queryLower))) {
+      explicitMentions.push('patterns');
     }
   }
   if (constraintsForRanking.ageGroups) {
@@ -2227,12 +2253,13 @@ Answer the user's question about this product:`;
   // This ensures "baby" queries don't return "for Women" products
   const ageGroupsConstraint = constraintsForRanking.ageGroups;
   const ageGroupExplicitlyMentioned = queryContext.explicitMentions.includes('ageGroups');
+  const ageGroupValues = extractConstraintValues(ageGroupsConstraint) || (Array.isArray(ageGroupsConstraint) ? ageGroupsConstraint : []);
   
-  if (ageGroupsConstraint && ageGroupsConstraint.length > 0 && ageGroupExplicitlyMentioned) {
+  if (ageGroupValues.length > 0 && ageGroupExplicitlyMentioned) {
     const beforeFilterCount = productsWithScores.length;
     
     productsWithScores = productsWithScores.filter(({ product }) => {
-      const ageGroupScore = matchAgeGroup(product, ageGroupsConstraint);
+      const ageGroupScore = matchAgeGroup(product, ageGroupValues);
       // Reject products with age group score of 0 (no match)
       return ageGroupScore > 0;
     });
@@ -2535,13 +2562,79 @@ Answer the user's question about this product:`;
   // Start reply generation as soon as we have top 4 products (don't wait for other operations)
   onProgress?.('generating_reply', STAGE_PROGRESS.generating_reply);
   
+  // Detect product type mismatch for reply generation
+  let productTypeMismatch: { queryProductType: string; returnedProductTypes: string[] } | undefined = undefined;
+  if (classification.productTerms && validatedProducts.length > 0) {
+    const productTermsLower = classification.productTerms.toLowerCase();
+    const allCategories = getAllCategories();
+    const allCategoryKeywords = new Set<string>();
+    allCategories.forEach(category => {
+      const keywords = extractCategoryKeywords(category);
+      keywords.forEach(kw => allCategoryKeywords.add(kw));
+    });
+    
+    // Find the product type mentioned in query
+    const queryProductType = Array.from(allCategoryKeywords).find(keyword => 
+      productTermsLower.includes(keyword)
+    );
+    
+    if (queryProductType) {
+      // Extract product types from returned products
+      const returnedProductTypesSet = new Set<string>();
+      validatedProducts.forEach(product => {
+        const title = (product.title || '').toLowerCase();
+        const category = (product.category || '').toLowerCase();
+        const subcategory = (product.subcategory || '').toLowerCase();
+        
+        // Check if any category keyword matches the product
+        Array.from(allCategoryKeywords).forEach(keyword => {
+          if (title.includes(keyword) || category.includes(keyword) || subcategory.includes(keyword)) {
+            returnedProductTypesSet.add(keyword);
+          }
+        });
+      });
+      
+      const returnedProductTypes = Array.from(returnedProductTypesSet);
+      
+      // Check if query product type is in returned products
+      const hasExactMatch = validatedProducts.some(product => {
+        const productTitle = (product.title || '').toLowerCase();
+        const productCategory = (product.category || '').toLowerCase();
+        const productSubcategory = (product.subcategory || '').toLowerCase();
+        const queryProductTypeLower = queryProductType.toLowerCase();
+        
+        return productTitle.includes(queryProductTypeLower) || 
+               productCategory.includes(queryProductTypeLower) ||
+               productSubcategory.includes(queryProductTypeLower) ||
+               returnedProductTypes.some(type => type.toLowerCase() === queryProductTypeLower);
+      });
+      
+      if (!hasExactMatch && returnedProductTypes.length > 0) {
+        // Product type mismatch detected
+        productTypeMismatch = {
+          queryProductType: queryProductType,
+          returnedProductTypes: returnedProductTypes,
+        };
+        logger.info('product_type_mismatch_for_reply', {
+          query: input.message.substring(0, 100),
+          queryProductType,
+          returnedProductTypes,
+          note: 'Product type mismatch detected - will be acknowledged in reply',
+        });
+      }
+    }
+  }
+
   // Build reply context for follow-ups AND new searches with previous context
-  const replyContext: ReplyContext | undefined = (isFollowUp || queryToMergeWith) ? {
+  // Always include explicitMentions so reply can distinguish between explicitly mentioned and inferred constraints
+  const replyContext: ReplyContext | undefined = (isFollowUp || queryToMergeWith || productTypeMismatch || explicitMentions.length > 0) ? {
     isFollowUp: isFollowUp,
     currentQuery: originalUserMessage, // Most recent user query (original, before enhancement)
     previousQuery: queryToMergeWith || undefined, // Previous query (available for both follow-ups and new searches)
     enhancedQuery: enhancedQueryText || input.message, // Enhanced query used for search
     classificationConstraints: classification.constraints, // Classification constraints for reference/fallback
+    productTypeMismatch: productTypeMismatch, // Product type mismatch information
+    explicitMentions: explicitMentions, // Constraints explicitly mentioned by the user
   } : undefined;
   
   // Start all three operations in parallel for better performance
@@ -2602,13 +2695,13 @@ Answer the user's question about this product:`;
             product as SearchResultItem,
             input.message,
             {
-              style: classification.constraints.styles?.[0],
-              occasion: classification.constraints.occasions?.[0],
-              collection: classification.constraints.collections?.[0],
-              pattern: classification.constraints.patterns?.[0],
-              material: classification.constraints.materials?.[0],
-              length: classification.constraints.lengths?.[0],
-              embellishment: classification.constraints.embellishments?.[0],
+              style: (extractConstraintValues(classification.constraints.styles) || [])[0],
+              occasion: (extractConstraintValues(classification.constraints.occasions) || [])[0],
+              collection: (extractConstraintValues(classification.constraints.collections) || [])[0],
+              pattern: (extractConstraintValues(classification.constraints.patterns) || [])[0],
+              material: (extractConstraintValues(classification.constraints.materials) || [])[0],
+              length: (extractConstraintValues(classification.constraints.lengths) || [])[0],
+              embellishment: (extractConstraintValues(classification.constraints.embellishments) || [])[0],
             }
           );
           const emotionalKeywords = emotionalKeywordsArray[index] || [];
@@ -2632,13 +2725,13 @@ Answer the user's question about this product:`;
             product as SearchResultItem,
             input.message,
             {
-              style: classification.constraints.styles?.[0],
-              occasion: classification.constraints.occasions?.[0],
-              collection: classification.constraints.collections?.[0],
-              pattern: classification.constraints.patterns?.[0],
-              material: classification.constraints.materials?.[0],
-              length: classification.constraints.lengths?.[0],
-              embellishment: classification.constraints.embellishments?.[0],
+              style: (extractConstraintValues(classification.constraints.styles) || [])[0],
+              occasion: (extractConstraintValues(classification.constraints.occasions) || [])[0],
+              collection: (extractConstraintValues(classification.constraints.collections) || [])[0],
+              pattern: (extractConstraintValues(classification.constraints.patterns) || [])[0],
+              material: (extractConstraintValues(classification.constraints.materials) || [])[0],
+              length: (extractConstraintValues(classification.constraints.lengths) || [])[0],
+              embellishment: (extractConstraintValues(classification.constraints.embellishments) || [])[0],
             }
           );
           return buildProductCard(product as SearchResultItem, reason);
@@ -2733,60 +2826,66 @@ Answer the user's question about this product:`;
   const nullToUndefined = <T>(value: T | null | undefined): T | undefined => 
     value === null ? undefined : value;
   
+  // Helper to extract values from intent format for SearchConstraints
+  const extractValuesForSearch = (constraint: string[] | ConstraintWithIntent | null | undefined): string[] | undefined => {
+    if (constraint === null || constraint === undefined) return undefined;
+    const values = extractConstraintValues(constraint) || (Array.isArray(constraint) ? constraint : []);
+    return values.length > 0 ? values : undefined;
+  };
+  
   // Map FashionConstraints to SearchConstraints (only include fields that exist in SearchConstraints)
   // Map scents to sensoryProfile: combine scents into a string description
-  const sensoryProfileFromScents = finalConstraints.scents && finalConstraints.scents.length > 0
-    ? finalConstraints.scents.join(', ') + ' scent'
+  const scentValues = extractConstraintValues(finalConstraints.scents) || (Array.isArray(finalConstraints.scents) ? finalConstraints.scents : []);
+  const sensoryProfileFromScents = scentValues.length > 0
+    ? scentValues.join(', ') + ' scent'
     : undefined;
   
   // Merge sensoryProfile from scents with explicit sensoryProfile (prefer explicit if both exist)
   const mergedSensoryProfile = finalConstraints.sensoryProfile || sensoryProfileFromScents;
   
   const resolvedConstraints: SearchConstraints = {
-    colors: nullToUndefined(finalConstraints.colors),
-    sizes: nullToUndefined(finalConstraints.sizes),
-    materials: nullToUndefined(finalConstraints.materials),
-    occasions: nullToUndefined(finalConstraints.occasions),
-    seasons: nullToUndefined(finalConstraints.seasons),
-    lengths: nullToUndefined(finalConstraints.lengths),
+    colors: extractValuesForSearch(finalConstraints.colors),
+    sizes: extractValuesForSearch(finalConstraints.sizes),
+    materials: extractValuesForSearch(finalConstraints.materials),
+    occasions: extractValuesForSearch(finalConstraints.occasions),
+    seasons: extractValuesForSearch(finalConstraints.seasons),
+    lengths: extractValuesForSearch(finalConstraints.lengths),
     priceMinCents: finalConstraints.priceMinCents === null ? undefined : finalConstraints.priceMinCents,
     priceMaxCents: finalConstraints.priceMaxCents === null ? undefined : finalConstraints.priceMaxCents,
-    ageGroups: nullToUndefined(finalConstraints.ageGroups),
+    ageGroups: extractValuesForSearch(finalConstraints.ageGroups),
     // Map fashion-specific fields to generic SearchConstraints fields where applicable
     // styles -> styleTags, patterns -> styleTags (both are style descriptors)
-    styleTags: nullToUndefined([
-      ...(finalConstraints.styles || []),
-      ...(finalConstraints.patterns || []),
-    ].filter(Boolean).length > 0 ? [
-      ...(finalConstraints.styles || []),
-      ...(finalConstraints.patterns || []),
-    ] : undefined),
+    styleTags: (() => {
+      const styleValues = extractValuesForSearch(finalConstraints.styles) || [];
+      const patternValues = extractValuesForSearch(finalConstraints.patterns) || [];
+      const combined = [...styleValues, ...patternValues];
+      return combined.length > 0 ? combined : undefined;
+    })(),
     // Map category-specific constraints
     // scents -> sensoryProfile (convert array to string description)
     sensoryProfile: mergedSensoryProfile || undefined,
     // rooms -> useCases (rooms are a type of useCase for home products)
-    useCases: nullToUndefined([
-      ...(finalConstraints.rooms || []),
-      ...(finalConstraints.useCases || []),
-    ].filter(Boolean).length > 0 ? [
-      ...(finalConstraints.rooms || []),
-      ...(finalConstraints.useCases || []),
-    ] : undefined),
+    useCases: (() => {
+      const roomValues = extractValuesForSearch(finalConstraints.rooms) || [];
+      const useCaseValues = extractValuesForSearch(finalConstraints.useCases) || [];
+      const combined = [...roomValues, ...useCaseValues];
+      return combined.length > 0 ? combined : undefined;
+    })(),
     // Direct mappings for generic constraints
-    benefits: nullToUndefined(finalConstraints.benefits),
-    claims: nullToUndefined(finalConstraints.claims),
-    compatibility: nullToUndefined(finalConstraints.compatibility),
+    benefits: extractValuesForSearch(finalConstraints.benefits),
+    claims: extractValuesForSearch(finalConstraints.claims),
+    compatibility: extractValuesForSearch(finalConstraints.compatibility),
     // Enriched fashion facets
-    formalityLevel: nullToUndefined(finalConstraints.formalityLevel),
+    formalityLevel: extractValuesForSearch(finalConstraints.formalityLevel),
     temperatureIntent: finalConstraints.temperatureIntent === null ? undefined : finalConstraints.temperatureIntent,
     humidityFriendly: finalConstraints.humidityFriendly === null ? undefined : finalConstraints.humidityFriendly,
-    occasionContext: nullToUndefined(finalConstraints.occasionContext),
-    problemSolutions: nullToUndefined(finalConstraints.problemSolutions),
-    functionFeatures: nullToUndefined(finalConstraints.functionFeatures),
-    colorShade: nullToUndefined(finalConstraints.colorShade),
-    colorUndertone: nullToUndefined(finalConstraints.colorUndertone),
+    occasionContext: extractValuesForSearch(finalConstraints.occasionContext),
+    problemSolutions: extractValuesForSearch(finalConstraints.problemSolutions),
+    functionFeatures: extractValuesForSearch(finalConstraints.functionFeatures),
+    colorShade: extractValuesForSearch(finalConstraints.colorShade),
+    colorUndertone: extractValuesForSearch(finalConstraints.colorUndertone),
     multicolor: finalConstraints.multicolor === null ? undefined : finalConstraints.multicolor,
-    seasonalPalette: nullToUndefined(finalConstraints.seasonalPalette),
+    seasonalPalette: extractValuesForSearch(finalConstraints.seasonalPalette),
   };
   
   const resolvedClassificationConstraints: FashionConstraints = finalConstraints;
@@ -2923,7 +3022,7 @@ Answer the user's question about this product:`;
           colors: classification.constraints.colors ?? undefined,
           occasions: classification.constraints.occasions ?? undefined,
           seasons: classification.constraints.seasons ?? undefined,
-          formalityLevel: classification.constraints.formalityLevel?.[0] ?? undefined,
+          formalityLevel: classification.constraints.formalityLevel ?? undefined,
           priceMinCents: classification.constraints.priceMinCents ?? undefined,
           priceMaxCents: classification.constraints.priceMaxCents ?? undefined,
         },

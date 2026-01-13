@@ -11,63 +11,66 @@ import { stripJsonFences } from '../llm/orchestrator/utils';
 import { normalizeAgeGroups } from './age-group-normalizer';
 import { validateAgeGroups, validateColors } from './dictionary-validator';
 import { normalizeQueryForSearch } from './query-normalizer';
+import { validateConstraintValues } from './dictionary-matcher';
+import { extractConstraintValues, extractConstraintIntent, type ConstraintWithIntent } from './constraint-utils';
 
 export type FashionConstraints = {
   // Existing clothing constraints
-  styles?: string[] | null;
-  lengths?: string[] | null;
-  occasions?: string[] | null;
-  seasons?: string[] | null;
-  materials?: string[] | null;
-  patterns?: string[] | null;
-  colors?: string[] | null;
-  sizes?: string[] | null;
-  fits?: string[] | null;
-  collections?: string[] | null;
+  // Note: Runtime supports both string[] and ConstraintWithIntent formats for intent-based matching
+  styles?: string[] | ConstraintWithIntent | null;
+  lengths?: string[] | ConstraintWithIntent | null;
+  occasions?: string[] | ConstraintWithIntent | null;
+  seasons?: string[] | ConstraintWithIntent | null;
+  materials?: string[] | ConstraintWithIntent | null;
+  patterns?: string[] | ConstraintWithIntent | null;
+  colors?: string[] | ConstraintWithIntent | null;
+  sizes?: string[] | ConstraintWithIntent | null;
+  fits?: string[] | ConstraintWithIntent | null;
+  collections?: string[] | ConstraintWithIntent | null;
   priceMinCents?: number | null;
   priceMaxCents?: number | null;
-  embellishments?: string[] | null;
-  necklines?: string[] | null;
-  sleeveLengths?: string[] | null;
-  ageGroups?: string[] | null;
+  embellishments?: string[] | ConstraintWithIntent | null;
+  necklines?: string[] | ConstraintWithIntent | null;
+  sleeveLengths?: string[] | ConstraintWithIntent | null;
+  ageGroups?: string[] | ConstraintWithIntent | null;
   
   // Enriched fashion facets
-  formalityLevel?: string[] | null;
+  formalityLevel?: string[] | ConstraintWithIntent | null;
   temperatureIntent?: string | null;
   humidityFriendly?: boolean | null;
-  occasionContext?: string[] | null;
-  problemSolutions?: string[] | null;
-  functionFeatures?: string[] | null;
-  colorShade?: string[] | null;
-  colorUndertone?: string[] | null;
+  occasionContext?: string[] | ConstraintWithIntent | null;
+  problemSolutions?: string[] | ConstraintWithIntent | null;
+  functionFeatures?: string[] | ConstraintWithIntent | null;
+  colorShade?: string[] | ConstraintWithIntent | null;
+  colorUndertone?: string[] | ConstraintWithIntent | null;
   multicolor?: boolean | null;
-  seasonalPalette?: string[] | null;
+  seasonalPalette?: string[] | ConstraintWithIntent | null;
   
   // Additional enriched attributes
-  careRequirements?: string[] | null;
+  careRequirements?: string[] | ConstraintWithIntent | null;
   rainWind?: string | null;
-  travelFeatures?: string[] | null;
+  travelFeatures?: string[] | ConstraintWithIntent | null;
   pockets?: string | null;
   liningType?: string | null;
   braSolution?: string | null;
-  ecoMaterials?: string[] | null;
+  ecoMaterials?: string[] | ConstraintWithIntent | null;
   certifications?: string | null;
   origin?: string | null;
   adaptiveFeatures?: string | null;
   sensoryFriendly?: string | null;
   finish?: string | null;
-  modestyCues?: string[] | null;
+  modestyCues?: string[] | ConstraintWithIntent | null;
   layeringIntent?: string | null;
   pairingIntent?: string | null;
   
   // Category-specific constraints
-  scents?: string[] | null;        // For Perfumes/Candles (lavender, vanilla, etc.)
-  rooms?: string[] | null;          // For Home & Living (bedroom, bathroom, etc.)
-  useCases?: string[] | null;       // Generic (travel, office, gift, etc.)
-  benefits?: string[] | null;       // Generic (durable, lightweight, etc.)
-  claims?: string[] | null;         // Generic (organic, vegan, etc.)
+  scents?: string[] | ConstraintWithIntent | null;        // For Perfumes/Candles (lavender, vanilla, etc.)
+  rooms?: string[] | ConstraintWithIntent | null;          // For Home & Living (bedroom, bathroom, etc.)
+  useCases?: string[] | ConstraintWithIntent | null;       // Generic (travel, office, gift, etc.)
+  benefits?: string[] | ConstraintWithIntent | null;       // Generic (durable, lightweight, etc.)
+  claims?: string[] | ConstraintWithIntent | null;         // Generic (organic, vegan, etc.)
   sensoryProfile?: string | null;   // Generic (soft feel, citrus scent, etc.)
-  compatibility?: string[] | null;  // Generic (works with iOS, for small rooms, etc.)
+  compatibility?: string[] | ConstraintWithIntent | null;  // Generic (works with iOS, for small rooms, etc.)
 };
 
 export type QueryClassification = {
@@ -137,10 +140,17 @@ export async function classifyQuery(
     });
 
     // Helper to extract values from either old or new format
-    const extractArrayValues = (constraint: any): string[] | null | undefined => {
+    // CRITICAL: Preserve intent format if it exists (for excluded constraints)
+    // This is essential for excluded constraints to work correctly
+    const extractArrayValues = (constraint: any): string[] | ConstraintWithIntent | null | undefined => {
       if (!constraint) return constraint;
-      if (Array.isArray(constraint)) return constraint; // Old format
-      if (constraint.values && Array.isArray(constraint.values)) return constraint.values; // New format
+      if (Array.isArray(constraint)) return constraint; // Old format (array)
+      // If it has intent format (e.g., { values: ['Black'], intent: 'excluded' }), preserve it
+      if (constraint.intent && constraint.values && Array.isArray(constraint.values)) {
+        return constraint as ConstraintWithIntent; // Return full intent format
+      }
+      // If it has values but no intent, extract just values (backward compatibility)
+      if (constraint.values && Array.isArray(constraint.values)) return constraint.values;
       return null;
     };
 
@@ -361,7 +371,10 @@ export async function classifyQuery(
     if (normalizedConstraints.ageGroups) {
       // CRITICAL: First normalize, then validate against dictionary
       // This ensures only exact dataset values are used
-      let normalized = normalizeAgeGroups(normalizedConstraints.ageGroups);
+      // Extract values if it's in intent format, preserve intent after validation
+      const ageGroupValues = extractConstraintValues(normalizedConstraints.ageGroups) || (Array.isArray(normalizedConstraints.ageGroups) ? normalizedConstraints.ageGroups : []);
+      const ageGroupIntent = extractConstraintIntent(normalizedConstraints.ageGroups);
+      let normalized = normalizeAgeGroups(ageGroupValues);
       
       // CRITICAL: Validate extracted age groups against the original query
       // If the query mentions a specific age (e.g., "12 year old") but the LLM extracted
@@ -443,12 +456,14 @@ export async function classifyQuery(
         }
       }
       
-      constraintsSummary.ageGroups = validateAgeGroups(normalized);
+      const validatedAgeGroups = validateAgeGroups(normalized);
       
-      // Update normalized constraints with validated values
-      normalizedConstraints.ageGroups = constraintsSummary.ageGroups.length > 0 
-        ? constraintsSummary.ageGroups 
+      // Preserve intent format after validation
+      const finalAgeGroups = validatedAgeGroups.length > 0 
+        ? (ageGroupIntent ? { values: validatedAgeGroups, intent: ageGroupIntent } : validatedAgeGroups)
         : null;
+      constraintsSummary.ageGroups = finalAgeGroups;
+      normalizedConstraints.ageGroups = finalAgeGroups;
     } else {
       // FALLBACK: If no age groups extracted but query contains age-related keywords or patterns,
       // try to infer at least one age group from the query text
@@ -526,17 +541,161 @@ export async function classifyQuery(
       }
     }
     
+    // Validate all constraints against dictionaries
+    // This ensures only values that exist in the database are used
+    
     if (normalizedConstraints.colors) {
       // CRITICAL: Validate colors against dictionary
       // This ensures only exact dataset values are used
-      const validated = validateColors(normalizedConstraints.colors);
+      // Extract values if it's in intent format, preserve intent after validation
+      const colorValues = extractConstraintValues(normalizedConstraints.colors) || (Array.isArray(normalizedConstraints.colors) ? normalizedConstraints.colors : []);
+      const colorIntent = extractConstraintIntent(normalizedConstraints.colors);
+      const validated = validateColors(colorValues);
       if (validated.length > 0) {
-        constraintsSummary.colors = validated;
-        normalizedConstraints.colors = validated;
+        const finalColors = colorIntent ? { values: validated, intent: colorIntent } : validated;
+        constraintsSummary.colors = finalColors;
+        normalizedConstraints.colors = finalColors;
       } else {
         // No valid colors found - remove from constraints
         constraintsSummary.colors = null;
         normalizedConstraints.colors = null;
+        logger.warn('classifier_constraint_validation: invalid colors', {
+          query: queryForClassification.substring(0, 100),
+          providedValues: colorValues,
+        });
+      }
+    }
+    
+    // Validate materials
+    if (normalizedConstraints.materials) {
+      const materialValues = extractConstraintValues(normalizedConstraints.materials) || (Array.isArray(normalizedConstraints.materials) ? normalizedConstraints.materials : []);
+      const materialIntent = extractConstraintIntent(normalizedConstraints.materials);
+      const validated = validateConstraintValues('materials', materialValues);
+      if (validated && validated.length > 0) {
+        const finalMaterials = materialIntent ? { values: validated, intent: materialIntent } : validated;
+        constraintsSummary.materials = finalMaterials;
+        normalizedConstraints.materials = finalMaterials;
+      } else {
+        constraintsSummary.materials = null;
+        normalizedConstraints.materials = null;
+        logger.warn('classifier_constraint_validation: invalid materials', {
+          query: queryForClassification.substring(0, 100),
+          providedValues: normalizedConstraints.materials,
+        });
+      }
+    }
+    
+    // Validate occasions
+    if (normalizedConstraints.occasions) {
+      const occasionValues = extractConstraintValues(normalizedConstraints.occasions) || (Array.isArray(normalizedConstraints.occasions) ? normalizedConstraints.occasions : []);
+      const occasionIntent = extractConstraintIntent(normalizedConstraints.occasions);
+      const validated = validateConstraintValues('occasions', occasionValues);
+      if (validated && validated.length > 0) {
+        const finalOccasions = occasionIntent ? { values: validated, intent: occasionIntent } : validated;
+        constraintsSummary.occasions = finalOccasions;
+        normalizedConstraints.occasions = finalOccasions;
+      } else {
+        constraintsSummary.occasions = null;
+        normalizedConstraints.occasions = null;
+        logger.warn('classifier_constraint_validation: invalid occasions', {
+          query: queryForClassification.substring(0, 100),
+          providedValues: occasionValues,
+        });
+      }
+    }
+    
+    // Validate styles
+    if (normalizedConstraints.styles) {
+      const styleValues = extractConstraintValues(normalizedConstraints.styles) || (Array.isArray(normalizedConstraints.styles) ? normalizedConstraints.styles : []);
+      const styleIntent = extractConstraintIntent(normalizedConstraints.styles);
+      const validated = validateConstraintValues('styles', styleValues);
+      if (validated && validated.length > 0) {
+        const finalStyles = styleIntent ? { values: validated, intent: styleIntent } : validated;
+        constraintsSummary.styles = finalStyles;
+        normalizedConstraints.styles = finalStyles;
+      } else {
+        constraintsSummary.styles = null;
+        normalizedConstraints.styles = null;
+        logger.warn('classifier_constraint_validation: invalid styles', {
+          query: queryForClassification.substring(0, 100),
+          providedValues: styleValues,
+        });
+      }
+    }
+    
+    // Validate patterns
+    if (normalizedConstraints.patterns) {
+      const patternValues = extractConstraintValues(normalizedConstraints.patterns) || (Array.isArray(normalizedConstraints.patterns) ? normalizedConstraints.patterns : []);
+      const patternIntent = extractConstraintIntent(normalizedConstraints.patterns);
+      const validated = validateConstraintValues('patterns', patternValues);
+      if (validated && validated.length > 0) {
+        const finalPatterns = patternIntent ? { values: validated, intent: patternIntent } : validated;
+        constraintsSummary.patterns = finalPatterns;
+        normalizedConstraints.patterns = finalPatterns;
+      } else {
+        constraintsSummary.patterns = null;
+        normalizedConstraints.patterns = null;
+        logger.warn('classifier_constraint_validation: invalid patterns', {
+          query: queryForClassification.substring(0, 100),
+          providedValues: patternValues,
+        });
+      }
+    }
+    
+    // Validate sizes
+    if (normalizedConstraints.sizes) {
+      const sizeValues = extractConstraintValues(normalizedConstraints.sizes) || (Array.isArray(normalizedConstraints.sizes) ? normalizedConstraints.sizes : []);
+      const sizeIntent = extractConstraintIntent(normalizedConstraints.sizes);
+      const validated = validateConstraintValues('sizes', sizeValues);
+      if (validated && validated.length > 0) {
+        const finalSizes = sizeIntent ? { values: validated, intent: sizeIntent } : validated;
+        constraintsSummary.sizes = finalSizes;
+        normalizedConstraints.sizes = finalSizes;
+      } else {
+        constraintsSummary.sizes = null;
+        normalizedConstraints.sizes = null;
+        logger.warn('classifier_constraint_validation: invalid sizes', {
+          query: queryForClassification.substring(0, 100),
+          providedValues: sizeValues,
+        });
+      }
+    }
+    
+    // Validate lengths
+    if (normalizedConstraints.lengths) {
+      const lengthValues = extractConstraintValues(normalizedConstraints.lengths) || (Array.isArray(normalizedConstraints.lengths) ? normalizedConstraints.lengths : []);
+      const lengthIntent = extractConstraintIntent(normalizedConstraints.lengths);
+      const validated = validateConstraintValues('lengths', lengthValues);
+      if (validated && validated.length > 0) {
+        const finalLengths = lengthIntent ? { values: validated, intent: lengthIntent } : validated;
+        constraintsSummary.lengths = finalLengths;
+        normalizedConstraints.lengths = finalLengths;
+      } else {
+        constraintsSummary.lengths = null;
+        normalizedConstraints.lengths = null;
+        logger.warn('classifier_constraint_validation: invalid lengths', {
+          query: queryForClassification.substring(0, 100),
+          providedValues: lengthValues,
+        });
+      }
+    }
+    
+    // Validate formalityLevel
+    if (normalizedConstraints.formalityLevel) {
+      const formalityValues = extractConstraintValues(normalizedConstraints.formalityLevel) || (Array.isArray(normalizedConstraints.formalityLevel) ? normalizedConstraints.formalityLevel : []);
+      const formalityIntent = extractConstraintIntent(normalizedConstraints.formalityLevel);
+      const validated = validateConstraintValues('formalityLevel', formalityValues);
+      if (validated && validated.length > 0) {
+        const finalFormality = formalityIntent ? { values: validated, intent: formalityIntent } : validated;
+        constraintsSummary.formalityLevel = finalFormality;
+        normalizedConstraints.formalityLevel = finalFormality;
+      } else {
+        constraintsSummary.formalityLevel = null;
+        normalizedConstraints.formalityLevel = null;
+        logger.warn('classifier_constraint_validation: invalid formalityLevel', {
+          query: queryForClassification.substring(0, 100),
+          providedValues: formalityValues,
+        });
       }
     }
     if (normalizedConstraints.priceMinCents !== undefined) constraintsSummary.priceMinCents = normalizedConstraints.priceMinCents;
@@ -753,11 +912,11 @@ export function inferClassificationFromKeywords(
   let type: QueryClassification['type'] = 'gift_or_vague';
   if (messageLower.includes('dress') || messageLower.includes('top') || messageLower.includes('bottom') || messageLower.includes('skirt')) {
     type = 'direct_product_search';
-  } else if (constraints.occasions && constraints.occasions.length > 0) {
+  } else if (constraints.occasions && (extractConstraintValues(constraints.occasions) || []).length > 0) {
     type = 'occasion_based';
-  } else if (constraints.lengths && constraints.lengths.length > 0) {
+  } else if (constraints.lengths && (extractConstraintValues(constraints.lengths) || []).length > 0) {
     type = 'style_exploration';
-  } else if (constraints.sizes && constraints.sizes.length > 0) {
+  } else if (constraints.sizes && (extractConstraintValues(constraints.sizes) || []).length > 0) {
     type = 'fit_and_size';
   }
 
