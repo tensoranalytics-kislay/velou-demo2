@@ -16,6 +16,8 @@ export type ConstraintDictionary = {
   sizes: string[];
   lengths: string[];
   formalityLevel: string[];
+  fits: string[];
+  rises: string[];
   extractedAt: string;
   totalProducts: number;
 };
@@ -37,7 +39,7 @@ export function loadConstraintDictionaries(): ConstraintDictionary {
  */
 export function getDictionaryForConstraintType(
   constraintType: 'colors' | 'materials' | 'occasions' | 'styles' | 
-                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel'
+                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises'
 ): string[] {
   const dict = loadConstraintDictionaries();
   return dict[constraintType] || [];
@@ -77,7 +79,7 @@ export function formatDictionaryForPrompt(
  */
 export function valueExistsInDictionary(
   constraintType: 'colors' | 'materials' | 'occasions' | 'styles' | 
-                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel',
+                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises',
   value: string
 ): boolean {
   const dictionary = getDictionaryForConstraintType(constraintType);
@@ -90,7 +92,7 @@ export function valueExistsInDictionary(
  */
 export function findExactDictionaryValue(
   constraintType: 'colors' | 'materials' | 'occasions' | 'styles' | 
-                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel',
+                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises',
   value: string
 ): string | null {
   const dictionary = getDictionaryForConstraintType(constraintType);

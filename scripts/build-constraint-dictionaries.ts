@@ -18,6 +18,8 @@ type ConstraintDictionary = {
   sizes: string[];
   lengths: string[];
   formalityLevel: string[];
+  fits: string[]; // NEW: for jeans/pants fit types
+  rises: string[]; // NEW: for rise/waist placement
   // Metadata
   extractedAt: string;
   totalProducts: number;
@@ -72,6 +74,7 @@ async function extractConstraintDictionaries(): Promise<ConstraintDictionary> {
       // Materials
       material: true,
       fabric: true,
+      fabricFamily: true,
       
       // Lengths
       length: true,
@@ -82,6 +85,13 @@ async function extractConstraintDictionaries(): Promise<ConstraintDictionary> {
       // Occasions
       occasion: true,
       occasionContext: true,
+      
+      // Fits (NEW)
+      fit: true,
+      fitPreference: true,
+      
+      // Rise (NEW)
+      riseWaist: true,
     },
   });
 
@@ -96,6 +106,8 @@ async function extractConstraintDictionaries(): Promise<ConstraintDictionary> {
     sizes: new Set<string>(),
     lengths: new Set<string>(),
     formalityLevel: new Set<string>(),
+    fits: new Set<string>(),
+    rises: new Set<string>(),
   };
 
   for (const product of products) {
@@ -190,6 +202,32 @@ async function extractConstraintDictionaries(): Promise<ConstraintDictionary> {
       const formalityLevels = extractArrayOrSingleValue(attrFormality);
       formalityLevels.forEach(f => dictionaries.formalityLevel.add(f));
     }
+
+    // Extract fits
+    if (product.fit) {
+      const normalized = normalizeValue(product.fit);
+      if (normalized) dictionaries.fits.add(normalized);
+    }
+    if (product.fitPreference) {
+      const normalized = normalizeValue(product.fitPreference);
+      if (normalized) dictionaries.fits.add(normalized);
+    }
+    const attrFit = attrs?.fit || attrs?.Fit || attrs?.fit_preference || attrs?.fitPreference;
+    if (attrFit) {
+      const fits = extractArrayOrSingleValue(attrFit);
+      fits.forEach(f => dictionaries.fits.add(f));
+    }
+
+    // Extract rises
+    if (product.riseWaist) {
+      const normalized = normalizeValue(product.riseWaist);
+      if (normalized) dictionaries.rises.add(normalized);
+    }
+    const attrRise = attrs?.rise || attrs?.Rise || attrs?.rise_waist || attrs?.riseWaist;
+    if (attrRise) {
+      const rises = extractArrayOrSingleValue(attrRise);
+      rises.forEach(r => dictionaries.rises.add(r));
+    }
   }
 
   const result: ConstraintDictionary = {
@@ -201,6 +239,8 @@ async function extractConstraintDictionaries(): Promise<ConstraintDictionary> {
     sizes: Array.from(dictionaries.sizes).sort(),
     lengths: Array.from(dictionaries.lengths).sort(),
     formalityLevel: Array.from(dictionaries.formalityLevel).sort(),
+    fits: Array.from(dictionaries.fits).sort(),
+    rises: Array.from(dictionaries.rises).sort(),
     extractedAt: new Date().toISOString(),
     totalProducts: products.length,
   };
@@ -225,6 +265,8 @@ async function main() {
     console.log(`  Sizes: ${dictionaries.sizes.length}`);
     console.log(`  Lengths: ${dictionaries.lengths.length}`);
     console.log(`  FormalityLevel: ${dictionaries.formalityLevel.length}`);
+    console.log(`  Fits: ${dictionaries.fits.length}`);
+    console.log(`  Rises: ${dictionaries.rises.length}`);
     console.log(`  Total Products: ${dictionaries.totalProducts}`);
     console.log(`\nSaved to: ${outputPath}`);
   } catch (error) {

@@ -299,26 +299,29 @@ export async function dbRankedSearch(
     whereParts.push(Prisma.raw(`"category" != ALL(ARRAY[${categoryArray}]::text[])`));
   }
 
-  // Gender filter: hard filter at DB level using JSON path
-  // For mens: allow mens OR unisex
-  // For womens: allow womens OR unisex
+  // Gender filter: PRIMARY hard filter at DB level using indexed column (not JSON)
+  // For male: allow male OR unisex
+  // For female: allow female OR unisex
   // For unisex: allow unisex only (strict)
   if (whereFilters.genders?.length) {
     const genderConditions: Prisma.Sql[] = [];
     for (const gender of whereFilters.genders) {
-      if (gender === 'mens') {
-        // mens OR male (CSV) OR unisex
+      // Normalize gender values: mens/womens → male/female
+      const normalizedGender = gender === 'mens' ? 'male' : gender === 'womens' ? 'female' : gender;
+      
+      if (normalizedGender === 'male') {
+        // male OR unisex (using indexed gender column)
         genderConditions.push(
-          Prisma.sql`(attributes->>'gender' = 'mens' OR attributes->>'gender' = 'male' OR attributes->>'gender' = 'unisex')`,
+          Prisma.sql`("gender" = 'male' OR "gender" = 'unisex')`,
         );
-      } else if (gender === 'womens') {
-        // womens OR female (CSV) OR unisex
+      } else if (normalizedGender === 'female') {
+        // female OR unisex (using indexed gender column)
         genderConditions.push(
-          Prisma.sql`(attributes->>'gender' = 'womens' OR attributes->>'gender' = 'female' OR attributes->>'gender' = 'unisex')`,
+          Prisma.sql`("gender" = 'female' OR "gender" = 'unisex')`,
         );
-      } else if (gender === 'unisex') {
+      } else if (normalizedGender === 'unisex') {
         // unisex only (strict)
-        genderConditions.push(Prisma.sql`attributes->>'gender' = 'unisex'`);
+        genderConditions.push(Prisma.sql`"gender" = 'unisex'`);
       }
     }
     if (genderConditions.length > 0) {

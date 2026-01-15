@@ -86,8 +86,9 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Vacation',
   ],
 
-  // Dress/Apparel Lengths
+  // Dress/Apparel Lengths (expanded for pants/shorts)
   lengths: [
+    // Dress lengths
     'Mini',
     'Knee Length',
     'Midi',
@@ -99,6 +100,19 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Below Knee',
     'Mid-Calf',
     'Full Length',
+    
+    // Pants/Jeans lengths
+    'Regular',
+    'Cropped',
+    'Ankle',
+    'Capri',
+    
+    // Shorts lengths
+    'Short',
+    '5-inch',
+    '7-inch',
+    '8-inch',
+    '9-inch',
   ],
 
   // Neckline Styles
@@ -144,7 +158,7 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Kimono',
   ],
 
-  // Fabric Materials
+  // Fabric Materials (expanded for men's basics)
   materials: [
     'Cotton',
     'Linen',
@@ -170,6 +184,7 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Spandex',
     'Elastane',
     'Denim',
+    'Twill',
     'Leather',
     'Faux Leather',
     'Suede',
@@ -179,16 +194,21 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Embroidered',
     'Sequin',
     'Beaded',
-    'Tulle',
-    'Organza',
-    'Chiffon',
     'Georgette',
     'Crepe',
-    'Twill',
     'Poplin',
     'Voile',
     'Batiste',
     'Muslin',
+    'Slub',
+    'Slub Jersey',
+    'French Terry',
+    'Fleece',
+    'Nylon',
+    'Canvas',
+    'Chambray',
+    'Corduroy',
+    'Blend',
   ],
 
   // Patterns/Prints
@@ -242,8 +262,9 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Maximalist',
   ],
 
-  // Occasions
+  // Occasions (expanded for men's casual/athletic use cases)
   occasions: [
+    // Formal Events
     'Wedding',
     'Beach Wedding',
     'Garden Wedding',
@@ -259,6 +280,8 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Formal Event',
     'Black Tie',
     'White Tie',
+    
+    // Social
     'Date Night',
     'Anniversary',
     'Birthday',
@@ -272,30 +295,6 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Brunch',
     'Baby Shower',
     'Bridal Shower',
-    'Office',
-    'Business',
-    'Professional',
-    'Work',
-    'Casual',
-    'Daytime',
-    'Weekend',
-    'Vacation',
-    'Beach',
-    'Resort',
-    'Tropical',
-    'Cruise',
-    'Holiday',
-    'Christmas',
-    'New Year',
-    'Easter',
-    'Mother\'s Day',
-    'Valentine\'s Day',
-    'Spring',
-    'Summer',
-    'Fall',
-    'Winter',
-    'Everyday',
-    'Special Occasion',
     'Party',
     'Celebration',
     'Festival',
@@ -303,10 +302,65 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Theater',
     'Dinner',
     'Lunch',
-    'Brunch',
     'Picnic',
+    
+    // Work & Professional
+    'Office',
+    'Business',
+    'Professional',
+    'Work',
+    'Business Casual',
+    'Smart Casual',
+    
+    // Casual & Everyday
+    'Casual',
+    'Daytime',
+    'Weekend',
+    'Everyday',
+    'Errands',
+    
+    // Vacation & Travel
+    'Vacation',
+    'Beach',
+    'Resort',
+    'Tropical',
+    'Cruise',
+    'Travel',
+    
+    // Active & Sports
+    'Athletic',
+    'Gym',
+    'Running',
+    'Yoga',
+    'Sports',
+    'Active',
+    'Workout',
+    
+    // Home & Relaxation
+    'Lounge',
+    'Lounging',
+    'Sleep',
+    'Sleepwear',
+    'Home',
+    'Relaxing',
+    
+    // Seasonal & Holiday
+    'Holiday',
+    'Christmas',
+    'New Year',
+    'Easter',
+    'Mother\'s Day',
+    'Father\'s Day',
+    'Valentine\'s Day',
+    'Spring',
+    'Summer',
+    'Fall',
+    'Winter',
+    
+    // Settings
     'Outdoor',
     'Indoor',
+    'Special Occasion',
   ],
 
   // Seasons
@@ -323,16 +377,25 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Holiday',
   ],
 
-  // Fit Styles
+  // Fit Styles (expanded for men's and women's apparel)
   fits: [
     'Fitted',
+    'Slim',
     'Slim Fit',
     'Skinny',
+    'Regular',
     'Regular Fit',
+    'Relaxed',
     'Relaxed Fit',
     'Loose Fit',
     'Oversized',
     'Boxy',
+    'Athletic',
+    'Athletic Fit',
+    'Tailored',
+    'Classic Fit',
+    'Modern Fit',
+    // Women's specific
     'A-Line',
     'Empire Waist',
     'Fit and Flare',
@@ -340,16 +403,31 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Shift',
     'Wrap',
     'Sheath',
+    // Pants/Jeans fits
     'Tapered',
     'Straight',
+    'Straight Leg',
     'Wide Leg',
     'Flared',
     'Bootcut',
+    // Size modifiers
     'Petite',
     'Plus Size',
     'Tall',
     'Maternity',
     'Custom Fit',
+    'Runs Large',
+    'True to Size',
+  ],
+  
+  // Rise/Waist Placement (for jeans, pants, shorts)
+  rises: [
+    'Low Rise',
+    'Mid Rise',
+    'High Rise',
+    'Natural Waist',
+    'Ultra High Rise',
+    'Drop Crotch',
   ],
 
   // Embellishments/Details
@@ -412,13 +490,20 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Flutter Sleeve',
   ],
 
-  // Colors
+  // Colors (expanded for men's neutral palette + LSF pastels)
   colors: [
+    // Whites & Neutrals
     'White',
     'Ivory',
     'Cream',
     'Beige',
     'Nude',
+    'Stone',
+    'Sand',
+    'Oatmeal',
+    'Ecru',
+    
+    // Pinks (LSF)
     'Blush',
     'Pink',
     'Rose',
@@ -426,30 +511,49 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Coral',
     'Peach',
     'Salmon',
+    
+    // Reds
     'Red',
     'Burgundy',
     'Wine',
     'Maroon',
+    'Crimson',
+    
+    // Oranges & Yellows
     'Orange',
     'Apricot',
     'Yellow',
     'Gold',
     'Mustard',
     'Lemon',
+    
+    // Greens
     'Green',
     'Mint',
     'Sage',
     'Olive',
+    'Military Green',
+    'Forest Green',
+    'Hunter Green',
     'Emerald',
     'Teal',
     'Turquoise',
     'Aqua',
+    
+    // Blues
     'Blue',
     'Navy',
     'Royal Blue',
     'Sky Blue',
     'Baby Blue',
     'Periwinkle',
+    'Light Blue',
+    'Medium Blue',
+    'Dark Blue',
+    'Graphite Blue',
+    'Denim Blue',
+    
+    // Purples
     'Lavender',
     'Purple',
     'Violet',
@@ -457,16 +561,28 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Lilac',
     'Fuchsia',
     'Magenta',
+    
+    // Blacks & Grays
     'Black',
     'Charcoal',
+    'Graphite',
     'Gray',
     'Grey',
+    'Heather Gray',
+    'Light Gray',
+    'Dark Gray',
     'Silver',
+    
+    // Browns & Tans
     'Taupe',
     'Brown',
     'Tan',
     'Camel',
     'Khaki',
+    'Mocha',
+    'Chocolate',
+    
+    // Multi/Patterns
     'Multi-Color',
     'Multi',
     'Patterned',
@@ -482,8 +598,9 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'Gradient',
   ],
 
-  // Sizes (US Women's)
+  // Sizes (US Women's + Men's)
   sizes: [
+    // Women's letter sizes
     'XXS',
     'XS',
     'S',
@@ -491,6 +608,9 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     'L',
     'XL',
     'XXL',
+    'XXXL',
+    
+    // Women's numeric sizes
     '0',
     '00',
     '2',
@@ -509,6 +629,25 @@ export const LOVESHACKFANCY_ONTOLOGY = {
     '28',
     '30',
     '32',
+    
+    // Men's waist sizes (waist x inseam)
+    '28x28', '28x30', '28x32', '28x34',
+    '29x28', '29x30', '29x32', '29x34',
+    '30x28', '30x30', '30x32', '30x34',
+    '31x28', '31x30', '31x32', '31x34',
+    '32x28', '32x30', '32x32', '32x34',
+    '33x28', '33x30', '33x32', '33x34',
+    '34x28', '34x30', '34x32', '34x34',
+    '35x28', '35x30', '35x32', '35x34',
+    '36x28', '36x30', '36x32', '36x34',
+    '38x30', '38x32', '38x34',
+    '40x30', '40x32', '40x34',
+    '42x32', '42x34',
+    
+    // Men's shorts inseam
+    '28x8', '29x8', '30x8', '31x8', '32x8', '33x8', '34x8', '35x8', '36x8', '38x8', '40x8',
+    
+    // Size modifiers
     'Petite',
     'Plus Size',
     'Tall',

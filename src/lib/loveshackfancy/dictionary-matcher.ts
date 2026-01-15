@@ -33,7 +33,7 @@ export function intentToStrategy(intent: ConstraintIntent): MatchStrategy {
  */
 function findExactDictionaryValue(
   constraintType: 'colors' | 'materials' | 'occasions' | 'styles' | 
-                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel',
+                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises',
   value: string
 ): string | null {
   const dictionary = getDictionaryForConstraintType(constraintType);
@@ -51,7 +51,7 @@ function findExactDictionaryValue(
 export function findClosestMatches(
   queryValue: string,
   constraintType: 'colors' | 'materials' | 'occasions' | 'styles' | 
-                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel',
+                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises',
   strategy: MatchStrategy = 'moderate'
 ): string[] {
   const dictionary = getDictionaryForConstraintType(constraintType);
@@ -108,7 +108,7 @@ export function findClosestMatches(
  */
 export function validateConstraintValues(
   constraintType: 'colors' | 'materials' | 'occasions' | 'styles' | 
-                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel',
+                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises',
   values: string[] | null | undefined
 ): string[] | null {
   if (!values || values.length === 0) return null;

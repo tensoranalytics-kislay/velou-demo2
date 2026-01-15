@@ -70,7 +70,6 @@
  *   additional_image_links, set_vs_single, pack_size
  */
 
-import { randomUUID } from 'crypto';
 import type { Prisma, StockStatus } from '@prisma/client';
 import type { EnrichedCatalogRow } from './enrichedTypes';
 
@@ -292,7 +291,125 @@ function selectCanonicalProduct(rows: EnrichedCatalogRow[]): EnrichedCatalogRow 
 /**
  * Build attributes JSON object for fields not mapped to indexed columns
  */
-function buildAttributes(row: EnrichedCatalogRow): Prisma.InputJsonValue {
+/**
+ * Detect whether a category/subcategory is apparel.
+ * 
+ * This is intentionally conservative: it looks for common apparel-related
+ * keywords so we can safely treat non-matching categories as non-apparel.
+ */
+function isApparelCategory(category: string, subcategory: string | null): boolean {
+  const cat = category.toLowerCase();
+  const sub = (subcategory || '').toLowerCase();
+
+  const APPAREL_KEYWORDS = [
+    'dress',
+    'skirt',
+    'top',
+    'blouse',
+    'shirt',
+    'tee',
+    't-shirt',
+    'sweater',
+    'cardigan',
+    'jumper',
+    'hoodie',
+    'jacket',
+    'coat',
+    'outerwear',
+    'pant',
+    'trouser',
+    'jean',
+    'denim',
+    'short',
+    'jumpsuit',
+    'romper',
+    'playsuit',
+    'legging',
+    'tight',
+    'activewear',
+    'sport',
+    'loungewear',
+    'sleepwear',
+    'pajama',
+    'nightgown',
+    'swim',
+    'bikini',
+    'one-piece',
+    'one piece',
+    'lingerie',
+    'underwear',
+    'intimates',
+    'bra',
+    'brief',
+    'boxer',
+    'sock',
+  ];
+
+  return APPAREL_KEYWORDS.some((kw) => cat.includes(kw) || sub.includes(kw));
+}
+
+/**
+ * Infer gender from category and title for products without explicit gender
+ * Returns: 'male' | 'female' | 'unisex'
+ * 
+ * Logic:
+ * - Men's categories (Mens-jeans, Mens-tees, etc.) → 'male'
+ * - Women's categories (dresses, women's apparel, etc.) → 'female'  
+ * - Non-apparel (accessories, home, etc.) → 'unisex'
+ */
+export function inferGenderFromCategoryAndTitle(input: {
+  category: string;
+  subcategory: string | null;
+  title?: string | null;
+  ageGroup?: string | null;
+}): 'male' | 'female' | 'unisex' {
+  const { category, subcategory, title } = input;
+  const catLower = category.toLowerCase();
+  const subLower = (subcategory || '').toLowerCase();
+  const titleLower = (title || '').toLowerCase();
+
+  // Check for explicit men's indicators
+  const menIndicators = ['mens', 'men\'s', 'male', 'mens-', 'men-'];
+  if (menIndicators.some(indicator => catLower.includes(indicator) || subLower.includes(indicator))) {
+    return 'male';
+  }
+
+  // Check for explicit women's indicators
+  const womenIndicators = ['womens', 'women\'s', 'female', 'womens-', 'women-', 'ladies'];
+  if (womenIndicators.some(indicator => catLower.includes(indicator) || subLower.includes(indicator))) {
+    return 'female';
+  }
+
+  // If it's apparel but no explicit gender, default to female (LSF legacy)
+  if (isApparelCategory(category, subcategory)) {
+    return 'female';
+  }
+
+  // Everything else is treated as unisex by default
+  return 'unisex';
+}
+
+/**
+ * Normalize CSV gender values to canonical format
+ */
+function normalizeGender(csvGender?: string | null): 'male' | 'female' | 'unisex' | null {
+  if (!csvGender) return null;
+  const normalized = csvGender.toLowerCase().trim();
+  
+  if (normalized === 'male' || normalized === 'm' || normalized === 'mens' || normalized === 'men') {
+    return 'male';
+  }
+  if (normalized === 'female' || normalized === 'f' || normalized === 'womens' || normalized === 'women') {
+    return 'female';
+  }
+  if (normalized === 'unisex' || normalized === 'u' || normalized === 'neutral') {
+    return 'unisex';
+  }
+  
+  return null; // Invalid value, will fall back to inference
+}
+
+function buildAttributes(row: EnrichedCatalogRow, inferredGender?: 'male' | 'female' | 'unisex'): Prisma.InputJsonValue {
   const attributes: Record<string, unknown> = {};
   const assign = (key: string, value: unknown) => {
     if (value === undefined || value === null || value === '') return;
@@ -346,6 +463,11 @@ function buildAttributes(row: EnrichedCatalogRow): Prisma.InputJsonValue {
   // Store enriched_color and age_group in attributes as fallback
   assign('enriched_color', row.enriched_color);
   assign('age_group', row.age_group);
+
+  // Normalized gender for hard filtering in search.
+  if (inferredGender) {
+    assign('gender', inferredGender);
+  }
 
   return attributes as Prisma.InputJsonValue;
 }
@@ -420,6 +542,17 @@ export function mapEnrichedToProduct(
   const problemSolutions = parseCommaList(canonical.problem_solutions);
   const functionFeatures = parseCommaList(canonical.function_features);
 
+  // Gender assignment priority:
+  // 1. Read from CSV gender column if present (Mott & Bow has this)
+  // 2. Fall back to inference from category/title (for LSF and other catalogs)
+  const csvGender = normalizeGender(canonical.gender);
+  const finalGender = csvGender || inferGenderFromCategoryAndTitle({
+    category,
+    subcategory,
+    title: canonical.title_clean,
+    ageGroup: canonical.age_group,
+  });
+
   const product: Prisma.ProductUncheckedCreateInput = {
     id: productId,
     merchantId,
@@ -474,8 +607,9 @@ export function mapEnrichedToProduct(
     inclusivitySizing: normalizeString(canonical.inclusivity_sizing),
     enrichedColor: normalizeString(canonical.enriched_color),
     ageGroup: normalizeString(canonical.age_group),
+    gender: finalGender,
     
-    attributes: buildAttributes(canonical),
+    attributes: buildAttributes(canonical, finalGender),
     stockStatus,
     vendorId,
     sourceId: canonical.item_group_id || canonical.id,

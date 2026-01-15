@@ -6,15 +6,20 @@
 
 import { callLLM } from '../llm/provider';
 import { logger } from '../telemetry/logger';
-import { LOVESHACKFANCY_QUERY_CLASSIFIER_PROMPT, LOVESHACKFANCY_QUERY_CLASSIFIER_SCHEMA } from './prompts';
+import { buildQueryClassifierPrompt, LOVESHACKFANCY_QUERY_CLASSIFIER_SCHEMA } from './prompts';
 import { stripJsonFences } from '../llm/orchestrator/utils';
 import { normalizeAgeGroups } from './age-group-normalizer';
 import { validateAgeGroups, validateColors } from './dictionary-validator';
 import { normalizeQueryForSearch } from './query-normalizer';
 import { validateConstraintValues } from './dictionary-matcher';
 import { extractConstraintValues, extractConstraintIntent, type ConstraintWithIntent } from './constraint-utils';
+import { detectGenderFromQuery } from './gender-detector';
+import { CATEGORY_GENDER_MAP, type Gender } from '../catalog/category-gender-map';
 
 export type FashionConstraints = {
+  // Gender (NEW - for multi-gender support)
+  gender?: 'male' | 'female' | 'unisex' | null;
+  
   // Existing clothing constraints
   // Note: Runtime supports both string[] and ConstraintWithIntent formats for intent-based matching
   styles?: string[] | ConstraintWithIntent | null;
@@ -26,6 +31,7 @@ export type FashionConstraints = {
   colors?: string[] | ConstraintWithIntent | null;
   sizes?: string[] | ConstraintWithIntent | null;
   fits?: string[] | ConstraintWithIntent | null;
+  rises?: string[] | ConstraintWithIntent | null; // NEW - for rise/waist placement (Low Rise, Mid Rise, High Rise)
   collections?: string[] | ConstraintWithIntent | null;
   priceMinCents?: number | null;
   priceMaxCents?: number | null;
@@ -87,30 +93,144 @@ export type QueryClassification = {
 };
 
 /**
- * Classify query and extract constraints using LLM
+ * Extended classification result with metadata about gender context
  */
-export async function classifyQuery(
+export type ClassificationWithMetadata = {
+  classification: QueryClassification;
+  usedStrictMajorityMode: boolean;
+  genderContext: 'male' | 'female' | null;
+};
+
+/**
+ * Build allowed categories for classifier based on gender context
+ * 
+ * @param genderContext - Resolved gender from query/constraints ('male' | 'female' | null)
+ * @returns Allowed categories and metadata about filtering mode
+ */
+export function buildAllowedCategoriesForClassifier(
+  genderContext: 'male' | 'female' | null
+): { categoriesForPrompt: string[]; usedStrictMajorityMode: boolean } {
+  const allEntries = Object.entries(CATEGORY_GENDER_MAP);
+
+  // Case 1: Gender is interpretable (directly or indirectly from query/constraints)
+  // Only show categories valid for that gender or unisex
+  if (genderContext) {
+    const allowed = allEntries
+      .filter(([, categoryGender]) => categoryGender === genderContext || categoryGender === 'unisex')
+      .map(([category]) => category);
+    
+    logger.debug('buildAllowedCategoriesForClassifier: gender_interpretable', {
+      genderContext,
+      totalCategories: allEntries.length,
+      allowedCategories: allowed.length,
+      sampleAllowed: allowed.slice(0, 10),
+    });
+    
+    return { categoriesForPrompt: allowed, usedStrictMajorityMode: false };
+  }
+
+  // Case 2: Gender is NOT interpretable (ambiguous query)
+  // Only show categories with strict gender majority (≥95%: male or female, NOT unisex)
+  // This ensures the classifier only sees clearly gendered categories when gender is unknown
+  const allowed = allEntries
+    .filter(([, categoryGender]) => categoryGender === 'male' || categoryGender === 'female')
+    .map(([category]) => category);
+  
+  logger.debug('buildAllowedCategoriesForClassifier: gender_ambiguous_strict_majority', {
+    genderContext: null,
+    totalCategories: allEntries.length,
+    strictMajorityCategories: allowed.length,
+    sampleAllowed: allowed.slice(0, 10),
+    note: 'Using only strict gender majority categories (≥95% male or female) for ambiguous queries',
+  });
+  
+  return { categoriesForPrompt: allowed, usedStrictMajorityMode: true };
+}
+
+/**
+ * Compute gender context for classifier from query and last constraints
+ * 
+ * Priority:
+ * 1. Explicit gender from current query text
+ * 2. Gender from last constraints (follow-up context)
+ * 3. null (ambiguous - will trigger strict majority mode)
+ */
+export function computeGenderContext(
+  message: string,
+  lastConstraints?: FashionConstraints | null
+): 'male' | 'female' | null {
+  // 1. Check for explicit gender in current query
+  const explicitGender = detectGenderFromQuery(message);
+  if (explicitGender) {
+    return explicitGender;
+  }
+  
+  // 2. Check last constraints (follow-up context)
+  if (lastConstraints?.gender && lastConstraints.gender !== 'unisex') {
+    return lastConstraints.gender as 'male' | 'female';
+  }
+  
+  // 3. No gender signal - ambiguous
+  return null;
+}
+
+/**
+ * Classify query and extract constraints using LLM
+ * Returns extended metadata including gender context and strict majority mode flag
+ */
+export async function classifyQueryWithMetadata(
   message: string,
   lastConstraints?: FashionConstraints | null,
   enhancedQuery?: string | null
-): Promise<QueryClassification> {
+): Promise<ClassificationWithMetadata> {
+  const startTime = Date.now();
+  const queryForClassification = enhancedQuery || message;
+  
+  logger.info('classifyQuery: starting', {
+    query: queryForClassification.substring(0, 100),
+    hasLastConstraints: !!lastConstraints,
+    hasEnhancedQuery: !!enhancedQuery,
+  });
+
+  // STEP 1: Compute gender context BEFORE calling LLM
+  const genderContext = computeGenderContext(message, lastConstraints);
+  
+  logger.info('classifyQuery: gender_context_computed', {
+    query: queryForClassification.substring(0, 100),
+    genderContext,
+    lastConstraintsGender: lastConstraints?.gender,
+    note: 'Gender context computed before building classifier prompt',
+  });
+  
+  // STEP 2: Build allowed categories based on gender context
+  const { categoriesForPrompt, usedStrictMajorityMode } = buildAllowedCategoriesForClassifier(genderContext);
+  
+  logger.info('classifyQuery: allowed_categories_computed', {
+    query: queryForClassification.substring(0, 100),
+    genderContext,
+    usedStrictMajorityMode,
+    allowedCategoryCount: categoriesForPrompt.length,
+    sampleCategories: categoriesForPrompt.slice(0, 15),
+    note: 'Category list filtered based on gender context before building classifier prompt',
+  });
+
   try {
     const lastConstraintsText = lastConstraints 
       ? JSON.stringify(lastConstraints, null, 2)
       : 'null';
     
-    // Use enhanced query if provided, otherwise use original message
-    const queryForClassification = enhancedQuery || message;
-    
-    const prompt = LOVESHACKFANCY_QUERY_CLASSIFIER_PROMPT
+    // STEP 3: Build prompt with gender-filtered categories
+    const basePrompt = buildQueryClassifierPrompt(categoriesForPrompt);
+    const prompt = basePrompt
       .replace('{QUERY}', queryForClassification)
       .replace('{LAST_CONSTRAINTS}', lastConstraintsText);
 
+    const llmStartTime = Date.now();
     const result = await callLLM({
       messages: [
         {
           role: 'system',
-          content: 'You are a shopping assistant for LoveShackFancy. Classify queries and extract ALL possible constraints from context using semantic understanding. Think like a stylist who understands cultural sensitivity, appropriateness, and what works for different contexts. Extract both explicit and inferred constraints, ensuring explicit mentions override inferred ones.\n\nCRITICAL: You MUST extract ALL explicit constraints mentioned in the query. Examples:\n- "blue maxi dresses" MUST extract colors: ["Blue"] AND lengths: ["Maxi"]\n- "red mini dress" MUST extract colors: ["Red"] AND lengths: ["Mini"]\n- "long sleeve blue tops" MUST extract colors: ["Blue"] AND sleeveLengths: ["Long Sleeve"]\n\nDo NOT omit any explicitly mentioned constraints. If the user says "blue", extract it as a color. If they say "maxi", extract it as a length. If they say "long sleeves", extract it as sleeveLengths.',
+          content: 'You are a shopping assistant for a fashion brand serving both men\'s and women\'s customers. Classify queries and extract ALL possible constraints from context using semantic understanding. Think like a stylist who understands cultural sensitivity, appropriateness, and what works for different contexts across genders. Extract both explicit and inferred constraints, ensuring explicit mentions override inferred ones.\n\n**GENDER EXTRACTION**: Extract gender from keywords like "mens", "womens", "for him", "for her", etc. Leave as null if not explicitly mentioned.\n\nCRITICAL: You MUST extract ALL explicit constraints mentioned in the query. Examples:\n- "blue maxi dresses" MUST extract colors: ["Blue"] AND lengths: ["Maxi"] AND gender: "female"\n- "red mini dress" MUST extract colors: ["Red"] AND lengths: ["Mini"] AND gender: "female"\n- "slim black jeans for work" MUST extract fits: ["Slim"] AND colors: ["Black"] AND occasions: ["Work"]\n- "men\'s t-shirts size medium" MUST extract gender: "male" AND sizes: ["M"]\n\nDo NOT omit any explicitly mentioned constraints. Extract gender, fits, rises, colors, lengths, sleeveLengths, sizes, and all other attributes.',
         },
         {
           role: 'user',
@@ -122,6 +242,7 @@ export async function classifyQuery(
       schema: LOVESHACKFANCY_QUERY_CLASSIFIER_SCHEMA,
       maxTokens: 2000, // Increased from 1000 to allow full constraint extraction
     });
+    const llmDuration = Date.now() - llmStartTime;
 
     const cleaned = stripJsonFences(result.rawText);
     const parsed = JSON.parse(cleaned) as any;
@@ -855,26 +976,65 @@ export async function classifyQuery(
       constraintsCount: Object.keys(normalizedConstraints).length,
     });
 
-    return {
+    const totalDuration = Date.now() - startTime;
+    logger.info('classifyQuery: complete', {
+      query: queryForClassification.substring(0, 100),
       type: parsed.type,
-      productTerms,
-      constraints: normalizedConstraints,
-      confidence: parsed.confidence,
-    };
-  } catch (error) {
-    logger.error('classifyQuery: failed', {
-      error: error instanceof Error ? error.message : String(error),
-      query: message.substring(0, 100),
+      totalDurationMs: totalDuration,
+      totalDurationSeconds: (totalDuration / 1000).toFixed(2),
+      llmDurationMs: llmDuration,
+      llmDurationSeconds: (llmDuration / 1000).toFixed(2),
+      constraintsCount: Object.keys(normalizedConstraints).length,
+      genderContext,
+      usedStrictMajorityMode,
     });
 
-    // Fallback: return empty classification
     return {
-      type: 'gift_or_vague',
-      productTerms: normalizeQueryForSearch(message),
-      constraints: {},
-      confidence: 0.0,
+      classification: {
+        type: parsed.type,
+        productTerms,
+        constraints: normalizedConstraints,
+        confidence: parsed.confidence,
+      },
+      usedStrictMajorityMode,
+      genderContext,
+    };
+  } catch (error) {
+    const totalDuration = Date.now() - startTime;
+    logger.error('classifyQuery: failed', {
+      error: error instanceof Error ? error.message : String(error),
+      query: queryForClassification.substring(0, 100),
+      totalDurationMs: totalDuration,
+      totalDurationSeconds: (totalDuration / 1000).toFixed(2),
+    });
+
+    // Fallback: return empty classification with metadata
+    return {
+      classification: {
+        type: 'gift_or_vague',
+        productTerms: normalizeQueryForSearch(message),
+        constraints: {},
+        confidence: 0.0,
+      },
+      usedStrictMajorityMode: false,
+      genderContext: null,
     };
   }
+}
+
+/**
+ * Classify query and extract constraints using LLM (backward-compatible wrapper)
+ * 
+ * This is the original function signature for backward compatibility.
+ * Use classifyQueryWithMetadata for new code that needs gender context metadata.
+ */
+export async function classifyQuery(
+  message: string,
+  lastConstraints?: FashionConstraints | null,
+  enhancedQuery?: string | null
+): Promise<QueryClassification> {
+  const result = await classifyQueryWithMetadata(message, lastConstraints, enhancedQuery);
+  return result.classification;
 }
 
 /**

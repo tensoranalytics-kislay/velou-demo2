@@ -336,9 +336,10 @@ export async function multiViewRetrieval(
               });
 
               // POST-SQL FILTERING MODE: Two-stage filtration
-              // Stage 1: Category-only SQL filter (skip post-filterable attributes)
+              // Stage 1: Gender + Category SQL filter (skip post-filterable attributes)
               const categoryFilteredIds = await deduplicateProductsByCategoryForPostFiltering(
                 {
+                  genders: contextAware.sqlFilters.genders, // NEW: Gender as primary filter
                   categories: expandedCategories,
                   ageGroups: contextAware.sqlFilters.ageGroups,
                   priceMinCents: contextAware.sqlFilters.priceMinCents,
@@ -392,7 +393,7 @@ export async function multiViewRetrieval(
                   hasFormalityIntent: !!contextAwareIntents.formalityLevels,
                   note: 'About to call applyPostSQLFilters with intent information',
                 });
-
+                
                 const postFilteredIds = await applyPostSQLFilters(
                   categoryFilteredIds,
                   {
@@ -445,6 +446,7 @@ export async function multiViewRetrieval(
               {
                 inStockOnly: true,
                 merchantId,
+                genders: contextAware.sqlFilters.genders, // NEW: Gender as primary filter
                   categories: expandedCategories,
                 priceMinCents: contextAware.sqlFilters.priceMinCents,
                 priceMaxCents: contextAware.sqlFilters.priceMaxCents,
@@ -1146,6 +1148,9 @@ export function classificationToSearchConstraints(
   // Map FashionConstraints to SearchConstraints (only include fields that exist in SearchConstraints)
   // PHASE 3: Handle excluded intent - set constraint to undefined and add to excluded* field
   const searchConstraints: SearchConstraints = {
+    // Gender filter: PRIMARY hard filter (applied before category)
+    genders: constraints.gender ? [constraints.gender] : undefined,
+    
     // Category filter: hard SQL-level filter using top 3 categories
     category: categoryFilter,
     // Map fashion constraints to SearchConstraints fields
@@ -1167,10 +1172,10 @@ export function classificationToSearchConstraints(
       : nullToUndefined([
           ...(styleValues || []),
           ...(patternValues || []),
-        ].filter(Boolean).length > 0 ? [
+    ].filter(Boolean).length > 0 ? [
           ...(styleValues || []),
           ...(patternValues || []),
-        ] : undefined),
+    ] : undefined),
     // Map post-filterable attributes (preserved in sqlFilters for post-SQL filtering)
     // sleeveLengths -> sleeves (map FashionConstraints.sleeveLengths to SearchConstraints.sleeves)
     sleeves: sleeveLengthIntent === 'excluded' ? undefined : nullToUndefined(sleeveLengthValues),

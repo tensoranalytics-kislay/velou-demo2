@@ -1,10 +1,10 @@
 /**
  * Category Tree
  * 
- * Auto-generated from database. Contains all categories and subcategories
- * present in the current dataset.
+ * Contains all categories and subcategories present in the current dataset.
+ * Manually updated to include Mott & Bow men's and women's categories.
  * 
- * Generated: 2026-01-09T12:10:32.346Z
+ * Updated: 2026-01-15 (added Mott & Bow multi-gender categories)
  */
 
 export type CategoryTree = {
@@ -15,6 +15,195 @@ export type CategoryTree = {
 };
 
 export const CATEGORY_TREE: CategoryTree = {
+  // ========== MEN'S CATEGORIES (Mott & Bow) ==========
+  "Mens-jeans": {
+    "subcategories": [
+      "Slim Jeans",
+      "Skinny Jeans", 
+      "Straight Jeans",
+      "Relaxed Jeans"
+    ],
+    "paths": [
+      "Mens-jeans > Slim Jeans",
+      "Mens-jeans > Skinny Jeans",
+      "Mens-jeans > Straight Jeans",
+      "Mens-jeans > Relaxed Jeans"
+    ]
+  },
+  "Mens-tees": {
+    "subcategories": [
+      "Crew Neck Tees",
+      "V-Neck Tees",
+      "Henley Tees",
+      "Tank Tops",
+      "Pocket Tees"
+    ],
+    "paths": [
+      "Mens-tees > Crew Neck Tees",
+      "Mens-tees > V-Neck Tees",
+      "Mens-tees > Henley Tees",
+      "Mens-tees > Tank Tops",
+      "Mens-tees > Pocket Tees"
+    ]
+  },
+  "Mens-pants": {
+    "subcategories": [
+      "Chinos",
+      "Twill Pants",
+      "Tech Pants",
+      "Dress Pants"
+    ],
+    "paths": [
+      "Mens-pants > Chinos",
+      "Mens-pants > Twill Pants",
+      "Mens-pants > Tech Pants",
+      "Mens-pants > Dress Pants"
+    ]
+  },
+  "Mens-shorts": {
+    "subcategories": [
+      "Chino Shorts",
+      "Tech Shorts",
+      "Athletic Shorts"
+    ],
+    "paths": [
+      "Mens-shorts > Chino Shorts",
+      "Mens-shorts > Tech Shorts",
+      "Mens-shorts > Athletic Shorts"
+    ]
+  },
+  "Mens-underwear": {
+    "subcategories": [
+      "Boxer Briefs",
+      "Boxers",
+      "Trunks"
+    ],
+    "paths": [
+      "Mens-underwear > Boxer Briefs",
+      "Mens-underwear > Boxers",
+      "Mens-underwear > Trunks"
+    ]
+  },
+  "Mens-pajamas": {
+    "subcategories": [
+      "Pajama Pants",
+      "Pajama Sets"
+    ],
+    "paths": [
+      "Mens-pajamas > Pajama Pants",
+      "Mens-pajamas > Pajama Sets"
+    ]
+  },
+  "Mens-sweaters": {
+    "subcategories": [
+      "Crew Neck Sweaters",
+      "Hoodies",
+      "Cardigans"
+    ],
+    "paths": [
+      "Mens-sweaters > Crew Neck Sweaters",
+      "Mens-sweaters > Hoodies",
+      "Mens-sweaters > Cardigans"
+    ]
+  },
+  "Mens-jackets": {
+    "subcategories": [
+      "Denim Jackets",
+      "Casual Jackets"
+    ],
+    "paths": [
+      "Mens-jackets > Denim Jackets",
+      "Mens-jackets > Casual Jackets"
+    ]
+  },
+  "Mens-swims": {
+    "subcategories": [
+      "Swim Trunks",
+      "Board Shorts"
+    ],
+    "paths": [
+      "Mens-swims > Swim Trunks",
+      "Mens-swims > Board Shorts"
+    ]
+  },
+  
+  // ========== WOMEN'S CATEGORIES (LSF + Mott & Bow) ==========
+  "Womens-jeans": {
+    "subcategories": [
+      "Skinny Jeans",
+      "Wide Leg Jeans",
+      "Straight Jeans",
+      "Mom Jeans",
+      "Cropped Jeans"
+    ],
+    "paths": [
+      "Womens-jeans > Skinny Jeans",
+      "Womens-jeans > Wide Leg Jeans",
+      "Womens-jeans > Straight Jeans",
+      "Womens-jeans > Mom Jeans",
+      "Womens-jeans > Cropped Jeans"
+    ]
+  },
+  "Womens-tees": {
+    "subcategories": [
+      "Crew Neck Tees",
+      "V-Neck Tees",
+      "Tank Tops",
+      "Crop Tops",
+      "Pocket Tees"
+    ],
+    "paths": [
+      "Womens-tees > Crew Neck Tees",
+      "Womens-tees > V-Neck Tees",
+      "Womens-tees > Tank Tops",
+      "Womens-tees > Crop Tops",
+      "Womens-tees > Pocket Tees"
+    ]
+  },
+  "Womens-lounge": {
+    "subcategories": [
+      "Lounge Pants",
+      "Lounge Sets"
+    ],
+    "paths": [
+      "Womens-lounge > Lounge Pants",
+      "Womens-lounge > Lounge Sets"
+    ]
+  },
+  "Womens-pajamas": {
+    "subcategories": [
+      "Pajama Pants",
+      "Pajama Sets"
+    ],
+    "paths": [
+      "Womens-pajamas > Pajama Pants",
+      "Womens-pajamas > Pajama Sets"
+    ]
+  },
+  "Womens-pants": {
+    "subcategories": [
+      "Casual Pants",
+      "Dress Pants"
+    ],
+    "paths": [
+      "Womens-pants > Casual Pants",
+      "Womens-pants > Dress Pants"
+    ]
+  },
+  "Womens-sweaters": {
+    "subcategories": [
+      "Hoodies",
+      "Cardigans",
+      "Crew Neck Sweaters"
+    ],
+    "paths": [
+      "Womens-sweaters > Hoodies",
+      "Womens-sweaters > Cardigans",
+      "Womens-sweaters > Crew Neck Sweaters"
+    ]
+  },
+  
+  // ========== LSF WOMEN'S CATEGORIES ==========
   "Activewear": {
     "subcategories": [
       "Sports Bra"

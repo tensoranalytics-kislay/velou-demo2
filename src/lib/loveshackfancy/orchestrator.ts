@@ -19,7 +19,7 @@ import type { ProductCard } from '../llm/orchestrator/cards';
 import type { ProgressCallback } from '../llm/types';
 import { STAGE_PROGRESS } from '../llm/types';
 import { checkQuerySafety } from './safety';
-import { classifyQuery, type QueryClassification, type FashionConstraints } from './classifier';
+import { classifyQuery, classifyQueryWithMetadata, type QueryClassification, type FashionConstraints, type ClassificationWithMetadata } from './classifier';
 import { multiViewRetrieval, type MultiViewRetrievalResult } from './retrieval';
 import { sortProductsByScore, type ProductWithFashionAttributes } from './ranking/ranker';
 import { generateReply, type ReplyResult, type ReplyContext } from './reply';
@@ -41,6 +41,7 @@ import { handleIrrelevantQuery, generateIntelligentDenial } from './irrelevant-q
 import { getAllCategories, findClosestCategory } from '../catalog/category-tree';
 import { extractCategoryKeywords, validateAllProducts as validateAllProductsByCategory, filterProductsByCategoryValidation } from './validation/category-validator';
 import { extractConstraintValues, extractConstraintIntent, type ConstraintWithIntent } from './constraint-utils';
+import { refineConstraintsWithDictionaries, mergeRefinedConstraints } from './constraint-refiner';
 
 export type LoveshackfancyQueryInput = {
   sessionId: string;
@@ -86,9 +87,16 @@ async function loadFashionProducts(
   productIds: string[],
   merchantId?: string
 ): Promise<SearchResultItem[]> {
+  const startTime = Date.now();
+  
   if (productIds.length === 0) {
     return [];
   }
+
+  logger.info('loadFashionProducts: starting', {
+    productCount: productIds.length,
+    merchantId,
+  });
 
   // Optimized query: All selected fields are used in:
   // - Reply generation: title, attributes (style, length, occasion, pattern, material), enriched columns
@@ -96,6 +104,7 @@ async function loadFashionProducts(
   // - Product cards: id, title, imageUrl, productUrl, priceCents, salePriceCents, attributes
   // - Ranking features: all fields including enriched columns
   // Note: Using findMany with IN clause is efficient for small batches (typically 40 products)
+  const dbStartTime = Date.now();
   const products = await prisma.product.findMany({
     where: {
       id: { in: productIds },
@@ -239,6 +248,14 @@ function extractAttr(attrs: Record<string, unknown>, key: string): string | null
 export async function handleLoveshackfancyQuery(
   input: LoveshackfancyQueryInput
 ): Promise<LoveshackfancyQueryResult> {
+  const queryStartTime = Date.now();
+  
+  logger.info('handleLoveshackfancyQuery: starting', {
+    query: input.message.substring(0, 100),
+    sessionId: input.sessionId,
+    isFollowUp: !!input.lastConstraints,
+    merchantId: input.merchantId,
+  });
   // Store category confidence for dynamic threshold calculation (set later in the flow)
   let categoryConfidenceForThreshold: number | undefined = undefined;
   const { onProgress } = input;
@@ -602,15 +619,15 @@ Answer the user's question about this product:`;
       } else {
         // User answered the clarification question (only ONE question now)
         const updatedResponses = [...pendingFollowups.responses, input.message];
-        
+
         // Enhance query with the response
-        onProgress?.('understanding', STAGE_PROGRESS.understanding + 5);
-        const enhancedQuery = await enhanceQuery(
-          pendingFollowups.originalQuery,
-          updatedResponses,
-          pendingFollowups.preliminaryProducts,
-          input.merchantData?.datasetContext
-        );
+          onProgress?.('understanding', STAGE_PROGRESS.understanding + 5);
+          const enhancedQuery = await enhanceQuery(
+            pendingFollowups.originalQuery,
+            updatedResponses,
+            pendingFollowups.preliminaryProducts,
+            input.merchantData?.datasetContext
+          );
 
         // Check category confidence again with the enhanced query
         onProgress?.('classifying', STAGE_PROGRESS.classifying);
@@ -619,21 +636,21 @@ Answer the user's question about this product:`;
           input.merchantId
         );
 
-        // Clear pending followups (fire-and-forget - non-blocking)
-        if (input.merchantId) {
-          updateState(input.merchantId, input.sessionId, {
-            memory: {
-              ...conversationState.memory,
-              pendingFollowups: undefined,
-            },
-          }).catch(err => logger.warn('state_update_failed', { 
-            error: err instanceof Error ? err.message : String(err),
+          // Clear pending followups (fire-and-forget - non-blocking)
+          if (input.merchantId) {
+            updateState(input.merchantId, input.sessionId, {
+              memory: {
+                ...conversationState.memory,
+                pendingFollowups: undefined,
+              },
+            }).catch(err => logger.warn('state_update_failed', { 
+              error: err instanceof Error ? err.message : String(err),
             context: 'clear_pending_followups_after_response'
-          }));
-        }
+            }));
+          }
 
-        // Use enhanced query for search - replace message for remaining flow
-        input.message = enhancedQuery.enhancedQueryText;
+          // Use enhanced query for search - replace message for remaining flow
+          input.message = enhancedQuery.enhancedQueryText;
 
         // Extract product type from enhanced query to validate category classification
         const enhancedQueryLower = enhancedQuery.enhancedQueryText.toLowerCase();
@@ -660,13 +677,13 @@ Answer the user's question about this product:`;
             
             if (!categoryMatchesProductType) {
               logger.warn('category_mismatch_with_product_type', {
-                originalQuery: pendingFollowups.originalQuery,
-                enhancedQuery: enhancedQuery.enhancedQueryText,
+            originalQuery: pendingFollowups.originalQuery,
+            enhancedQuery: enhancedQuery.enhancedQueryText,
                 detectedProductType,
                 categories: topCategories,
                 note: 'Category classification does not match detected product type - may need re-classification'
-              });
-            } else {
+          });
+        } else {
               logger.info('category_matches_product_type', {
                 enhancedQuery: enhancedQuery.enhancedQueryText,
                 detectedProductType,
@@ -698,9 +715,9 @@ Answer the user's question about this product:`;
         // Continue with normal flow using enhanced query
         // Note: We only ask ONE clarification question, so after one response we always proceed
         logger.info('query_enhanced_and_proceeding_after_clarification', {
-          originalQuery: pendingFollowups.originalQuery,
+            originalQuery: pendingFollowups.originalQuery,
           enhancedQuery: enhancedQuery.enhancedQueryText,
-          responseCount: updatedResponses.length,
+            responseCount: updatedResponses.length,
         });
       }
   }
@@ -1255,6 +1272,10 @@ Answer the user's question about this product:`;
   // or have already been classified above (when category was identified for indirect_search)
   onProgress?.('understanding', STAGE_PROGRESS.understanding);
   let classification: QueryClassification;
+  let classificationMetadata = {
+    usedStrictMajorityMode: false,
+    genderContext: null as 'male' | 'female' | null,
+  };
   
   // Determine if we should run category classification
   // ALWAYS run category classification for follow-ups to re-judge category
@@ -1288,11 +1309,12 @@ Answer the user's question about this product:`;
       ? mergedConstraints
       : null;
     
+    const classificationStartTime = Date.now();
     const [classificationResult, categoryResult] = await Promise.all([
-      // Query classification
-      (async (): Promise<QueryClassification> => {
+      // Query classification (with gender metadata)
+      (async (): Promise<ClassificationWithMetadata> => {
         try {
-          const result = await classifyQuery(input.message, constraintsForClassifier, enhancedQueryText);
+          const result = await classifyQueryWithMetadata(input.message, constraintsForClassifier, enhancedQueryText);
           return result;
         } catch (error) {
           logger.error('handleLoveshackfancyQuery: classification failed', {
@@ -1311,7 +1333,11 @@ Answer the user's question about this product:`;
                 constraints: result.constraints,
                 confidence: result.confidence,
               });
-              return result;
+              return {
+                classification: result,
+                usedStrictMajorityMode: false,
+                genderContext: null,
+              };
             } else {
               // Fallback 2: Use keyword-based classification
               const { inferClassificationFromKeywords } = await import('./classifier');
@@ -1320,7 +1346,11 @@ Answer the user's question about this product:`;
                 type: result.type,
                 constraints: result.constraints,
               });
-              return result;
+              return {
+                classification: result,
+                usedStrictMajorityMode: false,
+                genderContext: null,
+              };
             }
           } catch (fallbackError) {
             // Final fallback: keyword-based classification
@@ -1333,7 +1363,11 @@ Answer the user's question about this product:`;
               type: result.type,
               constraints: result.constraints,
             });
-            return result;
+            return {
+              classification: result,
+              usedStrictMajorityMode: false,
+              genderContext: null,
+            };
           }
         }
       })(),
@@ -1365,38 +1399,38 @@ Answer the user's question about this product:`;
           });
           
           const result = await classifyQueryToCategoriesWithConfidence(queryForCategoryClassification, input.merchantId);
-          
-          console.log('[ORCHESTRATOR] Category classification result (with confidence)', {
+            
+            console.log('[ORCHESTRATOR] Category classification result (with confidence)', {
             query: queryForCategoryClassification.substring(0, 100),
             originalMessage: input.message.substring(0, 100),
             isFollowUp,
-            categories: result.categories,
-            count: result.categories.length,
-            confidence: result.confidence,
+              categories: result.categories,
+              count: result.categories.length,
+              confidence: result.confidence,
             categorizationCategory: categorization.category,
-          });
-          logger.info('category_classification_complete_with_confidence', {
+            });
+            logger.info('category_classification_complete_with_confidence', {
             query: queryForCategoryClassification.substring(0, 100),
             originalMessage: input.message.substring(0, 100),
             isFollowUp,
             usingEnhancedQuery: isFollowUp && enhancedQueryText,
             categorizationCategory: categorization.category,
-            categories: result.categories,
-            categoryCount: result.categories.length,
-            confidence: result.confidence,
-          });
-          
-          if (result.categories.length > 0) {
-            logger.info('category_filter_will_be_applied', {
-              query: input.message.substring(0, 100),
               categories: result.categories,
-              filterType: 'hard_sql_level',
-              appliesTo: 'multi_view_retrieval',
+              categoryCount: result.categories.length,
+              confidence: result.confidence,
             });
-          }
-          
+            
+            if (result.categories.length > 0) {
+              logger.info('category_filter_will_be_applied', {
+                query: input.message.substring(0, 100),
+                categories: result.categories,
+                filterType: 'hard_sql_level',
+                appliesTo: 'multi_view_retrieval',
+              });
+            }
+            
           // Return both categories and confidence for all query types
-          return { categories: result.categories, confidence: result.confidence };
+            return { categories: result.categories, confidence: result.confidence };
         } catch (error) {
           console.error('[ORCHESTRATOR] Category classification error', error);
           logger.warn('category_classification_failed_continuing', {
@@ -1406,12 +1440,25 @@ Answer the user's question about this product:`;
           });
           // Continue without category filtering if classification fails
           // Return empty categories with 0 confidence for all query types
-          return { categories: [], confidence: 0 };
+            return { categories: [], confidence: 0 };
         }
       })(),
     ]);
     
-    classification = classificationResult;
+    // Extract classification and metadata
+    classification = classificationResult.classification;
+    const classificationMetadata = {
+      usedStrictMajorityMode: classificationResult.usedStrictMajorityMode,
+      genderContext: classificationResult.genderContext,
+    };
+    
+    logger.info('classification_metadata_extracted', {
+      query: input.message.substring(0, 100),
+      usedStrictMajorityMode: classificationMetadata.usedStrictMajorityMode,
+      genderContext: classificationMetadata.genderContext,
+      classificationConfidence: classification.confidence,
+      classifiedGender: classification.constraints.gender,
+    });
     
     // Store category confidence for later use in dynamic threshold calculation
     // Category confidence check already happened earlier for all query types
@@ -1431,9 +1478,9 @@ Answer the user's question about this product:`;
             query: input.message.substring(0, 100),
             enhancedQuery: enhancedQueryText.substring(0, 100),
             categories: topCategories,
-            confidence: categoryResultWithConfidence.confidence,
+          confidence: categoryResultWithConfidence.confidence,
             note: 'Categories re-classified based on enhanced query for follow-up',
-          });
+        });
         }
       } else if (topCategories.length === 0 && categoryResultWithConfidence.categories.length > 0) {
         // For new queries, only set if topCategories wasn't set earlier
@@ -1447,7 +1494,50 @@ Answer the user's question about this product:`;
     } else {
       // Fallback: result is a simple array (shouldn't happen with new logic, but keep for safety)
       if (topCategories.length === 0) {
-        topCategories = Array.isArray(categoryResult) ? categoryResult : [];
+      topCategories = Array.isArray(categoryResult) ? categoryResult : [];
+      }
+    }
+
+    // Gender-aware category filtering for SQL-level constraints
+    // If we have a resolved gender, drop categories that are incompatible with that gender.
+    // Example: for "jeans for men", female-only categories like "Bottoms" are removed
+    // from the category filter so they don't block male jeans under male categories.
+    if (topCategories.length > 0) {
+      const resolvedGenderForCategories =
+        (classification.constraints.gender && classification.constraints.gender !== 'unisex'
+          ? classification.constraints.gender
+          : classificationMetadata.genderContext) || null;
+
+      if (resolvedGenderForCategories === 'male' || resolvedGenderForCategories === 'female') {
+        const { getCategoryGender } = await import('../catalog/category-gender-map');
+
+        const genderFilteredCategories = topCategories.filter((cat) => {
+          const categoryGender = getCategoryGender(cat);
+          // If category has no explicit gender mapping, treat it as usable for any gender.
+          if (!categoryGender) return true;
+          return categoryGender === resolvedGenderForCategories || categoryGender === 'unisex';
+        });
+
+        logger.info('category_gender_filter_applied', {
+          query: input.message.substring(0, 100),
+          originalCategories: topCategories,
+          genderFilteredCategories,
+          resolvedGenderForCategories,
+        });
+
+        if (genderFilteredCategories.length > 0) {
+          topCategories = genderFilteredCategories;
+        } else {
+          // If all categories are incompatible with the resolved gender, drop category filter entirely.
+          // Gender will still be enforced as a hard SQL filter, preventing cross-gender results.
+          logger.warn('category_gender_filter_removed_all_categories', {
+            query: input.message.substring(0, 100),
+            originalCategories: topCategories,
+            resolvedGenderForCategories,
+            note: 'All category candidates were incompatible with gender; proceeding with gender-only filtering.',
+          });
+          topCategories = [];
+        }
       }
     }
   } else {
@@ -1457,7 +1547,20 @@ Answer the user's question about this product:`;
         ? mergedConstraints
         : null;
       
-      classification = await classifyQuery(input.message, constraintsForClassification, enhancedQueryText);
+      const classificationWithMetadata = await classifyQueryWithMetadata(input.message, constraintsForClassification, enhancedQueryText);
+      classification = classificationWithMetadata.classification;
+      classificationMetadata = {
+        usedStrictMajorityMode: classificationWithMetadata.usedStrictMajorityMode,
+        genderContext: classificationWithMetadata.genderContext,
+      };
+      
+      logger.info('classification_metadata_extracted_else_branch', {
+        query: input.message.substring(0, 100),
+        usedStrictMajorityMode: classificationMetadata.usedStrictMajorityMode,
+        genderContext: classificationMetadata.genderContext,
+        classificationConfidence: classification.confidence,
+        classifiedGender: classification.constraints.gender,
+      });
       
       // If we merged constraints, override classification constraints with merged ones
       if (isFollowUp && mergedConstraints) {
@@ -1667,6 +1770,143 @@ Answer the user's question about this product:`;
   // Step 3.8: Pattern matching is now handled by LLM using dictionaries
   // No hardcoded synonym expansion - LLM finds closest matches from database dictionaries
 
+  // Step 3.9: Gender Clarification Check (NEW - Multi-gender support)
+  // Always run for every query (including follow-ups) so explicit gender
+  // mentions like "for men" or "for women" can update the active gender.
+  const { shouldClarifyGender, resolveGender } = await import('./gender-detector');
+  const { getCategoryGender } = await import('../catalog/category-gender-map');
+  
+  const resolvedGender = resolveGender(
+    input.message,
+    topCategories,
+    classification.constraints.gender
+  );
+  
+  // CONFIDENCE-AWARE CLARIFICATION LOGIC (NEW)
+  // When gender is ambiguous and we used strict majority mode,
+  // only trust the classification if confidence >= 0.8
+  let needsGenderClarification = false;
+  
+  if (!resolvedGender && classificationMetadata.usedStrictMajorityMode) {
+    // Gender was ambiguous during classification
+    if (classification.confidence < 0.8) {
+      // Low confidence with ambiguous gender - ask for clarification
+      needsGenderClarification = true;
+      logger.info('gender_clarification_low_confidence_ambiguous', {
+        query: input.message.substring(0, 100),
+        classificationConfidence: classification.confidence,
+        threshold: 0.8,
+        usedStrictMajorityMode: true,
+        note: 'Gender ambiguous and classification confidence < 0.8, asking for clarification',
+      });
+    } else {
+      // High confidence - try to infer gender from top category
+      if (topCategories.length > 0) {
+        const categoryGender = getCategoryGender(topCategories[0]);
+        if (categoryGender && categoryGender !== 'unisex') {
+          classification.constraints.gender = categoryGender;
+          logger.info('gender_inferred_from_high_confidence_category', {
+            query: input.message.substring(0, 100),
+            topCategory: topCategories[0],
+            inferredGender: categoryGender,
+            classificationConfidence: classification.confidence,
+            note: 'High confidence (>= 0.8) with strict majority mode - inferred gender from category',
+          });
+        } else {
+          // Category is unisex or unknown - fall back to normal clarification logic
+          needsGenderClarification = shouldClarifyGender(
+            input.message,
+            topCategories,
+            classification.constraints.gender
+          );
+        }
+      } else {
+        // No categories - fall back to normal clarification logic
+        needsGenderClarification = shouldClarifyGender(
+          input.message,
+          topCategories,
+          classification.constraints.gender
+        );
+      }
+    }
+  } else {
+    // Gender was already resolved, or we didn't use strict majority mode
+    // Use standard clarification logic
+    needsGenderClarification = shouldClarifyGender(
+      input.message,
+      topCategories,
+      classification.constraints.gender
+    );
+  }
+  
+  logger.info('gender_clarification_check', {
+    query: input.message.substring(0, 100),
+    classifiedGender: classification.constraints.gender,
+    resolvedGender,
+    needsClarification: needsGenderClarification,
+    topCategories,
+    isFollowUp,
+    usedStrictMajorityMode: classificationMetadata.usedStrictMajorityMode,
+    classificationConfidence: classification.confidence,
+  });
+  
+  if (needsGenderClarification) {
+    // Return gender clarification response with action buttons
+    logger.info('gender_clarification_needed', {
+      query: input.message,
+      topCategories,
+      note: 'Categories span multiple genders or low confidence with ambiguous gender, asking for clarification',
+      isFollowUp,
+      usedStrictMajorityMode: classificationMetadata.usedStrictMajorityMode,
+      classificationConfidence: classification.confidence,
+    });
+    
+    onProgress?.('complete', STAGE_PROGRESS.complete);
+    return {
+      replyText: `I found items matching your search. Are you looking for men's or women's options?`,
+      productCards: [],
+      noExactMatch: true,
+      actions: [
+        {
+          id: 'gender_male',
+          type: 'refine_gender',
+          label: "Men's",
+          payload: { gender: 'male' }
+        },
+        {
+          id: 'gender_female',
+          type: 'refine_gender',
+          label: "Women's",
+          payload: { gender: 'female' }
+        }
+      ],
+      route: 'GENDER_CLARIFICATION',
+    };
+  }
+  
+  // If gender is resolved (not null), add it to classification constraints
+  // This includes both pre-resolved gender and gender inferred from high-confidence category
+  const finalResolvedGender = classification.constraints.gender || resolveGender(
+    input.message,
+    topCategories,
+    classification.constraints.gender
+  );
+  
+  if (finalResolvedGender) {
+    const source =
+      classification.constraints.gender && classification.constraints.gender === finalResolvedGender
+        ? 'classifier_or_category_inference'
+        : 'detection_or_categories';
+    classification.constraints.gender = finalResolvedGender;
+    logger.info('gender_resolved_adding_to_constraints', {
+      gender: finalResolvedGender,
+      source,
+      isFollowUp,
+      usedStrictMajorityMode: classificationMetadata.usedStrictMajorityMode,
+      classificationConfidence: classification.confidence,
+    });
+  }
+
   // Step 4: Multi-view retrieval
   // Use product terms from classification for vector search
   // Pass top categories for hard SQL-level filtering (applied BEFORE retrieval)
@@ -1681,6 +1921,14 @@ Answer the user's question about this product:`;
       note: 'Catalog will be filtered to these categories before multi-view retrieval',
     });
   }
+  
+  const retrievalStartTime = Date.now();
+  logger.info('handleLoveshackfancyQuery: starting_retrieval', {
+    query: input.message.substring(0, 100),
+    productTerms: classification.productTerms,
+    classificationType: classification.type,
+    categoryCount: topCategories.length,
+  });
   
   let retrievalResult: MultiViewRetrievalResult;
   try {
@@ -1721,9 +1969,30 @@ Answer the user's question about this product:`;
   // Step 5: Load products - prioritize by vector similarity
   // Products are already deduplicated at SQL level (using parent_id, shopifyProductId, related_id)
   // So we only need to load enough for constraint-based ranking (typically 30-40 is sufficient)
+  const retrievalDuration = Date.now() - retrievalStartTime;
+  logger.info('handleLoveshackfancyQuery: retrieval_complete', {
+    query: input.message.substring(0, 100),
+    candidateCount: retrievalResult.candidateIds.length,
+    retrievalDurationMs: retrievalDuration,
+    retrievalDurationSeconds: (retrievalDuration / 1000).toFixed(2),
+  });
+  
+  // Step 5: Load products - prioritize by vector similarity
+  // Products are already deduplicated at SQL level (using parent_id, shopifyProductId, related_id)
+  // So we only need to load enough for constraint-based ranking (typically 30-40 is sufficient)
   const MAX_PRODUCTS_TO_LOAD = 40; // Reduced from 100 - deduplication already done in SQL
   const candidateIdsToLoad = retrievalResult.candidateIds.slice(0, MAX_PRODUCTS_TO_LOAD);
+  
+  const productLoadingStartTime = Date.now();
   const candidateProducts = await loadFashionProducts(candidateIdsToLoad, input.merchantId);
+  const productLoadingDuration = Date.now() - productLoadingStartTime;
+  logger.info('handleLoveshackfancyQuery: product_loading_complete', {
+    query: input.message.substring(0, 100),
+    loadedCount: candidateProducts.length,
+    requestedCount: candidateIdsToLoad.length,
+    productLoadingDurationMs: productLoadingDuration,
+    productLoadingDurationSeconds: (productLoadingDuration / 1000).toFixed(2),
+  });
 
   if (candidateProducts.length === 0) {
     // Generate intelligent reply using LLM
@@ -1887,9 +2156,9 @@ Answer the user's question about this product:`;
     // Check if finalColors has excluded intent - if so, don't merge
     const colorIntent = extractConstraintIntent(finalColors);
     if (colorIntent !== 'excluded') {
-      // Merge merged constraints colors with classification colors (union) to preserve non-ontology colors
-      // Extract values from mergedConstraints.colors (handles both array and ConstraintWithIntent formats)
-      const mergedColorsValues = extractConstraintValues(mergedConstraints.colors) || [];
+    // Merge merged constraints colors with classification colors (union) to preserve non-ontology colors
+    // Extract values from mergedConstraints.colors (handles both array and ConstraintWithIntent formats)
+    const mergedColorsValues = extractConstraintValues(mergedConstraints.colors) || [];
       const baseColors = extractConstraintValues(finalColors) || (Array.isArray(finalColors) ? finalColors : []);
       const mergedColors = Array.from(new Set([...mergedColorsValues, ...classificationColorValues]));
       
@@ -1901,16 +2170,16 @@ Answer the user's question about this product:`;
           similarValues: (finalColors as ConstraintWithIntent).similarValues,
         };
       } else {
-        finalColors = mergedColors;
+    finalColors = mergedColors;
       }
       
-      logger.debug('colors_merged_from_merged_constraints_and_classification', {
-        query: input.message.substring(0, 100),
-        mergedConstraintsColors: mergedColorsValues,
-        classificationColors: classification.constraints.colors,
+    logger.debug('colors_merged_from_merged_constraints_and_classification', {
+      query: input.message.substring(0, 100),
+      mergedConstraintsColors: mergedColorsValues,
+      classificationColors: classification.constraints.colors,
         finalColors: extractConstraintValues(finalColors) || finalColors,
-        note: 'Merged colors from constraint merger and classification (union) to preserve non-ontology colors',
-      });
+      note: 'Merged colors from constraint merger and classification (union) to preserve non-ontology colors',
+    });
     }
   }
   
@@ -1928,13 +2197,13 @@ Answer the user's question about this product:`;
       // CRITICAL: Only merge if colors weren't explicitly removed (finalColors is not null) and not excluded
       const colorIntent = extractConstraintIntent(finalColors);
       if (colorIntent !== 'excluded') {
-        logger.debug('non_ontology_colors_detected_keeping_for_ranking', {
-          nonOntologyColors: invalidColors,
+      logger.debug('non_ontology_colors_detected_keeping_for_ranking', {
+        nonOntologyColors: invalidColors,
           allColors: colorValues,
-          note: 'Non-ontology colors (e.g., "Cherry") will be used for fuzzy matching in ranking',
-        });
-        
-        // Merge with classification colors if they exist (union) and colors weren't explicitly removed
+        note: 'Non-ontology colors (e.g., "Cherry") will be used for fuzzy matching in ranking',
+      });
+      
+      // Merge with classification colors if they exist (union) and colors weren't explicitly removed
         if (finalColors != null && classificationColorValues.length > 0) {
           const mergedColors = Array.from(new Set([...colorValues, ...classificationColorValues]));
           
@@ -1946,14 +2215,14 @@ Answer the user's question about this product:`;
               similarValues: (finalColors as ConstraintWithIntent).similarValues,
             };
           } else {
-            finalColors = mergedColors;
+        finalColors = mergedColors;
           }
           
-          logger.debug('merged_colors_with_classification', {
-            originalColors: finalConstraintsForRanking.colors,
-            classificationColors: classification.constraints.colors,
+        logger.debug('merged_colors_with_classification', {
+          originalColors: finalConstraintsForRanking.colors,
+          classificationColors: classification.constraints.colors,
             mergedColors: extractConstraintValues(finalColors) || finalColors,
-          });
+        });
         }
       }
       // Don't filter out invalid colors - keep them for fuzzy matching
@@ -2178,13 +2447,94 @@ Answer the user's question about this product:`;
       vectorScore: retrievalResult.semanticScores.get(product.id) || 0,
     }));
     
+    // DICTIONARY-BASED CONSTRAINT REFINEMENT
+    // Run LLM refinement for discovery queries with products
+    // This maps user intent onto static dictionaries for ranking-only constraints
+    let finalConstraintsForRanking = constraintsForRanking;
+    
+    if (productsWithVectorScores.length > 0 && (classification as QueryClassification).type !== 'unrelated') {
+      try {
+        const refinementStartTime = Date.now();
+        
+        // Extract context for refinement
+        const refinementGender = classification.constraints.gender || null;
+        const refinementAgeGroup = extractConstraintValues(constraintsForRanking.ageGroups)?.[0] || null;
+        
+        // Build conversation history snippet (last 2 turns)
+        const historySnippet = input.history?.slice(-2) || [];
+        
+        logger.debug('dictionary_refinement_starting', {
+          query: input.message.substring(0, 100),
+          gender: refinementGender,
+          categories: topCategories,
+          ageGroup: refinementAgeGroup,
+          candidateCount: productsWithVectorScores.length,
+        });
+        
+        const refinementResult = await refineConstraintsWithDictionaries({
+          query: input.message,
+          gender: refinementGender,
+          categories: topCategories.length > 0 ? topCategories : undefined,
+          ageGroup: refinementAgeGroup,
+          candidateCount: productsWithVectorScores.length,
+          conversationHistory: historySnippet,
+        });
+        
+        const refinementDuration = Date.now() - refinementStartTime;
+        logger.info('dictionary_refinement_complete', {
+          query: input.message.substring(0, 100),
+          durationMs: refinementDuration,
+          durationSeconds: (refinementDuration / 1000).toFixed(2),
+          refinedConstraintTypes: Object.keys(refinementResult.validatedConstraints).filter(k => refinementResult.validatedConstraints[k as keyof typeof refinementResult.validatedConstraints] !== null).length,
+          validationStats: refinementResult.validationStats,
+        });
+        
+        // Merge refined constraints with existing constraints
+        // Refined constraints take precedence for ranking
+        if (Object.keys(refinementResult.validatedConstraints).length > 0) {
+          finalConstraintsForRanking = mergeRefinedConstraints(
+            constraintsForRanking as any,
+            refinementResult.validatedConstraints
+          ) as FashionConstraints;
+          
+          logger.info('constraints_merged_with_refinement', {
+            query: input.message.substring(0, 100),
+            originalConstraintCount: Object.keys(constraintsForRanking).filter(k => constraintsForRanking[k as keyof typeof constraintsForRanking] !== null && constraintsForRanking[k as keyof typeof constraintsForRanking] !== undefined).length,
+            refinedConstraintCount: Object.keys(refinementResult.validatedConstraints).filter(k => refinementResult.validatedConstraints[k as keyof typeof refinementResult.validatedConstraints] !== null).length,
+            finalConstraintCount: Object.keys(finalConstraintsForRanking).filter(k => finalConstraintsForRanking[k as keyof typeof finalConstraintsForRanking] !== null && finalConstraintsForRanking[k as keyof typeof finalConstraintsForRanking] !== undefined).length,
+          });
+        }
+      } catch (error) {
+        logger.error('dictionary_refinement_failed_continuing_with_original', {
+          error: error instanceof Error ? error.message : String(error),
+          query: input.message.substring(0, 100),
+        });
+        // Continue with original constraints if refinement fails
+      }
+    }
+    
+    const rankingStartTime = Date.now();
+    logger.info('handleLoveshackfancyQuery: starting_ranking', {
+      query: input.message.substring(0, 100),
+      productCount: productsWithVectorScores.length,
+      constraintCount: Object.keys(finalConstraintsForRanking).filter(k => finalConstraintsForRanking[k as keyof typeof finalConstraintsForRanking] !== null && finalConstraintsForRanking[k as keyof typeof finalConstraintsForRanking] !== undefined).length,
+    });
     
     const rankedProducts = await rankWithConstraints(
       productsWithVectorScores,
-      constraintsForRanking,
+      finalConstraintsForRanking,
       0.6, // maxConstraintBoost
       queryContext // Pass query context for dynamic weight adjustment
     );
+    
+    const rankingDuration = Date.now() - rankingStartTime;
+    logger.info('handleLoveshackfancyQuery: ranking_complete', {
+      query: input.message.substring(0, 100),
+      productCount: rankedProducts.length,
+      rankingDurationMs: rankingDuration,
+      rankingDurationSeconds: (rankingDuration / 1000).toFixed(2),
+      topScore: rankedProducts.length > 0 ? rankedProducts[0].finalScore : 0,
+    });
     
     // Convert to format expected by rest of pipeline
     productsWithScores = rankedProducts.map(rp => ({
@@ -2203,14 +2553,14 @@ Answer the user's question about this product:`;
         originalQuery: queryContext.originalQuery?.substring(0, 100),
       },
       constraintsForRanking: {
-        colors: constraintsForRanking.colors,
-        occasions: constraintsForRanking.occasions,
-        ageGroups: constraintsForRanking.ageGroups,
-        materials: constraintsForRanking.materials,
-        seasons: constraintsForRanking.seasons,
-        fits: constraintsForRanking.fits,
-        lengths: constraintsForRanking.lengths,
-        styles: constraintsForRanking.styles,
+        colors: finalConstraintsForRanking.colors,
+        occasions: finalConstraintsForRanking.occasions,
+        ageGroups: finalConstraintsForRanking.ageGroups,
+        materials: finalConstraintsForRanking.materials,
+        seasons: finalConstraintsForRanking.seasons,
+        fits: finalConstraintsForRanking.fits,
+        lengths: finalConstraintsForRanking.lengths,
+        styles: finalConstraintsForRanking.styles,
       },
     });
   } else {
@@ -2636,7 +2986,7 @@ Answer the user's question about this product:`;
       }
     }
   }
-
+  
   // Build reply context for follow-ups AND new searches with previous context
   // Always include explicitMentions so reply can distinguish between explicitly mentioned and inferred constraints
   const replyContext: ReplyContext | undefined = (isFollowUp || queryToMergeWith || productTypeMismatch || explicitMentions.length > 0) ? {
@@ -2650,13 +3000,20 @@ Answer the user's question about this product:`;
   } : undefined;
   
   // Start all three operations in parallel for better performance
+  const replyGenerationStartTime = Date.now();
+  logger.info('handleLoveshackfancyQuery: starting_reply_generation', {
+    query: input.message.substring(0, 100),
+    productCount: productsToShow.length,
+  });
+  
   const [replyResult, productCards, routerResult] = await Promise.all([
     // Reply generation (LLM call - can take 5+ seconds)
     (async (): Promise<ReplyResult> => {
+      const replyStartTime = Date.now();
       try {
         // CRITICAL: Pass constraintsForRanking (merged constraints) instead of classification.constraints
         // This ensures follow-up merged constraints (seasons, sleeves, necklines, etc.) are available to reply generation
-        return await generateReply(
+        const result = await generateReply(
           input.message,
           constraintsForRanking, // Use merged constraints (includes follow-up merged constraints)
           productsToShow.map(p => p as SearchResultItem),
@@ -2664,9 +3021,21 @@ Answer the user's question about this product:`;
           replyContext, // Pass follow-up context (includes classificationConstraints for reference)
           topCategories.length > 0 ? topCategories : undefined // Pass top categories for category-aware attribute extraction
         );
+        const replyDuration = Date.now() - replyStartTime;
+        logger.info('handleLoveshackfancyQuery: reply_generation_complete', {
+          query: input.message.substring(0, 100),
+          replyDurationMs: replyDuration,
+          replyDurationSeconds: (replyDuration / 1000).toFixed(2),
+          replyTextLength: result.replyText.length,
+          hasReplyTextAfter: !!result.replyTextAfter,
+        });
+        return result;
       } catch (error) {
+        const replyDuration = Date.now() - replyStartTime;
         logger.error('handleLoveshackfancyQuery: reply generation failed', {
           error: error instanceof Error ? error.message : String(error),
+          replyDurationMs: replyDuration,
+          replyDurationSeconds: (replyDuration / 1000).toFixed(2),
         });
         return {
           replyText: `I found ${validatedProducts.length} piece${validatedProducts.length !== 1 ? 's' : ''} that match your search. Here are some options:`,

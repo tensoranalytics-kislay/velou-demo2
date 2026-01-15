@@ -355,3 +355,53 @@ export function hasIntentFormat(
   return 'intent' in sampleField; // New format
 }
 
+/**
+ * Refined constraints from dictionary-based LLM refinement
+ * Used for ranking only, not for hard filters
+ */
+export type RefinedConstraints = {
+  colors?: string[];
+  materials?: string[];
+  occasions?: string[];
+  styles?: string[];
+  patterns?: string[];
+  sizes?: string[];
+  lengths?: string[];
+  fits?: string[];
+  rises?: string[];
+  formalityLevel?: string[];
+  importance?: Record<string, 'required' | 'strong' | 'preferred'>;
+};
+
+/**
+ * Convert refined constraints to QueryConstraintsWithIntent format
+ */
+export function refinedConstraintsToIntent(
+  refined: RefinedConstraints
+): QueryConstraintsWithIntent {
+  const result: QueryConstraintsWithIntent = {};
+  
+  // Helper to create constraint with intent
+  const createConstraint = (
+    values: string[] | undefined,
+    key: string
+  ): ConstraintWithIntent | null => {
+    if (!values || values.length === 0) return null;
+    const intent = refined.importance?.[key] as ConstraintIntent || 'strong';
+    return { values, intent };
+  };
+  
+  // Map all array-based constraints
+  if (refined.colors) result.colors = createConstraint(refined.colors, 'colors');
+  if (refined.materials) result.materials = createConstraint(refined.materials, 'materials');
+  if (refined.occasions) result.occasions = createConstraint(refined.occasions, 'occasions');
+  if (refined.styles) result.styles = createConstraint(refined.styles, 'styles');
+  if (refined.patterns) result.patterns = createConstraint(refined.patterns, 'patterns');
+  if (refined.sizes) result.sizes = createConstraint(refined.sizes, 'sizes');
+  if (refined.lengths) result.lengths = createConstraint(refined.lengths, 'lengths');
+  if (refined.fits) result.fits = createConstraint(refined.fits, 'fits');
+  if (refined.formalityLevel) result.formalityLevel = createConstraint(refined.formalityLevel, 'formalityLevel');
+  
+  return result;
+}
+

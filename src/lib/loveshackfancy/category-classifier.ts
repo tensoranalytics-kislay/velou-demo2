@@ -8,6 +8,7 @@
 import { callLLM } from '../llm/provider';
 import { logger } from '../telemetry/logger';
 import { categoryExists, findClosestCategory, getAllCategories } from '../catalog/category-tree';
+import { computeGenderContext, buildAllowedCategoriesForClassifier } from './classifier';
 
 const CATEGORY_CLASSIFIER_PROMPT = `You are a category classification system for a fashion shopping assistant.
 
@@ -19,65 +20,13 @@ You MUST infer age groups from context clues, not just explicit age mentions. Th
 - Context signals like "modest", "muslim", "conservative", "traditional" + "daughter" → STRONGLY suggest Kids categories (Girls Dresses, Girls Tops, etc.)
 - When in doubt about ambiguous "daughter" queries, prefer Kids categories unless explicit adult signals exist (teen, teenage, wedding for adult, etc.)
 
-AVAILABLE CATEGORIES (48 total):
-
-**Kids Categories**
-- Girls Tops — Kids tops/outerwear-like items; taxon_path includes things like Girls Sweaters, Girls Jackets, plus named tops (e.g., "Fabielle…", "Mini Rubin…") and titles start with "Girls …" (mostly tagged Kids).
-- Girls Bottoms — Kids bottoms that are specifically skirts (taxon_path shows Girls Skirts and Little Girls Skirts); titles start with "Girls … Skirt" (tagged Kids).
-- Girls Dresses — Kids dresses; taxon_path leaf is dress-style names (e.g., Decker Heritage Dress, Parker Tailored Bow Dress), titles start with "Girls … Dress" (tagged Kids).
-- Girls Swimwear — Kids swim; taxon_path includes Bikinis and Swimsuits, titles start with "Girls … Bikini/Swimsuit" (tagged Kids).
-- Baby & Toddler Bottoms — Baby/toddler bottoms; taxon_path includes Pinafores and Bloomers and sizes are in months (tagged Toddler).
-- Tween Pants — A small set of items labeled Tween; taxon_path is Apparel > Tween Pants and titles start with "Tween … Pant" (chips are missing here, so "Tween" is coming from title/taxon).
-- Tween Sweaters — Single Tween sweater item; taxon_path is Apparel > Tween Sweaters, title includes "Tween … Pullover" (chips missing).
-- Tween Dresses — Single Tween dress item; taxon_path is Apparel > Tween Dresses (chips missing).
-
-**Women's / Adult Apparel**
-- Women's Dresses — Adult dresses; subcategories include Mini Dresses / Midi Dresses / Maxi Dresses / Active Dresses, plus a subcategory labeled Tween Dresses inside Women's Dresses (those rows are tagged Adult and titles say "Tween … for Women").
-- Tops — Adult tops & top-layer items; taxon_path includes Sleeveless Tops, Long Sleeve Tops, Short Sleeve Tops, plus subcategories like Sweaters / Pullover / Hoodies / Jackets (tagged Adult).
-- Bottoms — Adult bottoms; taxon_path/subcategory includes Pants, Trousers, Sweatpants, Leggings, Jeans, Shorts, Ski Pants, and also a label "Men's Shorts" (but titles are "for Women" and tagged Adult).
-- Skirts — Adult skirts; subcategories include Mini Skirts / Midi Skirts / Maxi Skirts, plus Tween Skirts and Crib Skirts appearing under this category in the file (tagged Adult).
-- Skorts — Adult skorts; taxon_path is Active Skorts (tagged Adult).
-- Activewear — Adult activewear; primarily Sports Bra (tagged Adult).
-- Swimsuits — Adult swim; specifically One-Piece Swimsuits (tagged Adult).
-- Bikini Sets — Adult bikini products; taxon_path is Apparel > Bikini Sets (tagged Adult).
-- Swim Cover-ups — Adult swim coverups; subcategory is Pareos and titles include sarong (tagged Adult).
-- Cold Weather Essentials — Adult cold-weather accessories; includes Beanies, Gloves & Mittens, and titles include neck gaiter (tagged Adult).
-- Loungewear — Adult lounge; subcategories include Robes and Pants (tagged Adult).
-- Robes — Single robe item (separate category from Loungewear); title is a bath robe (chips missing).
-- Pajama Set — Pajama set items (Roller Rabbit collab appears in titles); chips missing.
-- Shoes — Adult footwear; includes Sandals and Boots (tagged Adult).
-- Ski Jackets — Single ski jacket item (BOGNER FIRE+ICE collab appears in title); chips missing.
-- Ski Tops — Single ski top/pullover item (BOGNER FIRE+ICE collab appears in title); chips missing.
-- Ski Shoes — Ski footwear; taxon_path is Boots and titles include women's boots (tagged Adult).
-- Sweaters — Two sweater items (cardigan/pullover in titles); chips missing.
-- Mini Dress — Mini dress items where the taxonomy is just Apparel > Mini Dress (chips missing; titles are short like product name + size).
-- Maxi Dress — Maxi dress items where the taxonomy is Apparel > Maxi Dress (chips missing; titles are short like product name + size).
-- Tote Bags — Single item ("Weekender" appears in title); taxon_path is Apparel > Tote Bags (chips missing).
-
-**Accessories**
-- Accessories — Bag/utility accessories; subcategories include Cosmetic Bags, Travel Bags, Tote Bags, Backpacks, Sunglasses (and small counts like bow tie/duffle/fanny packs); titles are "for Women" and tagged Adult.
-- Jewelry — Jewelry items; includes Earrings, Necklaces, Bracelets (vertical is Accessories, tagged Adult).
-- Hair Accessories — Mostly Headbands; includes a "face wash beauty headband" type item in titles (mostly tagged Adult; one row sits under Apparel).
-- Pocket Squares — Pocket squares (titles say "for Women"; vertical Accessories).
-- Phone Cases — Single iPhone case item (vertical Accessories).
-- Soap Dispensers — Single porcelain soap dispenser item (vertical Accessories).
-- Makeup Kit — Single "makeup play kit" item (vertical Accessories).
-
-**Personal Care**
-- Perfumes — Fragrance products; subcategories include Parfums, Hair & Body Mists, and Travel Sprays (vertical Personal Care, titles are "for Women").
-
-**Home & Living**
-- Bedding — Home textiles; includes Blankets, Quilts, Pillows, Sheet Sets, Duvet Cover & Sham Sets (vertical Home & Living).
-- Bathroom — Bathroom items; includes Bath Mats and Shower Curtains (one row's title/URL says "Place Mat" but it's stored under Bath Mats in this dataset).
-- Towels — Includes Hand Towels, Bath Towels, Beach Towels (vertical Home & Living).
-- Tabletop — Dining/table linens & pieces; includes Napkin Sets, Tablecloths, Tumbler, and titles include napkin rings (vertical Home & Living).
-- Kitchen & Dining — Includes Aprons (vertical Home & Living).
-- Stationary — Paper goods; includes Notebooks, Card & Envelope Sets, Wrapping Papers (vertical Home & Living).
-- Interiors — Wallpapers; subcategory is Wallpapers (vertical Home & Living).
-- Candle — Candles; subcategory is Harlem Candles (vertical Home & Living).
-- Decorative Dishes — Single decorative dish item; title is a ring dish (vertical Home & Living).
-- Fragrance Tray — Single decorative tray item; subcategory Decorative Trays (vertical Home & Living).
-- Pets — Pet item(s); subcategory Dog Beds (this dataset places it under vertical Apparel, but the product is a dog bed by title).
+**GENDER-AWARE CATEGORY UNIVERSE**
+- The system will provide you with a list of ALLOWED_CATEGORIES for each query.
+- This list is automatically filtered based on:
+  - the inferred gender context (male, female, unisex), and
+  - the actual categories present in the merchant's dataset.
+- **You MUST only return categories from this ALLOWED_CATEGORIES list.**
+- Do NOT invent new categories or use examples that are not in that list.
 
 INSTRUCTIONS:
 1. Analyze the user's query and identify the most relevant product categories
@@ -226,10 +175,20 @@ export async function classifyQueryToCategories(
   merchantId?: string
 ): Promise<string[]> {
   const startTime = Date.now();
-  
+
+  // Compute gender context and allowed categories BEFORE building prompt
+  const genderContext = computeGenderContext(query, null);
+  const { categoriesForPrompt } = buildAllowedCategoriesForClassifier(genderContext);
+  const allowedCategoriesList =
+    categoriesForPrompt.length > 0
+      ? categoriesForPrompt.map((cat) => `- ${cat}`).join('\n')
+      : '- (no specific categories; use your best judgment from the query)';
+
   logger.info('category_classifier: starting classification', {
     query: query.substring(0, 100),
     merchantId,
+    genderContext,
+    allowedCategoryCount: categoriesForPrompt.length,
   });
 
   try {
@@ -241,7 +200,7 @@ export async function classifyQueryToCategories(
         },
         {
           role: 'user',
-          content: `${CATEGORY_CLASSIFIER_PROMPT}\n\nUser query: "${query}"`,
+          content: `${CATEGORY_CLASSIFIER_PROMPT}\n\nALLOWED_CATEGORIES:\n${allowedCategoriesList}\n\nUser query: "${query}"`,
         },
       ],
       purpose: 'intent', // Use lightweight model for speed
@@ -368,10 +327,20 @@ export async function classifyQueryToCategoriesWithConfidence(
   merchantId?: string
 ): Promise<CategoryClassificationResult> {
   const startTime = Date.now();
-  
+
+  // Compute gender context and allowed categories BEFORE building prompt
+  const genderContext = computeGenderContext(query, null);
+  const { categoriesForPrompt } = buildAllowedCategoriesForClassifier(genderContext);
+  const allowedCategoriesList =
+    categoriesForPrompt.length > 0
+      ? categoriesForPrompt.map((cat) => `- ${cat}`).join('\n')
+      : '- (no specific categories; use your best judgment from the query)';
+
   logger.info('category_classifier: starting classification with confidence', {
     query: query.substring(0, 100),
     merchantId,
+    genderContext,
+    allowedCategoryCount: categoriesForPrompt.length,
   });
 
   try {
@@ -383,7 +352,7 @@ export async function classifyQueryToCategoriesWithConfidence(
         },
         {
           role: 'user',
-          content: `${CATEGORY_CLASSIFIER_PROMPT}\n\nUser query: "${query}"`,
+          content: `${CATEGORY_CLASSIFIER_PROMPT}\n\nALLOWED_CATEGORIES:\n${allowedCategoriesList}\n\nUser query: "${query}"`,
         },
       ],
       purpose: 'intent',
@@ -400,10 +369,43 @@ export async function classifyQueryToCategoriesWithConfidence(
     const confidence = classification.confidence ?? 0.5;
 
     // Extract only the category name (before "—" em dash or " - " dash)
-    const categories = (classification.categories || []).map(cat => {
+    let categories = (classification.categories || []).map(cat => {
       const nameOnly = cat.split('—')[0].split(' - ')[0].trim();
       return nameOnly;
     }).filter(cat => cat.length > 0);
+
+    // Normalize categories against the actual catalog category set
+    const validCategories: string[] = [];
+    const invalidCategories: string[] = [];
+
+    for (const cat of categories) {
+      if (categoryExists(cat)) {
+        validCategories.push(cat);
+      } else {
+        invalidCategories.push(cat);
+        const closest = findClosestCategory(cat);
+        if (closest && !validCategories.includes(closest)) {
+          validCategories.push(closest);
+          logger.debug('category_classifier_with_confidence: mapped_invalid_category', {
+            original: cat,
+            mapped: closest,
+            query: query.substring(0, 100),
+            merchantId,
+          });
+        }
+      }
+    }
+
+    if (invalidCategories.length > 0) {
+      logger.warn('category_classifier_with_confidence: invalid_categories_filtered', {
+        invalid: invalidCategories,
+        valid: validCategories,
+        query: query.substring(0, 100),
+        merchantId,
+      });
+    }
+
+    categories = validCategories;
 
     const elapsed = Date.now() - startTime;
 

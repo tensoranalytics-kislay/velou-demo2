@@ -207,7 +207,18 @@ export async function searchVectorIndex(
  * @returns Array of deduplicated product IDs
  */
 export async function deduplicateProductsByCategory(
-  filters?: { inStockOnly?: boolean; merchantId?: string; categories?: string[]; priceMinCents?: number; priceMaxCents?: number; colors?: string[]; ageGroups?: string[]; excludedColors?: string[]; lengths?: string[] },
+  filters?: { 
+    inStockOnly?: boolean; 
+    merchantId?: string; 
+    genders?: string[]; // NEW: Gender filter (primary filter)
+    categories?: string[]; 
+    priceMinCents?: number; 
+    priceMaxCents?: number; 
+    colors?: string[]; 
+    ageGroups?: string[]; 
+    excludedColors?: string[]; 
+    lengths?: string[] 
+  },
   limit: number = 1000,
   queryHash?: string, // Optional query hash for consistent but diverse variant selection
   skipColorFilter?: boolean // NEW: Skip color filtering if colors are text-only constraints
@@ -230,7 +241,30 @@ export async function deduplicateProductsByCategory(
       whereConditions.push(`p."stockStatus" = 'in_stock'`);
     }
     
-    // STEP 1: Category filtering (FIRST - most restrictive)
+    // STEP 0: Gender filtering (PRIMARY FILTER - applied before category)
+    // Use indexed gender column for fast filtering
+    // For male: allow male OR unisex
+    // For female: allow female OR unisex
+    if (filters?.genders && filters.genders.length > 0) {
+      const genderOrConditions: string[] = [];
+      filters.genders.forEach((gender) => {
+        // Normalize gender values
+        const normalizedGender = gender === 'mens' ? 'male' : gender === 'womens' ? 'female' : gender;
+        
+        if (normalizedGender === 'male') {
+          genderOrConditions.push(`(p."gender" = 'male' OR p."gender" = 'unisex')`);
+        } else if (normalizedGender === 'female') {
+          genderOrConditions.push(`(p."gender" = 'female' OR p."gender" = 'unisex')`);
+        } else if (normalizedGender === 'unisex') {
+          genderOrConditions.push(`p."gender" = 'unisex'`);
+        }
+      });
+      if (genderOrConditions.length > 0) {
+        whereConditions.push(`(${genderOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // STEP 1: Category filtering (SECOND - after gender)
     // Filter by top 3 categories using OR conditions (case-insensitive matching)
     // Check both category AND subcategory fields individually for maximum product coverage
     // This ensures products are found whether they're stored in category field or subcategory field
@@ -693,6 +727,7 @@ export async function deduplicateProductsByCategory(
  */
 export async function deduplicateProductsByCategoryForPostFiltering(
   filters?: { 
+    genders?: string[]; // NEW: Gender filter (primary)
     categories?: string[];
     ageGroups?: string[];
     priceMinCents?: number;
@@ -704,7 +739,7 @@ export async function deduplicateProductsByCategoryForPostFiltering(
 ): Promise<string[]> {
   try {
     // Build WHERE clause for filters
-    // CRITICAL: Only apply category, ageGroups, and price filters - skip post-filterable attributes
+    // CRITICAL: Only apply gender, category, ageGroups, and price filters - skip post-filterable attributes
     const whereConditions: string[] = ['p."isActive" = true'];
     const params: unknown[] = [];
     let paramIndex = 1;
@@ -719,7 +754,27 @@ export async function deduplicateProductsByCategoryForPostFiltering(
       whereConditions.push(`p."stockStatus" = 'in_stock'`);
     }
     
-    // STEP 1: Category filtering (FIRST - most restrictive)
+    // STEP 0: Gender filtering (PRIMARY FILTER - before category)
+    // Use indexed gender column for fast filtering
+    if (filters?.genders && filters.genders.length > 0) {
+      const genderOrConditions: string[] = [];
+      filters.genders.forEach((gender) => {
+        const normalizedGender = gender === 'mens' ? 'male' : gender === 'womens' ? 'female' : gender;
+        
+        if (normalizedGender === 'male') {
+          genderOrConditions.push(`(p."gender" = 'male' OR p."gender" = 'unisex')`);
+        } else if (normalizedGender === 'female') {
+          genderOrConditions.push(`(p."gender" = 'female' OR p."gender" = 'unisex')`);
+        } else if (normalizedGender === 'unisex') {
+          genderOrConditions.push(`p."gender" = 'unisex'`);
+        }
+      });
+      if (genderOrConditions.length > 0) {
+        whereConditions.push(`(${genderOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // STEP 1: Category filtering (SECOND - after gender)
     // Filter by top 3 categories using OR conditions (case-insensitive matching)
     // Check both category AND subcategory fields individually for maximum product coverage
     if (filters?.categories && filters.categories.length > 0) {

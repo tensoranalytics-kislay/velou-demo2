@@ -7,41 +7,126 @@
 
 import { LOVESHACKFANCY_ONTOLOGY } from './ontology';
 import { formatDictionaryForPrompt, loadConstraintDictionaries } from './constraint-dictionaries';
+import { CATEGORY_GENDER_MAP } from '../catalog/category-gender-map';
 
 // ============================================================================
 // QUERY CLASSIFIER PROMPT
 // ============================================================================
 
 /**
- * Build the query classifier prompt with dictionary-based constraint matching
+ * Organize categories into semantic groups for prompt display
  */
-export function buildQueryClassifierPrompt(): string {
+function organizeCategoriesIntoGroups(allowedCategories: string[]): {
+  mensApparel: string[];
+  womensApparel: string[];
+  kidsCategories: string[];
+  accessories: string[];
+  personalCare: string[];
+  homeLiving: string[];
+} {
+  const groups = {
+    mensApparel: [] as string[],
+    womensApparel: [] as string[],
+    kidsCategories: [] as string[],
+    accessories: [] as string[],
+    personalCare: [] as string[],
+    homeLiving: [] as string[],
+  };
+
+  // Define category group patterns
+  const patterns = {
+    mensApparel: /^(Mens-|men's |mens |shirt|jacket|polo|sweatshirt|sleepwear|long sleeve|crew neck|bundles|sets)/i,
+    kidsCategories: /^(Girls |Tween |Baby & Toddler)/i,
+    womensApparel: /^(Women's|Womens-|Tops|Bottoms|Skirts|Skorts|Activewear|Swimsuits|Loungewear|Robes|Pajama Set|Sweaters|Ski |Outerwear|Clothing|Maxi Dress|Mini Dress|top|loungewear|mini dress|tank top|skinny jeans|mom jeans|straight|cropped|wide leg|joggers|underwear|flirty|graphic tee|casual t-shirts)/i,
+    accessories: /^(Accessories|Jewelry|Hair |Handbags|Luggage|Phone Cases|Clothing Accessories|Bandanas|Scarves)/i,
+    personalCare: /^(Perfumes|Cosmetics)/i,
+    homeLiving: /^(Bedding|Bathroom|Towels|Tabletop|Kitchen|Stationary|Interiors|Candle|Home |Decor|Textiles|Drinkware|Filing|Pool|Seasonal|Fragrance Tray|Artwork|Pets|Gift Wrapping|Food & Beverage|Table Linens|gift card)/i,
+  };
+
+  for (const category of allowedCategories) {
+    if (patterns.mensApparel.test(category)) {
+      groups.mensApparel.push(category);
+    } else if (patterns.kidsCategories.test(category)) {
+      groups.kidsCategories.push(category);
+    } else if (patterns.womensApparel.test(category)) {
+      groups.womensApparel.push(category);
+    } else if (patterns.accessories.test(category)) {
+      groups.accessories.push(category);
+    } else if (patterns.personalCare.test(category)) {
+      groups.personalCare.push(category);
+    } else if (patterns.homeLiving.test(category)) {
+      groups.homeLiving.push(category);
+    } else {
+      // Fallback: categorize by common keywords or put in a default group
+      // For now, add uncategorized items to accessories or home depending on context
+      groups.homeLiving.push(category);
+    }
+  }
+
+  return groups;
+}
+
+/**
+ * Build the query classifier prompt with dictionary-based constraint matching
+ * 
+ * @param allowedCategories - Categories filtered by gender context (if applicable)
+ */
+export function buildQueryClassifierPrompt(allowedCategories: string[]): string {
   const dictionaries = loadConstraintDictionaries();
   
-  return `You are a shopping assistant for LoveShackFancy, a brand specializing in romantic, feminine designs across multiple verticals.
+  // Organize categories into semantic groups
+  const groups = organizeCategoriesIntoGroups(allowedCategories);
+  
+  // Build category sections (only show groups with categories)
+  const categorySections: string[] = [];
+  
+  if (groups.mensApparel.length > 0) {
+    categorySections.push(`**Men's Apparel**: ${groups.mensApparel.join(', ')}`);
+  }
+  if (groups.womensApparel.length > 0) {
+    categorySections.push(`**Women's Apparel**: ${groups.womensApparel.join(', ')}`);
+  }
+  if (groups.kidsCategories.length > 0) {
+    categorySections.push(`**Kids Categories**: ${groups.kidsCategories.join(', ')}`);
+  }
+  if (groups.accessories.length > 0) {
+    categorySections.push(`**Accessories**: ${groups.accessories.join(', ')}`);
+  }
+  if (groups.personalCare.length > 0) {
+    categorySections.push(`**Personal Care**: ${groups.personalCare.join(', ')}`);
+  }
+  if (groups.homeLiving.length > 0) {
+    categorySections.push(`**Home & Living**: ${groups.homeLiving.join(', ')}`);
+  }
+  
+  const categoryText = categorySections.join('\n\n');
+  
+  return `You are a shopping assistant for a fashion brand offering both men's and women's apparel, from romantic dresses to everyday denim essentials, plus accessories and home goods.
 
-Classify the user's query and extract constraints. The catalog includes ALL of these categories across 5 category groups (48 total categories):
+**GENDER-AWARE CLASSIFICATION**: The catalog serves multiple genders with distinct product lines. The categories shown below are filtered based on the user's query context.
 
-**Kids Categories**: Girls Tops, Girls Bottoms, Girls Dresses, Girls Swimwear, Baby & Toddler Bottoms, Tween Pants, Tween Sweaters, Tween Dresses
+Classify the user's query and extract constraints. The catalog includes the following categories:
 
-**Women's/Adult Apparel**: Women's Dresses, Tops, Bottoms, Skirts, Skorts, Activewear, Swimsuits, Bikini Sets, Swim Cover-ups, Cold Weather Essentials, Loungewear, Robes, Pajama Set, Shoes, Ski Jackets, Ski Tops, Ski Shoes, Sweaters, Mini Dress, Maxi Dress, Tote Bags
+${categoryText}
 
-**Accessories**: Accessories, Jewelry, Hair Accessories, Pocket Squares, Phone Cases, Soap Dispensers, Makeup Kit
+**CRITICAL**: Queries about ANY category shown above are VALID and should be classified as "direct_product_search" or "gift_or_vague", NOT "unrelated". The system handles queries across all verticals equally.
 
-**Personal Care**: Perfumes
+**IMPORTANT**: When gender is clear from the query (e.g., "jeans for men"), choose the most specific gendered category (e.g., "Mens-jeans" rather than generic categories like "Bottoms" or "jeans"). This improves search precision.
 
-**Home & Living**: Bedding, Bathroom, Towels, Tabletop, Kitchen & Dining, Stationary, Interiors, Candle, Decorative Dishes, Fragrance Tray, Pets
-
-**CRITICAL**: Queries about ANY of these 48 categories from ANY category group (Kids, Women's/Adult Apparel, Accessories, Personal Care, Home & Living) are VALID shopping queries and should be classified as "direct_product_search" or "gift_or_vague", NOT "unrelated". The system handles queries across all verticals equally.
+**GENDER EXTRACTION**: Extract gender when explicitly mentioned:
+- "mens", "men's", "for him", "boyfriend" → gender: "male"
+- "womens", "women's", "for her", "girlfriend" → gender: "female"  
+- If absent, leave gender: null (the system will handle clarification if needed)
 
 Examples of VALID queries:
+- Men's: "slim black jeans for work", "men's t-shirts", "boxer briefs", "athletic shorts", "navy chinos"
+- Women's: "wedding dress", "maxi dress", "skinny jeans", "women's hoodies", "activewear"
 - Kids: "dresses for kids", "baby onesies", "toddler swimwear", "girls tops"
-- Women's Apparel: "wedding dress", "maxi dress", "swimsuits", "activewear", "loungewear", "sweaters", "skirts", "bottoms"
 - Accessories: "jewelry", "hair accessories", "bags", "pocket squares", "phone cases"
-- Home & Living: "bedding", "tabletop", "decor items", "dining items", "towels", "candles", "bathroom items", "stationary", "wallpapers", "pet beds"
+- Home & Living: "bedding", "tabletop", "decor items", "towels", "candles", "pet beds"
 - Personal Care: "perfumes", "fragrance"
 
-Only mark as "unrelated" if the query doesn't relate to ANY of these 48 categories (e.g., "cars", "electronics", "weather", "sports scores").
+Only mark as "unrelated" if the query doesn't relate to ANY category (e.g., "cars", "electronics", "weather", "sports scores").
 
 QUERY: {QUERY}
 LAST_CONSTRAINTS: {LAST_CONSTRAINTS}
@@ -64,12 +149,26 @@ RULES:
 - For age-specific queries, preserve product type: "baby girl clothes" → productTerms: "clothes" (age is in ageGroups, not productTerms)
 - Product terms should be clean, searchable keywords ready for vector search
 
-EXAMPLES:
-- "find red maxi dresses" → productTerms: "maxi dress" AND colors: ["Red"] AND lengths: ["Maxi"]
-- "blue maxi dresses with long sleeves for kids" → productTerms: "maxi dress" AND colors: ["Blue"] AND lengths: ["Maxi"] AND sleeveLengths: ["Long Sleeve"] AND ageGroups: ["Kids"]
-- "show me cardigans" → productTerms: "cardigan"
-- "onesies for babies" → productTerms: "onesie" AND ageGroups: ["Baby"]
-- "swimsuits for beach" → productTerms: "swimsuit" AND occasions: ["Beach"]
+EXAMPLES (Women's queries):
+- "find red maxi dresses" → productTerms: "maxi dress" AND colors: ["Red"] AND lengths: ["Maxi"] AND gender: "female"
+- "blue maxi dresses with long sleeves for kids" → productTerms: "maxi dress" AND colors: ["Blue"] AND lengths: ["Maxi"] AND sleeveLengths: ["Long Sleeve"] AND ageGroups: ["Kids"] AND gender: "female"
+- "show me cardigans" → productTerms: "cardigan" AND gender: null (ambiguous - could be men's or women's)
+- "onesies for babies" → productTerms: "onesie" AND ageGroups: ["Baby"] AND gender: null
+- "swimsuits for beach" → productTerms: "swimsuit" AND occasions: ["Beach"] AND gender: "female"
+- "women's skinny jeans" → productTerms: "jeans" AND gender: "female" AND fits: ["Skinny"]
+
+EXAMPLES (Men's queries):
+- "slim black jeans for work" → productTerms: "jeans" AND gender: "male" AND fits: ["Slim"] AND colors: ["Black"] AND occasions: ["Work"]
+- "men's t-shirts size medium" → productTerms: "t-shirt" AND gender: "male" AND sizes: ["M"]
+- "comfortable boxer briefs" → productTerms: "boxer briefs" AND gender: "male" AND comfortIntent: "Comfortable"
+- "mid rise dark jeans" → productTerms: "jeans" AND rises: ["Mid Rise"] AND colorShade: ["Dark"] AND gender: null (rise suggests pants, but gender ambiguous)
+- "navy chinos for office" → productTerms: "chinos" AND colors: ["Navy"] AND occasions: ["Office"] AND gender: "male"
+- "athletic shorts for gym" → productTerms: "shorts" AND gender: "male" AND occasions: ["Gym", "Athletic"]
+
+EXAMPLES (Ambiguous - need clarification):
+- "jeans" → productTerms: "jeans" AND gender: null (could be mens or womens)
+- "comfortable t-shirt" → productTerms: "t-shirt" AND gender: null (could be mens or womens)
+- "blue hoodie" → productTerms: "hoodie" AND colors: ["Blue"] AND gender: null (unisex item)
 
 **CRITICAL: EXPLICIT CONSTRAINT EXTRACTION - HIGHEST PRIORITY**
 You MUST extract ALL explicitly mentioned constraints from the query. This is the most important rule.
@@ -93,11 +192,20 @@ EXAMPLES OF MANDATORY EXTRACTION:
   * lengths: ["Maxi"] (REQUIRED)
 
 COMMON EXTRACTION PATTERNS:
-- Color words: "blue", "red", "white", "black", "pink", "yellow", "green", "navy", "gray", "beige", etc. → colors: [ColorName]
+- **Gender keywords**: "mens", "men's", "for him", "boyfriend", "husband" → gender: "male"
+                        "womens", "women's", "for her", "girlfriend", "wife" → gender: "female"
+                        If absent, leave gender: null (system will handle clarification)
+- Color words: "blue", "red", "white", "black", "pink", "yellow", "green", "navy", "gray", "beige", "khaki", "charcoal", etc. → colors: [ColorName]
 - Length words in product context: "maxi", "mini", "midi", "long dress", "short dress", "knee-length" → lengths: [LengthName]
 - Sleeve words: "long sleeves", "short sleeves", "sleeveless", "cap sleeves" → sleeveLengths: [SleeveType]
   **CRITICAL: Normalize sleeve synonyms to standard ontology terms:**
   * "full sleeves", "full sleeve", "full" → normalize to "Long Sleeve" (full sleeves = long sleeves in fashion)
+- **Rise words** (for jeans/pants): "low rise", "mid rise", "high rise", "high-waisted" → rises: [RiseType]
+  **CRITICAL: Normalize rise synonyms:**
+  * "high-waisted", "high waist" → normalize to "High Rise"
+  * "mid-rise", "medium rise" → normalize to "Mid Rise"
+  * "low-rise", "low waist" → normalize to "Low Rise"
+- **Fit words**: "slim", "skinny", "straight", "relaxed", "fitted", "regular", "loose", "wide leg", "tapered" → fits: [FitType]
   * "long sleeves", "long sleeve", "long" → "Long Sleeve"
   * "short sleeves", "short sleeve", "short" → "Short Sleeve"
   * "three-quarter sleeves", "3/4 sleeves", "three quarter sleeves" → "Three-Quarter Sleeve"
@@ -717,8 +825,11 @@ OUTPUT JSON:
 }`;
 }
 
-// Export constant for backward compatibility (calls function)
-export const LOVESHACKFANCY_QUERY_CLASSIFIER_PROMPT = buildQueryClassifierPrompt();
+// Export constant for backward compatibility (calls function with all categories)
+// This is used by classifier-semantic.ts which doesn't have gender context
+export const LOVESHACKFANCY_QUERY_CLASSIFIER_PROMPT = buildQueryClassifierPrompt(
+  Object.keys(CATEGORY_GENDER_MAP) // Use all categories from map as fallback
+);
 
 export const LOVESHACKFANCY_QUERY_CLASSIFIER_SCHEMA = {
   name: 'fashion_query_classification',
@@ -1318,6 +1429,30 @@ export const LOVESHACKFANCY_QUERY_CLASSIFIER_SCHEMA = {
           claims: { type: ['array', 'null'], items: { type: 'string' } },
           sensoryProfile: { type: ['string', 'null'] },
           compatibility: { type: ['array', 'null'], items: { type: 'string' } },
+          
+          // Gender (NEW - for multi-gender support)
+          gender: {
+            type: ['string', 'null'],
+            enum: ['male', 'female', 'unisex', null],
+            description: 'Gender inferred from query keywords like "mens", "womens", "for him", "for her", etc. Leave null if not explicitly mentioned.'
+          },
+          
+          // Rises (NEW - for jeans/pants rise placement)
+          rises: { 
+            oneOf: [
+              { type: ['array', 'null'], items: { type: 'string' } },
+              { 
+                type: 'object',
+                properties: {
+                  values: { type: 'array', items: { type: 'string' } },
+                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+                },
+                required: ['values', 'intent']
+              }
+            ],
+            description: 'Rise/waist placement for jeans and pants. Examples: "Low Rise", "Mid Rise", "High Rise", "Natural Waist"'
+          },
         },
       },
       confidence: { type: 'number', minimum: 0, maximum: 1 },
@@ -1333,7 +1468,7 @@ export const LOVESHACKFANCY_QUERY_CLASSIFIER_SCHEMA = {
 // RAG REPLY PROMPT
 // ============================================================================
 
-export const LOVESHACKFANCY_RAG_REPLY_PROMPT = `You are a friendly, witty fashion shopping assistant for LoveShackFancy. You have great style, a sense of humor, and you genuinely love helping people find the perfect pieces.
+export const LOVESHACKFANCY_RAG_REPLY_PROMPT = `You are a knowledgeable and helpful fashion shopping assistant. You understand both men's and women's fashion, from romantic dresses to everyday denim essentials.
 
 User's query: "{QUERY}"
 Search constraints: {CONSTRAINTS}
@@ -1510,6 +1645,190 @@ OUTPUT JSON:
     "label": string | null
   } | null
 }`;
+
+// ============================================================================
+// DICTIONARY-BASED CONSTRAINT REFINEMENT PROMPT
+// ============================================================================
+
+/**
+ * Build constraint refinement prompt for ranking
+ * 
+ * This prompt maps user intent onto static constraint dictionaries for soft ranking.
+ * It runs AFTER hard filters (gender, category, age, color SQL filters) and BEFORE ranking.
+ * The LLM selects relevant dictionary values that will boost matching products in ranking,
+ * without applying additional hard filters.
+ * 
+ * @param params - Refinement parameters
+ * @returns Prompt string for LLM
+ */
+export function buildConstraintRefinementPrompt(params: {
+  query: string;
+  gender?: string | null;
+  categories?: string[];
+  ageGroup?: string | null;
+  candidateCount?: number;
+  conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
+}): string {
+  const dictionaries = loadConstraintDictionaries();
+  
+  // Build context summary
+  const contextParts: string[] = [];
+  if (params.gender) contextParts.push(`Gender: ${params.gender}`);
+  if (params.categories && params.categories.length > 0) {
+    contextParts.push(`Categories: ${params.categories.join(', ')}`);
+  }
+  if (params.ageGroup) contextParts.push(`Age Group: ${params.ageGroup}`);
+  if (params.candidateCount) contextParts.push(`${params.candidateCount} candidate products`);
+  
+  const contextSummary = contextParts.length > 0 
+    ? contextParts.join(' | ')
+    : 'General product search';
+  
+  // Build conversation history snippet (last 2 turns max)
+  let historyText = '';
+  if (params.conversationHistory && params.conversationHistory.length > 0) {
+    const recentHistory = params.conversationHistory.slice(-2);
+    historyText = '\n\nCONVERSATION CONTEXT:\n';
+    for (const turn of recentHistory) {
+      historyText += `${turn.role.toUpperCase()}: ${turn.content}\n`;
+    }
+  }
+  
+  // Format dictionaries with reasonable limits
+  const colorsDict = formatDictionaryForPrompt('colors', 80);
+  const materialsDict = formatDictionaryForPrompt('materials', 40);
+  const occasionsDict = formatDictionaryForPrompt('occasions', 30);
+  const stylesDict = formatDictionaryForPrompt('styles', 30);
+  const patternsDict = formatDictionaryForPrompt('patterns', 30);
+  const sizesDict = formatDictionaryForPrompt('sizes', 50);
+  const lengthsDict = formatDictionaryForPrompt('lengths', 20);
+  const fitsDict = formatDictionaryForPrompt('fits', 25);
+  const risesDict = formatDictionaryForPrompt('rises', 15);
+  const formalityDict = formatDictionaryForPrompt('formalityLevel', 10);
+  
+  return `You are a fashion ranking assistant. Your task is to analyze a user's shopping query and select the most relevant constraint values from predefined dictionaries.
+
+IMPORTANT RULES:
+- You MUST ONLY select values that appear in the dictionaries below
+- Do NOT invent new terms or values
+- If nothing is relevant for a constraint type, return an empty array for that key
+- Output PURE JSON with no comments or extra text
+
+USER QUERY: "${params.query}"${historyText}
+
+CONTEXT: ${contextSummary}
+
+CONSTRAINT DICTIONARIES (select only from these):
+
+${colorsDict}
+
+${materialsDict}
+
+${occasionsDict}
+
+${stylesDict}
+
+${patternsDict}
+
+${sizesDict}
+
+${lengthsDict}
+
+${fitsDict}
+
+${risesDict}
+
+${formalityDict}
+
+TASK:
+Analyze the user's query and context. For each constraint type, select the most relevant values from the dictionaries above that match the user's intent.
+
+For importance levels:
+- "required": User explicitly requires this (e.g., "only black", "must be formal")
+- "strong": User clearly prefers this (e.g., "curvy jeans", "work appropriate", "summer dress")
+- "preferred": User mildly prefers or it's contextually relevant (e.g., general style hints)
+
+EXAMPLES:
+
+Query: "curvy jeans for women"
+→ fits: ["Relaxed", "Wide Leg", "Straight"] (strong)
+→ sizes: ["L", "XL", "2XL", "14", "16"] (strong)
+→ rises: ["Mid Rise", "High Rise"] (preferred)
+
+Query: "black formal dress for a wedding"
+→ colors: ["Black"] (required)
+→ occasions: ["Wedding", "Formal"] (strong)
+→ formalityLevel: ["Formal"] (strong)
+→ styles: ["Elegant", "Sophisticated"] (preferred)
+
+Query: "comfortable cotton tops"
+→ materials: ["Cotton"] (strong)
+→ fits: ["Relaxed", "Regular", "Loose"] (preferred)
+
+OUTPUT JSON (strict schema):
+{
+  "colors": [],
+  "materials": [],
+  "occasions": [],
+  "styles": [],
+  "patterns": [],
+  "sizes": [],
+  "lengths": [],
+  "fits": [],
+  "rises": [],
+  "formalityLevel": [],
+  "importance": {
+    "colors": "required" | "strong" | "preferred",
+    "materials": "required" | "strong" | "preferred",
+    "occasions": "required" | "strong" | "preferred",
+    "styles": "required" | "strong" | "preferred",
+    "patterns": "required" | "strong" | "preferred",
+    "sizes": "required" | "strong" | "preferred",
+    "lengths": "required" | "strong" | "preferred",
+    "fits": "required" | "strong" | "preferred",
+    "rises": "required" | "strong" | "preferred",
+    "formalityLevel": "required" | "strong" | "preferred"
+  }
+}`;
+}
+
+export const CONSTRAINT_REFINEMENT_SCHEMA = {
+  name: 'constraint_refinement',
+  schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['colors', 'materials', 'occasions', 'styles', 'patterns', 'sizes', 'lengths', 'fits', 'rises', 'formalityLevel', 'importance'],
+    properties: {
+      colors: { type: 'array', items: { type: 'string' } },
+      materials: { type: 'array', items: { type: 'string' } },
+      occasions: { type: 'array', items: { type: 'string' } },
+      styles: { type: 'array', items: { type: 'string' } },
+      patterns: { type: 'array', items: { type: 'string' } },
+      sizes: { type: 'array', items: { type: 'string' } },
+      lengths: { type: 'array', items: { type: 'string' } },
+      fits: { type: 'array', items: { type: 'string' } },
+      rises: { type: 'array', items: { type: 'string' } },
+      formalityLevel: { type: 'array', items: { type: 'string' } },
+      importance: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          colors: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          materials: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          occasions: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          styles: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          patterns: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          sizes: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          lengths: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          fits: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          rises: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          formalityLevel: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+        },
+      },
+    },
+  },
+};
+
 /**
  * All LLM prompts for fashion query classification, reply generation,
  * and dialogue routing.

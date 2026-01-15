@@ -1,6 +1,19 @@
 import { parse } from 'csv-parse';
 import type { EnrichedCatalogRow } from './enrichedTypes';
 
+/**
+ * Extract base domain from image URL for link_base fallback
+ */
+function extractBaseDomain(imageUrl?: string | null): string | null {
+  if (!imageUrl) return null;
+  try {
+    const url = new URL(imageUrl);
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return null;
+  }
+}
+
 const toArray = (value?: string | null): string[] => {
   if (!value) return [];
   return value
@@ -42,15 +55,18 @@ export async function* parseEnrichedCsv(
 
     const normalized: EnrichedCatalogRow = {
       id: raw['id'],
-      item_group_id: raw['item group id'] || raw['item_group_id'],
+      // Fall back to id if item_group_id is empty (common in Mott & Bow data)
+      item_group_id: raw['item group id'] || raw['item_group_id'] || raw['id'],
       sku: raw['sku'] || null,
       mpn: raw['mpn'] || null,
       gtin: raw['gtin'] || null,
       merchant_item_id: raw['merchant item id'] || null,
-      brand: raw['brand'],
-      title_clean: raw['title_clean'],
-      description_clean: raw['description_clean'],
-      link_base: raw['link_base'],
+      brand: raw['brand'] || 'Unknown Brand',
+      // Generate fallback title from product_type or id if title_clean is missing
+      title_clean: raw['title_clean'] || raw['product type'] || `Product ${raw['id']}`,
+      description_clean: raw['description_clean'] || raw['title_clean'] || raw['product type'] || '',
+      // Generate link_base from image_link domain if missing
+      link_base: raw['link_base'] || extractBaseDomain(raw['image_link']) || 'https://example.com',
       image_link: raw['image_link'],
       additional_image_links: raw['additional_image_links'],
       price: raw['price'],
@@ -131,6 +147,7 @@ export async function* parseEnrichedCsv(
       llm_evidence_json: raw['llm_evidence_json'] || null,
       enriched_color: raw['enriched_color'] || null,
       age_group: raw['age_group'] || null,
+      gender: raw['gender'] || null,
     };
 
     // Normalize array-ish strings to comma-delimited originals remain as-is; downstream mapping will parse

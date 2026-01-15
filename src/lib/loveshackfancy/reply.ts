@@ -339,10 +339,14 @@ For the reply text BEFORE product cards:
 - If the products don't match exactly what the enhanced query suggests, acknowledge this naturally in your opening (e.g., "I couldn't find exactly what you're looking for, but here are some options that might work")
 
 For product-specific paragraphs AFTER cards:
-- Reference actual product attributes from PRODUCT_DETAILS to explain why each product matches
+- You have access to the ENHANCED QUERY (your interpretation of what the user needs) and ALL product columns/details from PRODUCT_DETAILS
+- For EACH product paragraph: Compare the product against the ENHANCED QUERY to understand how well it matches
+- Reference actual product attributes from PRODUCT_DETAILS (all columns: color, material, length, sleeve, neckline, occasion, season, fit, formalityLevel, etc.) to explain why each product matches or doesn't match
 - Connect product features to what the user is looking for in natural language
 - Explain the connection conversationally (e.g., "This has the elegant style you're looking for" not "This matches formalityLevel: Formal")
-- Be honest about how well each product matches their request
+- CRITICAL: If the product doesn't match the enhanced query exactly, acknowledge why it's not a perfect match in the same manner as the reply text before products (e.g., "While this doesn't have the exact length you mentioned, it captures the elegant feel you're looking for" or "This is close to what you described, though the color is slightly different")
+- Be honest about how well each product matches their request—acknowledge mismatches naturally and explain what aspects do match
+- Use all available product columns/details to give a comprehensive explanation
 
 PRODUCTS TO SHOW (exactly {PRODUCT_COUNT}):
 {PRODUCT_DETAILS}
@@ -365,7 +369,7 @@ CRITICAL: If PRODUCT_TYPE_MISMATCH is provided above, you MUST:
 - Keep it concise and human - less flowery language, more direct honesty
 - Put MORE weight on what they just asked for (the latest update to the query) - acknowledge it first and prominently
 - **NEVER say "I found some [queryProductType]" or "Here are some [queryProductType]" if PRODUCT_TYPE_MISMATCH is detected - that's a lie!**
-- Paragraphs 3-{PRODUCT_COUNT_PLUS_2} (After products): Provide ONE separate paragraph for EACH of the {PRODUCT_COUNT} products. Focus on that specific product with natural, warm language. Highlight key features conversationally. Show how THIS product addresses their request by connecting product attributes to what they're looking for in natural language. Be honest about fit—if close but not perfect, acknowledge with restraint. If it's a great fit, express with warmth. Use ONE sentence per paragraph. Use shorter sentences (8-12 words). Keep it conversational and elegant.
+- Paragraphs 3-{PRODUCT_COUNT_PLUS_2} (After products): Provide ONE separate paragraph for EACH of the {PRODUCT_COUNT} products. For each product, compare it against the ENHANCED QUERY and reference ALL product columns/details from PRODUCT_DETAILS. Focus on that specific product with natural, warm language. Highlight key features conversationally. Show how THIS product addresses their request by connecting product attributes to what they're looking for in natural language. If the product doesn't match the enhanced query exactly, acknowledge why it's not a perfect match in the same manner as the reply text before products—be honest about what doesn't match and explain what aspects do match. If close but not perfect, acknowledge with restraint. If it's a great fit, express with warmth. Use ONE sentence per paragraph. Use shorter sentences (8-12 words). Keep it conversational and elegant.
 - Final paragraph (After products): Short closing line that's warm, inviting, and elegant (one sentence)
 
 CRITICAL FORMATTING:
@@ -482,6 +486,15 @@ export async function generateReply(
   context?: ReplyContext,
   categories?: string[] // Top categories for attribute extraction
 ): Promise<ReplyResult> {
+  const startTime = Date.now();
+  
+  logger.info('generateReply: starting', {
+    query: query.substring(0, 100),
+    productCount: products.length,
+    hasContext: !!context,
+    isFollowUp: !!context?.isFollowUp,
+  });
+
   try {
     // Format constraints for prompt, handling both array format and ConstraintWithIntent format
     const constraintsText = Object.entries(constraints)
@@ -758,7 +771,7 @@ CRITICAL: QUERY INTERPRETATION
 - Show you understand the meaning behind their query conversationally, not as technical data
 - For follow-up queries: Prioritize the RECENT CHANGE in the enhanced query - focus on what's NEW or DIFFERENT from previous queries
 - For the reply text BEFORE product cards: Interpret their query naturally and explain your interpretation in a logical, broad sense
-- For product paragraphs AFTER cards: Connect product attributes to what they're looking for using natural language
+- For product paragraphs AFTER cards: For EACH product, compare it against the ENHANCED QUERY and reference ALL product columns/details available. Connect product attributes to what they're looking for using natural language. If the product doesn't match the enhanced query exactly, acknowledge why it's not a perfect match in the same manner as the reply text before products—be honest about what doesn't match and explain what aspects do match
 - If products don't match exactly what the enhanced query suggests, acknowledge this naturally and honestly
 
 BRAND VOICE - LOVE SHACK FANCY:
@@ -795,6 +808,7 @@ FORMATTING:
       .replace(/{PRODUCT_COUNT}/g, String(productCount))
       .replace(/{TOTAL_PARAGRAPHS}/g, String(totalParagraphs));
 
+    const llmStartTime = Date.now();
     const result = await callLLM({
       messages: [
         {
@@ -809,6 +823,7 @@ FORMATTING:
       purpose: 'final_reply',
       expectJson: false,
     });
+    const llmDuration = Date.now() - llmStartTime;
 
     const fullReply = result.rawText.trim();
     
@@ -886,14 +901,29 @@ FORMATTING:
       isFollowUp: context?.isFollowUp,
     });
     
+    const totalDuration = Date.now() - startTime;
+    logger.info('generateReply: complete', {
+      query: query.substring(0, 100),
+      productCount: products.length,
+      totalDurationMs: totalDuration,
+      totalDurationSeconds: (totalDuration / 1000).toFixed(2),
+      llmDurationMs: llmDuration,
+      llmDurationSeconds: (llmDuration / 1000).toFixed(2),
+      replyTextLength: replyTextBefore.length,
+      replyTextAfterLength: replyTextAfter?.length || 0,
+    });
+    
     return {
       replyText: replyTextBefore,
       replyTextAfter: replyTextAfter && replyTextAfter.trim().length > 0 ? replyTextAfter : undefined,
     };
   } catch (error) {
+    const totalDuration = Date.now() - startTime;
     logger.error('reply_generation_failed', {
       error: error instanceof Error ? error.message : String(error),
       query: query.substring(0, 100),
+      totalDurationMs: totalDuration,
+      totalDurationSeconds: (totalDuration / 1000).toFixed(2),
     });
 
     // Fallback reply

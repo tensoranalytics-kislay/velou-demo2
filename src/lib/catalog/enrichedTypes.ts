@@ -128,6 +128,7 @@ export interface EnrichedCatalogRow {
   // Enriched 2.csv specific columns
   enriched_color?: string | null;
   age_group?: string | null;
+  gender?: string | null; // Added for Mott & Bow multi-gender support
 }
 
 // NOTE: Variant-level data (sizes and colors) is stored in Product.attributes

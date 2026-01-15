@@ -47,6 +47,68 @@ export function matchCategory(
 }
 
 /**
+ * Hand-tuned synonym / sibling groups for overlapping categories that
+ * effectively contain the same type of products (tees, jeans, etc.).
+ *
+ * These groups are used in `expandCategoriesForOptimalCoverage` so that when
+ * the classifier chooses *one* category (e.g. "Womens-tees") we search across
+ * all closely-related categories in the same group (e.g. "Tops", "t-shirt").
+ *
+ * NOTE:
+ * - Gender and age-group are still enforced via separate filters, so mixing
+ *   mens/womens variants in the same group is safe.
+ * - These groups were derived from inspecting the catalog counts and
+ *   category names (Mott & Bow + LSF), focusing on the highest-volume
+ *   overlapping apparel categories.
+ */
+const CATEGORY_SYNONYM_GROUPS: string[][] = [
+  // Tees / tops across brands and taxonomies
+  [
+    'Womens-tees',
+    'Mens-tees',
+    'Tops',
+    'Girls Tops',
+    't-shirt',
+    't-shirts',
+    "men's t-shirts",
+    'basic tees',
+    'crew neck',
+    'crew neck t-shirts',
+    'fitted t-shirts',
+    'graphic tee',
+    'polo shirts',
+    'shirt',
+    'tank top',
+    'top',
+    'tops',
+  ],
+  // Jeans across mens/womens and specific jean cuts
+  [
+    'Mens-jeans',
+    'Womens-jeans',
+    'jeans',
+    "men's jeans",
+    "women's jeans",
+    'skinny jeans',
+    'cropped jeans',
+    'mom jeans',
+    'straight jeans',
+    'straight leg jeans',
+    'wide leg jeans',
+  ],
+];
+
+function findSynonymGroup(category: string): string[] | null {
+  const lower = category.toLowerCase();
+  for (const group of CATEGORY_SYNONYM_GROUPS) {
+    if (group.some((name) => name.toLowerCase() === lower)) {
+      return group;
+    }
+  }
+  return null;
+}
+
+/**
  * Expands category names to maximize product coverage by:
  * 1. Handling singular/plural variations (e.g., "Maxi Dress" → also check "Maxi Dresses" subcategory)
  * 2. Expanding parent categories to include all subcategories (when appropriate)
@@ -136,6 +198,20 @@ export function expandCategoriesForOptimalCoverage(
   // Process each category (using filtered list if "Women's Dresses" was removed)
   for (const category of categoriesToProcess) {
     expanded.add(category); // Always include the original category
+
+    // First, expand via synonym/sibling groups for overlapping categories.
+    // Example: "Womens-tees" → also include "Tops", "t-shirt", etc.
+    const synonymGroup = findSynonymGroup(category);
+    if (synonymGroup) {
+      for (const related of synonymGroup) {
+        expanded.add(related);
+      }
+      logger.debug('category_expansion_synonym_group', {
+        originalCategory: category,
+        expandedCategories: synonymGroup,
+        reason: 'overlapping_apparel_categories_share_similar_products',
+      });
+    }
     
     const categoryLower = category.toLowerCase();
 
