@@ -85,8 +85,13 @@ export function buildQueryClassifierPrompt(
                                    'sleeveLengths' | 'colorShade' | 'colorUndertone' | 'embellishments' | 
                                    'collections' | 'seasonalPalette', categories: string[]) => string) | null = null;
   if (classifiedCategories && classifiedCategories.length > 0) {
-    const { formatCategoryConstraintForPrompt } = require('./category-constraint-dictionaries');
-    formatCategoryConstraint = formatCategoryConstraintForPrompt;
+    try {
+      const { formatCategoryConstraintForPrompt } = require('./category-constraint-dictionaries');
+      formatCategoryConstraint = formatCategoryConstraintForPrompt;
+    } catch (error) {
+      // File may not exist in all environments - fallback to default behavior
+      formatCategoryConstraint = null;
+    }
   }
   
   // Organize categories into semantic groups
