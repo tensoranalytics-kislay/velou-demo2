@@ -10,6 +10,7 @@ import { formatDictionaryForPrompt, loadConstraintDictionaries } from './constra
 import { CATEGORY_GENDER_MAP } from '../catalog/category-gender-map';
 import type { CategoryDictionaryMap } from '../search/filtering/category-dictionaries';
 import { logger } from '../telemetry/logger';
+import { formatCategoryConstraintForPrompt } from './category-constraint-dictionaries';
 
 // ============================================================================
 // QUERY CLASSIFIER PROMPT
@@ -80,19 +81,11 @@ export function buildQueryClassifierPrompt(
   const dictionaries = loadConstraintDictionaries();
   
   // Import category-specific dictionary helpers if categories are provided
-  let formatCategoryConstraint: ((type: 'colors' | 'materials' | 'sizes' | 'occasions' | 'seasons' | 'styles' | 
-                                   'patterns' | 'lengths' | 'formalityLevel' | 'fits' | 'rises' | 'necklines' | 
-                                   'sleeveLengths' | 'colorShade' | 'colorUndertone' | 'embellishments' | 
-                                   'collections' | 'seasonalPalette', categories: string[]) => string) | null = null;
-  if (classifiedCategories && classifiedCategories.length > 0) {
-    try {
-      const { formatCategoryConstraintForPrompt } = require('./category-constraint-dictionaries');
-      formatCategoryConstraint = formatCategoryConstraintForPrompt;
-    } catch (error) {
-      // File may not exist in all environments - fallback to default behavior
-      formatCategoryConstraint = null;
-    }
-  }
+  const formatCategoryConstraint: ((type: 'colors' | 'materials' | 'sizes' | 'occasions' | 'seasons' | 'styles' | 
+                                     'patterns' | 'lengths' | 'formalityLevel' | 'fits' | 'rises' | 'necklines' | 
+                                     'sleeveLengths' | 'colorShade' | 'colorUndertone' | 'embellishments' | 
+                                     'collections' | 'seasonalPalette', categories: string[]) => string) | null = 
+    (classifiedCategories && classifiedCategories.length > 0) ? formatCategoryConstraintForPrompt : null;
   
   // Organize categories into semantic groups
   const groups = organizeCategoriesIntoGroups(allowedCategories);
