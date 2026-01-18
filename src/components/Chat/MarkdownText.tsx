@@ -10,14 +10,73 @@ type MarkdownTextProps = {
 };
 
 /**
+ * Splits paragraphs that contain multiple sentences into separate paragraphs.
+ * Each sentence (ending with . ? !) becomes its own paragraph.
+ * This ensures the "before product cards" section has one sentence per paragraph.
+ */
+function splitParagraphsBySentences(content: string): string {
+  // Split by double newlines (existing paragraph breaks) first
+  const paragraphs = content.split(/\n\n+/).filter(p => p.trim().length > 0);
+  
+  const processedParagraphs: string[] = [];
+  
+  for (const paragraph of paragraphs) {
+    const trimmed = paragraph.trim();
+    
+    // Split by sentence endings (. ? !) followed by space, newline, or end of string
+    // Pattern: sentence ending (. ? !) followed by whitespace or end of string
+    // This regex uses positive lookahead to split on sentence endings without consuming the delimiter
+    const sentenceEndRegex = /([.!?]+)(?=\s+|$)/g;
+    
+    // Find all sentence endings and their positions
+    const sentenceEnds: number[] = [];
+    let match;
+    while ((match = sentenceEndRegex.exec(trimmed)) !== null) {
+      // Position after the sentence ending (including the punctuation)
+      sentenceEnds.push(match.index + match[0].length);
+    }
+    
+    // If no sentence endings found, keep the paragraph as-is
+    if (sentenceEnds.length === 0) {
+      processedParagraphs.push(trimmed);
+      continue;
+    }
+    
+    // Split into sentences
+    let lastIndex = 0;
+    for (const endIndex of sentenceEnds) {
+      const sentence = trimmed.slice(lastIndex, endIndex).trim();
+      if (sentence.length > 0) {
+        processedParagraphs.push(sentence);
+      }
+      lastIndex = endIndex;
+    }
+    
+    // Add any remaining text after the last sentence ending
+    if (lastIndex < trimmed.length) {
+      const remaining = trimmed.slice(lastIndex).trim();
+      if (remaining.length > 0) {
+        processedParagraphs.push(remaining);
+      }
+    }
+  }
+  
+  // Join with double newlines to preserve paragraph structure
+  return processedParagraphs.join('\n\n');
+}
+
+/**
  * Simple markdown renderer for assistant messages
  * Supports: **bold**, *italic*, - bullets, paragraphs, and product name links
  */
 export default function MarkdownText({ content, className = '', productCards = [] }: MarkdownTextProps) {
   if (!content) return null;
   
+  // Split paragraphs by sentences first (one sentence per paragraph)
+  const contentWithSplitSentences = splitParagraphsBySentences(content);
+  
   // Split by double newlines for paragraphs
-  const paragraphs = content.split(/\n\n+/).filter(Boolean);
+  const paragraphs = contentWithSplitSentences.split(/\n\n+/).filter(Boolean);
 
   return (
     <div className={className}>

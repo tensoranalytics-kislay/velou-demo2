@@ -446,10 +446,9 @@ export async function searchVectorIndexWithRanking(
     params.push(...constraintParams);
     const limitParamIndex = constraintParamIndex;
 
-    // Calculate final score: vector_score + (constraint_boost * 0.3)
-    // Constraint boost is capped at 0.3 (30% of base score)
+    // Calculate final score: ONLY constraint score (vector score is only for product loading/retrieval)
     const finalScoreSQL = `
-      LEAST(1.0, ${vectorScoreSQL} + (${constraintScoreSQL} * 0.3))
+      LEAST(1.0, ${constraintScoreSQL})
     `;
 
 

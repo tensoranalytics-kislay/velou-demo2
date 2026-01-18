@@ -6,22 +6,25 @@
  */
 
 import { callLLM } from '../llm/provider';
-import { buildConstraintRefinementPrompt, CONSTRAINT_REFINEMENT_SCHEMA } from './prompts';
+import { buildConstraintRefinementPrompt, CONSTRAINT_REFINEMENT_SCHEMA, extractCategorySpecificDictionaryValues } from './prompts';
 import { validateConstraintValues } from './dictionary-matcher';
 import { logger } from '../telemetry/logger';
 import type { RefinedConstraints } from './constraint-utils';
 import { refinedConstraintsToIntent, type QueryConstraintsWithIntent } from './constraint-utils';
+import type { CategoryDictionaryMap } from '../search/filtering/category-dictionaries';
 
 /**
  * Parameters for constraint refinement
  */
 export type ConstraintRefinementParams = {
   query: string;
+  classificationConstraints?: Partial<import('./classifier').FashionConstraints> | null;
   gender?: string | null;
   categories?: string[];
   ageGroup?: string | null;
   candidateCount?: number;
   conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  categoryDictionaries?: CategoryDictionaryMap;
 };
 
 /**
@@ -54,16 +57,43 @@ export async function refineConstraintsWithDictionaries(
 ): Promise<ConstraintRefinementResult> {
   const startTime = Date.now();
   
+  // Count classification constraints provided for validation
+  const classificationConstraintCount = params.classificationConstraints 
+    ? Object.keys(params.classificationConstraints).filter(
+        key => params.classificationConstraints![key as keyof typeof params.classificationConstraints] !== null 
+          && params.classificationConstraints![key as keyof typeof params.classificationConstraints] !== undefined
+      ).length 
+    : 0;
+  
   logger.debug('constraint_refinement_starting', {
     query: params.query.substring(0, 100),
     gender: params.gender,
     categories: params.categories,
     ageGroup: params.ageGroup,
     candidateCount: params.candidateCount,
+    hasCategoryDictionaries: !!params.categoryDictionaries,
+    categoryDictionaryCount: params.categoryDictionaries?.size || 0,
+    hasClassificationConstraints: !!params.classificationConstraints,
+    classificationConstraintCount,
+    note: params.classificationConstraints 
+      ? 'Validating classification constraints against dictionaries' 
+      : 'Extracting constraints from query',
   });
   
   // Build prompt
-  const prompt = buildConstraintRefinementPrompt(params);
+  const prompt = buildConstraintRefinementPrompt({
+    ...params,
+    categoryDictionaries: params.categoryDictionaries,
+  });
+  
+  // Log that dictionaries are in the prompt
+  const hasCategorySpecificInPrompt = prompt.includes('category-specific');
+  logger.debug('constraint_refinement_prompt_built', {
+    query: params.query.substring(0, 100),
+    promptLength: prompt.length,
+    hasCategorySpecificInPrompt,
+    categoryDictionaryCount: params.categoryDictionaries?.size || 0,
+  });
   
   // Call LLM
   let rawResponse: string;
@@ -129,9 +159,21 @@ export async function refineConstraintsWithDictionaries(
       fits: parsed.fits?.length || 0,
       rises: parsed.rises?.length || 0,
       formalityLevel: parsed.formalityLevel?.length || 0,
+      necklines: parsed.necklines?.length || 0,
+      sleeveLengths: parsed.sleeveLengths?.length || 0,
+      collections: parsed.collections?.length || 0,
+      seasons: parsed.seasons?.length || 0,
+      colorShade: parsed.colorShade?.length || 0,
+      embellishments: parsed.embellishments?.length || 0,
     },
     importance: parsed.importance,
   });
+  
+  // Extract category-specific dictionary values for validation
+  const categorySpecificValues = extractCategorySpecificDictionaryValues(
+    params.categoryDictionaries,
+    params.categories
+  );
   
   // Validate each constraint type against dictionaries
   const validated: RefinedConstraints = {
@@ -144,13 +186,18 @@ export async function refineConstraintsWithDictionaries(
   
   // Helper to validate and count
   const validateAndCount = (
-    constraintType: 'colors' | 'materials' | 'occasions' | 'styles' | 'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises',
-    rawValues: string[] | undefined
+    constraintType: 'colors' | 'materials' | 'occasions' | 'styles' | 'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises' | 'necklines' | 'sleeveLengths' | 'collections' | 'seasons' | 'colorShade' | 'embellishments',
+    rawValues: string[] | undefined,
+    categorySpecificKey?: string
   ): string[] | undefined => {
     if (!rawValues || rawValues.length === 0) return undefined;
     
     totalRawValues += rawValues.length;
-    const validValues = validateConstraintValues(constraintType, rawValues);
+    // Use category-specific values if available, otherwise fall back to global dictionary
+    // Map colorShade to colorShades for dictionary lookup
+    const lookupKey = categorySpecificKey === 'colorShade' ? 'colorShades' : (categorySpecificKey || constraintType);
+    const categorySpecific = lookupKey ? categorySpecificValues.get(lookupKey) : undefined;
+    const validValues = validateConstraintValues(constraintType, rawValues, categorySpecific);
     
     if (validValues && validValues.length > 0) {
       validatedValues += validValues.length;
@@ -162,17 +209,23 @@ export async function refineConstraintsWithDictionaries(
     }
   };
   
-  // Validate all constraint types
-  validated.colors = validateAndCount('colors', parsed.colors);
-  validated.materials = validateAndCount('materials', parsed.materials);
-  validated.occasions = validateAndCount('occasions', parsed.occasions);
-  validated.styles = validateAndCount('styles', parsed.styles);
-  validated.patterns = validateAndCount('patterns', parsed.patterns);
-  validated.sizes = validateAndCount('sizes', parsed.sizes);
-  validated.lengths = validateAndCount('lengths', parsed.lengths);
-  validated.fits = validateAndCount('fits', parsed.fits);
-  validated.rises = validateAndCount('rises', parsed.rises);
-  validated.formalityLevel = validateAndCount('formalityLevel', parsed.formalityLevel);
+  // Validate all constraint types (use category-specific when available)
+  validated.colors = validateAndCount('colors', parsed.colors, 'colors');
+  validated.materials = validateAndCount('materials', parsed.materials, 'materials');
+  validated.occasions = validateAndCount('occasions', parsed.occasions, 'occasions');
+  validated.styles = validateAndCount('styles', parsed.styles, 'styles');
+  validated.patterns = validateAndCount('patterns', parsed.patterns, 'patterns');
+  validated.sizes = validateAndCount('sizes', parsed.sizes, 'sizes');
+  validated.lengths = validateAndCount('lengths', parsed.lengths, 'lengths');
+  validated.fits = validateAndCount('fits', parsed.fits, 'fits');
+  validated.rises = validateAndCount('rises', parsed.rises, 'rises');
+  validated.formalityLevel = validateAndCount('formalityLevel', parsed.formalityLevel, 'formalityLevel');
+  validated.necklines = validateAndCount('necklines', parsed.necklines, 'necklines');
+  validated.sleeveLengths = validateAndCount('sleeveLengths', parsed.sleeveLengths, 'sleeves');
+  validated.collections = validateAndCount('collections', parsed.collections, 'collections');
+  validated.seasons = validateAndCount('seasons', parsed.seasons, 'seasons');
+  validated.colorShade = validateAndCount('colorShade', parsed.colorShade, 'colorShade');
+  validated.embellishments = validateAndCount('embellishments', parsed.embellishments, 'embellishments');
   
   logger.info('constraint_refinement_validation_complete', {
     query: params.query.substring(0, 100),
@@ -190,6 +243,12 @@ export async function refineConstraintsWithDictionaries(
       fits: validated.fits?.length || 0,
       rises: validated.rises?.length || 0,
       formalityLevel: validated.formalityLevel?.length || 0,
+      necklines: validated.necklines?.length || 0,
+      sleeveLengths: validated.sleeveLengths?.length || 0,
+      collections: validated.collections?.length || 0,
+      seasons: validated.seasons?.length || 0,
+      colorShade: validated.colorShade?.length || 0,
+      embellishments: validated.embellishments?.length || 0,
     },
     importance: validated.importance,
   });
@@ -229,7 +288,8 @@ export function mergeRefinedConstraints(
   // Merge each constraint type (refined takes precedence)
   const constraintKeys: Array<keyof QueryConstraintsWithIntent> = [
     'colors', 'materials', 'occasions', 'styles', 'patterns', 'sizes', 
-    'lengths', 'fits', 'formalityLevel'
+    'lengths', 'fits', 'rises', 'formalityLevel', 'necklines', 'sleeveLengths',
+    'collections', 'seasons', 'colorShade', 'embellishments'
   ];
   
   for (const key of constraintKeys) {

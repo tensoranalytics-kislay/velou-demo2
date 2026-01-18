@@ -40,6 +40,38 @@ export type CategoryDictionary = {
   availableColorShades: Set<string>;
   colorShadeFrequency: Map<string, number>;
   
+  // Fit dictionary (normalized lowercase)
+  availableFits: Set<string>;
+  fitFrequency: Map<string, number>;
+  
+  // Materials dictionary (normalized lowercase)
+  availableMaterials: Set<string>;
+  materialFrequency: Map<string, number>;
+  
+  // Occasions dictionary (normalized lowercase)
+  availableOccasions: Set<string>;
+  occasionFrequency: Map<string, number>;
+  
+  // Seasons dictionary (normalized lowercase)
+  availableSeasons: Set<string>;
+  seasonFrequency: Map<string, number>;
+  
+  // Styles dictionary (normalized lowercase)
+  availableStyles: Set<string>;
+  styleFrequency: Map<string, number>;
+  
+  // Patterns dictionary (normalized lowercase)
+  availablePatterns: Set<string>;
+  patternFrequency: Map<string, number>;
+  
+  // Sizes dictionary (normalized lowercase)
+  availableSizes: Set<string>;
+  sizeFrequency: Map<string, number>;
+  
+  // Rises dictionary (normalized lowercase)
+  availableRises: Set<string>;
+  riseFrequency: Map<string, number>;
+  
   productCount: number;
 };
 
@@ -133,6 +165,12 @@ export async function buildCategorySpecificDictionaries(
         p."neckline",
         p."formalityLevel",
         p."colorShade",
+        p."fit",
+        p."material",
+        p."fabric",
+        p."occasion",
+        p."season",
+        p."riseWaist",
         p.attributes->>'length' as attr_length,
         p.attributes->>'Length' as attr_Length_capital,
         p.attributes->>'sleeve' as attr_sleeve,
@@ -142,7 +180,27 @@ export async function buildCategorySpecificDictionaries(
         p.attributes->>'formalityLevel' as attr_formalityLevel,
         p.attributes->>'FormalityLevel' as attr_FormalityLevel_capital,
         p.attributes->>'colorShade' as attr_colorShade,
-        p.attributes->>'ColorShade' as attr_ColorShade_capital
+        p.attributes->>'ColorShade' as attr_ColorShade_capital,
+        p.attributes->>'fit' as attr_fit,
+        p.attributes->>'Fit' as attr_Fit_capital,
+        p.attributes->>'material' as attr_material,
+        p.attributes->>'Material' as attr_Material_capital,
+        p.attributes->>'fabric' as attr_fabric,
+        p.attributes->>'Fabric' as attr_Fabric_capital,
+        p.attributes->>'occasion' as attr_occasion,
+        p.attributes->>'Occasion' as attr_Occasion_capital,
+        p.attributes->>'season' as attr_season,
+        p.attributes->>'Season' as attr_Season_capital,
+        p.attributes->>'style' as attr_style,
+        p.attributes->>'Style' as attr_Style_capital,
+        p.attributes->>'pattern' as attr_pattern,
+        p.attributes->>'Pattern' as attr_Pattern_capital,
+        p.attributes->>'size' as attr_size,
+        p.attributes->>'Size' as attr_Size_capital,
+        p.attributes->>'riseWaist' as attr_riseWaist,
+        p.attributes->>'RiseWaist' as attr_RiseWaist_capital,
+        p.attributes->>'rise' as attr_rise,
+        p.attributes->>'Rise' as attr_Rise_capital
       FROM "Product" p
       WHERE p.id = ANY(ARRAY[${productIdsArrayLiteral}]::text[])
         AND p."merchantId" = $1
@@ -161,6 +219,12 @@ export async function buildCategorySpecificDictionaries(
       neckline: string | null;
       formalityLevel: string | null;
       colorShade: string | null;
+      fit: string | null;
+      material: string | null;
+      fabric: string | null;
+      occasion: string | null;
+      season: string | null;
+      riseWaist: string | null;
       attr_length: string | null;
       attr_Length_capital: string | null;
       attr_sleeve: string | null;
@@ -171,6 +235,26 @@ export async function buildCategorySpecificDictionaries(
       attr_FormalityLevel_capital: string | null;
       attr_colorShade: string | null;
       attr_ColorShade_capital: string | null;
+      attr_fit: string | null;
+      attr_Fit_capital: string | null;
+      attr_material: string | null;
+      attr_Material_capital: string | null;
+      attr_fabric: string | null;
+      attr_Fabric_capital: string | null;
+      attr_occasion: string | null;
+      attr_Occasion_capital: string | null;
+      attr_season: string | null;
+      attr_Season_capital: string | null;
+      attr_style: string | null;
+      attr_Style_capital: string | null;
+      attr_pattern: string | null;
+      attr_Pattern_capital: string | null;
+      attr_size: string | null;
+      attr_Size_capital: string | null;
+      attr_riseWaist: string | null;
+      attr_RiseWaist_capital: string | null;
+      attr_rise: string | null;
+      attr_Rise_capital: string | null;
     }>>(query, merchantId);
     
     logger.info('buildCategorySpecificDictionaries: loaded products', {
@@ -213,6 +297,22 @@ export async function buildCategorySpecificDictionaries(
         formalityLevelFrequency: new Map<string, number>(),
         availableColorShades: new Set<string>(),
         colorShadeFrequency: new Map<string, number>(),
+        availableFits: new Set<string>(),
+        fitFrequency: new Map<string, number>(),
+        availableMaterials: new Set<string>(),
+        materialFrequency: new Map<string, number>(),
+        availableOccasions: new Set<string>(),
+        occasionFrequency: new Map<string, number>(),
+        availableSeasons: new Set<string>(),
+        seasonFrequency: new Map<string, number>(),
+        availableStyles: new Set<string>(),
+        styleFrequency: new Map<string, number>(),
+        availablePatterns: new Set<string>(),
+        patternFrequency: new Map<string, number>(),
+        availableSizes: new Set<string>(),
+        sizeFrequency: new Map<string, number>(),
+        availableRises: new Set<string>(),
+        riseFrequency: new Map<string, number>(),
         productCount: groupProducts.length,
       };
       
@@ -279,6 +379,103 @@ export async function buildCategorySpecificDictionaries(
           dictionary.availableColorShades.add(colorShadeValue);
           dictionary.colorShadeFrequency.set(colorShadeValue, (dictionary.colorShadeFrequency.get(colorShadeValue) || 0) + 1);
         }
+        
+        // Extract fit
+        const fitValue = extractAttributeValue(
+          product.fit,
+          product.attr_fit,
+          product.attr_Fit_capital
+        );
+        if (fitValue) {
+          dictionary.availableFits.add(fitValue);
+          dictionary.fitFrequency.set(fitValue, (dictionary.fitFrequency.get(fitValue) || 0) + 1);
+        }
+        
+        // Extract materials (from material or fabric columns)
+        const materialValue = extractAttributeValue(
+          product.material,
+          product.attr_material,
+          product.attr_Material_capital
+        );
+        if (materialValue) {
+          dictionary.availableMaterials.add(materialValue);
+          dictionary.materialFrequency.set(materialValue, (dictionary.materialFrequency.get(materialValue) || 0) + 1);
+        }
+        const fabricValue = extractAttributeValue(
+          product.fabric,
+          product.attr_fabric,
+          product.attr_Fabric_capital
+        );
+        if (fabricValue) {
+          dictionary.availableMaterials.add(fabricValue);
+          dictionary.materialFrequency.set(fabricValue, (dictionary.materialFrequency.get(fabricValue) || 0) + 1);
+        }
+        
+        // Extract occasions
+        const occasionValue = extractAttributeValue(
+          product.occasion,
+          product.attr_occasion,
+          product.attr_Occasion_capital
+        );
+        if (occasionValue) {
+          dictionary.availableOccasions.add(occasionValue);
+          dictionary.occasionFrequency.set(occasionValue, (dictionary.occasionFrequency.get(occasionValue) || 0) + 1);
+        }
+        
+        // Extract seasons
+        const seasonValue = extractAttributeValue(
+          product.season,
+          product.attr_season,
+          product.attr_Season_capital
+        );
+        if (seasonValue) {
+          dictionary.availableSeasons.add(seasonValue);
+          dictionary.seasonFrequency.set(seasonValue, (dictionary.seasonFrequency.get(seasonValue) || 0) + 1);
+        }
+        
+        // Extract styles
+        const styleValue = extractAttributeValue(
+          null,
+          product.attr_style,
+          product.attr_Style_capital
+        );
+        if (styleValue) {
+          dictionary.availableStyles.add(styleValue);
+          dictionary.styleFrequency.set(styleValue, (dictionary.styleFrequency.get(styleValue) || 0) + 1);
+        }
+        
+        // Extract patterns
+        const patternValue = extractAttributeValue(
+          null,
+          product.attr_pattern,
+          product.attr_Pattern_capital
+        );
+        if (patternValue) {
+          dictionary.availablePatterns.add(patternValue);
+          dictionary.patternFrequency.set(patternValue, (dictionary.patternFrequency.get(patternValue) || 0) + 1);
+        }
+        
+        // Extract sizes
+        const sizeValue = extractAttributeValue(
+          null,
+          product.attr_size,
+          product.attr_Size_capital
+        );
+        if (sizeValue) {
+          dictionary.availableSizes.add(sizeValue);
+          dictionary.sizeFrequency.set(sizeValue, (dictionary.sizeFrequency.get(sizeValue) || 0) + 1);
+        }
+        
+        // Extract rises (from riseWaist column or attributes)
+        const riseValue = extractAttributeValue(
+          product.riseWaist,
+          product.attr_riseWaist || product.attr_rise,
+          product.attr_RiseWaist_capital || product.attr_Rise_capital
+        );
+        if (riseValue) {
+          dictionary.availableRises.add(riseValue);
+          dictionary.riseFrequency.set(riseValue, (dictionary.riseFrequency.get(riseValue) || 0) + 1);
+        }
       }
       
       dictionaryMap.set(key, dictionary);
@@ -300,12 +497,36 @@ export async function buildCategorySpecificDictionaries(
         sampleFormalityLevels: Array.from(dictionary.availableFormalityLevels),
         colorShadeCount: dictionary.availableColorShades.size,
         sampleColorShades: Array.from(dictionary.availableColorShades),
+        fitCount: dictionary.availableFits.size,
+        sampleFits: Array.from(dictionary.availableFits),
+        materialCount: dictionary.availableMaterials.size,
+        sampleMaterials: Array.from(dictionary.availableMaterials).slice(0, 10),
+        occasionCount: dictionary.availableOccasions.size,
+        sampleOccasions: Array.from(dictionary.availableOccasions),
+        seasonCount: dictionary.availableSeasons.size,
+        sampleSeasons: Array.from(dictionary.availableSeasons),
+        styleCount: dictionary.availableStyles.size,
+        sampleStyles: Array.from(dictionary.availableStyles).slice(0, 10),
+        patternCount: dictionary.availablePatterns.size,
+        samplePatterns: Array.from(dictionary.availablePatterns).slice(0, 10),
+        sizeCount: dictionary.availableSizes.size,
+        sampleSizes: Array.from(dictionary.availableSizes).slice(0, 10),
+        riseCount: dictionary.availableRises.size,
+        sampleRises: Array.from(dictionary.availableRises),
         colorFrequency: Object.fromEntries(Array.from(dictionary.colorFrequency.entries()).slice(0, 5)),
         lengthFrequency: Object.fromEntries(Array.from(dictionary.lengthFrequency.entries())),
         sleeveFrequency: Object.fromEntries(Array.from(dictionary.sleeveFrequency.entries())),
         necklineFrequency: Object.fromEntries(Array.from(dictionary.necklineFrequency.entries())),
         formalityLevelFrequency: Object.fromEntries(Array.from(dictionary.formalityLevelFrequency.entries())),
         colorShadeFrequency: Object.fromEntries(Array.from(dictionary.colorShadeFrequency.entries())),
+        fitFrequency: Object.fromEntries(Array.from(dictionary.fitFrequency.entries())),
+        materialFrequency: Object.fromEntries(Array.from(dictionary.materialFrequency.entries()).slice(0, 5)),
+        occasionFrequency: Object.fromEntries(Array.from(dictionary.occasionFrequency.entries())),
+        seasonFrequency: Object.fromEntries(Array.from(dictionary.seasonFrequency.entries())),
+        styleFrequency: Object.fromEntries(Array.from(dictionary.styleFrequency.entries()).slice(0, 5)),
+        patternFrequency: Object.fromEntries(Array.from(dictionary.patternFrequency.entries()).slice(0, 5)),
+        sizeFrequency: Object.fromEntries(Array.from(dictionary.sizeFrequency.entries()).slice(0, 5)),
+        riseFrequency: Object.fromEntries(Array.from(dictionary.riseFrequency.entries())),
       });
     }
     

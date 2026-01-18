@@ -1,0 +1,3747 @@
+[
+  {
+    "original": "100% Polyester",
+    "normalized": "100% Polyester",
+    "productCount": 777
+  },
+  {
+    "original": "95% Polyester, 5% Elastane",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 593
+  },
+  {
+    "original": "Cotton",
+    "normalized": "Cotton",
+    "productCount": 338
+  },
+  {
+    "original": "96% Polyester, 4% Elastane",
+    "normalized": "96% Polyester, 4% Elastane",
+    "productCount": 203
+  },
+  {
+    "original": "Polyester",
+    "normalized": "Polyester",
+    "productCount": 108
+  },
+  {
+    "original": "100% Cotton",
+    "normalized": "100% Cotton",
+    "productCount": 84
+  },
+  {
+    "original": "50% Cotton, 50% Modal",
+    "normalized": "50% Cotton, 50% Modal",
+    "productCount": 70
+  },
+  {
+    "original": "100% Acrylic",
+    "normalized": "100% Acrylic",
+    "productCount": 51
+  },
+  {
+    "original": "Polyester, Spandex",
+    "normalized": "Polyester, Spandex",
+    "productCount": 50
+  },
+  {
+    "original": "Polyester, Cotton",
+    "normalized": "Polyester, Cotton",
+    "productCount": 45
+  },
+  {
+    "original": "57% Cotton, 38% Modal, 5% Spandex",
+    "normalized": "57% Cotton, 38% Modal, 5% Spandex",
+    "productCount": 38
+  },
+  {
+    "original": "97% Polyester, 3% Elastane",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 36
+  },
+  {
+    "original": "Polyester, Viscose",
+    "normalized": "Polyester, Viscose",
+    "productCount": 34
+  },
+  {
+    "original": "90% Polyester, 10% Elastane",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 34
+  },
+  {
+    "original": "Polyester, Nylon",
+    "normalized": "Polyester, Nylon",
+    "productCount": 29
+  },
+  {
+    "original": "Cotton, Linen",
+    "normalized": "Cotton, Linen",
+    "productCount": 28
+  },
+  {
+    "original": "100% Polyurethane",
+    "normalized": "100% Polyurethane",
+    "productCount": 25
+  },
+  {
+    "original": "Wool",
+    "normalized": "Wool",
+    "productCount": 23
+  },
+  {
+    "original": "97% Cotton, 3% Spandex",
+    "normalized": "97% Cotton, 3% Spandex",
+    "productCount": 21
+  },
+  {
+    "original": "Polyester, Nylon, Spandex",
+    "normalized": "Polyester, Nylon, Spandex",
+    "productCount": 20
+  },
+  {
+    "original": "Leather",
+    "normalized": "Leather",
+    "productCount": 18
+  },
+  {
+    "original": "55% Brass+45% Glass",
+    "normalized": "55% Brass, 45% Glass",
+    "productCount": 18
+  },
+  {
+    "original": "Polyester, Spandex, Viscose",
+    "normalized": "Polyester, Spandex, Viscose",
+    "productCount": 17
+  },
+  {
+    "original": "Synthetic",
+    "normalized": "Synthetic",
+    "productCount": 14
+  },
+  {
+    "original": "70% Viscose, 30% Polyester",
+    "normalized": "70% Viscose, 30% Polyester",
+    "productCount": 13
+  },
+  {
+    "original": "Gold-Plated",
+    "normalized": "Gold-Plated",
+    "productCount": 13
+  },
+  {
+    "original": "78% Viscose, 19% Nylon, 3% Elastane",
+    "normalized": "78% Viscose, 19% Nylon, 3% Elastane",
+    "productCount": 12
+  },
+  {
+    "original": "90% Acrylic",
+    "normalized": "90% Acrylic",
+    "productCount": 12
+  },
+  {
+    "original": "100% Cashmere",
+    "normalized": "100% Cashmere",
+    "productCount": 12
+  },
+  {
+    "original": "Polyester, Elastane",
+    "normalized": "Polyester, Elastane",
+    "productCount": 11
+  },
+  {
+    "original": "Polyester, Cotton, Spandex",
+    "normalized": "Polyester, Cotton, Spandex",
+    "productCount": 11
+  },
+  {
+    "original": "48% Viscose, 30% Polyester, 22% Nylon",
+    "normalized": "48% Viscose, 30% Polyester, 22% Nylon",
+    "productCount": 11
+  },
+  {
+    "original": "Cashmere, Wool",
+    "normalized": "Cashmere, Wool",
+    "productCount": 11
+  },
+  {
+    "original": "Silk",
+    "normalized": "Silk",
+    "productCount": 11
+  },
+  {
+    "original": "Nylon/Spandex",
+    "normalized": "Nylon, Spandex",
+    "productCount": 10
+  },
+  {
+    "original": "98% Cotton/2% Spandex",
+    "normalized": "98% Cotton, 2% Spandex",
+    "productCount": 10
+  },
+  {
+    "original": "96% POLYESTER 4 ELASTANE",
+    "normalized": "96% Polyester, 4% Elastane",
+    "productCount": 10
+  },
+  {
+    "original": "Cotton, Elastane",
+    "normalized": "Cotton, Elastane",
+    "productCount": 10
+  },
+  {
+    "original": "Cotton/Lurex",
+    "normalized": "Cotton, Lurex",
+    "productCount": 10
+  },
+  {
+    "original": "96% POLYESTER 4% ELASTNE",
+    "normalized": "96% Polyester, 4% Elastane",
+    "productCount": 10
+  },
+  {
+    "original": "44% Cotton; 42% Tencel; 13% Polyester; 1% Elastane",
+    "normalized": "44% Cotton, 42% Tencel, 13% Polyester, 1% Elastane",
+    "productCount": 9
+  },
+  {
+    "original": "92% Polyamide, 8% Elastane",
+    "normalized": "92% Polyamide, 8% Elastane",
+    "productCount": 9
+  },
+  {
+    "original": "100% Viscose",
+    "normalized": "100% Viscose",
+    "productCount": 8
+  },
+  {
+    "original": "Polyester/Cotton/Viscose",
+    "normalized": "Polyester, Cotton, Viscose",
+    "productCount": 8
+  },
+  {
+    "original": "Nylon",
+    "normalized": "Nylon",
+    "productCount": 8
+  },
+  {
+    "original": "94% Cotton; 5% Polyester; 1% Elastane",
+    "normalized": "94% Cotton, 5% Polyester, 1% Elastane",
+    "productCount": 8
+  },
+  {
+    "original": "Nylon/Wool/Alpaca",
+    "normalized": "Nylon, Wool, Alpaca",
+    "productCount": 8
+  },
+  {
+    "original": "Cashmere",
+    "normalized": "Cashmere",
+    "productCount": 8
+  },
+  {
+    "original": "MAIN BODY: 95% POLYESTER, 5% ELASTANE. LINING: 100% POLYESTER",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 8
+  },
+  {
+    "original": "100 % Polyester",
+    "normalized": "100% Polyester",
+    "productCount": 8
+  },
+  {
+    "original": "95%POLYESTER 5%ELASTANE",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 8
+  },
+  {
+    "original": "100% Cotton Slub Jersey",
+    "normalized": "100% Cotton",
+    "productCount": 8
+  },
+  {
+    "original": "55% Alloy+45%Acylic",
+    "normalized": "55% Alloy, 45% Acrylic",
+    "productCount": 8
+  },
+  {
+    "original": "92% POLYESTER 8% ELASTANE",
+    "normalized": "92% Polyester, 8% Elastane",
+    "productCount": 8
+  },
+  {
+    "original": "Polyamide/Elastane",
+    "normalized": "Polyamide, Elastane",
+    "productCount": 8
+  },
+  {
+    "original": "96% polyester 4% elastane",
+    "normalized": "96% Polyester, 4% Elastane",
+    "productCount": 8
+  },
+  {
+    "original": "Warp Knit 100% Polyester",
+    "normalized": "100% Polyester",
+    "productCount": 7
+  },
+  {
+    "original": "Nylon/Viscose",
+    "normalized": "Nylon, Viscose",
+    "productCount": 7
+  },
+  {
+    "original": "98% Cotton; 2% Elastane",
+    "normalized": "98% Cotton, 2% Elastane",
+    "productCount": 7
+  },
+  {
+    "original": "50%glass45%copper5%steel",
+    "normalized": "50% Glass, 45% Copper, 5% Steel",
+    "productCount": 7
+  },
+  {
+    "original": "Upper: 100% Polyurethane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:6.5cm,HH:2.7inch",
+    "normalized": "100% Polyurethane",
+    "productCount": 7
+  },
+  {
+    "original": "49% COTTON 44% POLYESTER 7% ELASTANE",
+    "normalized": "49% Cotton, 44% Polyester, 7% Elastane",
+    "productCount": 7
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, Sole: 100% Synthetic",
+    "normalized": "100% Polyester",
+    "productCount": 7
+  },
+  {
+    "original": "95%POLYESTER 5% ELASTANE",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 7
+  },
+  {
+    "original": "Polyester/Rayon",
+    "normalized": "Polyester, Rayon",
+    "productCount": 6
+  },
+  {
+    "original": "Gold",
+    "normalized": "Gold",
+    "productCount": 6
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, Outsole: 100% Rubber, 10CM/4INCHES",
+    "normalized": "100% Polyester",
+    "productCount": 6
+  },
+  {
+    "original": "77% Viscose, 20% Nylon, 3% Elastane",
+    "normalized": "77% Viscose, 20% Nylon, 3% Elastane",
+    "productCount": 6
+  },
+  {
+    "original": "100% Polyester, Excluding Trims, Contains non-textile parts of animal origin",
+    "normalized": "100% Polyester",
+    "productCount": 6
+  },
+  {
+    "original": "100% Cotton Jersey",
+    "normalized": "100% Cotton",
+    "productCount": 6
+  },
+  {
+    "original": "100 polyester",
+    "normalized": "100% Polyester",
+    "productCount": 6
+  },
+  {
+    "original": "Viscose",
+    "normalized": "Viscose",
+    "productCount": 6
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, Outsole: 100% Rubber, 12CM/4.5INCHES",
+    "normalized": "100% Polyester",
+    "productCount": 6
+  },
+  {
+    "original": "95% polyester 5%elastane",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 6
+  },
+  {
+    "original": "80% VISCOSE 20% NYLON",
+    "normalized": "80% Viscose, 20% Nylon",
+    "productCount": 6
+  },
+  {
+    "original": "90% Modal, 10% Spandex",
+    "normalized": "90% Modal, 10% Spandex",
+    "productCount": 6
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Outsole: 100% Rubber, 10CM/4INCHES",
+    "normalized": "100% PU",
+    "productCount": 6
+  },
+  {
+    "original": "95% POLYESTER 5%ELASTANE",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 6
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:9cm,HH:3.6inch",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 5
+  },
+  {
+    "original": "EXTERIOR: 97% POLY+3% SPANDEX; RHINESTONE; METALS LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Spandex",
+    "productCount": 5
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Outsole: 100% Rubber, 8CM/3.15INCHES",
+    "normalized": "100% PU",
+    "productCount": 5
+  },
+  {
+    "original": "55% Polyester 45% Nylon",
+    "normalized": "55% Polyester, 45% Nylon",
+    "productCount": 5
+  },
+  {
+    "original": "80% POLYESTER 15% VISCOSE 5 % ELASTANE",
+    "normalized": "80% Polyester, 15% Viscose, 5% Elastane",
+    "productCount": 5
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, Sole: 100% Rubber, 10cm/4inches",
+    "normalized": "100% Polyester",
+    "productCount": 5
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, Outsole: 100% Rubber",
+    "normalized": "100% Polyester",
+    "productCount": 5
+  },
+  {
+    "original": "Silk/Viscose",
+    "normalized": "Silk, Viscose",
+    "productCount": 5
+  },
+  {
+    "original": "Outer: 100% Polyester, Lining: 100% Polyester",
+    "normalized": "100% Polyester",
+    "productCount": 5
+  },
+  {
+    "original": "Upper: 100% Polyurethane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:3.5cm,HH:1.4inch",
+    "normalized": "100% Polyurethane",
+    "productCount": 5
+  },
+  {
+    "original": "Upper: 100% Polyurethane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:6cm,HH:2.4inch",
+    "normalized": "100% Polyurethane",
+    "productCount": 5
+  },
+  {
+    "original": "Polyester/Wool",
+    "normalized": "Polyester, Wool",
+    "productCount": 5
+  },
+  {
+    "original": "15%Zinc, 10%Glass,75%Iron",
+    "normalized": "75% Iron, 15% Zinc, 10% Glass",
+    "productCount": 5
+  },
+  {
+    "original": "100%Polyester",
+    "normalized": "100% Polyester",
+    "productCount": 5
+  },
+  {
+    "original": "69% Cotton; 15% Modal; 14% Polyester; 2% Elastane",
+    "normalized": "69% Cotton, 15% Modal, 14% Polyester, 2% Elastane",
+    "productCount": 5
+  },
+  {
+    "original": "85% Polyester, 15% Elastane",
+    "normalized": "85% Polyester, 15% Elastane",
+    "productCount": 5
+  },
+  {
+    "original": "60% POLYESTER 32% METALLISED FIBRE 8% ELASTANE",
+    "normalized": "60% Polyester, 32% Metallised Fibre, 8% Elastane",
+    "productCount": 5
+  },
+  {
+    "original": "EXTERIOR: 97% POLY+3% SPANDEX; METALS LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Spandex",
+    "productCount": 5
+  },
+  {
+    "original": "88% Viscose, 12% Spandex Jersey",
+    "normalized": "88% Viscose, 12% Spandex",
+    "productCount": 5
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane Lining: 100% Polyurethane Sole: 100% Polyurethane, Excluding Trims, 8CM/3INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 5
+  },
+  {
+    "original": "100% Polyester with 8% Sorona",
+    "normalized": "100% Polyester",
+    "productCount": 5
+  },
+  {
+    "original": "Silk/Nylon/Viscose",
+    "normalized": "Silk, Nylon, Viscose",
+    "productCount": 5
+  },
+  {
+    "original": "85% Viscose, 15% Polyester",
+    "normalized": "85% Viscose, 15% Polyester",
+    "productCount": 5
+  },
+  {
+    "original": "Polyester/Nylon/Cotton",
+    "normalized": "Polyester, Nylon, Cotton",
+    "productCount": 5
+  },
+  {
+    "original": "EXTERIOR: 97% POLYESTER+3% SPANDEX; METALS,LINING: 100% POLYESTER,Length: 24cm,Depth: 7cm,Height: 16cm",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 5
+  },
+  {
+    "original": "Cotton/Nylon/Viscose",
+    "normalized": "Cotton, Nylon, Viscose",
+    "productCount": 5
+  },
+  {
+    "original": "78% VISCOSE, 19% NYLON, 3% ELASTANE",
+    "normalized": "78% Viscose, 19% Nylon, 3% Elastane",
+    "productCount": 5
+  },
+  {
+    "original": "94% cotton, 6% polyester",
+    "normalized": "94% Cotton, 6% Polyester",
+    "productCount": 5
+  },
+  {
+    "original": "98% Cotton; 2% Elastane.",
+    "normalized": "98% Cotton, 2% Elastane",
+    "productCount": 4
+  },
+  {
+    "original": "50% Viscose, 28% Polyester, 22% Nylon",
+    "normalized": "50% Viscose, 28% Polyester, 22% Nylon",
+    "productCount": 4
+  },
+  {
+    "original": "50% IRON, 50% ACRYLIC",
+    "normalized": "50% Acrylic",
+    "productCount": 4
+  },
+  {
+    "original": "50% VISCOSE, 28% POLY, 22% NYLON",
+    "normalized": "50% Viscose, 28% Polyester, 22% Nylon",
+    "productCount": 4
+  },
+  {
+    "original": "92% POLYETSER 8% ELASTANE",
+    "normalized": "92% Polyester, 8% Elastane",
+    "productCount": 4
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, Outsole: 100% Rubber, 9CM/3.5INCHES",
+    "normalized": "100% Polyester",
+    "productCount": 4
+  },
+  {
+    "original": "78% Viscose 19% Nylon 3% Elastane",
+    "normalized": "78% Viscose, 19% Nylon, 3% Elastane",
+    "productCount": 4
+  },
+  {
+    "original": "95% Polyester, 5% elastane",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 4
+  },
+  {
+    "original": "50% POLYESTER 50% ELASTANE",
+    "normalized": "50% Polyester, 50% Elastane",
+    "productCount": 4
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyester, Insock: 100% Polyester, Outsole: 100% TPR",
+    "normalized": "100% Polyester",
+    "productCount": 4
+  },
+  {
+    "original": "95/5 cotton, Spandex 2x2 rib",
+    "normalized": "95% Cotton, 5% Elastane",
+    "productCount": 4
+  },
+  {
+    "original": "52% linen/48% TENCEL™",
+    "normalized": "52% Linen",
+    "productCount": 4
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, 6cm/2.4inches",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 4
+  },
+  {
+    "original": "58% POLYESTER 30% ACRYLIC 10 % WOOL 2% ELASTANE",
+    "normalized": "58% Polyester, 30% Acrylic, 10% Wool, 2% Elastane",
+    "productCount": 4
+  },
+  {
+    "original": "EXTERIOR: 97% POLYESTER+3% SPANDEX; BEADS,LINING: 100% POLYESTER,Length:21cm,Depth:2.5cm,Height:27cm",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 4
+  },
+  {
+    "original": "Polyester/Viscose/Acrylic",
+    "normalized": "Polyester, Viscose, Acrylic",
+    "productCount": 4
+  },
+  {
+    "original": "80% ALLOY, 20% ACRYLIC",
+    "normalized": "20% Acrylic",
+    "productCount": 4
+  },
+  {
+    "original": "99% Polyester, 1% Elastane",
+    "normalized": "99% Polyester, 1% Elastane",
+    "productCount": 4
+  },
+  {
+    "original": "95%polyester 5%elastane",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 4
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, Outsole: 100% Rubber, 9.5CM/4INCHES",
+    "normalized": "100% Polyester",
+    "productCount": 4
+  },
+  {
+    "original": "94% POLYESTER 6% ELASTANE",
+    "normalized": "94% Polyester, 6% Elastane",
+    "productCount": 4
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane, Sock: 100% Polyurethane, Outsole: 100% Synthetic Rubber, 10CM/4INCHES",
+    "normalized": "100% Polyester",
+    "productCount": 4
+  },
+  {
+    "original": "100% cotton",
+    "normalized": "100% Cotton",
+    "productCount": 4
+  },
+  {
+    "original": "50% VISCOSE 28% POLYESTER 22% NYLON",
+    "normalized": "50% Viscose, 28% Polyester, 22% Nylon",
+    "productCount": 4
+  },
+  {
+    "original": "100% Acrylic excluding trim",
+    "normalized": "100% Acrylic",
+    "productCount": 4
+  },
+  {
+    "original": "85% VISCOSE 15% POLYESTER",
+    "normalized": "85% Viscose, 15% Polyester",
+    "productCount": 4
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 4
+  },
+  {
+    "original": "97% Polyester 3% Elastane",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 4
+  },
+  {
+    "original": "92% Cotton, 8% Linen",
+    "normalized": "92% Cotton, 8% Linen",
+    "productCount": 3
+  },
+  {
+    "original": "92% Cotton; 6% EME; 2% Elastane",
+    "normalized": "92% Cotton, 2% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "Cotton/Nylon/Wool",
+    "normalized": "Cotton, Nylon, Wool",
+    "productCount": 3
+  },
+  {
+    "original": "80% viscose 20% nylon",
+    "normalized": "80% Viscose, 20% Nylon",
+    "productCount": 3
+  },
+  {
+    "original": "Exterior :100% polyester Lining :100% polyester,Length:20,Depth:10,Height:13.5,H/D:9",
+    "normalized": "100% Polyester",
+    "productCount": 3
+  },
+  {
+    "original": "92% Polyester, 8% Cotton",
+    "normalized": "92% Polyester, 8% Cotton",
+    "productCount": 3
+  },
+  {
+    "original": "75% POLYESTER 25% COTTON",
+    "normalized": "75% Polyester, 25% Cotton",
+    "productCount": 3
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane, Sole: 100% Rubber, Excluding Trims,8cm/3.15inches",
+    "normalized": "100% Polyester",
+    "productCount": 3
+  },
+  {
+    "original": "87% Polyester, 13% Elastane",
+    "normalized": "87% Polyester, 13% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "42% ACRYLIC 30% POLYESTER 28 % NYLON",
+    "normalized": "42% Acrylic, 30% Polyester, 28% Nylon",
+    "productCount": 3
+  },
+  {
+    "original": "Faux Fur",
+    "normalized": "Faux Fur",
+    "productCount": 3
+  },
+  {
+    "original": "Silver",
+    "normalized": "Silver",
+    "productCount": 3
+  },
+  {
+    "original": "Faux Suede",
+    "normalized": "Faux Suede",
+    "productCount": 3
+  },
+  {
+    "original": "70% Viscose 30% Polyamide",
+    "normalized": "70% Viscose, 30% Polyamide",
+    "productCount": 3
+  },
+  {
+    "original": "Outer coating: 100% polyurethane. Outer backing: 92% Polyester, 8% cotton. Faux fur: 100% Polyester. Lining: 100% Polyester",
+    "normalized": "92% Polyester, 8% Cotton",
+    "productCount": 3
+  },
+  {
+    "original": "30% POLYESTER, 42% ACRYLIC, 28% POLYAMIDE",
+    "normalized": "42% Acrylic, 30% Polyester, 28% Polyamide",
+    "productCount": 3
+  },
+  {
+    "original": "95% Polyamide, 5% Elastane",
+    "normalized": "95% Polyamide, 5% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "50% Cotton, 50% Polyester",
+    "normalized": "50% Cotton, 50% Polyester",
+    "productCount": 3
+  },
+  {
+    "original": "98% Cotton, 2% Elastane",
+    "normalized": "98% Cotton, 2% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "52% VISCOSE 28% PBT 20%NYLON",
+    "normalized": "52% Viscose, 28% Nylon",
+    "productCount": 3
+  },
+  {
+    "original": "78% Cotton, 20% Polyester, 2% Elastane",
+    "normalized": "78% Cotton, 20% Polyester, 2% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "Velvet",
+    "normalized": "Velvet",
+    "productCount": 3
+  },
+  {
+    "original": "70% viscose 30% polyamide",
+    "normalized": "70% Viscose, 30% Polyamide",
+    "productCount": 3
+  },
+  {
+    "original": "95%polyester 5% belastane",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "Upper: Micro synthetic, Sole: PVC",
+    "normalized": "Micro Synthetic",
+    "productCount": 3
+  },
+  {
+    "original": "90% Polyester 10% Elastane",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "EXTERIOR: 97% POLYESTER+3% SPANDEX; RHINESTONE; METALS; PEARLS,LINING: 100% POLYESTER,Length: 18.5cm,Depth: 5cm,Height: 12.5cm",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "Exterior: 100% Polyurethane, Lining: 100% Polyester, Excluding Trims",
+    "normalized": "100% Polyester",
+    "productCount": 3
+  },
+  {
+    "original": "Cotton/Polyamide/Elastane",
+    "normalized": "Cotton, Polyamide, Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "69%visoce 31%polyester.",
+    "normalized": "69% Viscose, 31% Polyester",
+    "productCount": 3
+  },
+  {
+    "original": "95%POLYESTER 5%ELASTABE LINING: 100%POLYESTER",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "95% Cotton; 4% Polyester; 1% Elastane",
+    "normalized": "95% Cotton, 4% Polyester, 1% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "50% COTTON, 50% ACRYLIC",
+    "normalized": "50% Cotton, 50% Acrylic",
+    "productCount": 3
+  },
+  {
+    "original": "96% POLYESTER 4% ELASTAN",
+    "normalized": "96% Polyester, 4% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "SHELL:95%POLYESTER 5%ELASTANE LINIING:100%POLYESTER",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "Nylon/Wool/Acrylic",
+    "normalized": "Nylon, Wool, Acrylic",
+    "productCount": 3
+  },
+  {
+    "original": "100% COTTON",
+    "normalized": "100% Cotton",
+    "productCount": 3
+  },
+  {
+    "original": "92% Tencel/8% Spandex",
+    "normalized": "92% Tencel, 8% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "95%polyester5% elastane",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "EXTERIOR: 97% POLY+3% SPANDEX; RHINESTONE; METALS,LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Polyurethane, Lining: 100% Polyurethane, Sole: 100% TPR",
+    "normalized": "90% Polyester, 10% Polyurethane",
+    "productCount": 3
+  },
+  {
+    "original": "Polyamide/Acrylic/Elastane",
+    "normalized": "Polyamide, Acrylic, Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "Polyester/Polyamide/Elastane",
+    "normalized": "Polyester, Polyamide, Elastane",
+    "productCount": 3
+  },
+  {
+    "original": "Cotton/Baby Alpaca",
+    "normalized": "Cotton, Baby Alpaca",
+    "productCount": 2
+  },
+  {
+    "original": "55% Viscose, 28% Polyester, 17% Polyamide",
+    "normalized": "55% Viscose, 28% Polyester, 17% Polyamide",
+    "productCount": 2
+  },
+  {
+    "original": "60%Cotton,30%Polyester and 10%Viscose",
+    "normalized": "60% Cotton, 30% Polyester, 10% Viscose",
+    "productCount": 2
+  },
+  {
+    "original": "UPPER: 100% PU, SOCK:100% PU, OUTSOLE:100% RUBBER, EXCLUDING TRIMS,HH:9.5CM/3.75 INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 2
+  },
+  {
+    "original": "50% IRON, 50% POLYESTER",
+    "normalized": "50% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "60% Polyester, 40% Plastic",
+    "normalized": "60% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "EXTERIOR: 97% POLY+3% SPANDEX; METALS,LINING: 100% POLYESTER,Length:19cm,Depth:5.5cm,Height:21.5cm",
+    "normalized": "97% Polyester, 3% Spandex",
+    "productCount": 2
+  },
+  {
+    "original": "63% Cotton, 36% Polyester, 1% Elastane",
+    "normalized": "63% Cotton, 36% Polyester, 1% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "80% Polyester, 20% Cotton",
+    "normalized": "80% Polyester, 20% Cotton",
+    "productCount": 2
+  },
+  {
+    "original": "99% POLYESTER 1% ELASTANE",
+    "normalized": "99% Polyester, 1% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "95% Polyester 5% elastane",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "85% Viscose 15% Polyester",
+    "normalized": "85% Viscose, 15% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane, Sock: 100% Polyurethane, Outsole: 100% Synthetic Rubber, 10cm/4inches",
+    "normalized": "100% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% Synthetic Fiber,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Trims/Fastenings: 100% Alloy,8CM/3INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 2
+  },
+  {
+    "original": "95% POLYESTER, 5% ELASTANE",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Cotton/Viscose",
+    "normalized": "Cotton, Viscose",
+    "productCount": 2
+  },
+  {
+    "original": "95% Viscose, 5% Elastane",
+    "normalized": "95% Viscose, 5% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "90% Nylon, 10% Elastane",
+    "normalized": "90% Nylon, 10% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "78% cotton, 20% polyester and 2% elastane",
+    "normalized": "78% Cotton, 20% Polyester, 2% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "50% PU 50% COTTON",
+    "normalized": "50% Cotton, 50% Polyurethane",
+    "productCount": 2
+  },
+  {
+    "original": "Outer: 95% Polyester, 5% Elastane, Lining: 100% Polyester",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "45% PU 55% POLYESTER",
+    "normalized": "55% Polyester, 45% Polyurethane",
+    "productCount": 2
+  },
+  {
+    "original": "94% Polyester, 6% Elastane",
+    "normalized": "94% Polyester, 6% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "8%WOOL, 45%POLYESTER, 11%NYLON, 4%ELASTIC, 32% RECYCLE POLYESTER",
+    "normalized": "45% Polyester, 32% Polyester, 11% Nylon, 8% Wool, 4% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "90%cotton 10%polyester",
+    "normalized": "90% Cotton, 10% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "68% VISCOSE 32%POLYSETER",
+    "normalized": "68% Viscose, 32% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "EXTERIOR: 97% POLYESTER+3% SPANDEX; METALS,LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Spandex",
+    "productCount": 2
+  },
+  {
+    "original": "EXTERIOR: 97% POLY+3% SPANDEX; RHINESTONE; METALS,LINING: 100% POLYESTER, Length: 25cm, Depth: 8cm, Height: 12cm",
+    "normalized": "97% Polyester, 3% Spandex",
+    "productCount": 2
+  },
+  {
+    "original": "70% Cotton; 14% Polyester; 14% Lyocell; 2% Elastane",
+    "normalized": "70% Cotton, 14% Polyester, 14% Lyocell, 2% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% Polyurethane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:3.5cm,HH:1.5inch",
+    "normalized": "100% Polyurethane",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Rubber,9.5CM/3.8 INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "95% POLYESTER 5% SPANDEX",
+    "normalized": "95% Polyester, 5% Spandex",
+    "productCount": 2
+  },
+  {
+    "original": "75% POLYESTER 25% ELASTANE",
+    "normalized": "75% Polyester, 25% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% PU, Outsole: 100% Rubber, 10CM/4 INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 2
+  },
+  {
+    "original": "55% Cotton 45 % Acrylic",
+    "normalized": "55% Cotton, 45% Acrylic",
+    "productCount": 2
+  },
+  {
+    "original": "OUTERSHELL COATING: 100% POLYURETHANE, BACKING: 94%POLYESTER, 3%VISCOSE 3%COTTON, LINING: 100%POLYESTER",
+    "normalized": "94% Polyester, 3% Viscose, 3% Cotton",
+    "productCount": 2
+  },
+  {
+    "original": "95%POLYESTER5%ELASTANE",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "100%COTTON",
+    "normalized": "100% Cotton",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 80% Polyester, 20% PU, Lining: 100% PU, Sole: 100% Rubber",
+    "normalized": "80% Polyester, 20% Polyurethane",
+    "productCount": 2
+  },
+  {
+    "original": "93% POLYESTER 7% ELASTANE",
+    "normalized": "93% Polyester, 7% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "95% Polyester 5% Elastane outer",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:9.5cm,HH:3.8inch",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, 7cm/3inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 2
+  },
+  {
+    "original": "OUTERSHELL: 50% POLYESTER 50% COTTON, LINING: 100% POLYESTER, FILLER: 100% POLYESTER",
+    "normalized": "50% Polyester, 50% Cotton",
+    "productCount": 2
+  },
+  {
+    "original": "100%polyester",
+    "normalized": "100% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Outsole: 100% Rubber, 8CM/3INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% Jersey, In sock: 100% Jersey, Outsole: 100% Rubber, Excluding Trims",
+    "normalized": "100% Polyurethane",
+    "productCount": 2
+  },
+  {
+    "original": "100% Polyester, Excluding Trims Contains non-textile parts of animal origin",
+    "normalized": "100% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyester, Sole: 100% Synthetic",
+    "normalized": "100% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "Shell: 100% polyester, Lining: 100% polyester, Fur: 100% polyester",
+    "normalized": "100% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "75% Polyester, 25% Elastane",
+    "normalized": "75% Polyester, 25% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "MESH: 95% Polyester 5% Elastane, LINING: 100% Polyester",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "70% ZINC ALLOY, 30% ACRYLIC",
+    "normalized": "30% Acrylic",
+    "productCount": 2
+  },
+  {
+    "original": "Polyester/Cotton/Linen",
+    "normalized": "Polyester, Cotton, Linen",
+    "productCount": 2
+  },
+  {
+    "original": "Polyester/Polyamide/Wool",
+    "normalized": "Polyester, Polyamide, Wool",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:6cm,HH:2.4inch",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "65% VISCOSE25% POLYESTER 10% ELASTANE",
+    "normalized": "65% Viscose, 25% Polyester, 10% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "68% POLYESTER 9% ELASTANE 23% NYLON",
+    "normalized": "68% Polyester, 23% Nylon, 9% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Polyester/Polyamide/Spandex",
+    "normalized": "Polyester, Polyamide, Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Zinc 40%, Rhinestone 30%, Acrylic pearl 30%",
+    "normalized": "30% Acrylic",
+    "productCount": 2
+  },
+  {
+    "original": "UPPER: 100% SYNTHETIC FIBRE, LINING: 100% POLYURETHANE, SOLE: 100% POLYURETHANE, TRIMS: 100% ALLOY, 7cm/2.5inches",
+    "normalized": "Synthetic Fiber",
+    "productCount": 2
+  },
+  {
+    "original": "63% Tencel; 30% Cotton; 5% Polyester; 2% Elastane",
+    "normalized": "63% Tencel, 30% Cotton, 5% Polyester, 2% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% Polyester,Outsole: 100% Rubber,Excluding Trims,8CM/3INCHES",
+    "normalized": "100% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "95% COTTON, 5% ELASTANE",
+    "normalized": "95% Cotton, 5% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% Textile, Lining: 100% Polyurethane, Sock: 100% Textile, Sole: 100% PVC",
+    "normalized": "Textile",
+    "productCount": 2
+  },
+  {
+    "original": "74% ACRYLIC, 22% POLYESTER, 4% ELASTANE",
+    "normalized": "74% Acrylic, 22% Polyester, 4% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "95% Polyester 5 % Elastane",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "80% Viscose, 20% Nylon",
+    "normalized": "80% Viscose, 20% Nylon",
+    "productCount": 2
+  },
+  {
+    "original": "96% cotton; 3% polyester; 1% Spandex",
+    "normalized": "96% Cotton, 3% Polyester, 1% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane, Sole: 100% Rubber, Excluding Trims",
+    "normalized": "100% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "100% polyester Excluding trim",
+    "normalized": "100% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "Elastane",
+    "normalized": "Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "99% polyester and 1% elastane",
+    "normalized": "99% Polyester, 1% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "65%Cotton, 30%Polyester, 3.5%Viscose and 1.5%Elastane",
+    "normalized": "65% Cotton, 30% Polyester, 3.5% Viscose, 1.5% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Polyester/Nylon/Viscose",
+    "normalized": "Polyester, Nylon, Viscose",
+    "productCount": 2
+  },
+  {
+    "original": "65% Cotton, 35% Polyester",
+    "normalized": "65% Cotton, 35% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane Lining: 100% Polyurethane Sole: 100% Polyurethane, Excluding Trims, 10CM/4INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Length:21cmDepth:5.5cmHeight:11cm/EXTERIOR: 97% POLY+3% SPANDEX LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "90% Polyester, 10% Elastane, 6CM/2.3 INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Outer: 99% Polyester, 1% Elastane, Lining: 100% Polyester",
+    "normalized": "99% Polyester, 1% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "80% VISCOSE, 20% POLYESTER",
+    "normalized": "80% Viscose, 20% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane Lining: 100% Polyurethane Sole: 100% Polyurethane, Excluding Trims, 9.5CM/4INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "51%Polyester 33% Viscose 16% Polyamide",
+    "normalized": "51% Polyester, 33% Viscose, 16% Polyamide",
+    "productCount": 2
+  },
+  {
+    "original": "60% Polyester, 20% Iron, 10% Glass, 10% Zinc",
+    "normalized": "60% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "outershell coating:100%Polyurethane,outershell backing:100%polyester, Faux fur: 100%polyester, lining: 100%polyester",
+    "normalized": "100% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "55% Alloy+45% Acrylic",
+    "normalized": "45% Acrylic",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Outsole: 100% Rubber, 9.5CM/4INCHES",
+    "normalized": "Synthetic Fiber",
+    "productCount": 2
+  },
+  {
+    "original": "95 %POLYESTER 5%ELASTANE",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "100% Synthetic Fiber",
+    "normalized": "Synthetic Fiber",
+    "productCount": 2
+  },
+  {
+    "original": "upper: 90% POLYESTER, 10% ELASTANE sole:rubber,HH:9cm,HH:3.5inch",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "OUTER 100%POLYURETHANE BACKING - 91% POLYESTER 7% COTTON 2% VISCOSE LINING/FUR TRIM - 100% POLYESTER",
+    "normalized": "91% Polyester, 7% Cotton, 2% Viscose",
+    "productCount": 2
+  },
+  {
+    "original": "93% Polyester, 7% Elastane",
+    "normalized": "93% Polyester, 7% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "84% Polyester, 16% Elastane",
+    "normalized": "84% Polyester, 16% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "90% ACRYLIC, 10% IRON",
+    "normalized": "90% Acrylic",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% PU; Lining: 100% PU; Outsole: 100% Rubber, 11CM/4.5 INCHES",
+    "normalized": "Synthetic Fiber",
+    "productCount": 2
+  },
+  {
+    "original": "Outer: 78% Viscose, 19% Nylon, 3% Elastane, Lining: 100% Polyester",
+    "normalized": "78% Viscose, 19% Nylon, 3% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "100% PLASTIC",
+    "normalized": "Plastic",
+    "productCount": 2
+  },
+  {
+    "original": "95% Polter 5% Elastane",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "46%Viscose 31%Polyester 22%Polyamide 1%Metallic Fibre.",
+    "normalized": "46% Viscose, 31% Polyester, 22% Polyamide, 1% Metallic Fibre",
+    "productCount": 2
+  },
+  {
+    "original": "Polyester/Spandex/Wool",
+    "normalized": "Polyester, Elastane, Wool",
+    "productCount": 2
+  },
+  {
+    "original": "Polyamide",
+    "normalized": "Polyamide",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane, Sole: 100% Rubber, Excluding Trims,9cm/3.5inches",
+    "normalized": "100% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "96& POLYESTER 4& ELASTANE",
+    "normalized": "96% Polyester, 4% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane Lining: 100% Polyurethane Sole: 100% Polyurethane, Excluding Trims",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Polyester/Cotton/Elastane",
+    "normalized": "Polyester, Cotton, Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Shell-100% polyester lining-100% polyester",
+    "normalized": "100% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "Satin",
+    "normalized": "Satin",
+    "productCount": 2
+  },
+  {
+    "original": "EXTERIOR: 97% POLYESTER+3% SPANDEX; RHINESTONE; METALS; PEARLS;LINING: 100% POLYESTER,\"Length:19cm,Depth:5.5cm,Height:21.5cm",
+    "normalized": "97% Polyester, 3% Spandex",
+    "productCount": 2
+  },
+  {
+    "original": "60% Nylon, 40% Cotton",
+    "normalized": "60% Nylon, 40% Cotton",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims,7cm/2.5inches",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "99% COTTON 1% ELASTANE",
+    "normalized": "99% Cotton, 1% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "70% polyester 30% viscose",
+    "normalized": "70% Polyester, 30% Viscose",
+    "productCount": 2
+  },
+  {
+    "original": "70% POLYESTER, 22% NYLON, 8% WOOL",
+    "normalized": "70% Polyester, 22% Nylon, 8% Wool",
+    "productCount": 2
+  },
+  {
+    "original": "46% VISCOSE, 31% POLYESTER, 22% POLYAMIDE, 1% METALLIC FIBRE",
+    "normalized": "46% Viscose, 31% Polyester, 22% Polyamide, 1% Metallic Fibre",
+    "productCount": 2
+  },
+  {
+    "original": "98% Polyester, 2% Elastane",
+    "normalized": "98% Polyester, 2% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane; Lining: 100% Polyurethane; Sole: 100% Polyurethane; Excluding Trims,2CM/0.7INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "50% VISCOSE, 28% POLYESTER, 22% NYLON.",
+    "normalized": "50% Viscose, 28% Polyester, 22% Nylon",
+    "productCount": 2
+  },
+  {
+    "original": "83% COTTON 17% POLYESTER",
+    "normalized": "83% Cotton, 17% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "EXTERIOR: 100% Artificial fur; METALS; LINING: 100% POLYESTER",
+    "normalized": "100% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "87% POLYESTER, 10% LUREX, 3% ELASTANE",
+    "normalized": "87% Polyester, 10% Lurex, 3% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "30% POLYESTER, 42% ACRYLIC, 28% NYLON",
+    "normalized": "42% Acrylic, 30% Polyester, 28% Nylon",
+    "productCount": 2
+  },
+  {
+    "original": "Main: 95%Polyester 5% Elastane. Lining: 100% Polyester",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Cotton/Spandex",
+    "normalized": "Cotton, Spandex",
+    "productCount": 2
+  },
+  {
+    "original": "shell 96%polyester 4%elastane lining :100%polyester",
+    "normalized": "96% Polyester, 4% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "83% cotton 17% polyester",
+    "normalized": "83% Cotton, 17% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "Length:24.5cmDepth:5.5cmHeight:12cm/EXTERIOR: 97% POLY+3% SPANDEX LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Spandex",
+    "productCount": 2
+  },
+  {
+    "original": "Outershell coating: 100% Polyurethane, backing: 94%polyester, 3%viscose 3%cotton, lining: 100%polyester",
+    "normalized": "94% Polyester, 3% Viscose, 3% Cotton",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, Sole: 100% Rubber, 9.5cm/3.75inches",
+    "normalized": "100% Polyester",
+    "productCount": 2
+  },
+  {
+    "original": "Silk/Nylon",
+    "normalized": "Silk, Nylon",
+    "productCount": 2
+  },
+  {
+    "original": "Polyester/Cotton/Polyamide",
+    "normalized": "Polyester, Cotton, Polyamide",
+    "productCount": 2
+  },
+  {
+    "original": "Exterior: 97% Polyester,3% Elastane ,Lining: 100% Polyester,Excluding Trims,Length:24.5cm,Depth:5.5cm,Height:12cm",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, 9.5CM/3.75INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Polyester/Rayon/Viscose",
+    "normalized": "Polyester, Rayon, Viscose",
+    "productCount": 2
+  },
+  {
+    "original": "70% viscose, 30% polyamide",
+    "normalized": "70% Viscose, 30% Polyamide",
+    "productCount": 2
+  },
+  {
+    "original": "Upper: 100% Satin, Lining: PU, Sock: PU, Outsole: Rubber, Excluding Trims,8cm/3.15inches",
+    "normalized": "100% Satin",
+    "productCount": 2
+  },
+  {
+    "original": "95% Polyester 5% Elastane, 100% Polyester",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Polyester/Spandex/Leather",
+    "normalized": "Polyester, Spandex, Leather",
+    "productCount": 2
+  },
+  {
+    "original": "92% Polyester, 8% Elastane",
+    "normalized": "92% Polyester, 8% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "99% Cotton; 1% Elastane",
+    "normalized": "99% Cotton, 1% Elastane",
+    "productCount": 2
+  },
+  {
+    "original": "Zinc Alloy 50%/ Glass 50%",
+    "normalized": "50% Zinc Alloy, 50% Glass",
+    "productCount": 2
+  },
+  {
+    "original": "75%Iron,25%Plastic,5%Iron",
+    "normalized": "80% Iron, 25% Plastic",
+    "productCount": 2
+  },
+  {
+    "original": "80% Zinc,15% Glass,5% Brass",
+    "normalized": "80% Zinc, 15% Glass, 5% Brass",
+    "productCount": 1
+  },
+  {
+    "original": "100% POLYESTER, LINING: 100% POLYESTER",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims,9cm/3.5inches",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:8.5cm,HH:3.4inch",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:5cm,HH:2inch",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% TPR",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "57%RECYCLED POLYESTER, 26%ACRYLIC, 14%NYLON, 3%ELASTIC",
+    "normalized": "57% Recycled Polyester, 26% Acrylic, 14% Nylon, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "ITY: 95% Polyester 5% Elastane Lining: 100% Polyester",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "95% polyester 5% elastane - lining - 100% polyester",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "65%zinc 30%glass 5%acrylic",
+    "normalized": "65% Zinc, 30% Glass, 5% Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "66.5% cotton 31% polyester 1.5% viscose 1% elastane",
+    "normalized": "66.5% Cotton, 31% Polyester, 1.5% Viscose, 1% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "35%steel 35%copper 30%glass",
+    "normalized": "35% Steel, 35% Copper, 30% Glass",
+    "productCount": 1
+  },
+  {
+    "original": "90% Polyamide 10% Elastane",
+    "normalized": "90% Polyamide, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Length:16cm/19cmDepth:5.5cmHeight:22cm/EXTERIOR: 97% POLY+3% SPANDEX; RHINESTONE; PEARL; METALS LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Spandex",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester; Lining: 100% Polyurethane; Sole: 100% Rubber, HH:2cm,HH:0.5inch",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, Sole: 100% Synthetic Textile, 8cm/3inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "50%Plastic,40%Glass,10%Iron",
+    "normalized": "50% Plastic, 40% Glass, 10% Iron",
+    "productCount": 1
+  },
+  {
+    "original": "100% synthetic",
+    "normalized": "Synthetic",
+    "productCount": 1
+  },
+  {
+    "original": "73% Rayon, 21% Nylon, 4% Elastane, 2% Polyester",
+    "normalized": "73% Rayon, 21% Nylon, 4% Elastane, 2% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "60% Brass, 40% Glass",
+    "normalized": "60% Brass, 40% Glass",
+    "productCount": 1
+  },
+  {
+    "original": "76% Acrylic 24% Nylon",
+    "normalized": "76% Acrylic, 24% Nylon",
+    "productCount": 1
+  },
+  {
+    "original": "EXTERIOR: 97% POLYESTER+3% SPANDEX; RHINESTONE; METALS; PEARLS;LINING: 100% POLYESTER,Length:19cm,Depth:5.5cm,Height:21.5cm",
+    "normalized": "97% Polyester, 3% Spandex",
+    "productCount": 1
+  },
+  {
+    "original": "60%iron,20%plastic,20%brass",
+    "normalized": "60% Iron, 20% Plastic, 20% Brass",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Trims: 100% Rhinestone",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "SHELL: 95%POLYESTER 5%ELASTANE LINING:100%POLYESTER",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Length:16cm/19cm,Depth:5.5cm,Height:22cm,EEXTERIOR: 97% POLY+3% SPANDEX; RHINESTONE; PEARL; METALS,LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Spandex",
+    "productCount": 1
+  },
+  {
+    "original": "100% Polyeurethane excluding trim",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "100% ZINC",
+    "normalized": "100% Zinc",
+    "productCount": 1
+  },
+  {
+    "original": "50% glass45% copper5% steel",
+    "normalized": "50% Glass, 45% Copper, 5% Steel",
+    "productCount": 1
+  },
+  {
+    "original": "70% cotton 28% polyester 2% elasthane",
+    "normalized": "70% Cotton, 28% Polyester, 2% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Cotton/Spandex/Acrylic",
+    "normalized": "Cotton, Spandex, Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "95% POLYESTER 5% ELASTABE LINING: 100% POLYESTER",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "40% Viscose, 40% Polyester, 20% Polyamide",
+    "normalized": "40% Viscose, 40% Polyester, 20% Polyamide",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 80% Polyester, 20% PU, Lining: 100% PU, Outsole: 100% Rubber, 6CM/2INCHES",
+    "normalized": "80% Polyester, 20% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "100% POLYESTER (contains real feather)",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "EXTERIOR: 97% POLYester +3% SPANDEX; RHINESTONE; METALS,LINING: 100% POLYESTER, Length:24.5cm,Depth:5.5cm,Height:12cm",
+    "normalized": "97% Polyester, 3% Spandex",
+    "productCount": 1
+  },
+  {
+    "original": "Wool/Acrylic",
+    "normalized": "Wool, Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyester, Sole: 100% EVA",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, Sole: 100% Rubber, 8cm/3.15inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "UPPER: 90% POLYESTER, 10% ELASTANE, LINING 100% POLYURETHANE, SOLE: 100% POLYURETHANE, EXCLUDING TRIMS/ 6CM/2.5INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "90% Iron, 10% Acrylic",
+    "normalized": "90% Iron, 10% Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "67% Cotton, 36% Polyester, 2% rayon, 2% Elastane",
+    "normalized": "67% Cotton, 36% Polyester, 2% Rayon, 2% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Satin, Lining: 100% PU, Sock: 100% PU, Outsole: 100% Rubber, Excluding Trims, Heel Height: 10cm/4inches",
+    "normalized": "100% Satin",
+    "productCount": 1
+  },
+  {
+    "original": "Polyester/Nylon/Rayon",
+    "normalized": "Polyester, Nylon, Rayon",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:10.5cm,HH:4.2inch",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "95% Polyester 5%Elastane",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "68.5% cotton, 29.5% polyester,1% viscose , 1% elastane",
+    "normalized": "68.5% Cotton, 29.5% Polyester, 1% Viscose, 1% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "55% Polyester, 45% Viscose",
+    "normalized": "55% Polyester, 45% Viscose",
+    "productCount": 1
+  },
+  {
+    "original": "88%Polyester, 12%Spandex",
+    "normalized": "88% Polyester, 12% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "70% VISCOSE 30% LINEN",
+    "normalized": "70% Viscose, 30% Linen",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, 9.5cm/3.8inches",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "78% VISCOSE, 19% NYLON 3% ELASTANE",
+    "normalized": "78% Viscose, 19% Nylon, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "exterior: 100% polyurethane lining: 100% polyester excluding trims w 21 d7 h16cm handle 9cm",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "50%zinc45%glass5%steel",
+    "normalized": "50% Zinc, 45% Glass, 5% Steel",
+    "productCount": 1
+  },
+  {
+    "original": "UPPER: 90% POLYESTER, 10% ELASTANE, LINING 100% POLYURETHANE, SOLE: 100% POLYURETHANE, EXCLUDING TRIMS/6CM/2.5INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "45% Viscose, 25% Polyester, 20% Nylon, 10% Metallic Fibre",
+    "normalized": "45% Viscose, 25% Polyester, 20% Nylon, 10% Metallic Fibre",
+    "productCount": 1
+  },
+  {
+    "original": "90% POLYESTER, 10% ELASTANE",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Length:18cmDepth:5.5cmHeight:14cm/EEXTERIOR: 97% POLY+3% SPANDEX; METALS LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 90% Polyester + 10% Polyurethane, Sock: 100% Polyurethane, Outsole: 100% Synthetic Rubber, 7CM/3INCHES",
+    "normalized": "90% Polyester, 10% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "80% IRON, 20% ACRYLIC",
+    "normalized": "80% Iron, 20% Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "80% ZINC, 15% IRON, 5% GLASS",
+    "normalized": "80% Zinc, 15% Iron, 5% Glass",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 80% Polyester, 20% PU, Lining: 100% PU, Outsole: 100% Rubber",
+    "normalized": "80% Polyester, 20% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "95% ZINC, 5% STEEL",
+    "normalized": "95% Zinc, 5% Steel",
+    "productCount": 1
+  },
+  {
+    "original": "77% viscose, 20% nylon, 3% elastane",
+    "normalized": "77% Viscose, 20% Nylon, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "60% Cubic Zirconia, 40% Brass",
+    "normalized": "60% Cubic Zirconia, 40% Brass",
+    "productCount": 1
+  },
+  {
+    "original": "89% Viscose, 11% Elastane.",
+    "normalized": "89% Viscose, 11% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, Outsole: 100% Rubber, 7CM/3INCHES",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Rubber,10cm/4inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyester, Sole: 100% Rubber, 6cm/2.4inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Insole: 100% PU, Outsole: 100% PU, Lining: 100% PU, 3cm/7.5inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "SHELL: 92% POLYESTER, 8% ELASTANE, LINING: 100% POLYESTER",
+    "normalized": "92% Polyester, 8% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "50% ZINC, 40% GLASS, 5% STEEL, 5% COPPER",
+    "normalized": "50% Zinc, 40% Glass, 5% Steel, 5% Copper",
+    "productCount": 1
+  },
+  {
+    "original": "45% PU 55% VISCOSE",
+    "normalized": "55% Viscose, 45% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "46% VISCOSE, 25% POLYESTER, 19% NYLON, 10% METALLIC FIBRE",
+    "normalized": "46% Viscose, 25% Polyester, 19% Nylon, 10% Metallic Fibre",
+    "productCount": 1
+  },
+  {
+    "original": "Outer: 98% Polyester, 2% Polyeurethane",
+    "normalized": "98% Polyester, 2% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "77% viscose 20% nylon 3% elastane",
+    "normalized": "77% Viscose, 20% Nylon, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "50% IRON, 50% PLOYESTER",
+    "normalized": "50% Iron, 50% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "95%polyester and 5% elastane",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane Lining: 100% Polyurethane Sole: 100% Polyurethane, Excluding Trims, 8CM/3INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Exterior: 97% Polyester, 3% Elastane; Exterior, Lining:100% Polyester, Excluding Trims",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane , Sock: 100% Polyurethane , Outsole: 100% Rubber Heel Height: 9.5 cm/ 3.75 inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane Lining: 100% Polyurethane Sole: 100% Polyurethane, Excluding Trims, 10CM/4INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Sock: 100% PU, Outsole: 100% Rubber Heel Height: 6.5cm/2.5inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sock: 100% Polyurethane, Outsole: 100% Rubber Heel Height: 8 cm / 3.15 inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Exterior: 97% Polyester, 3 % Elastane; Lining: 100% Polyester; Excluding Trims,Length:20cm,Depth:5.5cm,Height:12cm",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane Lining: 100% Polyurethane Sole: 100% Polyurethane, Excluding Trims, 7CM/3INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "45% Viscose, 26% Polyester, 19% Nylon, 10% Metallic Fibre",
+    "normalized": "45% Viscose, 26% Polyester, 19% Nylon, 10% Metallic Fibre",
+    "productCount": 1
+  },
+  {
+    "original": "UPPER: 90% POLYESTER, 10% ELASTANE, LINING 100% POLYURETHANE, SOLE: 100% POLYURETHANE, EXCLUDING TRIMS- 6.5CM/2.7INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "50%Iron,30%Plastic,20%Zinc,",
+    "normalized": "50% Iron, 30% Plastic, 20% Zinc",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, Heel Height: 5cm/2inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "55 Polyester, 45% Acrylic",
+    "normalized": "55% Polyester, 45% Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "65%Satin, 15%Elastic, 15%Plastic, 5%Iron",
+    "normalized": "65% Satin, 15% Elastane, 15% Plastic, 5% Iron",
+    "productCount": 1
+  },
+  {
+    "original": "38% Viscose, 38% Polyester, 17% Polyamide, 7% Metallic Fibre",
+    "normalized": "38% Viscose, 38% Polyester, 17% Polyamide, 7% Metallic Fibre",
+    "productCount": 1
+  },
+  {
+    "original": "80%steel 20%glass",
+    "normalized": "80% Steel, 20% Glass",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims,7cm/2.5inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "100% POLYESTER, Contains non-textile parts of animal origin",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Satin, Lining: PU, Sock: PU, Outsole: Rubber, Excluding Trims,7.5cm/3inches",
+    "normalized": "100% Satin",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester,Outsole: 100% Rubber,Excluding Trims, Heel Height: 9cm / 3.75 Inches approx",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining; 100% Polyurethane, Sole: 100% Rubber, Excluding Trims,9cm/3.5inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Shell: 95% Polyester, 5% Elastane, Lining: 100% Polyester",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Rubber",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, 100% Polyurethane, Sole: 100% Rubber, Excluding Trims.",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Synthetic, 6cm/2.4inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester,Lining: 100% Polyester,Sock: 100% Polyester,Sole: 100% Polyvinyl Chloride with Flocking",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "68% cotton 30%polyester 2% elastane",
+    "normalized": "68% Cotton, 30% Polyester, 2% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane, Sock: 100% Polyurethane, Outsole: 100% Rubber, Excluding Trims ,10cm/4inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "EXTERIOR: 97% POLY+3% SPANDEX, 100% POLYESTER,\"Length:24.5cm,Depth:5.5cm,Height:12cm\"",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 0
+  },
+  {
+    "original": "Upper: 1005 Polyurethane, Lining: 100% Polyester, Sole: 100% Polyurethane",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane; Lining: 100% Polyurethane; Sole: 100% Polyurethane; Excluding Trims,7cm/2.5inches",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "93% polyester 7%elastane",
+    "normalized": "93% Polyester, 7% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "EXTERIOR: 97% POLY+3% SPANDEX; METALS,LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Sole: 100% Rubber",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "63% coton 36% polyester 1% elasthanne",
+    "normalized": "63% Cotton, 36% Polyester, 1% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, 9CM/3.5INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "100 % POLYAMIDE",
+    "normalized": "100% Polyamide",
+    "productCount": 1
+  },
+  {
+    "original": "90% Polyester 7% Cotton 3% Elastane",
+    "normalized": "90% Polyester, 7% Cotton, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Exterior :100% polyurethane,Lining :100% polyester,Length:18/20.5,Depth:9.5,Height:15.5,H/D:7",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "50% ZINC, 30% GLASS, 20% STEEL",
+    "normalized": "50% Zinc, 30% Glass, 20% Steel",
+    "productCount": 1
+  },
+  {
+    "original": "100% Polyester,XS/S - 64cm M/L - 82cm",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "95%zinc,5%steel",
+    "normalized": "95% Zinc, 5% Steel",
+    "productCount": 1
+  },
+  {
+    "original": "80%Zinc,15%Glass,5%Brass",
+    "normalized": "80% Zinc, 15% Glass, 5% Brass",
+    "productCount": 1
+  },
+  {
+    "original": "100% Synthetic, 8cm/3inches",
+    "normalized": "100% Synthetic",
+    "productCount": 1
+  },
+  {
+    "original": "55% zinc 45% glass",
+    "normalized": "55% Zinc, 45% Glass",
+    "productCount": 1
+  },
+  {
+    "original": "UPPER: 100% SYNTHETIC PU, LINING: 100% PU, SOLE: 100% PU, EXCLUDING TRIMS,HH:8CM/3.15INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "96% Polyester; 4 % Elastane",
+    "normalized": "96% Polyester, 4% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyester, Sole: 100% Synthetic, Excluding Trims, 7cm/2.75inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "95% polyester 5% elastane.",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Outsole: 100% Rubber, Lining: 100% Polyurethane, 8CM/3.15 INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "52% Viscose, 28% Polyester, 20% Nylon",
+    "normalized": "52% Viscose, 28% Polyester, 20% Nylon",
+    "productCount": 1
+  },
+  {
+    "original": "55%zinc 45%glass",
+    "normalized": "55% Zinc, 45% Glass",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyester, Sole: 100% Synthetic, 7cm/2.75inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "48% Viscose, 30% Polyester, 21% Polyamide",
+    "normalized": "48% Viscose, 30% Polyester, 21% Polyamide",
+    "productCount": 1
+  },
+  {
+    "original": "65% viscose, 30% nylon, 5% elastane",
+    "normalized": "65% Viscose, 30% Nylon, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Sock: 100% PU, Outsole: 100% Rubber, Excluding Trims / 8CM/3.15INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Outer: 96% Polyester, 4% Elastane, Lining: 100% Polyester",
+    "normalized": "96% Polyester, 4% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Polyester/Viscose/Elastane",
+    "normalized": "Polyester, Viscose, Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "98% polyester 2% elastane",
+    "normalized": "98% Polyester, 2% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90%PU, 10%Glitter, Lining: 100% Jersey, Insock: 100% Jersey, Outsole: 100% TPR",
+    "normalized": "90% Polyurethane, 10% Glitter",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, Heel Height: 9cm/3.5inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "SHELL: 100% POLYESTER LINING: 100% POLYESTER",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PP, Outsole: 100% TPR",
+    "normalized": "100% Polypropylene",
+    "productCount": 1
+  },
+  {
+    "original": "Polyester/Alpaca",
+    "normalized": "Polyester, Alpaca",
+    "productCount": 1
+  },
+  {
+    "original": "95% Polyester 5% Nylon",
+    "normalized": "95% Polyester, 5% Nylon",
+    "productCount": 1
+  },
+  {
+    "original": "EXTERIOR: 97% POLY+3% ELASTANE; RHINESTONE; METALS LINING: 100% POLYESTER/Length:24.5cmDepth:5.5cmHeight:12cm",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Length:16cm/19cm,Depth:5.5cm,Height:22cm, EEXTERIOR: 97% POLY+3% SPANDEX; RHINESTONE; PEARL; METALS,LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Exterior :100% polyester Lining :100% polyester,Length:27,Depth:7,Height:12,H/D:16",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Polyester/Cotton/Acrylic",
+    "normalized": "Polyester, Cotton, Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "70% Viscose, 30% Polyamide",
+    "normalized": "70% Viscose, 30% Polyamide",
+    "productCount": 1
+  },
+  {
+    "original": "100% PU",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Synthetic PU, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, 100% Rubber Heel Height: 8 cm / 3.15 inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane, Outsole: 100% Rubber, Excluding Trims",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "80% Viscose 20% Nylon",
+    "normalized": "80% Viscose, 20% Nylon",
+    "productCount": 1
+  },
+  {
+    "original": "EXTERIOR: 97% POLYESTER+3% SPANDEX; RHINESTONE; PEARL; METALS,LINING: 100% POLYESTER,Length:20cm,Depth:5cm,Height:15cm",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Outsole: 100% Rubber, Excluding Trims, 7cm/3inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "65% POLYESTER 13% ACRYLIC 13% NYLON 6% WOOL 3% ELASTANE",
+    "normalized": "65% Polyester, 13% Acrylic, 13% Nylon, 6% Wool, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Trims/Fastenings: Alloy 100%, Heel height: 10cm/4inches approx",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Sock: 100% PU, Outsole: 100% Rubber Heel Height: 6.5cm/3.5 inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Satin, Lining: PU, Sock: PU, Outsole: Rubber, Excluding Trims",
+    "normalized": "100% Satin",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, 3INCHES/7.5CM",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Nylon/Cashmere/Wool",
+    "normalized": "Nylon, Cashmere, Wool",
+    "productCount": 1
+  },
+  {
+    "original": "Outer: 95% Polyester 5% Elastane, Lining: 100% Polyester",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Polyester/Spandex/Rayon",
+    "normalized": "Polyester, Elastane, Rayon",
+    "productCount": 1
+  },
+  {
+    "original": "90% POLYESTER 10% ELASTANE",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims,10cm/4inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims. 3INCHES/7.5CM",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Main: 100% Polyester, Excluding Trim. Contains non-textile parts of animal origin",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Rubber, Heel Height: 10cm / 4inches approx.",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Always check the wash care label, Cool hand wash with mild detergent. 100% polyester",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "8%WOOL, 45%POLYESTER, 11%NYLON, 4% ELASTIC, 32% RECYCLE POLYESTER",
+    "normalized": "45% Polyester, 32% Polyester, 11% Nylon, 8% Wool, 4% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "EEXTERIOR: 97% POLY+3% SPANDEX; RHINESTONE; METALS,LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Synthetic Fibre, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Trims/Fastenings: 100% Alloy, 9cm/3.5inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "upper: 100% polyester sole:rubber,HH:2cm,HH:0.5inch",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "55% Brass, 25% Glass, 20% Polyester",
+    "normalized": "20% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "UPPER: 100% SYNTHETIC FIBRE, LINING: 100% POLYURETHANE, SOLE: 100% POLYURETHANE, TRIMS: 100% ALLOY, 6.5cm/2.7inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Satin, Lining: 100% Polyurethane, Sock: 100% Polyurethane, Outsole: 100% Rubber, Excluding Trims,9.5cm/3.75inches",
+    "normalized": "100% Satin",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU; Lining: 100% PU; Outsole: 100% Rubber 11CM/4.5 INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Exterior: 97% Polyester, 3% Spandex, Rhinestone; Metals; Pearls; Lining: 100% Polyester, Excluding Trims",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "8%WOOL, 79%POLYESTER, 12%NYLON, 1%ELASTIC",
+    "normalized": "79% Polyester, 12% Nylon, 8% Wool, 1% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "77% Viscose 20% Nylon 3% Elastane",
+    "normalized": "77% Viscose, 20% Nylon, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "83% Polyester, 13% Viscose, 4% Elastane",
+    "normalized": "83% Polyester, 13% Viscose, 4% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "95% POLYESTER 5% ELASTANE, LINING-100% POLYESTER",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, Sole: 100% Synthetic, 8cm/3inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane; Lining: 100% Polyurethane; Sole: 100% Polyurethane; Excluding Trims",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Synthetic fiber, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Trims/Fastenings: 100% Alloy,9cm/3.5inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane Lining: 100% Polyurethane Sole: 100% Polyurethane, Excluding Trims, 7.5cm/3inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, Sole: 100% Synthetic Textile, 10cm/4inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane; Lining: 100% Polyurethane; Sole: 100% Rubber,HH:9cm,HH:3.5inch",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, 7CM/3INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% RubberHH:9.5cm,HH:3.75inch",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Outsole: 100% Rubber, Heel Height: 7 cm /3 inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% Polyurethane, Outsole: 100% Rubber, 10CM/4 INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, 6.5cm/2.7inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester FibersLining: 100% Polyurethane,Sole: 100% Polyurethane,Trims/Fastenings: 100% Alloy,HH: 7cm/2.8 inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Synthetic PU, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, 8cm/3.15inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "51%Polyester 33%Viscose 16%Polyamide",
+    "normalized": "51% Polyester, 33% Viscose, 16% Polyamide",
+    "productCount": 1
+  },
+  {
+    "original": "EXTERIOR: 97% POLY+3% ELASTANE; EXCLUDING TRIMS,LINING: 100% POLYESTER, Length: 20cm, Depth: 7cm, Height: 13.5cm approx.",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Polyester/Rayon/Wool",
+    "normalized": "Polyester, Rayon, Wool",
+    "productCount": 1
+  },
+  {
+    "original": "82% Polyamide, 18% Elastane",
+    "normalized": "82% Polyamide, 18% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane,, Excluding Trims ,3INCHES/7.5CM",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: Microfibre, Sole: TPR",
+    "normalized": "Microfibre",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,10CM/4INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "20% Brass+45%Glass+35%Polyester",
+    "normalized": "35% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "50% Metal, 50% Acrylic",
+    "normalized": "50% Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "58% VISCOSE, 38% POLYESTER, 4% ELASTANE",
+    "normalized": "58% Viscose, 38% Polyester, 4% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "55% Viscose, 42% Polyester, 3% Elastane",
+    "normalized": "55% Viscose, 42% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims,10cm/4inches",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "UPPER: 90% POLYESTER, 10% ELASTANE LINING: 100% POLYURETHANE SOLE: 100% POLYURETHANE TRIMS: 100% RHINESTONE : 8CM / 3.1 INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Merino Wool/Cashmere",
+    "normalized": "Merino Wool, Cashmere",
+    "productCount": 1
+  },
+  {
+    "original": "EXTERIOR: SURFACE 100% PU artificial leather and BASIC 100% POLYESTER; METAL,LINING: 100% POLYESTER",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Shell: 95%polyester 5%elastane, Lining: 100%polyester",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane,, Excluding Trims, 9.5cm/3.8inches",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester Fibers,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:4.5cm/1.8inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "UPPER: 100% POLYESTER, LINING: 100% POLYURETHANE, SOLE: 100% RUBBER, EXCLUDING TRIMS, 9cm/3.5inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "94% polyester 6% elastane",
+    "normalized": "94% Polyester, 6% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% Polyurethane, Outsole: 100% Rubber,8CM/3.15 INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims,8cm/3.15inches",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "70% Polyester 30% Viscose",
+    "normalized": "70% Polyester, 30% Viscose",
+    "productCount": 1
+  },
+  {
+    "original": "EXTERIOR: 100% COTTON,LINING: 100% POLYESTER",
+    "normalized": "100% Cotton",
+    "productCount": 1
+  },
+  {
+    "original": "UPPER: GLITTER/PU/MICROFIBER OUTSOLE: TPR",
+    "normalized": "Microfiber",
+    "productCount": 1
+  },
+  {
+    "original": "70% Polyester, 21% Nylon, 8% Wool, 1% Elastane",
+    "normalized": "70% Polyester, 21% Nylon, 8% Wool, 1% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "85% Acrylic, 10% Polyester, 5% Nylon",
+    "normalized": "85% Acrylic, 10% Polyester, 5% Nylon",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Textile, Sock: 100% Polyurethane, Sole: 100% PVC",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, 4cm/1.5inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "100% Polyamide",
+    "normalized": "100% Polyamide",
+    "productCount": 1
+  },
+  {
+    "original": "Acrylic 80% Iron 20%",
+    "normalized": "80% Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "Shell 100%cotton, lining 100% polyester",
+    "normalized": "100% Cotton",
+    "productCount": 1
+  },
+  {
+    "original": "90% Cotton, 10% Polyester",
+    "normalized": "90% Cotton, 10% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Exterior :100% polyurethane Lining :100% polyester",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sock: 100% Polyamiders, Outsole: 100% EVA",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyurethane, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane 7.5CM/3INCHES",
+    "normalized": "90% Polyurethane, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyurethane, 10% Polyester, Lining 100% Polyurethane, Sole: 100% Rubber,10cm/4inches",
+    "normalized": "100% Rubber, 100% Polyurethane, 90% Polyurethane, 10% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Sole: 100% PVC",
+    "normalized": "100% PU, 100% PVC",
+    "productCount": 1
+  },
+  {
+    "original": "45% Polyester, 20% Brass, 20% Iron, 15% Plastic",
+    "normalized": "45% Polyester, 20% Brass, 20% Iron, 15% Plastic",
+    "productCount": 1
+  },
+  {
+    "original": "96% POLYESTER 4 % ELASTANE",
+    "normalized": "96% Polyester, 4% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "50% Zinc, 45% Glass, 5% Steel",
+    "normalized": "50% Zinc, 45% Glass, 5% Steel",
+    "productCount": 1
+  },
+  {
+    "original": "steel100%",
+    "normalized": "100% Steel",
+    "productCount": 1
+  },
+  {
+    "original": "100%POLYESTER",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims/8.5CM/3.4INCHES",
+    "normalized": "100% Polyurethane, 90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "40%zinc30%glass20%copper10%steel",
+    "normalized": "40% Zinc, 30% Glass, 20% Copper, 10% Steel",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% Jersey, Insock: 100% Jersey, Outsole: 100% Rubber",
+    "normalized": "100% Jersey, 100% PU, 100% Rubber",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane Lining: 100% Polyurethane Sole: 100% Polyurethane, Excluding Trims",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "50% Iron 40% Polyester 10% Glass",
+    "normalized": "50% Iron, 40% Polyester, 10% Glass",
+    "productCount": 1
+  },
+  {
+    "original": "98% cotton 2% elastane",
+    "normalized": "98% Cotton, 2% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims ,3INCHES/7.5CM",
+    "normalized": "100% Polyurethane, 90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "ITY: 95% Polyester 5% Elastane, Lining: 100% Polyester.",
+    "normalized": "100% Polyester, 95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Synthetic fiber, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Trims/Fastenings: 100% Alloy,10cm/4inches",
+    "normalized": "100% Polyurethane, 100% Synthetic Fiber",
+    "productCount": 1
+  },
+  {
+    "original": "Acrylic 80%, CCB 20%",
+    "normalized": "80% Acrylic, 20% CCB",
+    "productCount": 1
+  },
+  {
+    "original": "50% POLYESTER 24% RAYON 23% NYLON 3% ELASTANE",
+    "normalized": "50% Polyester, 24% Rayon, 23% Nylon, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Glass",
+    "normalized": "Glass",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims,HH:3.5cm,HH:1.4inch",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "100% Jersey",
+    "normalized": "100% Jersey",
+    "productCount": 1
+  },
+  {
+    "original": "Main: 100% Polyester, Lining 100% Polyester.",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "70% Cotton, 20% Polyester, 2% Elastane",
+    "normalized": "70% Cotton, 20% Polyester, 2% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Outsole: 100% Rubber, Heel Height: 7c m /3 inches",
+    "normalized": "100% PU, 100% Rubber",
+    "productCount": 1
+  },
+  {
+    "original": "50%plastic,30%zinc,20%iron",
+    "normalized": "50% Plastic, 30% Zinc, 20% Iron",
+    "productCount": 1
+  },
+  {
+    "original": "100%polyester LINING: 100%POLYESTER",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "100 % polyester",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Exterior :100% polyurethane,Lining :100% polyester,length:22,Depth:6.5,Height:11,H/D:26",
+    "normalized": "100% Polyester, 100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "55% RECYCLED POLYESTER, 21% POLYESTER, 13% NYLON, 8% WOOL, 3% ELASTANE",
+    "normalized": "55% Recycled Polyester, 21% Polyester, 13% Nylon, 8% Wool, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Exterior: 100 % Polyurethane, Lining: 100% Polyester, Excluding Trims w 21 d7 h16cm handle 9cm",
+    "normalized": "100% Polyester, 100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "UPPER: 90% POLYESTER, 10% ELASTANE, LINING 100% POLYURETHANE, SOLE: 100% POLYURETHANE, EXCLUDING TRIMS/ 7.5CM/3INCHES",
+    "normalized": "100% Polyurethane, 90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Acrylic",
+    "normalized": "Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "EXTERIOR: PU; METALS LINING: 100% POLYESTER",
+    "normalized": "100% Polyester, PU",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:9cm,HH:3.6inch",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "EXTERIOR: 97% POLY+3% SPANDEX; METALS,LINING: 100% POLYESTER,Length:20cm,Depth:5.5cm,Height:14cm",
+    "normalized": "100% Polyester, 97% Polyester, 3% Spandex",
+    "productCount": 1
+  },
+  {
+    "original": "50%STEEL30%ZINC20%CZ",
+    "normalized": "50% Steel, 30% Zinc, 20% CZ",
+    "productCount": 1
+  },
+  {
+    "original": "100%STEEL",
+    "normalized": "100% Steel",
+    "productCount": 1
+  },
+  {
+    "original": "50%STEEL30%ZINC20%GLASS",
+    "normalized": "50% Steel, 30% Zinc, 20% Glass",
+    "productCount": 1
+  },
+  {
+    "original": "90% Polyester,10% Elastane,Linning;100% Polyurethane,Sole; 100% Polyurethane,Trim/fastenings;Alloy 100%, 8cm, 3 inches",
+    "normalized": "100% Polyurethane, 90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Exterior: 97% Polyester 3% Elastane , Lining: 100% Polyester, Excluding Trims",
+    "normalized": "100% Polyester, 97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "40% Zinc, 35% Iron, 15% Plastic",
+    "normalized": "40% Zinc, 35% Iron, 15% Plastic",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane, Sole: 100% Rubber, Excluding Trims HH:2cm,HH:0.5inch",
+    "normalized": "100% Polyester, 100% Polyurethane, 100% Rubber",
+    "productCount": 1
+  },
+  {
+    "original": "60% Zinc, 35% Glass, 5% Steel",
+    "normalized": "60% Zinc, 35% Glass, 5% Steel",
+    "productCount": 1
+  },
+  {
+    "original": "65% RAYON 35% POLYESTER",
+    "normalized": "65% Rayon, 35% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "42% Acrylic 30% Polyester 28 % Nylon",
+    "normalized": "42% Acrylic, 30% Polyester, 28% Nylon",
+    "productCount": 1
+  },
+  {
+    "original": "100%POLYESTER, LINING:100%POLYESTER",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "90% Polyester+10% Acrylic,XS/S - 102cm M/L - 120cm",
+    "normalized": "90% Polyester, 10% Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "55% Viscose, 21% Nylon, 21% Linen 3% Elastane",
+    "normalized": "55% Viscose, 21% Nylon, 21% Linen, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "67% Polyester, 33% Viscose",
+    "normalized": "67% Polyester, 33% Viscose",
+    "productCount": 1
+  },
+  {
+    "original": "60%Zinc, 30%Plastic, 10%Iron",
+    "normalized": "60% Zinc, 30% Plastic, 10% Iron",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, 8CM/3INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sock: 100% Polyurethane, Excluding Trims, 6.5cm/2.7inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "EXTERIOR: 97% POLY+3% SPANDEX; RHINESTONE; METALS,LINING: 100% POLYESTER,Length:24.5cm,Depth:5.5cm,Height:12cm",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Exterior :100% polyurethane,Lining :100% polyester,Length:25",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "28% POLYESTER 50% VISCOSE 22% NYLON",
+    "normalized": "50% Viscose, 28% Polyester, 22% Nylon",
+    "productCount": 1
+  },
+  {
+    "original": "UPPER: 90% POLYESTER, 10% ELASTANE, LINING 100% POLYURETHANE, SOLE: 100% POLYURETHANE, EXCLUDING TRIMS/10CM/4INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane, Sole: 100% Rubber, Excluding Trims,9.5cm/3.75inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Outsole: 100% Rubber,Excluding Trims",
+    "normalized": "100% Rubber",
+    "productCount": 1
+  },
+  {
+    "original": "74% viscose23% Nylon3% Elastane",
+    "normalized": "74% Viscose, 23% Nylon, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:10cm,HH:4inch",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "93% NYLON 3% METALLIC 4% ELASTANE",
+    "normalized": "93% Nylon, 4% Elastane, 3% Metallic",
+    "productCount": 1
+  },
+  {
+    "original": "95%polyester5%elastane",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "EEXTERIOR: 97% POLY+3% SPANDEX; RHINESTONE; METALS,LINING: 100% POLYESTER,\"Length:24.5cm,Depth:5.5cm,Height:12cm\"",
+    "normalized": "100% Polyester",
+    "productCount": 0
+  },
+  {
+    "original": "93% Viscose",
+    "normalized": "93% Viscose",
+    "productCount": 1
+  },
+  {
+    "original": "50%zinc 45%resin 5%steel",
+    "normalized": "50% Zinc, 45% Resin, 5% Steel",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane, Sole: 100% Rubber, Excluding Trims ,9cm/3.5inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "50% BRASS, 25% GLASS, 20% CZ, 5% IRON",
+    "normalized": "50% Brass, 25% Glass, 20% Cz, 5% Iron",
+    "productCount": 1
+  },
+  {
+    "original": "55%Zinc, 45%Glass",
+    "normalized": "55% Zinc, 45% Glass",
+    "productCount": 1
+  },
+  {
+    "original": "97% coton , 3% elasthanne",
+    "normalized": "97% Cotton, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "40% IRON, 60% GLASS",
+    "normalized": "60% Glass, 40% Iron",
+    "productCount": 1
+  },
+  {
+    "original": "Nylon/Spandex/Viscose",
+    "normalized": "Nylon, Spandex, Viscose",
+    "productCount": 1
+  },
+  {
+    "original": "50% Polyester",
+    "normalized": "50% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "50% Cotton, 45% Polyester, 5% Elastane",
+    "normalized": "50% Cotton, 45% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "MAIN FABRIC:89% VISCOSE 11% POLYAMIDE, LINING:97% POLYESTER 3% ELASTANE",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "49% Viscose, 28% Polyester, 23% Polyamide",
+    "normalized": "49% Viscose, 28% Polyester, 23% Polyamide",
+    "productCount": 1
+  },
+  {
+    "original": "70% coton 28% polyester and 2% elasthane",
+    "normalized": "70% Cotton, 28% Polyester, 2% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "42% ACRYLIC 30 % POLYESTER 28 % WOOL",
+    "normalized": "42% Acrylic, 30% Polyester, 28% Wool",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Outsole: 100% Rubber,Excluding Trims, Heel height: 10cm/4inches",
+    "normalized": "100% Rubber",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims ,4INCHES/10CM",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "56% polyester 28% acrylic 14% polyamide 2% elastane",
+    "normalized": "56% Polyester, 28% Acrylic, 14% Polyamide, 2% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "70% VISCOSE 30% POLYESTER",
+    "normalized": "70% Viscose, 30% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims,6cm/2.5inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Shell: 95% Polyester, 5% Elastane, Lining:100% Polyester",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "98% Cotton 2% Elastane",
+    "normalized": "98% Cotton, 2% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:4.5cm,HH:1.8inch",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "90%Zinc,10%Iron",
+    "normalized": "90% Zinc, 10% Iron",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, Heel Height: 10cm/4inches",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "100% STEEL",
+    "normalized": "100% Steel",
+    "productCount": 1
+  },
+  {
+    "original": "68% Viscose, 32% Polyamide",
+    "normalized": "68% Viscose, 32% Polyamide",
+    "productCount": 1
+  },
+  {
+    "original": "Outer: 96% Polyester, 4% Elastane; Lining 100% Polyester",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "100% POLYSTER",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "89% VISCOSE 11% POLYAMIDE",
+    "normalized": "89% Viscose, 11% Polyamide",
+    "productCount": 1
+  },
+  {
+    "original": "Linen",
+    "normalized": "Linen",
+    "productCount": 1
+  },
+  {
+    "original": "96% POLYESTER 5% ELASTANE",
+    "normalized": "96% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane Lining: 100% Polyurethane Sole: 100% Polyurethane, Excluding Trims, 9CM/3.5INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: PVC + PU, Outsole: 100% Rubberexcluding Trims,9.5cm/3.75inches",
+    "normalized": "100% Rubber",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sock: 100% Polyamides, Outsole: 100% EVA",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "UPPER: 90% POLYESTER, 10% ELASTANE, LINING: 100% POLYURETHANE, SOLE: 100% POLYURETHANE, EXCLUDING TRIMS, 6.5cm/2.7inches",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, Sole: 100% Synthetic Textile",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "shell - 95% polyester lining 100% polyester",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 80% Polyester, 20% PU, Lining: 100% PU, Sole:100% Rubber",
+    "normalized": "80% Polyester, 20% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "40%steel 20%acrylic 20%copper 20%resin",
+    "normalized": "40% Steel, 20% Acrylic, 20% Copper, 20% Resin",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, Heel Height: 9cm/3.5 inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "50% POLYAMIDE, 50% POLYESTER",
+    "normalized": "50% Polyamide, 50% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "40% GLASS, 35% COPPER, 20% ACRYLIC, 5% STEEL",
+    "normalized": "40% Glass, 35% Copper, 20% Acrylic, 5% Steel",
+    "productCount": 1
+  },
+  {
+    "original": "Exterior: 97% Polyester 3% Elastane , Lining: 100% Polyester, Excluding Trims\"",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "89% RAYON 11% POLYESTER",
+    "normalized": "89% Rayon, 11% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Synthetic PU, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims,8cm/3.15inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "EXTERIOR: 97% POLY+3% ELASTANE; EXCLUDING TRIMS,LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "92% POLYESTER 8%ELASTANE",
+    "normalized": "92% Polyester, 8% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "78%cotton 20%polyester 2%elastane",
+    "normalized": "78% Cotton, 20% Polyester, 2% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "57% Recycle Polyester, 26% Acrylic, 14% Nylon, 3% Elastic",
+    "normalized": "57% Polyester, 26% Acrylic, 14% Nylon, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "78% viscose, 19% nylon, 3% elastane",
+    "normalized": "78% Viscose, 19% Nylon, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% PU, OutSole: 100% Rubber",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "95% POLYESTER 4% ELASTANE",
+    "normalized": "95% Polyester, 4% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "100% poly",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "80%zinc 20%glass",
+    "normalized": "80% Zinc, 20% Glass",
+    "productCount": 1
+  },
+  {
+    "original": "95% POLYESTER 5% ELASTANE :SLEEVE 100% POLYESTER",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyester, Sole: 100% Synthetic, 6cm/2.4inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "70% Polyurethane, 30% Polyester",
+    "normalized": "70% Polyurethane, 30% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:10cm,HH:4inch",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "50% Polyester, 50% Cotton",
+    "normalized": "50% Polyester, 50% Cotton",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: Satin, Lining: PU, Sock: PU, Outsole: Rubber, Excluding Trims",
+    "normalized": "Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane, Outsole: 100% Rubber",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "83% Polyester, 13% Elastane",
+    "normalized": "83% Polyester, 13% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "100% Stynthetic, 8cm/3inches",
+    "normalized": "100% Synthetic",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane Lining: 100% Polyurethane Sole: 100% Polyurethane, Excluding Trims, 7CM/2.5INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Exterior: 97% Polyester, 3 % Elastane; Lining: 100% Polyester; Excluding Trims",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "22% Nylon, 71% Viscose, 3% Elastane, 4% Polyester",
+    "normalized": "71% Viscose, 22% Nylon, 4% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "30%steel 25%acrylic 25%copper 20%glass",
+    "normalized": "30% Steel, 25% Acrylic, 25% Copper, 20% Glass",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Sock: 100% PU, Outsole: 100% Rubber, Heel Height: 6cm, 2.5 inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "upper: polyurethane sole:rubber,HH:9.5cm,HH:3.75inch",
+    "normalized": "Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Outer: 96% Polyester, 4% Elastane; Lining :100% Polyester",
+    "normalized": "96% Polyester, 4% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "100% POLYESTERR",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "95%polyester, 5% elastane",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Outsole: 100% Rubber,Excluding Trims, Heel Height: 9cm, 3.5 Inches approx",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: PU, Sock: PU, Outsole: Rubber,8cm/3.15inches",
+    "normalized": "Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "60%STEEL40%GLASS",
+    "normalized": "60% Steel, 40% Glass",
+    "productCount": 1
+  },
+  {
+    "original": "30%zinc,20%iron,20%plastic,20%glass,10%epoxy",
+    "normalized": "30% Zinc, 20% Iron, 20% Plastic, 20% Glass, 10% Epoxy",
+    "productCount": 1
+  },
+  {
+    "original": "MESH: 95% POLYESTER 5% ELASTANE",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "45% VISCOSE 35% NYLON 20% POLYESTER",
+    "normalized": "45% Viscose, 35% Nylon, 20% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "100% polyester, Contains non-textile parts of animal origin",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "93% polyester, 7%elastane",
+    "normalized": "93% Polyester, 7% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "UPPER: 100% POLYURETHANE, LINING: 100% POLYURETHANE, SOLE:100% POLYURETHANE, EXCLUDING TRIMS,HH:6CM/2.5INCHES",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Cotton/Acrylic",
+    "normalized": "Cotton, Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "40%zinc30%glass25%copper5%steel",
+    "normalized": "40% Zinc, 30% Glass, 25% Copper, 5% Steel",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Synthetic fiber, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Trims/Fastenings: 100% Alloy,7cm/2.5inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane,9.5cm/3.75inches",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Material: 61% Acrylic, 39% Polyester,Size: 155x125+80+8x2 cm,Weight: 420 g/pc",
+    "normalized": "61% Acrylic, 39% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Outsole: 100% TPR",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Length:20cmDepth:5cmHeight:15cm/EEXTERIOR: 97% POLY+3% SPANDEX; RHINESTONE; PEARL; METALS LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "69% Viscose, 31% Polyester.",
+    "normalized": "69% Viscose, 31% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "90% Polyester+10% Acrylic,XS/S - 64cm M/L - 82cm",
+    "normalized": "90% Polyester, 10% Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyester, Sole: 100% Polyurethane",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "100%Acrylic",
+    "normalized": "100% Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "Polyamide/Acrylic",
+    "normalized": "Polyamide, Acrylic",
+    "productCount": 1
+  },
+  {
+    "original": "82% Polyester, 18% Elastane",
+    "normalized": "82% Polyester, 18% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "96% POLYESTER, 4% ELASTANE",
+    "normalized": "96% Polyester, 4% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% PU, Lining: 100% PU, Outsole: TPR",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Alpaca Wool",
+    "normalized": "Alpaca Wool",
+    "productCount": 1
+  },
+  {
+    "original": "74% viscose 23% Nylon 3% Elastane",
+    "normalized": "74% Viscose, 23% Nylon, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims,HH:8cm,HH:3.2inch",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "95% polyester 5%elastine",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "80% Viscose, 20% Elastane",
+    "normalized": "80% Viscose, 20% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper 100% PU, Lining: 100% PU, Sole: 100% TPR",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyurethane, 10% Polyester, Lining: 100% Polyurethane, Sole: 100% Rubber,10cm/4inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "89% Viscose, 11% Elastane",
+    "normalized": "89% Viscose, 11% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Main: 100% Polyester, Excluding Trim Contains non-textile parts of animal origin",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "49% COTTON 44% POLYESTER 7% Elastane",
+    "normalized": "49% Cotton, 44% Polyester, 7% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Exterior :100% polyurethane,Lining :100% polyester,Length:27,Depth:6,Height:14",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "85% Polyester, 15% Rayon",
+    "normalized": "85% Polyester, 15% Rayon",
+    "productCount": 1
+  },
+  {
+    "original": "EEXTERIOR: 97% POLY+3% SPANDEX; RHINESTONE; METALS LINING: 100% POLYESTER/Length:24.5cmDepth:5.5cmHeight:12cm",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane , Sole: 100% Polyurethane, Excluding Trims,7.5cm/3inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane, Sock: 100% Polyurethane, Outsole: 100% Rubber, Excluding Trims,9cm/3.5inches",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane,Lining: 100% Polyurethane,Sole: 100% Polyurethane, Excluding Trims, HH:6.5cm,HH:2.7inch",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Length:26.5cmDepth:8cmHeight:17.5cm/EEXTERIOR: 97% POLY+3% SPANDEX; RHINESTONE; PEARL; METALS LINING: 100% POLYESTER",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "95%polyester 5%elastane.",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "67% Cotton, 29% Nylon, 4% Elastane",
+    "normalized": "67% Cotton, 29% Nylon, 4% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "UPPER: PU/GLITTER OUTSOLE: TPR",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane Lining: 100% Polyurethane Sole: 100% Polyurethane, Excluding Trims, 7CM/2.7INCHES",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Polyester/Cashmere/Wool",
+    "normalized": "Polyester, Cashmere, Wool",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane, Lining: 100% Polyurethane, Sole: 100% Polyurethane, Excluding Trims, 10cm/4inches",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "65% COTTON 30% ELASTANE 5% HEMP",
+    "normalized": "65% Cotton, 30% Elastane, 5% Hemp",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyurethane, Lining: 100% Polyurethane, Sole: 100% Polyurethane",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "55% wool, 35% polyester, 5% polyamide, 5% other fiber",
+    "normalized": "55% Wool, 35% Polyester, 5% Polyamide",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 90% Polyester, 10% Elastane,Lining: 100% Polyurethane,Sole: 100% Polyurethane,Excluding Trims",
+    "normalized": "90% Polyester, 10% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: Satin, Lining: PU, Sock: PU, Outsole: Rubber, Excluding Trims,8cm/3.15inches",
+    "normalized": "100% Polyurethane",
+    "productCount": 1
+  },
+  {
+    "original": "80% POLYESTER 20% VISCOSE",
+    "normalized": "80% Polyester, 20% Viscose",
+    "productCount": 1
+  },
+  {
+    "original": "60% Cotton, 40% Polyester",
+    "normalized": "60% Cotton, 40% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "93% Cotton, 6% Polyester, 1% Elastane",
+    "normalized": "93% Cotton, 6% Polyester, 1% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "MESH: 95% POLYESTER 5% ELASTANE. LINING: 100% POLYESTER",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "83% COTTON 17% ELASTANE",
+    "normalized": "83% Cotton, 17% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "EXTERIOR: 97% POLYESTER+3% SPANDEX; RHINESTONE; METALS,LINING: 100% POLYESTER,Length:24.5cm,Depth:5.5cm,Height:12cm",
+    "normalized": "97% Polyester, 3% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "95% Polyester, 5% Spandex",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "Upper: 100% Polyester, Lining: 100% Polyurethane, Sole: 100% Rubber, Excluding Trims.",
+    "normalized": "100% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "95%POLYESTER, 5%ELASTANE",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "70% Viscose 30% polyester",
+    "normalized": "70% Viscose, 30% Polyester",
+    "productCount": 1
+  },
+  {
+    "original": "95% POLYESTER 5%ELASTAIN",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  },
+  {
+    "original": "95% Polyester 5% Elastane Lining: 100% Polyester",
+    "normalized": "95% Polyester, 5% Elastane",
+    "productCount": 1
+  }
+]

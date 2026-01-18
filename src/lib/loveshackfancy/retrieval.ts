@@ -18,7 +18,9 @@ import { getContextAwareConstraints } from './constraint-context';
 import { validateProductCategory } from './validation/category-validator';
 import { expandCategoriesForOptimalCoverage } from '../search/filtering/category';
 import { type CategoryDictionaryMap } from '../search/filtering/category-dictionaries';
-import { buildDictionariesAndFilter, extractSleeveFromSleeveLengths } from '../search/filtering/post-filter';
+import { extractSleeveFromSleeveLengths } from '../search/filtering/post-filter';
+import { buildCategorySpecificDictionaries } from '../search/filtering/category-dictionaries';
+import { applyPostSQLFilters } from '../search/filtering/post-filter';
 import { extractConstraintValues, extractConstraintIntent, type ConstraintWithIntent } from './constraint-utils';
 import { prisma } from '../db';
 import type { SearchResultItem } from '../search/types';
@@ -573,20 +575,21 @@ export async function multiViewRetrieval(
                   note: 'About to build dictionaries and filter products in single pass',
                 });
                 
-                const { dictionaries: categoryDictionaries, filteredIds: postFilteredIds } = 
-                  await buildDictionariesAndFilter(
-                    categoryFilteredIds,
-                    {
-                      colors: nullToUndefined(extractConstraintValues(contextAware.sqlFilters.colors)),
-                      lengths: nullToUndefined(contextAware.sqlFilters.lengths),
-                      sleeves: contextAware.sqlFilters.sleeves ? extractSleeveFromSleeveLengths(contextAware.sqlFilters.sleeves) : undefined,
-                      necklines: nullToUndefined(contextAware.sqlFilters.necklines),
-                      formalityLevels: nullToUndefined(contextAware.sqlFilters.formalityLevel),
-                      colorShades: nullToUndefined(contextAware.sqlFilters.colorShade),
-                    },
-                    contextAwareIntents,
-                    merchantId
-                  );
+                // Build dictionaries and apply post-SQL filters separately
+                const categoryDictionaries = await buildCategorySpecificDictionaries(categoryFilteredIds, merchantId || 'default');
+                const postFilteredIds = await applyPostSQLFilters(
+                  categoryFilteredIds,
+                  {
+                    colors: nullToUndefined(extractConstraintValues(contextAware.sqlFilters.colors)),
+                    lengths: nullToUndefined(contextAware.sqlFilters.lengths),
+                    sleeves: contextAware.sqlFilters.sleeves ? extractSleeveFromSleeveLengths(contextAware.sqlFilters.sleeves) : undefined,
+                    necklines: nullToUndefined(contextAware.sqlFilters.necklines),
+                    formalityLevels: nullToUndefined(contextAware.sqlFilters.formalityLevel),
+                    colorShades: nullToUndefined(contextAware.sqlFilters.colorShade),
+                  },
+                  categoryDictionaries,
+                  contextAwareIntents
+                );
 
                 logger.info('fashion_semantic_search: post_sql_filtering_stage2_complete', {
                   query: query.substring(0, 100),

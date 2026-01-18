@@ -439,22 +439,39 @@ function inferStyleFromProduct(product: { title?: string; description?: string; 
 
 /**
  * Match style constraints
- * Infers styles from product metadata if explicit attribute is not found
+ * Checks database column (silhouetteCut) first, then style_labels attribute, then style attribute, then infers from product metadata
+ * This matches the dictionary extraction logic which extracts from:
+ * - product.silhouetteCut column (A-Line, Wrap, Fit and Flare, Empire, etc.)
+ * - attributes.style_labels, attributes.style, attributes.Style
  */
 export function matchStyle(
   productAttrs: ProductAttributes | null | undefined,
   queryStyles: string[] | undefined,
-  product?: { title?: string; description?: string; category?: string; subcategory?: string; attributes?: ProductAttributes | null }
+  product?: { title?: string; description?: string; category?: string; subcategory?: string; attributes?: ProductAttributes | null },
+  enrichedColumns?: EnrichedColumnValues | null
 ): number {
   if (!queryStyles || queryStyles.length === 0) return 0;
   
-  // Try explicit attribute first
+  // Priority 1: Check silhouetteCut column from database (matches dictionary extraction source)
+  if (enrichedColumns?.silhouetteCut) {
+    const match = fuzzyMatch([enrichedColumns.silhouetteCut], queryStyles);
+    if (match > 0) return match;
+  }
+  
+  // Priority 2: Check style_labels attribute (matches dictionary extraction source)
+  const styleLabels = extractAttrValue(productAttrs, 'style_labels') || extractAttrValue(productAttrs, 'styleLabels');
+  if (styleLabels) {
+    const match = fuzzyMatch(styleLabels, queryStyles);
+    if (match > 0) return match;
+  }
+  
+  // Priority 3: Check style/Style attribute (fallback)
   const productStyle = extractAttrValue(productAttrs, 'style') || extractAttrValue(productAttrs, 'Style');
   if (productStyle) {
     return fuzzyMatch(productStyle, queryStyles);
   }
   
-  // If no explicit attribute, infer from product metadata
+  // Priority 4: If no explicit attribute, infer from product metadata
   if (product) {
     const inferredStyles = inferStyleFromProduct(product);
     if (inferredStyles.length > 0) {
@@ -552,6 +569,44 @@ export function matchFit(
   // Priority 2: Fallback to JSONB attributes
   const productFit = extractAttrValue(productAttrs, 'fit') || extractAttrValue(productAttrs, 'Fit');
   return fuzzyMatch(productFit, queryFits);
+}
+
+/**
+ * Match rise constraints
+ * Checks database column (riseWaist) first, then JSONB attributes
+ */
+export function matchRise(
+  productAttrs: ProductAttributes | null | undefined, 
+  queryRises: string[] | undefined,
+  enrichedColumns?: EnrichedColumnValues | null
+): number {
+  if (!queryRises || queryRises.length === 0) return 0;
+  
+  // Priority 1: Check riseWaist column from database
+  if (enrichedColumns?.riseWaist) {
+    const match = fuzzyMatch([enrichedColumns.riseWaist], queryRises);
+    if (match > 0) return match;
+  }
+  
+  // Priority 2: Fallback to JSONB attributes
+  const productRise = extractAttrValue(productAttrs, 'riseWaist') || 
+                      extractAttrValue(productAttrs, 'RiseWaist') ||
+                      extractAttrValue(productAttrs, 'rise') ||
+                      extractAttrValue(productAttrs, 'Rise');
+  return fuzzyMatch(productRise, queryRises);
+}
+
+/**
+ * Match embellishments constraints
+ */
+export function matchEmbellishments(productAttrs: ProductAttributes | null | undefined, queryEmbellishments: string[] | undefined): number {
+  if (!queryEmbellishments || queryEmbellishments.length === 0) return 0;
+  
+  const productEmbellishments = extractAttrValue(productAttrs, 'embellishments') || 
+                                extractAttrValue(productAttrs, 'Embellishments') ||
+                                extractAttrValue(productAttrs, 'embellishment') ||
+                                extractAttrValue(productAttrs, 'Embellishment');
+  return fuzzyMatch(productEmbellishments, queryEmbellishments);
 }
 
 /**
@@ -1700,6 +1755,7 @@ export function calculateConstraintMatchScore(
       length: product.length ?? null,
       sleeve: product.sleeve ?? null,
       neckline: product.neckline ?? null,
+      riseWaist: (product as any).riseWaist ?? null,
       
       // Style & Occasion
       formalityLevel: product.formalityLevel ?? null,
@@ -1939,12 +1995,24 @@ export function calculateConstraintMatchScore(
   }
   
   // Style/Pattern (fourth priority)
-  // Infer styles from collection, styleTags, and title if not found explicitly
+  // Priority: database column (silhouetteCut) first, then style_labels attribute, then style attribute, then infer from product metadata
   if (enhancedConstraints.styles) {
-    // Get explicit style first
-    let productStyle = extractAttrValue(attrs, 'style') || extractAttrValue(attrs, 'Style');
-    
-    // If no explicit style, infer from product metadata (collection, styleTags, title)
+    // Priority 1: Check silhouetteCut column from database (matches dictionary extraction source)
+    let productStyle: string | string[] | null = null;
+    if (enriched?.silhouetteCut) {
+      productStyle = enriched.silhouetteCut;
+    }
+    // Priority 2: Check style_labels attribute (matches dictionary extraction source)
+    if (!productStyle) {
+      const styleLabels = extractAttrValue(attrs, 'style_labels') || extractAttrValue(attrs, 'styleLabels');
+      productStyle = styleLabels ?? null;
+    }
+    // Priority 3: Check style/Style attribute
+    if (!productStyle) {
+      const styleAttr = extractAttrValue(attrs, 'style') || extractAttrValue(attrs, 'Style');
+      productStyle = styleAttr ?? null;
+    }
+    // Priority 4: If no explicit style, infer from product metadata (collection, styleTags, title)
     if (!productStyle && 'title' in product) {
       const productForInference = {
         title: (product as any).title,
@@ -1970,7 +2038,7 @@ export function calculateConstraintMatchScore(
           subcategory: (product as any).subcategory,
           attributes: productAttrs,
         } : undefined;
-        return matchStyle(productAttrs, constraintStyles, productForMatching);
+        return matchStyle(productAttrs, constraintStyles, productForMatching, enriched);
       }
     );
     const baseWeight = getDynamicWeight('styles', queryContext, productCategory, enhancedConstraints);
@@ -2096,6 +2164,37 @@ export function calculateConstraintMatchScore(
     };
   }
   
+  // Rises (for jeans/pants - new attribute with dynamic weight)
+  // Priority: database column (riseWaist) first, then JSONB attributes
+  if (enhancedConstraints.rises) {
+    // Priority 1: Check riseWaist column from database
+    const dbRise = enriched?.riseWaist ?? null;
+    // Priority 2: Fallback to JSONB attributes
+    const attrRise = extractAttrValue(attrs, 'riseWaist') || 
+                     extractAttrValue(attrs, 'RiseWaist') ||
+                     extractAttrValue(attrs, 'rise') ||
+                     extractAttrValue(attrs, 'Rise');
+    const finalRise = dbRise || attrRise;
+    
+    const riseScore = calculateMatchScoreWithIntent(
+      attrs,
+      enhancedConstraints.rises,
+      (productAttrs, constraintRises) => matchRise(productAttrs, constraintRises, enriched)
+    );
+    const baseWeight = getDynamicWeight('rises', queryContext, productCategory, enhancedConstraints);
+    const intentWeight = getIntentWeight(extractConstraintIntent(enhancedConstraints.rises));
+    const finalWeight = baseWeight * intentWeight;
+    const weighted = riseScore * finalWeight;
+    scores.push(weighted);
+    weights.push(finalWeight);
+    scoreDetails.rises = {
+      queryValue: extractConstraintValues(enhancedConstraints.rises) || enhancedConstraints.rises,
+      productValue: finalRise || 'none',
+      score: riseScore,
+      weighted,
+    };
+  }
+  
   // Length (for dresses - new attribute with dynamic weight)
   // Priority: database column (length) first, then JSONB attributes
   if (enhancedConstraints.lengths) {
@@ -2198,6 +2297,28 @@ export function calculateConstraintMatchScore(
       queryValue: extractConstraintValues(enhancedConstraints.collections) || enhancedConstraints.collections,
       productValue: productCollection,
       score: collectionScore,
+      weighted,
+    };
+  }
+  
+  // Embellishments (lower priority)
+  if (enhancedConstraints.embellishments) {
+    const productEmbellishments = extractAttrValue(attrs, 'embellishments') || extractAttrValue(attrs, 'Embellishments');
+    const embellishmentsScore = calculateMatchScoreWithIntent(
+      attrs,
+      enhancedConstraints.embellishments,
+      (productAttrs, constraintValues) => matchEmbellishments(productAttrs, constraintValues)
+    );
+    const baseWeight = getDynamicWeight('embellishments', queryContext, productCategory, enhancedConstraints);
+    const intentWeight = getIntentWeight(extractConstraintIntent(enhancedConstraints.embellishments));
+    const finalWeight = baseWeight * intentWeight;
+    const weighted = embellishmentsScore * finalWeight;
+    scores.push(weighted);
+    weights.push(finalWeight);
+    scoreDetails.embellishments = {
+      queryValue: extractConstraintValues(enhancedConstraints.embellishments) || enhancedConstraints.embellishments,
+      productValue: productEmbellishments,
+      score: embellishmentsScore,
       weighted,
     };
   }

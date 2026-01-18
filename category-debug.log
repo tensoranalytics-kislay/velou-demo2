@@ -1,0 +1,45 @@
+🎯 Category Normalization Script
+
+   Mode: DRY RUN (preview only)
+
+📦 Extracting unique categories with sample products from database...
+
+   Found 10 unique categories
+
+prisma:error 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Server has closed the connection.
+
+❌ Normalization failed: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Server has closed the connection.
+    at Ln.handleRequestError (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:121:7753)
+    at Ln.handleAndLogRequestError (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:121:7061)
+    at Ln.request (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:121:6745)
+    at async l (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async extractCategoriesWithSamples (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/scripts/normalize-categories.ts:122:25)
+    at async main (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/scripts/normalize-categories.ts:863:22) {
+  code: 'P1017',
+  clientVersion: '5.19.1',
+  meta: null
+}
+   Error message: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Server has closed the connection.
+   Stack: PrismaClientKnownRequestError: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Server has closed the connection.
+    at Ln.handleRequestError (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:121:7753)
+    at Ln.handleAndLogRequestError (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:121:7061)
+    at Ln.request (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:121:6745)
+    at async l (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async extractCategoriesWithSamples (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/scripts/normalize-categories.ts:122:25)
+    at async main (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/scripts/normalize-categories.ts:863:22)

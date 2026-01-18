@@ -225,12 +225,14 @@ export type EnrichedColumnValues = {
   length?: string | null; // Length (e.g., "Maxi", "Mini", "Midi")
   sleeve?: string | null; // Sleeve type (e.g., "Short", "Long", "Sleeveless")
   neckline?: string | null; // Neckline (e.g., "Round", "V-Neck", "Scoop")
+  riseWaist?: string | null; // Rise/waist placement (e.g., "Low Rise", "Mid Rise", "High Rise")
   
   // Style & Occasion
   formalityLevel?: string | null; // Formality level (e.g., "Casual", "Semi-Formal", "Formal")
   occasionContext?: string[] | null; // Array of occasions (e.g., ["Daytime", "Vacation"])
   dressCode?: string | null; // Dress code
   seasonalCues?: string | null; // Seasonal cues
+  silhouetteCut?: string | null; // Silhouette/style cut (e.g., "A-Line", "Wrap", "Fit and Flare", "Empire")
   
   // Weather & Comfort
   temperatureIntent?: string | null; // Temperature intent (e.g., "Warm Weather", "Cold Weather")

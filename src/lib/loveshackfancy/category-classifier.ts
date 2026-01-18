@@ -9,6 +9,7 @@ import { callLLM } from '../llm/provider';
 import { logger } from '../telemetry/logger';
 import { categoryExists, findClosestCategory, getAllCategories } from '../catalog/category-tree';
 import { computeGenderContext, buildAllowedCategoriesForClassifier } from './classifier';
+import { loadCategoryDictionaries, formatCategoriesForPrompt } from './category-dictionaries';
 
 const CATEGORY_CLASSIFIER_PROMPT = `You are a category classification system for a fashion shopping assistant.
 
@@ -42,6 +43,10 @@ INSTRUCTIONS:
      - "swimsuits" (mentions "swimsuits")
      - "bedding" (mentions "bedding")
      - "perfume" (mentions "perfume")
+     - **CRITICAL: "suggest me [product type]" or "everyday wear [product type]" STILL mentions a specific product type - return confidence >= 0.5:**
+       - "suggest me everyday wear shoes" → ["Shoes"] (confidence >= 0.5) - "shoes" is explicitly mentioned
+       - "suggest me a dress" → ["Women's Dresses"] (confidence >= 0.5) - "dress" is explicitly mentioned
+       - "everyday wear shoes" → ["Shoes"] (confidence >= 0.5) - "shoes" is explicitly mentioned
 4. **Return up to 3 categories in order of relevance. Prioritize returning multiple categories when:**
    - The query could reasonably match multiple age-specific categories (e.g., "cardigan for 12 year old" could match both "Girls Tops" and "Tween Sweaters")
    - The query mentions composite product types (e.g., "suit", "matching set")
@@ -94,7 +99,7 @@ INSTRUCTIONS:
     - **CRITICAL**: "teen", "teenager", "teenage", or ages 13-19 → "Women's Dresses", "Tops", etc. (NOT "Girls Dresses")
     - **IMPORTANT**: When age is mentioned (e.g., "for 12 year old"), return ALL relevant age-specific categories. For example: "cardigan for 12 year old" → ["Tween Sweaters", "Girls Tops"] (both are relevant)
     - **IMPORTANT**: When inferring age from context clues (modest, muslim, conservative, traditional + daughter), ALWAYS return Kids categories - do NOT default to Adult categories
-12. Consider product types: "dress" → "Women's Dresses", "top" → "Tops", "swim" → "Swimsuits" or "Bikini Sets", "sweater"/"cardigan" → "Sweaters" or "Tops" or age-specific categories
+12. Consider product types: "dress" → "Women's Dresses", "top" → "Tops" or "Womens-tees" or "Mens-tees", "jeans" → "Womens-jeans" or "Mens-jeans", "pants" → "Womens-pants" or "Mens-pants", "swim" → "Swimsuits" or "Mens-swims" or "Girls Swimwear", "sweater"/"cardigan" → "Womens-sweaters" or "Mens-sweaters" or "Tops", "shoes" → "Shoes", "pajamas" → "Womens-pajamas" or "Mens-pajamas" or "Loungewear", "underwear" → "Mens-underwear", "shorts" → "Mens-shorts", "jacket" → "Mens-jackets" or "Tops", "loungewear" → "Womens-lounge", "bottoms" → "Girls Bottoms" or "Bottoms", "skirt" → "Skirts", "activewear" → "Activewear", "towels" → "Towels", "tabletop" → "Tabletop", "interiors" → "Interiors", "home decor" → "Home Decor", "gift wrapping" → "Gift Wrapping", "stationary" → "Stationary", or age-specific categories
 13. Consider context: "beach" might map to "Swimsuits", "Swim Cover-ups", or "Beach Towels"
 14. **For product types that could exist in multiple age groups, return multiple categories**:
     - "cardigan for 12 year old" → ["Tween Sweaters", "Girls Tops"] (both are relevant)
@@ -130,12 +135,38 @@ EXAMPLES:
 - "perfume" → ["Perfumes"]
 - "bedding" → ["Bedding"]
 - "accessories" → ["Accessories", "Jewelry", "Hair Accessories"]
+- "shoes" → ["Shoes"]
+- "everyday wear shoes" → ["Shoes"]
+- "suggest me everyday wear shoes" → ["Shoes"] (CRITICAL: "suggest me" does NOT make query vague if product type "shoes" is mentioned)
+- "casual shoes" → ["Shoes"]
+- "shoes for work" → ["Shoes"]
 - "onesies for babies" → ["Baby & Toddler Bottoms", "Girls Tops"]
 - "blazer" → ["Tops"] (blazers are specifically in Tops category, no age context, return single category for precision)
 - "black blazer" → ["Tops"] (blazers are in Tops, not Bottoms or Accessories, no age context)
 - "suits" → ["Tops", "Bottoms"] (suits are matching sets of jacket + pants/skirt)
 - "tailored suits" → ["Tops", "Bottoms"] (professional suits)
 - "matching sets" → ["Tops", "Bottoms"] or ["Tops", "Skirts"] depending on context
+- "women's t-shirts" or "womens tees" → ["Womens-tees"]
+- "men's t-shirts" or "mens tees" → ["Mens-tees"]
+- "girls pants" or "girls bottoms" → ["Girls Bottoms"]
+- "women's pants" or "womens pants" → ["Womens-pants"]
+- "women's jeans" or "womens jeans" → ["Womens-jeans"]
+- "men's jeans" or "mens jeans" → ["Mens-jeans"]
+- "loungewear for women" or "womens loungewear" → ["Womens-lounge"]
+- "men's pants" or "mens pants" → ["Mens-pants"]
+- "men's underwear" or "mens underwear" → ["Mens-underwear"]
+- "men's shorts" or "mens shorts" → ["Mens-shorts"]
+- "men's swimwear" or "mens swimwear" → ["Mens-swims"]
+- "men's jacket" or "mens jacket" → ["Mens-jackets"]
+- "men's sweater" or "mens sweater" → ["Mens-sweaters"]
+- "women's sweater" or "womens sweater" → ["Womens-sweaters"]
+- "activewear" or "athletic wear" → ["Activewear"]
+- "towels" → ["Towels"]
+- "tabletop items" or "tabletop" → ["Tabletop"]
+- "home interiors" or "interiors" → ["Interiors"]
+- "home decor" or "home decoration" → ["Home Decor"]
+- "gift wrapping" → ["Gift Wrapping"]
+- "stationary" or "stationery" → ["Stationary"]
 
 Output JSON with top 3 categories in order of relevance. Return ONLY the category name, not the description.`;
 
@@ -179,8 +210,19 @@ export async function classifyQueryToCategories(
   // Compute gender context and allowed categories BEFORE building prompt
   const genderContext = computeGenderContext(query, null);
   const { categoriesForPrompt } = buildAllowedCategoriesForClassifier(genderContext);
-  const allowedCategoriesList =
-    categoriesForPrompt.length > 0
+  
+  // Load database category dictionaries (categories with 3+ products)
+  const categoryDict = loadCategoryDictionaries();
+  
+  // Filter database categories to only include those in allowed categories
+  const allowedDatabaseCategories = categoriesForPrompt.filter(cat => 
+    categoryDict.categories.includes(cat)
+  );
+  
+  // Format categories with subcategories and product counts for prompt
+  const allowedCategoriesList = allowedDatabaseCategories.length > 0
+    ? formatCategoriesForPrompt(allowedDatabaseCategories)
+    : categoriesForPrompt.length > 0
       ? categoriesForPrompt.map((cat) => `- ${cat}`).join('\n')
       : '- (no specific categories; use your best judgment from the query)';
 
@@ -320,27 +362,53 @@ export type CategoryClassificationResult = {
  * 
  * @param query - User's shopping query
  * @param merchantId - Optional merchant ID for logging
+ * @param preFilteredCategories - Optional pre-filtered categories (if gender already extracted)
  * @returns Category classification result with categories and confidence
  */
 export async function classifyQueryToCategoriesWithConfidence(
   query: string,
-  merchantId?: string
+  merchantId?: string,
+  preFilteredCategories?: string[]
 ): Promise<CategoryClassificationResult> {
   const startTime = Date.now();
 
-  // Compute gender context and allowed categories BEFORE building prompt
-  const genderContext = computeGenderContext(query, null);
-  const { categoriesForPrompt } = buildAllowedCategoriesForClassifier(genderContext);
-  const allowedCategoriesList =
-    categoriesForPrompt.length > 0
+  // Use pre-filtered categories if provided (gender already extracted in orchestrator)
+  // Otherwise, compute gender context and allowed categories BEFORE building prompt
+  let categoriesForPrompt: string[];
+  if (preFilteredCategories && preFilteredCategories.length > 0) {
+    categoriesForPrompt = preFilteredCategories;
+    logger.info('category_classifier: using_pre_filtered_categories', {
+      query: query.substring(0, 100),
+      preFilteredCategoryCount: categoriesForPrompt.length,
+      merchantId,
+      note: 'Using pre-filtered categories from orchestrator (gender already extracted)',
+    });
+  } else {
+    const genderContext = computeGenderContext(query, null);
+    const result = buildAllowedCategoriesForClassifier(genderContext);
+    categoriesForPrompt = result.categoriesForPrompt;
+  }
+  
+  // Load database category dictionaries (categories with 3+ products)
+  const categoryDict = loadCategoryDictionaries();
+  
+  // Filter database categories to only include those in allowed categories
+  const allowedDatabaseCategories = categoriesForPrompt.filter(cat => 
+    categoryDict.categories.includes(cat)
+  );
+  
+  // Format categories with subcategories and product counts for prompt
+  const allowedCategoriesList = allowedDatabaseCategories.length > 0
+    ? formatCategoriesForPrompt(allowedDatabaseCategories)
+    : categoriesForPrompt.length > 0
       ? categoriesForPrompt.map((cat) => `- ${cat}`).join('\n')
       : '- (no specific categories; use your best judgment from the query)';
 
   logger.info('category_classifier: starting classification with confidence', {
     query: query.substring(0, 100),
     merchantId,
-    genderContext,
     allowedCategoryCount: categoriesForPrompt.length,
+    usingPreFiltered: !!(preFilteredCategories && preFilteredCategories.length > 0),
   });
 
   try {
@@ -375,6 +443,7 @@ export async function classifyQueryToCategoriesWithConfidence(
     }).filter(cat => cat.length > 0);
 
     // Normalize categories against the actual catalog category set
+    // CRITICAL: When mapping invalid categories, prefer categories from categoriesForPrompt (gender-filtered)
     const validCategories: string[] = [];
     const invalidCategories: string[] = [];
 
@@ -383,15 +452,46 @@ export async function classifyQueryToCategoriesWithConfidence(
         validCategories.push(cat);
       } else {
         invalidCategories.push(cat);
-        const closest = findClosestCategory(cat);
-        if (closest && !validCategories.includes(closest)) {
-          validCategories.push(closest);
-          logger.debug('category_classifier_with_confidence: mapped_invalid_category', {
-            original: cat,
-            mapped: closest,
-            query: query.substring(0, 100),
-            merchantId,
+        // First, try to find closest category from the pre-filtered list (gender-aware)
+        let closest: string | null = null;
+        if (categoriesForPrompt.length > 0) {
+          // Search within pre-filtered categories first (respects gender)
+          const queryLower = cat.toLowerCase();
+          const fromFiltered = categoriesForPrompt.find(c => {
+            const cLower = c.toLowerCase();
+            return cLower.includes(queryLower) || queryLower.includes(cLower) ||
+                   cLower.split(/\s+/).some(word => queryLower.includes(word)) ||
+                   queryLower.split(/\s+/).some(word => cLower.includes(word));
           });
+          if (fromFiltered && categoryExists(fromFiltered)) {
+            closest = fromFiltered;
+          }
+        }
+        // Fallback to global search if not found in pre-filtered list
+        if (!closest) {
+          closest = findClosestCategory(cat);
+        }
+        // CRITICAL: Only add if it's in the allowed categories (gender-filtered) or if no pre-filtering was done
+        if (closest && !validCategories.includes(closest)) {
+          const isAllowed = categoriesForPrompt.length === 0 || categoriesForPrompt.includes(closest);
+          if (isAllowed) {
+            validCategories.push(closest);
+            logger.debug('category_classifier_with_confidence: mapped_invalid_category', {
+              original: cat,
+              mapped: closest,
+              query: query.substring(0, 100),
+              merchantId,
+              fromPreFiltered: categoriesForPrompt.length > 0 && categoriesForPrompt.includes(closest),
+            });
+          } else {
+            logger.warn('category_classifier_with_confidence: mapped_category_rejected_by_gender', {
+              original: cat,
+              mapped: closest,
+              query: query.substring(0, 100),
+              merchantId,
+              note: 'Mapped category not in pre-filtered list (gender mismatch), rejecting',
+            });
+          }
         }
       }
     }

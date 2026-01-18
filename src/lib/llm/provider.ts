@@ -31,19 +31,19 @@ class LLMError extends Error {
 /**
  * Model Selection by Purpose:
  * 
- * - intent: Requires structured JSON output. Uses lightweight model (gpt-4.1-mini) for speed.
+ * - intent: Requires structured JSON output. Uses gpt-4.1-mini for speed and cost-effectiveness.
  * 
  * - final_reply: Natural language generation for conversational responses.
- *   Uses: GPT-5 for best quality and naturalness, or GPT-4.1 as fallback.
+ *   Uses: gpt-4.1-mini (optimized for cost and performance while maintaining quality).
  * 
  * - pdp_suitability: Analysis of product fit and user needs.
- *   Uses: Primary model (gpt-4.1) for quality, or lightweight model as fallback.
+ *   Uses: gpt-4.1-mini (primary model) for quality and cost-effectiveness.
  * 
  * - card_reason: Lightweight task generating short product card explanations.
  *   Uses: GPT-4.1-mini for cost-effectiveness while maintaining quality.
  */
 const REASONING_PURPOSES: Record<LlmCallOptions['purpose'], boolean> = {
-  intent: false,        // Use primary model (gpt-4.1) for accuracy, not reasoning model
+  intent: false,        // Use primary model (gpt-4.1-mini) for accuracy, not reasoning model
   final_reply: false,   // Natural language generation
   pdp_suitability: false, // Use primary model, not reasoning model
   card_reason: false,   // Simple text generation
@@ -53,7 +53,7 @@ const REASONING_PURPOSES: Record<LlmCallOptions['purpose'], boolean> = {
 };
 
 const PRIMARY_PURPOSES: Record<LlmCallOptions['purpose'], boolean> = {
-  intent: true, // Use primary model (gpt-4.1) for accurate constraint extraction - CRITICAL for product discovery accuracy
+  intent: true, // Use primary model (gpt-4.1-mini) for accurate constraint extraction - CRITICAL for product discovery accuracy
   final_reply: true,
   pdp_suitability: true,
   card_reason: false,

@@ -33,7 +33,8 @@ export function intentToStrategy(intent: ConstraintIntent): MatchStrategy {
  */
 function findExactDictionaryValue(
   constraintType: 'colors' | 'materials' | 'occasions' | 'styles' | 
-                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises',
+                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises' |
+                   'necklines' | 'sleeveLengths' | 'collections' | 'seasons' | 'colorShade' | 'embellishments',
   value: string
 ): string | null {
   const dictionary = getDictionaryForConstraintType(constraintType);
@@ -51,7 +52,8 @@ function findExactDictionaryValue(
 export function findClosestMatches(
   queryValue: string,
   constraintType: 'colors' | 'materials' | 'occasions' | 'styles' | 
-                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises',
+                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises' |
+                   'necklines' | 'sleeveLengths' | 'collections' | 'seasons' | 'colorShade' | 'embellishments',
   strategy: MatchStrategy = 'moderate'
 ): string[] {
   const dictionary = getDictionaryForConstraintType(constraintType);
@@ -105,16 +107,26 @@ export function findClosestMatches(
 /**
  * Validate and normalize constraint values against dictionary
  * Maps user-provided values to exact dictionary values (preserves case)
+ * 
+ * @param constraintType - Type of constraint to validate
+ * @param values - Values to validate
+ * @param categorySpecificValues - Optional category-specific values to check first (fallback to global dictionary)
  */
 export function validateConstraintValues(
   constraintType: 'colors' | 'materials' | 'occasions' | 'styles' | 
-                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises',
-  values: string[] | null | undefined
+                   'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises' |
+                   'necklines' | 'sleeveLengths' | 'collections' | 'seasons' | 'colorShade' | 'embellishments',
+  values: string[] | null | undefined,
+  categorySpecificValues?: string[]
 ): string[] | null {
   if (!values || values.length === 0) return null;
   
-  const dictionary = getDictionaryForConstraintType(constraintType);
-  const dictionaryLower = new Set(dictionary.map(v => v.toLowerCase().trim()));
+  // Use category-specific dictionary if available, otherwise fall back to global
+  // Map colorShade to 'colorShade' for dictionary lookup (getDictionaryForConstraintType expects 'colorShade')
+  const lookupType = constraintType === 'colorShade' ? 'colorShade' : constraintType;
+  const dictionary = categorySpecificValues && categorySpecificValues.length > 0
+    ? categorySpecificValues
+    : getDictionaryForConstraintType(lookupType as any);
   
   // Filter to only values that exist in dictionary (case-insensitive)
   const validValues: string[] = [];

@@ -26,6 +26,12 @@ const AGE_GROUP_MAPPING: Record<string, string[]> = {
   'for men': ['Adult'],
   'for ladies': ['Adult'],
   'for gentlemen': ['Adult'],
+  // Body type descriptors that indicate Adult (not age group modifiers)
+  'curvy women': ['Adult'],
+  'curvy woman': ['Adult'],
+  'curvy mom': ['Adult'],
+  'curvy moms': ['Adult'],
+  'curvy': ['Adult'], // When used as a descriptor for adult clothing
   
   // Kids
   'kids': ['Kids'],
@@ -224,3 +230,16 @@ export function isCanonicalAgeGroup(ageGroup: string): boolean {
   );
 }
 
+/**
+ * Validate age groups - filter to only canonical values
+ * Returns empty array if no valid age groups found
+ */
+export function validateAgeGroups(ageGroups: string[] | null | undefined): string[] {
+  if (!ageGroups || ageGroups.length === 0) return [];
+  
+  // Normalize first, then validate against canonical values
+  const normalized = normalizeAgeGroups(ageGroups);
+  
+  // Filter to only canonical values
+  return normalized.filter(ag => isCanonicalAgeGroup(ag));
+}

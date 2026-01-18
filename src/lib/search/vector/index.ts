@@ -1042,7 +1042,7 @@ export async function searchProductsByKeyword(
   categories: string[],
   queryEmbedding?: number[],
   limit: number = 50,
-  filters?: { inStockOnly?: boolean; merchantId?: string; priceMinCents?: number; priceMaxCents?: number; ageGroups?: string[] }
+  filters?: { inStockOnly?: boolean; merchantId?: string; genders?: string[]; priceMinCents?: number; priceMaxCents?: number; ageGroups?: string[] }
 ): Promise<Array<{ productId: string; similarity: number }>> {
   try {
     if (keywords.length === 0) {
@@ -1061,6 +1061,26 @@ export async function searchProductsByKeyword(
 
     if (filters?.inStockOnly) {
       whereConditions.push(`p."stockStatus" = 'in_stock'`);
+    }
+
+    // STEP 0: Gender filtering (PRIMARY FILTER - applied before category)
+    // Use indexed gender column for fast filtering
+    if (filters?.genders && filters.genders.length > 0) {
+      const genderOrConditions: string[] = [];
+      filters.genders.forEach((gender) => {
+        const normalizedGender = gender === 'mens' ? 'male' : gender === 'womens' ? 'female' : gender;
+        
+        if (normalizedGender === 'male') {
+          genderOrConditions.push(`(p."gender" = 'male' OR p."gender" = 'unisex')`);
+        } else if (normalizedGender === 'female') {
+          genderOrConditions.push(`(p."gender" = 'female' OR p."gender" = 'unisex')`);
+        } else if (normalizedGender === 'unisex') {
+          genderOrConditions.push(`p."gender" = 'unisex'`);
+        }
+      });
+      if (genderOrConditions.length > 0) {
+        whereConditions.push(`(${genderOrConditions.join(' OR ')})`);
+      }
     }
 
     // Add price filtering if provided
@@ -1291,7 +1311,36 @@ export async function searchProductsByKeyword(
 export async function searchVectorIndexWithDeduplication(
   queryEmbedding: number[],
   limit: number,
-  filters?: { inStockOnly?: boolean; merchantId?: string; categories?: string[]; priceMinCents?: number; priceMaxCents?: number; colors?: string[]; ageGroups?: string[]; excludedColors?: string[]; lengths?: string[] },
+  filters?: { 
+    inStockOnly?: boolean; 
+    merchantId?: string; 
+    categories?: string[]; 
+    genders?: string[]; 
+    priceMinCents?: number; 
+    priceMaxCents?: number; 
+    colors?: string[]; 
+    ageGroups?: string[]; 
+    excludedColors?: string[]; 
+    lengths?: string[];
+    // Constraint filters (Pattern, Occasion, Season, etc.) - will be OR'd together
+    // Category, Gender, AgeGroup remain as AND filters
+    patterns?: string[];
+    materials?: string[];
+    occasions?: string[];
+    sleeves?: string[];
+    necklines?: string[];
+    sizes?: string[];
+    fits?: string[];
+    styles?: string[];
+    collections?: string[];
+    seasons?: string[];
+    rises?: string[];
+    embellishments?: string[];
+    formalityLevel?: string[];
+    colorShade?: string[];
+    colorUndertone?: string[];
+    seasonalPalette?: string[];
+  },
   preDeduplicationLimit?: number,
   productIds?: string[] // NEW: pre-deduplicated product IDs to search within
 ): Promise<Array<{ productId: string; similarity: number }>> {
@@ -1312,6 +1361,9 @@ export async function searchVectorIndexWithDeduplication(
   try {
     // Build WHERE clause for filters
     const whereConditions: string[] = ['p.embedding IS NOT NULL', 'p."isActive" = true'];
+    // Collect constraint filters (Pattern, Occasion, Season, Materials, etc.) separately to OR them together
+    // Category, Gender, and AgeGroup remain as separate AND conditions
+    const constraintConditions: string[] = [];
     const params: unknown[] = [];
     
     // Embedding vector (must be first param)
@@ -1620,6 +1672,492 @@ export async function searchVectorIndexWithDeduplication(
       }
     }
     
+    // Add pattern filtering if provided (hard SQL-level filter for "required" intent)
+    // Patterns are stored as JSON arrays in attributes->'Pattern' (e.g., ["floral"], ["solid", "floral"])
+    // When extracted as text (->>'Pattern'), it returns the string representation like "[\"floral\"]"
+    // OR as strings in attributes->>'pattern_print'
+    if (filters?.patterns && filters.patterns.length > 0) {
+      const patternOrConditions: string[] = [];
+      filters.patterns.forEach((pattern) => {
+        const exactParam = paramIndex;
+        const patternCondition = `(
+          -- Check Pattern attribute as JSON array (case-insensitive)
+          -- Pattern is stored as JSON array: ["floral"], ["solid", "floral"], etc.
+          -- Use jsonb_array_elements_text to expand array and check each element
+          (p.attributes->'Pattern' IS NOT NULL AND
+           jsonb_typeof(p.attributes->'Pattern') = 'array' AND
+           EXISTS (
+             SELECT 1 FROM jsonb_array_elements_text(p.attributes->'Pattern') AS pattern_val
+             WHERE LOWER(pattern_val) = LOWER($${exactParam})
+           ))
+          OR
+          -- Check Pattern text representation (fallback for string-stored arrays)
+          -- Pattern text like "[\"floral\"]" contains the pattern value
+          (p.attributes->>'Pattern' IS NOT NULL AND
+           LOWER(p.attributes->>'Pattern') LIKE LOWER('%' || $${exactParam} || '%'))
+          OR
+          -- Check pattern_print as string (fallback - used by some products)
+          LOWER(COALESCE(p.attributes->>'pattern_print', '')) = LOWER($${exactParam})
+          OR
+          -- Check extensible Pattern attribute as JSON array
+          (p.attributes->'extensible' IS NOT NULL AND
+           p.attributes->'extensible'->'Pattern' IS NOT NULL AND
+           jsonb_typeof(p.attributes->'extensible'->'Pattern') = 'array' AND
+           EXISTS (
+             SELECT 1 FROM jsonb_array_elements_text(p.attributes->'extensible'->'Pattern') AS pattern_val
+             WHERE LOWER(pattern_val) = LOWER($${exactParam})
+           ))
+        )`;
+        patternOrConditions.push(patternCondition);
+        params.push(pattern);
+        paramIndex += 1;
+      });
+      if (patternOrConditions.length > 0) {
+        // Collect pattern filters in constraintConditions (will be OR'd with other constraints)
+        constraintConditions.push(`(${patternOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: pattern_filter_applied', {
+          patterns: filters.patterns,
+          patternCount: filters.patterns.length,
+          note: 'Pattern filter collected for OR grouping with other constraints',
+        });
+      }
+    }
+    
+    // Add material filtering if provided (hard SQL-level filter for "required" intent)
+    // Materials are stored in attributes->>'material', attributes->>'fabric', or attributes->>'materials'
+    if (filters?.materials && filters.materials.length > 0) {
+      const materialOrConditions: string[] = [];
+      filters.materials.forEach((material) => {
+        const exactParam = paramIndex;
+        const materialCondition = `(
+          -- Check material/fabric attributes (case-insensitive)
+          LOWER(COALESCE(p.attributes->>'material', '')) LIKE LOWER($${exactParam})
+          OR LOWER(COALESCE(p.attributes->>'fabric', '')) LIKE LOWER($${exactParam})
+          OR LOWER(COALESCE(p.attributes->>'materials', '')) LIKE LOWER($${exactParam})
+          OR (p.attributes->'extensible' IS NOT NULL AND (
+              LOWER(COALESCE(p.attributes->'extensible'->>'material', '')) LIKE LOWER($${exactParam})
+              OR LOWER(COALESCE(p.attributes->'extensible'->>'fabric', '')) LIKE LOWER($${exactParam})
+            ))
+        )`;
+        materialOrConditions.push(materialCondition);
+        params.push(`%${material}%`); // Use LIKE for partial matching (materials can be "100% Cotton")
+        paramIndex += 1;
+      });
+      if (materialOrConditions.length > 0) {
+        constraintConditions.push(`(${materialOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: material_filter_applied', {
+          materials: filters.materials,
+          materialCount: filters.materials.length,
+          note: 'Material filter is applied as hard SQL filter - products must match specified material(s)',
+        });
+      }
+    }
+    
+    // Add occasion filtering if provided (hard SQL-level filter for "required" intent)
+    // Occasions can be stored as JSON arrays (attributes->'Occasion') or strings (attributes->>'occasion', occasionContext column, etc.)
+    if (filters?.occasions && filters.occasions.length > 0) {
+      const occasionOrConditions: string[] = [];
+      filters.occasions.forEach((occasion) => {
+        const exactParam = paramIndex;
+        const occasionCondition = `(
+          -- Check Occasion as JSON array (capital O - used by concept search)
+          (p.attributes->'Occasion' IS NOT NULL AND
+           jsonb_typeof(p.attributes->'Occasion') = 'array' AND
+           EXISTS (
+             SELECT 1 FROM jsonb_array_elements_text(p.attributes->'Occasion') AS occasion_val
+             WHERE LOWER(occasion_val) LIKE LOWER($${exactParam})
+           ))
+          OR
+          -- Check occasion as string (lowercase - various formats)
+          LOWER(COALESCE(p.attributes->>'occasion', '')) LIKE LOWER($${exactParam})
+          OR LOWER(COALESCE(p.attributes->>'occasionContext', '')) LIKE LOWER($${exactParam})
+          OR
+          -- Check Occasion text representation (fallback for string-stored arrays)
+          (p.attributes->>'Occasion' IS NOT NULL AND
+           LOWER(p.attributes->>'Occasion') LIKE LOWER($${exactParam}))
+          OR
+          -- Check enriched occasionContext column
+          (p."occasionContext" IS NOT NULL AND 
+           LOWER(p."occasionContext"::text) LIKE LOWER($${exactParam}))
+          OR
+          -- Check extensible occasions
+          (p.attributes->'extensible' IS NOT NULL AND (
+            (p.attributes->'extensible'->'Occasion' IS NOT NULL AND
+             jsonb_typeof(p.attributes->'extensible'->'Occasion') = 'array' AND
+             EXISTS (
+               SELECT 1 FROM jsonb_array_elements_text(p.attributes->'extensible'->'Occasion') AS occasion_val
+               WHERE LOWER(occasion_val) LIKE LOWER($${exactParam})
+             ))
+            OR LOWER(COALESCE(p.attributes->'extensible'->>'occasion', '')) LIKE LOWER($${exactParam})
+            OR LOWER(COALESCE(p.attributes->'extensible'->>'occasionContext', '')) LIKE LOWER($${exactParam})
+          ))
+        )`;
+        occasionOrConditions.push(occasionCondition);
+        params.push(`%${occasion}%`);
+        paramIndex += 1;
+      });
+      if (occasionOrConditions.length > 0) {
+        // Collect occasion filters in constraintConditions (will be OR'd with other constraints)
+        constraintConditions.push(`(${occasionOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: occasion_filter_applied', {
+          occasions: filters.occasions,
+          occasionCount: filters.occasions.length,
+          note: 'Occasion filter collected for OR grouping with other constraints',
+        });
+      }
+    }
+    
+    // Add sleeve filtering if provided (hard SQL-level filter for "required" intent)
+    // Sleeves are stored in attributes->>'sleeve' or attributes->>'sleeveLength'
+    if (filters?.sleeves && filters.sleeves.length > 0) {
+      const sleeveOrConditions: string[] = [];
+      filters.sleeves.forEach((sleeve) => {
+        const exactParam = paramIndex;
+        const sleeveCondition = `(
+          -- Check sleeve attributes (case-insensitive)
+          LOWER(COALESCE(p.attributes->>'sleeve', '')) = LOWER($${exactParam})
+          OR LOWER(COALESCE(p.attributes->>'sleeveLength', '')) = LOWER($${exactParam})
+          OR (p.attributes->'extensible' IS NOT NULL AND (
+              LOWER(COALESCE(p.attributes->'extensible'->>'sleeve', '')) = LOWER($${exactParam})
+              OR LOWER(COALESCE(p.attributes->'extensible'->>'sleeveLength', '')) = LOWER($${exactParam})
+            ))
+        )`;
+        sleeveOrConditions.push(sleeveCondition);
+        params.push(sleeve);
+        paramIndex += 1;
+      });
+      if (sleeveOrConditions.length > 0) {
+        constraintConditions.push(`(${sleeveOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: sleeve_filter_applied', {
+          sleeves: filters.sleeves,
+          sleeveCount: filters.sleeves.length,
+          note: 'Sleeve filter is applied as hard SQL filter - products must match specified sleeve length(s)',
+        });
+      }
+    }
+    
+    // Add neckline filtering if provided (hard SQL-level filter for "required" intent)
+    // Necklines are stored in attributes->>'neckline'
+    if (filters?.necklines && filters.necklines.length > 0) {
+      const necklineOrConditions: string[] = [];
+      filters.necklines.forEach((neckline) => {
+        const exactParam = paramIndex;
+        const necklineCondition = `(
+          -- Check neckline attribute (case-insensitive)
+          LOWER(COALESCE(p.attributes->>'neckline', '')) = LOWER($${exactParam})
+          OR (p.attributes->'extensible' IS NOT NULL AND 
+              LOWER(COALESCE(p.attributes->'extensible'->>'neckline', '')) = LOWER($${exactParam}))
+        )`;
+        necklineOrConditions.push(necklineCondition);
+        params.push(neckline);
+        paramIndex += 1;
+      });
+      if (necklineOrConditions.length > 0) {
+        constraintConditions.push(`(${necklineOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: neckline_filter_applied', {
+          necklines: filters.necklines,
+          necklineCount: filters.necklines.length,
+          note: 'Neckline filter is applied as hard SQL filter - products must match specified neckline(s)',
+        });
+      }
+    }
+    
+    // Add size filtering if provided (hard SQL-level filter for "required" intent)
+    if (filters?.sizes && filters.sizes.length > 0) {
+      const sizeOrConditions: string[] = [];
+      filters.sizes.forEach((size) => {
+        const exactParam = paramIndex;
+        // Sizes are stored in JSONB array, need to check array elements
+        const sizeCondition = `(
+          EXISTS (
+            SELECT 1 FROM jsonb_array_elements_text(
+              COALESCE(p.attributes->'sizes', p.attributes->'size', '[]'::jsonb)
+            ) AS size_val
+            WHERE LOWER(size_val) = LOWER($${exactParam})
+          )
+        )`;
+        sizeOrConditions.push(sizeCondition);
+        params.push(size);
+        paramIndex += 1;
+      });
+      if (sizeOrConditions.length > 0) {
+        constraintConditions.push(`(${sizeOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: size_filter_applied', {
+          sizes: filters.sizes,
+          sizeCount: filters.sizes.length,
+          note: 'Size filter is applied as hard SQL filter - products must match specified size(s)',
+        });
+      }
+    }
+    
+    // Add fit filtering if provided (hard SQL-level filter for "required" intent)
+    if (filters?.fits && filters.fits.length > 0) {
+      const fitOrConditions: string[] = [];
+      filters.fits.forEach((fit) => {
+        const exactParam = paramIndex;
+        const fitCondition = `(
+          LOWER(COALESCE(p.attributes->>'fit', '')) = LOWER($${exactParam})
+          OR (p.attributes->'extensible' IS NOT NULL AND 
+              LOWER(COALESCE(p.attributes->'extensible'->>'fit', '')) = LOWER($${exactParam}))
+        )`;
+        fitOrConditions.push(fitCondition);
+        params.push(fit);
+        paramIndex += 1;
+      });
+      if (fitOrConditions.length > 0) {
+        constraintConditions.push(`(${fitOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: fit_filter_applied', {
+          fits: filters.fits,
+          fitCount: filters.fits.length,
+          note: 'Fit filter is applied as hard SQL filter - products must match specified fit(s)',
+        });
+      }
+    }
+    
+    // Add style filtering if provided (hard SQL-level filter for "required" intent)
+    // Styles can be stored as JSON arrays (attributes->'Style') or strings (attributes->>'style' or attributes->>'style_labels')
+    if (filters?.styles && filters.styles.length > 0) {
+      const styleOrConditions: string[] = [];
+      filters.styles.forEach((style) => {
+        const exactParam = paramIndex;
+        const styleCondition = `(
+          -- Check Style as JSON array (capital S - used by concept search)
+          (p.attributes->'Style' IS NOT NULL AND
+           jsonb_typeof(p.attributes->'Style') = 'array' AND
+           EXISTS (
+             SELECT 1 FROM jsonb_array_elements_text(p.attributes->'Style') AS style_val
+             WHERE LOWER(style_val) = LOWER($${exactParam})
+           ))
+          OR
+          -- Check style as string (lowercase - various formats)
+          LOWER(COALESCE(p.attributes->>'style', '')) LIKE LOWER($${exactParam})
+          OR LOWER(COALESCE(p.attributes->>'style_labels', '')) LIKE LOWER($${exactParam})
+          OR
+          -- Check Style text representation (fallback for string-stored arrays)
+          (p.attributes->>'Style' IS NOT NULL AND
+           LOWER(p.attributes->>'Style') LIKE LOWER($${exactParam}))
+          OR
+          -- Check extensible styles
+          (p.attributes->'extensible' IS NOT NULL AND (
+            (p.attributes->'extensible'->'Style' IS NOT NULL AND
+             jsonb_typeof(p.attributes->'extensible'->'Style') = 'array' AND
+             EXISTS (
+               SELECT 1 FROM jsonb_array_elements_text(p.attributes->'extensible'->'Style') AS style_val
+               WHERE LOWER(style_val) = LOWER($${exactParam})
+             ))
+            OR LOWER(COALESCE(p.attributes->'extensible'->>'style', '')) LIKE LOWER($${exactParam})
+            OR LOWER(COALESCE(p.attributes->'extensible'->>'style_labels', '')) LIKE LOWER($${exactParam})
+          ))
+        )`;
+        styleOrConditions.push(styleCondition);
+        params.push(`%${style}%`);
+        paramIndex += 1;
+      });
+      if (styleOrConditions.length > 0) {
+        constraintConditions.push(`(${styleOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: style_filter_applied', {
+          styles: filters.styles,
+          styleCount: filters.styles.length,
+          note: 'Style filter is applied as hard SQL filter - products must match specified style(s)',
+        });
+      }
+    }
+    
+    // Add collection filtering if provided (hard SQL-level filter for "required" intent)
+    if (filters?.collections && filters.collections.length > 0) {
+      const collectionOrConditions: string[] = [];
+      filters.collections.forEach((collection) => {
+        const exactParam = paramIndex;
+        const collectionCondition = `(
+          LOWER(COALESCE(p.attributes->>'collection', '')) LIKE LOWER($${exactParam})
+          OR (p.attributes->'extensible' IS NOT NULL AND 
+              LOWER(COALESCE(p.attributes->'extensible'->>'collection', '')) LIKE LOWER($${exactParam}))
+        )`;
+        collectionOrConditions.push(collectionCondition);
+        params.push(`%${collection}%`);
+        paramIndex += 1;
+      });
+      if (collectionOrConditions.length > 0) {
+        constraintConditions.push(`(${collectionOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: collection_filter_applied', {
+          collections: filters.collections,
+          collectionCount: filters.collections.length,
+          note: 'Collection filter is applied as hard SQL filter - products must match specified collection(s)',
+        });
+      }
+    }
+    
+    // Add season filtering if provided (hard SQL-level filter for "required" intent)
+    if (filters?.seasons && filters.seasons.length > 0) {
+      const seasonOrConditions: string[] = [];
+      filters.seasons.forEach((season) => {
+        const exactParam = paramIndex;
+        const seasonCondition = `(
+          LOWER(COALESCE(p.attributes->>'season', '')) LIKE LOWER($${exactParam})
+          OR LOWER(COALESCE(p.attributes->>'seasonalCues', '')) LIKE LOWER($${exactParam})
+          OR (p.attributes->'extensible' IS NOT NULL AND (
+              LOWER(COALESCE(p.attributes->'extensible'->>'season', '')) LIKE LOWER($${exactParam})
+              OR LOWER(COALESCE(p.attributes->'extensible'->>'seasonalCues', '')) LIKE LOWER($${exactParam})
+            ))
+        )`;
+        seasonOrConditions.push(seasonCondition);
+        params.push(`%${season}%`);
+        paramIndex += 1;
+      });
+      if (seasonOrConditions.length > 0) {
+        // Collect season filters in constraintConditions (will be OR'd with other constraints)
+        constraintConditions.push(`(${seasonOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: season_filter_applied', {
+          seasons: filters.seasons,
+          seasonCount: filters.seasons.length,
+          note: 'Season filter collected for OR grouping with other constraints',
+        });
+      }
+    }
+    
+    // Add rise filtering if provided (hard SQL-level filter for "required" intent)
+    if (filters?.rises && filters.rises.length > 0) {
+      const riseOrConditions: string[] = [];
+      filters.rises.forEach((rise) => {
+        const exactParam = paramIndex;
+        const riseCondition = `(
+          LOWER(COALESCE(p.attributes->>'rise', '')) = LOWER($${exactParam})
+          OR (p.attributes->'extensible' IS NOT NULL AND 
+              LOWER(COALESCE(p.attributes->'extensible'->>'rise', '')) = LOWER($${exactParam}))
+        )`;
+        riseOrConditions.push(riseCondition);
+        params.push(rise);
+        paramIndex += 1;
+      });
+      if (riseOrConditions.length > 0) {
+        constraintConditions.push(`(${riseOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: rise_filter_applied', {
+          rises: filters.rises,
+          riseCount: filters.rises.length,
+          note: 'Rise filter is applied as hard SQL filter - products must match specified rise(s)',
+        });
+      }
+    }
+    
+    // Add embellishment filtering if provided (hard SQL-level filter for "required" intent)
+    if (filters?.embellishments && filters.embellishments.length > 0) {
+      const embellishmentOrConditions: string[] = [];
+      filters.embellishments.forEach((embellishment) => {
+        const exactParam = paramIndex;
+        const embellishmentCondition = `(
+          LOWER(COALESCE(p.attributes->>'embellishments', '')) LIKE LOWER($${exactParam})
+          OR (p.attributes->'extensible' IS NOT NULL AND 
+              LOWER(COALESCE(p.attributes->'extensible'->>'embellishments', '')) LIKE LOWER($${exactParam}))
+        )`;
+        embellishmentOrConditions.push(embellishmentCondition);
+        params.push(`%${embellishment}%`);
+        paramIndex += 1;
+      });
+      if (embellishmentOrConditions.length > 0) {
+        constraintConditions.push(`(${embellishmentOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: embellishment_filter_applied', {
+          embellishments: filters.embellishments,
+          embellishmentCount: filters.embellishments.length,
+          note: 'Embellishment filter is applied as hard SQL filter - products must match specified embellishment(s)',
+        });
+      }
+    }
+    
+    // Add formalityLevel filtering if provided (hard SQL-level filter for "required" intent)
+    // Uses enriched column if available
+    if (filters?.formalityLevel && filters.formalityLevel.length > 0) {
+      const formalityOrConditions: string[] = [];
+      filters.formalityLevel.forEach((formality) => {
+        const exactParam = paramIndex;
+        const formalityCondition = `(
+          LOWER(COALESCE(p."formalityLevel", '')) = LOWER($${exactParam})
+          OR LOWER(COALESCE(p.attributes->>'formalityLevel', '')) = LOWER($${exactParam})
+        )`;
+        formalityOrConditions.push(formalityCondition);
+        params.push(formality);
+        paramIndex += 1;
+      });
+      if (formalityOrConditions.length > 0) {
+        constraintConditions.push(`(${formalityOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: formalityLevel_filter_applied', {
+          formalityLevels: filters.formalityLevel,
+          formalityLevelCount: filters.formalityLevel.length,
+          note: 'FormalityLevel filter is applied as hard SQL filter - products must match specified formality level(s)',
+        });
+      }
+    }
+    
+    // Add colorShade filtering if provided (hard SQL-level filter for "required" intent)
+    // Uses enriched column if available
+    if (filters?.colorShade && filters.colorShade.length > 0) {
+      const colorShadeOrConditions: string[] = [];
+      filters.colorShade.forEach((colorShade) => {
+        const exactParam = paramIndex;
+        const colorShadeCondition = `(
+          LOWER(COALESCE(p."colorShade", '')) = LOWER($${exactParam})
+          OR LOWER(COALESCE(p.attributes->>'colorShade', '')) = LOWER($${exactParam})
+        )`;
+        colorShadeOrConditions.push(colorShadeCondition);
+        params.push(colorShade);
+        paramIndex += 1;
+      });
+      if (colorShadeOrConditions.length > 0) {
+        constraintConditions.push(`(${colorShadeOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: colorShade_filter_applied', {
+          colorShades: filters.colorShade,
+          colorShadeCount: filters.colorShade.length,
+          note: 'ColorShade filter is applied as hard SQL filter - products must match specified color shade(s)',
+        });
+      }
+    }
+    
+    // Add colorUndertone filtering if provided (hard SQL-level filter for "required" intent)
+    if (filters?.colorUndertone && filters.colorUndertone.length > 0) {
+      const colorUndertoneOrConditions: string[] = [];
+      filters.colorUndertone.forEach((colorUndertone) => {
+        const exactParam = paramIndex;
+        const colorUndertoneCondition = `(
+          LOWER(COALESCE(p."colorUndertone", '')) = LOWER($${exactParam})
+          OR LOWER(COALESCE(p.attributes->>'colorUndertone', '')) = LOWER($${exactParam})
+        )`;
+        colorUndertoneOrConditions.push(colorUndertoneCondition);
+        params.push(colorUndertone);
+        paramIndex += 1;
+      });
+      if (colorUndertoneOrConditions.length > 0) {
+        constraintConditions.push(`(${colorUndertoneOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: colorUndertone_filter_applied', {
+          colorUndertones: filters.colorUndertone,
+          colorUndertoneCount: filters.colorUndertone.length,
+          note: 'ColorUndertone filter is applied as hard SQL filter - products must match specified color undertone(s)',
+        });
+      }
+    }
+    
+    // Add seasonalPalette filtering if provided (hard SQL-level filter for "required" intent)
+    if (filters?.seasonalPalette && filters.seasonalPalette.length > 0) {
+      const seasonalPaletteOrConditions: string[] = [];
+      filters.seasonalPalette.forEach((seasonalPalette) => {
+        const exactParam = paramIndex;
+        const seasonalPaletteCondition = `(
+          LOWER(COALESCE(p.attributes->>'seasonalPalette', '')) LIKE LOWER($${exactParam})
+          OR (p.attributes->'extensible' IS NOT NULL AND 
+              LOWER(COALESCE(p.attributes->'extensible'->>'seasonalPalette', '')) LIKE LOWER($${exactParam}))
+        )`;
+        seasonalPaletteOrConditions.push(seasonalPaletteCondition);
+        params.push(`%${seasonalPalette}%`);
+        paramIndex += 1;
+      });
+      if (seasonalPaletteOrConditions.length > 0) {
+        constraintConditions.push(`(${seasonalPaletteOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: seasonalPalette_filter_applied', {
+          seasonalPalettes: filters.seasonalPalette,
+          seasonalPaletteCount: filters.seasonalPalette.length,
+          note: 'SeasonalPalette filter is applied as hard SQL filter - products must match specified seasonal palette(s)',
+        });
+      }
+    }
+    
     // If productIds provided, filter to only those IDs (deduplication already done)
     if (productIds && productIds.length > 0) {
       // Build PostgreSQL array literal for product IDs
@@ -1655,6 +2193,15 @@ export async function searchVectorIndexWithDeduplication(
           whereConditions.push(`(${categoryOrConditions.join(' OR ')})`);
         }
       }
+    }
+    
+    // Combine all constraint filters with OR (except Category, Gender, AgeGroup which remain as AND)
+    if (constraintConditions.length > 0) {
+      whereConditions.push(`(${constraintConditions.join(' OR ')})`);
+      logger.debug('searchVectorIndexWithDeduplication: constraint_filters_combined', {
+        constraintCount: constraintConditions.length,
+        note: 'All constraint filters (Pattern, Occasion, Season, etc.) combined with OR',
+      });
     }
     
     // Build query - simplified if productIds provided (no deduplication needed)

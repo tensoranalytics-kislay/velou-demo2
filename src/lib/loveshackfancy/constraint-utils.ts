@@ -60,6 +60,7 @@ export type QueryConstraintsOld = {
   seasons?: string[] | null;
   materials?: string[] | null;
   fits?: string[] | null;
+  rises?: string[] | null;
   collections?: string[] | null;
   priceMinCents?: number | null;
   priceMaxCents?: number | null;
@@ -114,6 +115,7 @@ export type QueryConstraintsWithIntent = {
   necklines?: ConstraintWithIntent | null;
   sleeveLengths?: ConstraintWithIntent | null;
   lengths?: ConstraintWithIntent | null;
+  rises?: ConstraintWithIntent | null;
   ageGroups?: ConstraintWithIntent | null;
   formalityLevel?: ConstraintWithIntent | null;
   temperatureIntent?: StringConstraintWithIntent | null;
@@ -189,7 +191,7 @@ export function flattenConstraintsWithIntent(
   // Array constraints
   const arrayFields: Array<keyof QueryConstraintsWithIntent> = [
     'colors', 'sizes', 'occasions', 'styles', 'patterns', 'seasons', 'materials',
-    'fits', 'collections', 'embellishments', 'necklines', 'sleeveLengths',
+    'fits', 'rises', 'collections', 'embellishments', 'necklines', 'sleeveLengths',
     'lengths', 'ageGroups', 'formalityLevel', 'occasionContext',
     'problemSolutions', 'functionFeatures', 'colorShade', 'colorUndertone',
     'seasonalPalette', 'careRequirements', 'travelFeatures', 'ecoMaterials',
@@ -263,7 +265,7 @@ export function normalizeConstraintsToIntent(
   // Array constraints
   const arrayFields: Array<keyof QueryConstraintsOld> = [
     'colors', 'sizes', 'occasions', 'styles', 'patterns', 'seasons', 'materials',
-    'fits', 'collections', 'embellishments', 'necklines', 'sleeveLengths',
+    'fits', 'rises', 'collections', 'embellishments', 'necklines', 'sleeveLengths',
     'lengths', 'ageGroups', 'formalityLevel', 'occasionContext',
     'problemSolutions', 'functionFeatures', 'colorShade', 'colorUndertone',
     'seasonalPalette', 'careRequirements', 'travelFeatures', 'ecoMaterials',
@@ -370,6 +372,12 @@ export type RefinedConstraints = {
   fits?: string[];
   rises?: string[];
   formalityLevel?: string[];
+  necklines?: string[];
+  sleeveLengths?: string[];
+  collections?: string[];
+  seasons?: string[];
+  colorShade?: string[];
+  embellishments?: string[];
   importance?: Record<string, 'required' | 'strong' | 'preferred'>;
 };
 
@@ -400,8 +408,78 @@ export function refinedConstraintsToIntent(
   if (refined.sizes) result.sizes = createConstraint(refined.sizes, 'sizes');
   if (refined.lengths) result.lengths = createConstraint(refined.lengths, 'lengths');
   if (refined.fits) result.fits = createConstraint(refined.fits, 'fits');
+  if (refined.rises) result.rises = createConstraint(refined.rises, 'rises');
   if (refined.formalityLevel) result.formalityLevel = createConstraint(refined.formalityLevel, 'formalityLevel');
+  if (refined.necklines) result.necklines = createConstraint(refined.necklines, 'necklines');
+  if (refined.sleeveLengths) result.sleeveLengths = createConstraint(refined.sleeveLengths, 'sleeveLengths');
+  if (refined.collections) result.collections = createConstraint(refined.collections, 'collections');
+  if (refined.seasons) result.seasons = createConstraint(refined.seasons, 'seasons');
+  if (refined.colorShade) result.colorShade = createConstraint(refined.colorShade, 'colorShade');
+  if (refined.embellishments) result.embellishments = createConstraint(refined.embellishments, 'embellishments');
   
   return result;
+}
+
+/**
+ * Convert a required constraint to preferred (soft) for ranking
+ * This allows the constraint to still affect ranking but not hard-filter products
+ */
+export function convertConstraintToSoft<T extends ConstraintWithIntent | StringConstraintWithIntent | BooleanConstraintWithIntent | PriceConstraintWithIntent>(
+  constraint: T | null | undefined
+): T | null | undefined {
+  if (!constraint) return constraint;
+  if (Array.isArray(constraint)) return constraint; // Old format - no change
+  if (typeof constraint === 'string' || typeof constraint === 'number' || typeof constraint === 'boolean') return constraint; // Old format - no change
+  
+  // New format - convert required to preferred
+  if ('intent' in constraint && constraint.intent === 'required') {
+    return {
+      ...constraint,
+      intent: 'preferred' as ConstraintIntent,
+    } as T;
+  }
+  
+  return constraint;
+}
+
+/**
+ * Get constraint importance ordering for progressive relaxation
+ * Returns constraints ordered from least important to most important
+ * This determines the order in which constraints should be dropped/softened
+ */
+export function getConstraintImportanceOrder(): Array<{
+  field: keyof QueryConstraintsWithIntent;
+  weight: number;
+  category: 'soft' | 'hard';
+}> {
+  // Define importance ordering based on typical user priority and constraint weights
+  // Lower weight = less important = dropped first
+  // Soft constraints (preferred/strong) are dropped before hard constraints (required)
+  // NEVER include gender, category, or ageGroups - these are HARD SQL filters that are never relaxed
+  return [
+    // Soft constraints (preferred/strong) - dropped first
+    { field: 'embellishments', weight: 0.2, category: 'soft' },
+    { field: 'collections', weight: 0.2, category: 'soft' },
+    { field: 'modestyCues', weight: 0.5, category: 'soft' },
+    { field: 'seasonalPalette', weight: 0.5, category: 'soft' },
+    { field: 'colorUndertone', weight: 0.5, category: 'soft' },
+    { field: 'colorShade', weight: 0.5, category: 'soft' },
+    { field: 'sleeveLengths', weight: 0.35, category: 'soft' },
+    { field: 'necklines', weight: 0.4, category: 'soft' },
+    { field: 'patterns', weight: 0.5, category: 'soft' },
+    { field: 'seasons', weight: 0.45, category: 'soft' },
+    { field: 'styles', weight: 0.5, category: 'soft' },
+    { field: 'materials', weight: 0.3, category: 'soft' },
+    { field: 'occasions', weight: 0.8, category: 'soft' },
+    { field: 'lengths', weight: 0.5, category: 'soft' },
+    { field: 'formalityLevel', weight: 0.8, category: 'soft' },
+    
+    // Hard constraints (required) - dropped later, converted to soft
+    { field: 'rises', weight: 0.25, category: 'hard' },
+    { field: 'fits', weight: 0.25, category: 'hard' },
+    { field: 'sizes', weight: 0.9, category: 'hard' },
+    { field: 'colors', weight: 1.2, category: 'hard' },
+    // NOTE: ageGroups, gender, category are NOT included here - they're HARD SQL filters that are NEVER relaxed
+  ];
 }
 

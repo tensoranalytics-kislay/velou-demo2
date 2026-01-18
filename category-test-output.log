@@ -1,0 +1,68 @@
+🎯 Category Normalization Script
+
+   Mode: DRY RUN (preview only)
+
+📦 Extracting unique categories with sample products from database...
+
+   Found 100 unique categories
+
+   Extracted samples for 100 categories
+
+🤖 Normalizing 100 categories using LLM (batch size: 10)...
+
+   Processing batch 1/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 1, converting to array format
+   ✅ Batch 1 completed: 1 normalized
+   Processing batch 2/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 2, converting to array format
+   ✅ Batch 2 completed: 1 normalized
+   Processing batch 3/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 3, converting to array format
+   ✅ Batch 3 completed: 1 normalized
+   Processing batch 4/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 4, converting to array format
+   ✅ Batch 4 completed: 1 normalized
+   Processing batch 5/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 5, converting to array format
+   ✅ Batch 5 completed: 1 normalized
+   Processing batch 6/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 6, converting to array format
+   ✅ Batch 6 completed: 1 normalized
+   Processing batch 7/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 7, converting to array format
+   ✅ Batch 7 completed: 1 normalized
+   Processing batch 8/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 8, converting to array format
+   ✅ Batch 8 completed: 1 normalized
+   Processing batch 9/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 9, converting to array format
+   ✅ Batch 9 completed: 1 normalized
+   Processing batch 10/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 10, converting to array format
+   ✅ Batch 10 completed: 1 normalized
+
+   ✅ Normalization complete: 1 mappings created, 0 errors
+
+   💾 Mapping saved to /Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/category-normalization-mapping.json
+
+🔍 Verifying category mappings for safety...
+
+   ✅ Verified: 0 safe mappings
+   ⚠️  Failed verification: 0 mappings
+
+📝 Updating categories in database (DRY RUN - no changes will be made)...
+
+
+📊 Summary:
+
+   Categories processed: 1
+   Verified mappings: 0
+   Verification failures: 0
+   Products processed: 0
+   Products updated: 0
+   Products skipped: 0
+   Errors: 0
+
+   ⚠️  DRY RUN mode: No database changes were made
+   Run without --dry-run to apply changes
+

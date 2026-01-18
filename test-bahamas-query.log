@@ -1,0 +1,3789 @@
+🧪 Testing Query:
+
+   "I am going to Bahamas for vacation, suggest me a dress."
+
+================================================================================
+
+[2026-01-18T15:50:24.950Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: starting',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  sessionId: 'test-bahamas-query-1768751424948',
+  isFollowUp: false,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[2026-01-18T15:50:24.952Z] [Velou:DEBUG] {
+  message: 'I am going to Bahamas for vacation, suggest me a dress.',
+  sessionId: 'test-bahamas-query-1768751424948',
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  productContextId: undefined
+}
+[ORCHESTRATOR] START - input.conversationState: {
+  hasConversationState: false,
+  hasMemory: false,
+  hasPendingFollowups: false,
+  memoryKeys: []
+}
+[ORCHESTRATOR] Checking for pendingFollowups: {
+  hasInputConversationState: false,
+  hasMemory: true,
+  hasPendingFollowups: false,
+  pendingFollowupsData: null,
+  message: 'I am going to Bahamas for vacation, suggest me a d',
+  fullMemory: '{}'
+}
+[2026-01-18T15:50:24.954Z] [Velou:DEBUG] {
+  message: 'not_checking_followup',
+  currentMessage: 'I am going to Bahamas for vacation, suggest me a dress.',
+  hasQueryToMergeWith: false,
+  hasPreviousConstraints: false,
+  isShortMessage: true,
+  matchesFollowUpPattern: false,
+  messageLength: 11
+}
+[2026-01-18T15:50:24.966Z] [Velou:INFO] {
+  message: 'gender_and_agegroup_extracted_early',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  resolvedGender: 'female',
+  resolvedAgeGroup: 'Adult',
+  genderSource: 'none',
+  ageGroupSource: 'default'
+}
+[2026-01-18T15:50:24.966Z] [Velou:DEBUG] {
+  message: 'query_categorizer: starting',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[2026-01-18T15:50:27.276Z] [Velou:DEBUG] {
+  message: 'query_categorizer: complete',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  category: 'direct_search',
+  confidence: 0.95,
+  duration: 2309
+}
+[2026-01-18T15:50:27.276Z] [Velou:INFO] {
+  message: 'query_categorization_result',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  category: 'direct_search',
+  confidence: 0.95,
+  note: 'Query categorizer classification result'
+}
+[2026-01-18T15:50:27.277Z] [Velou:INFO] {
+  message: 'parallelizing_classification_and_category_classification',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  categorizationCategory: 'direct_search',
+  isFollowUp: false,
+  hasCategorySignals: true
+}
+[2026-01-18T15:50:27.285Z] [Velou:DEBUG] {
+  message: 'buildAllowedCategoriesForClassifier: gender_interpretable',
+  genderContext: 'female',
+  totalCategories: 121,
+  allowedCategories: 101,
+  sampleAllowed: [
+    'Pajama Set',
+    'Textiles',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Home Decor',
+    'Sleepwear & Loungewear',
+    'Phone Cases',
+    'Kitchen & Dining',
+    'gift card'
+  ]
+}
+[2026-01-18T15:50:27.285Z] [Velou:INFO] {
+  message: 'categories_filtered_before_classification',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  resolvedGender: 'female',
+  totalCategories: 101,
+  sampleCategories: [
+    'Pajama Set',
+    'Textiles',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Home Decor',
+    'Sleepwear & Loungewear',
+    'Phone Cases',
+    'Kitchen & Dining',
+    'gift card'
+  ]
+}
+[2026-01-18T15:50:27.286Z] [Velou:INFO] {
+  message: 'classifyQuery: starting',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  hasLastConstraints: false,
+  hasEnhancedQuery: true
+}
+[2026-01-18T15:50:27.287Z] [Velou:INFO] {
+  message: 'classifyQuery: gender_context_computed',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  genderContext: null,
+  lastConstraintsGender: undefined,
+  note: 'Gender context computed before building classifier prompt'
+}
+[2026-01-18T15:50:27.287Z] [Velou:DEBUG] {
+  message: 'buildAllowedCategoriesForClassifier: gender_ambiguous_strict_majority',
+  genderContext: null,
+  totalCategories: 121,
+  strictMajorityCategories: 69,
+  sampleAllowed: [
+    'Pajama Set',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Sleepwear & Loungewear',
+    'long sleeve',
+    'mom jeans',
+    'joggers',
+    'underwear',
+    'Mens-tees'
+  ],
+  note: 'Using only strict gender majority categories (≥95% male or female) for ambiguous queries'
+}
+[2026-01-18T15:50:27.287Z] [Velou:INFO] {
+  message: 'classifyQuery: allowed_categories_computed',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  genderContext: null,
+  usedStrictMajorityMode: true,
+  allowedCategoryCount: 69,
+  sampleCategories: [
+    'Pajama Set',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Sleepwear & Loungewear',
+    'long sleeve',
+    'mom jeans',
+    'joggers',
+    'underwear',
+    'Mens-tees',
+    'straight leg jeans',
+    'top',
+    'cropped jeans',
+    'Maxi Dress',
+    'Girls Dresses'
+  ],
+  note: 'Category list filtered based on gender context before building classifier prompt'
+}
+[ORCHESTRATOR] Calling category classification {
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  originalMessage: 'I am going to Bahamas for vacation, suggest me a dress.',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  categorizationCategory: 'direct_search'
+}
+[2026-01-18T15:50:27.289Z] [Velou:INFO] {
+  message: 'category_classification_calling_function',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  originalMessage: 'I am going to Bahamas for vacation, suggest me a dress.',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  categorizationCategory: 'direct_search'
+}
+[2026-01-18T15:50:27.290Z] [Velou:INFO] {
+  message: 'category_classifier: using_pre_filtered_categories',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  preFilteredCategoryCount: 101,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  note: 'Using pre-filtered categories from orchestrator (gender already extracted)'
+}
+[2026-01-18T15:50:27.290Z] [Velou:INFO] {
+  message: 'category_classifier: starting classification with confidence',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  allowedCategoryCount: 101,
+  usingPreFiltered: true
+}
+[2026-01-18T15:50:28.800Z] [Velou:INFO] {
+  message: 'category_classifier: classification with confidence complete',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  categories: [ "Women's Dresses" ],
+  categoryCount: 1,
+  confidence: 0.8,
+  elapsedMs: 1510,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[ORCHESTRATOR] Category classification result (with confidence) {
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  originalMessage: 'I am going to Bahamas for vacation, suggest me a dress.',
+  isFollowUp: false,
+  categories: [ "Women's Dresses" ],
+  count: 1,
+  confidence: 0.8,
+  categorizationCategory: 'direct_search'
+}
+[2026-01-18T15:50:28.802Z] [Velou:INFO] {
+  message: 'category_classification_complete_with_confidence',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  originalMessage: 'I am going to Bahamas for vacation, suggest me a dress.',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  categorizationCategory: 'direct_search',
+  categories: [ "Women's Dresses" ],
+  categoryCount: 1,
+  confidence: 0.8
+}
+[2026-01-18T15:50:28.802Z] [Velou:INFO] {
+  message: 'category_filter_will_be_applied',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  categories: [ "Women's Dresses" ],
+  filterType: 'hard_sql_level',
+  appliesTo: 'multi_view_retrieval'
+}
+[2026-01-18T15:50:32.313Z] [Velou:INFO] {
+  message: 'classifyQuery: llm_raw_response',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  rawTextLength: 473,
+  parsedType: 'occasion_based',
+  parsedConstraints: {
+    colors: null,
+    lengths: null,
+    occasions: [ 'Vacation' ],
+    seasons: [ 'Summer' ],
+    materials: null,
+    patterns: null,
+    sizes: null,
+    fits: null,
+    collections: null,
+    priceMinCents: null,
+    priceMaxCents: null,
+    embellishments: null,
+    necklines: null,
+    sleeveLengths: null,
+    ageGroups: [ 'Adult' ],
+    scents: null,
+    rooms: null,
+    useCases: null,
+    benefits: null,
+    claims: null,
+    sensoryProfile: null,
+    compatibility: null
+  },
+  parsedColors: null,
+  parsedLengths: null,
+  parsedSleeveLengths: null,
+  parsedAgeGroups: [ 'Adult' ],
+  note: 'Raw LLM response for constraint extraction debugging'
+}
+[2026-01-18T15:50:32.315Z] [Velou:INFO] {
+  message: 'classifyQuery: constraint_extraction_results',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  extractedColors: null,
+  extractedLengths: null,
+  extractedSleeveLengths: null,
+  extractedAgeGroups: [ 'Adult' ],
+  colorsFormat: 'null',
+  lengthsFormat: 'null',
+  sleeveLengthsFormat: 'null',
+  ageGroupsFormat: 'array',
+  note: 'Extracted constraints after normalization - verify all explicit constraints were extracted'
+}
+[2026-01-18T15:50:32.316Z] [Velou:INFO] {
+  message: 'classifier_constraints_extracted',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  type: 'occasion_based',
+  productTerms: 'dress',
+  confidence: 0.9,
+  constraintsCount: 5,
+  colors: undefined,
+  lengths: undefined,
+  sleeveLengths: undefined,
+  ageGroups: { values: [ 'Adult' ], intent: 'strong' },
+  missingConstraints: undefined,
+  allConstraints: {
+    occasions: { values: [Array], intent: 'strong' },
+    seasons: [ 'Summer' ],
+    ageGroups: { values: [Array], intent: 'strong' },
+    priceMinCents: null,
+    priceMaxCents: null
+  },
+  hasLastConstraints: false,
+  lastConstraintsKeys: []
+}
+[2026-01-18T15:50:32.316Z] [Velou:DEBUG] {
+  message: 'fashion_query_classified',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  type: 'occasion_based',
+  productTerms: 'dress',
+  constraintsCount: 6
+}
+[2026-01-18T15:50:32.316Z] [Velou:INFO] {
+  message: 'classifyQuery: complete',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  type: 'occasion_based',
+  totalDurationMs: 5030,
+  totalDurationSeconds: '5.03',
+  llmDurationMs: 5025,
+  llmDurationSeconds: '5.03',
+  constraintsCount: 6,
+  genderContext: null,
+  usedStrictMajorityMode: true
+}
+[2026-01-18T15:50:32.316Z] [Velou:INFO] {
+  message: 'classification_metadata_extracted',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  usedStrictMajorityMode: true,
+  genderContext: null,
+  classificationConfidence: 0.9,
+  classifiedGender: undefined
+}
+[2026-01-18T15:50:32.317Z] [Velou:INFO] {
+  message: 'category_categories_set_from_parallel_classification',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  categories: [ "Women's Dresses" ],
+  confidence: 0.8
+}
+[2026-01-18T15:50:32.323Z] [Velou:INFO] {
+  message: 'categories_filtered_by_gender_after_classification',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  resolvedGender: 'female',
+  originalCategories: [ "Women's Dresses" ],
+  filteredCategories: [ "Women's Dresses" ],
+  removedCount: 0
+}
+[2026-01-18T15:50:32.323Z] [Velou:INFO] {
+  message: 'gender_added_to_classification_constraints',
+  gender: 'female',
+  isFollowUp: false,
+  note: 'Gender extracted early and added to classification constraints'
+}
+[2026-01-18T15:50:32.323Z] [Velou:DEBUG] {
+  message: 'clarification_triggers_evaluation',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  topCategoriesCount: 1,
+  classificationType: 'occasion_based',
+  hasProductTerms: true,
+  productTerms: 'dress',
+  classificationConfidence: 0.9,
+  needsClarification: false
+}
+[2026-01-18T15:50:32.323Z] [Velou:INFO] {
+  message: 'category_filter_applied_to_retrieval',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  categories: [ "Women's Dresses" ],
+  filterType: 'hard_sql_level',
+  note: 'Catalog will be filtered to these categories before multi-view retrieval'
+}
+[2026-01-18T15:50:32.323Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: starting_retrieval',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  productTerms: 'dress',
+  classificationType: 'occasion_based',
+  categoryCount: 1
+}
+[2026-01-18T15:50:32.326Z] [Velou:DEBUG] {
+  message: 'category_expansion_parent_with_subcategories',
+  originalCategory: "Women's Dresses",
+  subcategoryCount: 5,
+  reason: 'parent_category_naturally_covers_subcategories_via_sql'
+}
+[2026-01-18T15:50:32.326Z] [Velou:DEBUG] {
+  message: 'category_expansion_complete',
+  inputCategories: [ "Women's Dresses" ],
+  expandedCategories: [ "Women's Dresses" ],
+  expansionCount: 0
+}
+[2026-01-18T15:50:32.327Z] [Velou:INFO] {
+  message: 'gender_hard_filter_applied_to_retrieval',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  resolvedGender: 'female',
+  note: 'Gender applied as HARD SQL filter - will never be relaxed'
+}
+[2026-01-18T15:50:32.327Z] [Velou:INFO] {
+  message: 'agegroup_hard_filter_applied_to_retrieval',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  resolvedAgeGroup: 'Adult',
+  note: 'AgeGroup applied as HARD SQL filter - will never be relaxed'
+}
+[2026-01-18T15:50:32.327Z] [Velou:INFO] {
+  message: 'category_filter_passed_to_search_constraints',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  categories: [ "Women's Dresses" ],
+  willFilterLexical: false,
+  willFilterSemantic: true
+}
+[2026-01-18T15:50:32.327Z] [Velou:DEBUG] {
+  message: 'fashion_semantic_search: query for embedding',
+  original: 'I am going to Bahamas for vacation, suggest me a dress.',
+  productTerms: 'dress',
+  usingForEmbedding: 'dress'
+}
+[2026-01-18T15:50:33.791Z] [Velou:DEBUG] {
+  message: 'constraint_context: age_groups_preserved_in_sql_filters',
+  categories: [ "Women's Dresses" ],
+  ageGroups: [ 'Adult' ],
+  originalFormat: 'array',
+  note: 'Age groups preserved as hard SQL filters'
+}
+[2026-01-18T15:50:33.791Z] [Velou:DEBUG] {
+  message: 'constraint_context: applied_category_metadata',
+  categories: [ "Women's Dresses" ],
+  originalConstraints: {
+    colors: 0,
+    materials: 0,
+    fabrics: 0,
+    sizes: 0,
+    occasions: 1,
+    seasons: 1,
+    lengths: 0,
+    sleeves: 0,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  sqlFilters: {
+    colors: 0,
+    materials: 0,
+    fabrics: 0,
+    sizes: 0,
+    occasions: 1,
+    seasons: 1,
+    lengths: 0,
+    sleeves: 0,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  excludedFilters: {
+    colors: 0,
+    materials: 0,
+    fabrics: 0,
+    sizes: 0,
+    occasions: 0,
+    seasons: 0,
+    styleTags: 0,
+    pattern: 0,
+    fit: 0,
+    lengths: 0,
+    sleeves: 0,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  keywordTerms: 0,
+  categoryKeywordsExtracted: 0,
+  categoryKeywordsSample: [],
+  applicableConstraints: [
+    'colors',    'sizes',
+    'fabrics',   'materials',
+    'occasions', 'seasons',
+    'fit',       'price'
+  ],
+  textOnlyConstraints: []
+}
+[2026-01-18T15:50:33.791Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: intent_extraction_for_post_sql_filtering',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  constraintIntents: {
+    colors: null,
+    lengths: null,
+    sleeveLengths: null,
+    necklines: null,
+    formalityLevel: null,
+    colorShade: null
+  },
+  contextAwareIntents: {
+    colors: null,
+    lengths: null,
+    sleeves: null,
+    necklines: null,
+    formalityLevels: null,
+    colorShades: null
+  },
+  note: 'Intent information extracted and mapped for post-SQL filtering'
+}
+[2026-01-18T15:50:33.791Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: context_aware_constraints_applied',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  categories: [ "Women's Dresses" ],
+  originalColors: undefined,
+  originalAgeGroups: [ 'Adult' ],
+  sqlFiltersColors: undefined,
+  sqlFiltersAgeGroups: [ 'Adult' ],
+  keywordTerms: [],
+  keywordTermsSample: [],
+  textOnlyConstraints: [],
+  allowKeywordMatching: false
+}
+[2026-01-18T15:50:33.792Z] [Velou:DEBUG] {
+  message: 'fashion_semantic_search: post_sql_filtering_flag',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  usePostSQLFiltering: true,
+  flagValue: 'true'
+}
+[2026-01-18T15:50:33.792Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: tier1_strict_filtering',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  originalCategories: [ "Women's Dresses" ],
+  expandedCategories: [ "Women's Dresses" ],
+  usePostSQLFiltering: true,
+  sqlFilters: {
+    colors: 0,
+    materials: 0,
+    fabrics: 0,
+    lengths: 0,
+    sleeves: 0,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  keywordTerms: 0
+}
+[2026-01-18T15:50:33.792Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: tier1_before_post_sql_check',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  USE_POST_SQL_FILTERING: true,
+  envValue: 'true',
+  expandedCategories: [ "Women's Dresses" ],
+  ageGroups: [ 'Adult' ],
+  note: 'Checking which mode to use (post-SQL filtering vs existing mode)'
+}
+[2026-01-18T15:50:33.792Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: post_sql_filtering_mode_enabled',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  expandedCategories: [ "Women's Dresses" ],
+  ageGroups: [ 'Adult' ],
+  note: 'Post-SQL filtering mode enabled - Stage 1: Category-only SQL filter starting'
+}
+[2026-01-18T15:50:33.793Z] [Velou:INFO] {
+  message: 'deduplicateProductsByCategoryForPostFiltering: executing query',
+  filters: {
+    genders: [ 'female' ],
+    categories: [ "Women's Dresses" ],
+    ageGroups: [ 'Adult' ],
+    priceMinCents: undefined,
+    priceMaxCents: undefined,
+    merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+    inStockOnly: true
+  },
+  limit: 1500,
+  categoryCount: 1,
+  categories: [ "Women's Dresses" ],
+  hasPriceFilter: false,
+  priceMinCents: undefined,
+  priceMaxCents: undefined,
+  hasAgeGroupFilter: true,
+  ageGroups: [ 'Adult' ],
+  ageGroupCount: 1,
+  paramCount: 6,
+  whereClausePreview: `p."isActive" = true AND p."merchantId" = $1 AND p."stockStatus" = 'in_stock' AND ((p."gender" = 'female' OR p."gender" = 'unisex')) AND ((\n` +
+    '            LOWER(p."category") = LOWER($2) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($3)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($2) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($3)\n` +
+    '          )) AND ((((\n' +
+    `          LOWER(COALESCE(p."ageGroup", '')) = LOWER($4) \n` +
+    `          OR LOWER(COALESCE(p."ageGroup", '')) LIKE LOWER($5)\n` +
+    '          OR\n' +
+    "          LOWER(COALESCE(p.attributes->>'ageGroup', '')) = LOWER($4) \n" +
+    "          OR LOWER(COALESCE(p.attributes->>'ageGroup', '')) LIKE LOWER($5)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'age_group', '')) = LOWER($4)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'age_group', '')) LIKE LOWER($5)\n" +
+    "          OR (p.attributes->'extensible' IS NOT NULL AND (\n" +
+    "            LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) = LOWER($4) \n" +
+    "            OR LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) LIKE LOWER($5)\n" +
+    '          ))\n' +
+    `        ) OR (LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%'))) AND NOT ((LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')))`,
+  note: 'Post-filterable attributes (colors, lengths, sleeves, necklines, formalityLevels, colorShades) intentionally omitted from SQL filters'
+}
+[2026-01-18T15:50:36.523Z] [Velou:INFO] {
+  message: 'deduplicateProductsByCategoryForPostFiltering: results found',
+  count: 973,
+  requestedLimit: 1500,
+  categoryCount: 1
+}
+[2026-01-18T15:50:36.523Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: post_sql_filtering_stage1_complete',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  categoryFilteredCount: 973,
+  note: 'Stage 1: Category-only SQL filter completed'
+}
+[2026-01-18T15:50:36.523Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: calling_buildDictionariesAndFilter_with_intents',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  contextAwareIntents: {
+    colors: null,
+    lengths: null,
+    sleeves: null,
+    necklines: null,
+    formalityLevels: null,
+    colorShades: null
+  },
+  hasColorsIntent: false,
+  hasLengthsIntent: false,
+  hasSleevesIntent: false,
+  hasNecklinesIntent: false,
+  hasFormalityIntent: false,
+  note: 'About to build dictionaries and filter products in single pass'
+}
+[2026-01-18T15:50:39.506Z] [Velou:INFO] {
+  message: 'buildDictionariesAndFilter: loaded products',
+  productIdsCount: 973,
+  productsLoaded: 973,
+  hasFilters: undefined,
+  filtersProvided: {
+    colors: 0,
+    lengths: 0,
+    sleeves: 0,
+    necklines: 0,
+    formalityLevels: 0,
+    colorShades: 0
+  }
+}
+[2026-01-18T15:50:39.508Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: post_sql_filtering_stage2_complete',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  originalCount: 973,
+  postFilteredCount: 973,
+  reductionPercentage: '0.00%',
+  dictionaryCount: 17,
+  filtersApplied: {
+    colors: 0,
+    colorValues: undefined,
+    lengths: 0,
+    lengthValues: undefined,
+    sleeves: 0,
+    sleeveValues: undefined,
+    necklines: 0,
+    necklineValues: undefined,
+    formalityLevels: 0,
+    formalityLevelValues: undefined,
+    colorShades: 0,
+    colorShadeValues: undefined
+  },
+  note: 'Stage 2: Dictionaries built and products filtered in single pass'
+}
+[2026-01-18T15:50:39.509Z] [Velou:INFO] {
+  message: 'searchVectorIndexWithDeduplication: using pre-deduplicated product IDs',
+  productIdsCount: 973,
+  limit: 150,
+  filters: {
+    inStockOnly: true,
+    merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+  }
+}
+[2026-01-18T15:50:39.509Z] [Velou:DEBUG] {
+  message: 'searchVectorIndexWithDeduplication: executing query',
+  limit: 150,
+  preDedupLimit: undefined,
+  filters: {
+    inStockOnly: true,
+    merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+    categories: undefined,
+    genders: [ 'female' ],
+    ageGroups: [ 'Adult' ],
+    priceMinCents: undefined,
+    priceMaxCents: undefined,
+    colors: undefined,
+    excludedColors: undefined,
+    lengths: undefined
+  },
+  hasPriceFilter: false,
+  priceMinCents: undefined,
+  priceMaxCents: undefined,
+  paramCount: 5,
+  hasPreDeduplicatedIds: true,
+  productIdsCount: 973,
+  categoryFilter: undefined,
+  categoryCount: 0,
+  hasCategoryFilter: false,
+  whereClause: `p.embedding IS NOT NULL AND p."isActive" = true AND p."merchantId" = $2 AND p."stockStatus" = 'in_stock' AND ((((\n` +
+    '          -- Check database column (primary source)\n' +
+    `          LOWER(COALESCE(p."ageGroup", '')) = LOWER($3) \n` +
+    `          OR LOWER(COALESCE(p."ageGroup", '')) LIKE LOWER($4)\n` +
+    '          OR\n' +
+    '          -- Check JSONB attributes (fallback for legacy data)\n' +
+    "          LOWER(COALESCE(p.attributes->>'ageGroup', '')) = LOWER($3) \n" +
+    "          OR LOWER(COALESCE(p.attributes->>'ageGroup', '')) LIKE LOWER($4)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'age_group', '')) = LOWER($3)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'age_group', '')) LIKE LOWER($4)\n" +
+    "          OR (p.attributes->'extensible' IS NOT NULL AND (\n" +
+    "            LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) = LOWER($3) \n" +
+    "            OR LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) LIKE LOWER($4)\n" +
+    '          ))\n' +
+    `        ) OR (LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%'))) AND NOT ((LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%'))) AND p.id = ANY(ARRAY['200544355', '200659000', '7950165573817', '201014000', '201146000', '202938025', '100040377', '202946053', '100040714', '100040867', '100041500', '204411054', '202968352', '200358501', '203596000', '100042260', '100042570', '204263055', '202417054', '8047639593145', '200807152', '8095325716665', '201017000', '201024550', '202445551', '100042855', '204124000', '204231054', '202633460', '200658055', '203688551', '201701000', '203599100', '100041933', '201147000', '202030060', '202351302', '204064552', '100040937', '202445000', '202788152', '203677000', '202552054', '204132000', '202798100', '202861453', '8244342423737', '202841054', '8095325651129', '100042785', '202917150', '100042871', '203069055', '204255055', '202941152', '204211552', '202979161', '204413054', '202551057', '202837000', '204888057', '201018156', '8095325454521', '204026000', '204043054', '204890554', '203095551', '201614460', '4369834901527', '202312054', '203532156', '202312156', '204809057', '201184550', '204375551', '8084018757817', 'shopify_US_8203037900985', '204395100', '200987550', '100042520', '204370100', '100041652', '203171402', '202037160', '202937161', '204277552', '204068552', '204272000', '204949000', '204950000', '204951355', '100041741', '202552156', '201834150', '203189000', '7988752253113', '203211150', '202861057', '203222057', '204326025', '201138454', '201147156', '201274156', '201148550', '202869000', '201149000', '204370025', '8244345995449', '201162550', '204383550', '202909352', '203045025', '202093057', '201187000', '8271014920377', '202927054', '201192000', '204375000', '204395355', '203546355', '202873054', '201230100', '8270956527801', '204016000', '8244345307321', '8084018692281', '100040386', '8047658172601', '8166174261433', '201245157', '8169459417273', '201256055', '8270956855481', '8179603341497', '8169459351737', '8179603275961', '100041651', '8179604619449', '203077100', '8193111228601', '8193111294137', '8162618310841', '100041906', '203324054', '8203037769913', '8244342653113', '100042374', '8221222502585', '100042854', '100042168', '202511054', '8244346880185', '7261626892473', '202797054', '8271020425401', '204107552', '202797000', '8271017509049', '200370000', '200472000', '200388000', '203086352', '8271016951993', '200883156', '200946354', '8271017672889', '100040501', '8120573722809', 'shopify_US_8084018921657', '100042649', '100042786', '100042165', '8043996119225', '100042169', '8179603570873', '8217313083577', '203395054', '8271017607353', '100042166', '202951156', '100042471', '100042474', '203078450', '8179604455609', '100042925', '203624553', '8080215638201', '8084019511481', '100042984', '200363000', '203627553', '203634553', '202217060', '8217313738937', '200538000', '647484211223', '201348000', '8105247277241', '203503352', '204402100', '204317460', '201356054', '100041152', '203797000', '202837055', '203189552', '202837551', '204191156', '204095000', '204523054', '204561453', '201358450', '204399000', '204562453', '8179603898553', '200506000', '200540101', '203491057', '200697000', '7952929849529', '204518100', '203540552', 'shopify_US_8271020884153', '200654000', '204279000', '203581450', '200387000', 'shopify_US_8271021146297', '203573152', '200832000', '201140552', '200861000', '204710000', '8217312624825', '8217312723129', '4369834999831', '203403054', '203318000', '201358055', '202927000', '200486000', '202654053', '203519100', '200837354', '200967354', '200774000', '8244347306169', '203530100', '203213551', '203624156', '201187550', '8244348321977', '203680000', '203532054', '201613000', '100041721', '100041757', '8061023518905', '201379000', '8061023584441', '8270955708601', '100042146', '203351055', '8271017345209', '8079128920249', '201406000', '100042580', '203538054', '201894054', '100042965', '100042982', '8271020392633', '8080218030265', '201358054', '8106592043193', '204367025', '203494551', '202251054', '8084016398521', '204278000', '203528551', '203184025', 'shopify_US_4369835098135', '8084019216569', '203767000', '202662054', '204283552', '8120573657273', '203808054', '202922000', '204214000', '200982000', '204096000', '8084019642553', '202551156', '7929323913401', '8084019806393', '202932551', '204283400', '202821106', '200310158', '8271020851385', '201612450', '203551000', '201357450', '200430025', '8179603308729', 'shopify_US_8244348289209', '203075057', '203559000', '201832550', '203205551', '202035054', '200788000', '202928054', '100041748', '8095325585593', '200896152', '202608453', '203973156', '100041571', '201471156', '100041148', '8084016332985', '100041218', '203992551', '203565000', '200876000', '203848100', '8179608682681', '201473054', '100041503', '100042828', '8203051204793', '201010255', '200376100', '7516518187193', '7525796348089', '8105247211705', '203579100', '7597048463545', '201534450', '202872152', '7608446451897', '8105297969337', '203927550', '100041806', '204430000', '204192054', '8105308455097', '202313060', '7692161908921', '204045000', '204988000', '204402401', '7814030885049', '7913654878393', '7913654911161', '204025000', '7913665069241', '204474100', '203596025', '204533160', '204579100', '204534054', '202089460', '202671057', '202927156', '203025060', '203552553', '203025602', '204712057', '204806554', '203297160', '8036095361209', '203171156', '8120573591737', '204947152', '8120573755577', '8037569593529', '204034501', '8037569659065', '203189100', '8162618507449', '8038484869305', '8038485262521', '204406000', '8043996053689', '8043996315833', '8047639494841', '8179603407033', '8061010575545', '8061023453369', '100042827', '8179604881593', '203410100', '203419100', '203629100', '204411100', '204136552', '204185552', '8080215572665', '203547550', '204472355', '8084016234681', '8084016267449', '204177156', '8084019183801', '8084019282105', '204352000', '203671553', '8084019478713', '203411000', '203926551', '204351000', '8095325487289', '202878025', '8193111326905', '202841156', '8097708048569', '8193122402489', '8105247178937', '204216101', '100042626', '8105297903801', '8105308324025', '8105308389561', '8106450944185', '8106591977657', '8106592207033', '204220550', '204230000', '100042868', '204270155', '8120573165753', '203678100', '8120573329593', '8120573624505', '8157678895289', '8166174228665', '8166174523577', '203581055', '204466054', '8179603177657', '8179603800249', '204466100', '8221222305977', '8221222600889', '8179608584377', '202955452', '201356552', '203077551', '204322501', '203229054', '201629161', '204521054', '203275453', '8183660150969', '204349155', '201380550', '100042611', '8183660380345', '200019151', '8193111195833', '8193121747129', '200083000', '203490552', '203491152', '8203036524729', '204325460', '203709500', '8203037049017', '204386000', '204390000', '8217306366137', '203673000', '8217312821433', '203545302', '8217313214649', '8217313771705', '8244347109561', '203235452', '8221221978297', '203577551', '204425450', '201629551', '201193550', '203722100', '203625550', '201472054', '203727054', '202949452', '204173054', '100041922', '201739156', '201185156', '201775055', '8244348420281', '100042209', '203409055', '8244347338937', '8244347928761', '203352302', '8244348158137', '203727000', '204704100', '201531161', '201535450', '204387000', '204210054', '201632100', '100042915', '201645100', '204991000', '201862057', '8027253801145', '203414100', '203569550', '203621302', '203887550', '203592000', '202357550', '201905054', '8051727302841', '8051727663289', '8270956691641', '204242551', '8271017279673', '204247551', '8084018725049', '8271017312441', '201629054', '8084019019961', '204041000', '204352460', '8084019118265', '203768054', '204067201', '100041627', '204416060', '8084019151033', '8271020458169', '8271021080761', '204103100', '8102001475769', '8271020949689', '204578050', '202569351', '203494000', '8271025`... 5648 more characters
+}
+[2026-01-18T15:50:40.779Z] [Velou:INFO] {
+  message: 'searchVectorIndexWithDeduplication: results found',
+  count: 150,
+  requestedLimit: 150,
+  preDedupLimit: undefined,
+  hasPreDeduplicatedIds: true,
+  deduplicationRate: 'N/A'
+}
+[2026-01-18T15:50:40.780Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: tier1_success',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  resultCount: 150,
+  usePostSQLFiltering: true,
+  productIdsToSearchCount: 973
+}
+[2026-01-18T15:50:40.780Z] [Velou:INFO] {
+  message: 'fashion_semantic_search',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  resultCount: 150,
+  topSimilarity: 0.4389261378137932,
+  avgSimilarity: 0.4148379128440715,
+  fallbackTier: 'strict',
+  keywordTermsUsed: 0
+}
+[2026-01-18T15:50:40.780Z] [Velou:INFO] {
+  message: 'fashion_multiview_retrieval',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  totalCandidates: 150,
+  lexicalCount: 0,
+  semanticCount: 150,
+  conceptCount: 0
+}
+[2026-01-18T15:50:41.223Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: retrieval_complete',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  candidateCount: 150,
+  retrievalDurationMs: 8900,
+  retrievalDurationSeconds: '8.90'
+}
+[2026-01-18T15:50:41.223Z] [Velou:INFO] {
+  message: 'loadFashionProducts: starting',
+  productCount: 40,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[2026-01-18T15:50:41.926Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: product_loading_complete',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  loadedCount: 40,
+  requestedCount: 40,
+  productLoadingDurationMs: 703,
+  productLoadingDurationSeconds: '0.70'
+}
+[2026-01-18T15:50:41.927Z] [Velou:INFO] {
+  message: 'orchestrator_constraint_ranking_start',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  candidateProductCount: 40,
+  originalCandidateCount: 40,
+  constraintsForRanking: {
+    colors: undefined,
+    patterns: undefined,
+    occasions: { values: [Array], intent: 'strong' },
+    materials: undefined,
+    sizes: undefined,
+    ageGroups: { values: [Array], intent: 'strong' },
+    priceMinCents: null,
+    priceMaxCents: null,
+    seasons: [ 'Summer' ],
+    styles: undefined,
+    lengths: undefined,
+    fits: undefined,
+    necklines: undefined,
+    sleeveLengths: undefined,
+    collections: undefined,
+    embellishments: undefined,
+    formalityLevel: undefined,
+    temperatureIntent: undefined,
+    humidityFriendly: undefined,
+    occasionContext: undefined,
+    problemSolutions: undefined,
+    functionFeatures: undefined,
+    colorShade: undefined,
+    colorUndertone: undefined,
+    multicolor: undefined,
+    seasonalPalette: undefined,
+    careRequirements: undefined,
+    rainWind: undefined,
+    travelFeatures: undefined,
+    pockets: undefined,
+    liningType: undefined,
+    braSolution: undefined,
+    ecoMaterials: undefined,
+    certifications: undefined,
+    origin: undefined,
+    adaptiveFeatures: undefined,
+    sensoryFriendly: undefined,
+    finish: undefined,
+    modestyCues: undefined,
+    layeringIntent: undefined,
+    pairingIntent: undefined,
+    scents: undefined,
+    rooms: undefined,
+    useCases: undefined,
+    benefits: undefined,
+    claims: undefined,
+    sensoryProfile: null,
+    compatibility: undefined
+  },
+  topVectorScores: [
+    {
+      productId: '200370000',
+      productTitle: 'Black Knitted Mesh Sleeve Dress',
+      vectorScore: 0.4245344869931287
+    },
+    {
+      productId: '200540000',
+      productTitle: 'Black Diamante Bodycon Midi Dress',
+      vectorScore: 0.4213257385090621
+    },
+    {
+      productId: '200833355',
+      productTitle: 'Curve Asymmetric Buckle Midi Dress',
+      vectorScore: 0.42991889358533997
+    },
+    {
+      productId: '200870252',
+      productTitle: 'Rose Gold Satin Asymmetric Midaxi Dress',
+      vectorScore: 0.4188931777731948
+    },
+    {
+      productId: '200946354',
+      productTitle: 'Nude Square Neck Embellished Maxi Dress',
+      vectorScore: 0.4389261378137932
+    }
+  ]
+}
+[2026-01-18T15:50:41.927Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: starting_ranking',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  productCount: 40,
+  constraintCount: 3,
+  note: 'Using constraints from classification'
+}
+[2026-01-18T15:50:41.937Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '200370000',
+  productTitle: 'Black Knitted Mesh Sleeve Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: { queryValue: [Array], productValue: 'S', score: 0, weighted: 0 },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'Fall',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '80% Viscose, 20% Elastane',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [ 'S' ],
+    finish: 'Matte',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: 'S',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.939Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '200870252',
+  productTitle: 'Rose Gold Satin Asymmetric Midaxi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '10, 12, 14, 16, 18, 6, 8',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '100% Polyester',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [
+      '10', '12', '14',
+      '16', '18', '6',
+      '8'
+    ],
+    finish: 'Satin',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '10, 12, 14, 16, 18, 6, 8',
+    detailing: [],
+    hem_style: 'Asymmetric',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.939Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '200946354',
+  productTitle: 'Nude Square Neck Embellished Maxi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '12, 14, 16, 18',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '100% Polyester',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'set_vs_single',
+    'value_framing',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'Has Slit',
+    sizes: [ '12', '14', '16', '18' ],
+    finish: 'Glossy',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '12, 14, 16, 18',
+    detailing: [ 'Embroidery' ],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.940Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '201187000',
+  productTitle: 'Black Embellished Maxi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '12, 14, 16, 18',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '100% Polyester',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [ '12', '14', '16', '18' ],
+    finish: 'Glossy',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '12, 14, 16, 18',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.940Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '201187550',
+  productTitle: 'Dark Red Embellished Maxi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '12, 14, 16, 18',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'Winter',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '100% Polyester',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'Has Slit',
+    sizes: [ '12', '14', '16', '18' ],
+    finish: 'Glossy',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '12, 14, 16, 18',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.940Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '201629054',
+  productTitle: 'Navy Drop Sleeve Maxi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '16, 20, 6',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '100% Polyester',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'set_vs_single',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [ '16', '20', '6' ],
+    finish: 'Matte',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '16, 20, 6',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.941Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '201862057',
+  productTitle: 'Blue Diamante Maxi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '10, 12, 14, 16, 18, 8',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '100% Polyester',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [ '10', '12', '14', '16', '18', '8' ],
+    finish: 'Glossy',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '10, 12, 14, 16, 18, 8',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.941Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '201863456',
+  productTitle: 'Dusty Pink Diamante Maxi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '12, 14, 16, 18',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '100% Polyester',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'set_vs_single',
+    'value_framing',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [ '12', '14', '16', '18' ],
+    finish: 'Glossy',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '12, 14, 16, 18',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.941Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '201908054',
+  productTitle: 'Curve Navy Floral Bardot Midi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '22, 24, 26',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'Spring',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '100% Polyester',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'price_band',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'set_vs_single',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'Has Slit',
+    sizes: [ '22', '24', '26' ],
+    finish: 'Satin',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '22, 24, 26',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Feminine', 'Sophisticated' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.942Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '202089460',
+  productTitle: 'Pale Pink Diamante Bow Midi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '10, 12, 14, 16, 18, 20, 8',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'Spring',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '95% Polyester, 5% Elastane',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'set_vs_single',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [
+      '10', '12', '14',
+      '16', '18', '20',
+      '8'
+    ],
+    finish: 'Matte',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '10, 12, 14, 16, 18, 20, 8',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Feminine', 'Sophisticated' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.942Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '202312552',
+  productTitle: 'Dark Red Drop Shoulder Midi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '10, 12, 14, 16, 18, 20, 6, 8',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '95% Polyester, 5% Elastane',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [
+      '10', '12', '14',
+      '16', '18', '20',
+      '6',  '8'
+    ],
+    finish: 'Matte',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '10, 12, 14, 16, 18, 20, 6, 8',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.943Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '202392054',
+  productTitle: 'Navy Floral Tiered Midi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '20, 10, 12, 14, 8',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'Spring',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '100% Polyester',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'set_vs_single',
+    'value_framing',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'Has Slit',
+    sizes: [ '10', '12', '14', '20', '8' ],
+    finish: 'Glossy',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '20, 10, 12, 14, 8',
+    detailing: [ 'Ruffles' ],
+    hem_style: 'Asymmetric',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Feminine', 'Sophisticated' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.943Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '203088551',
+  productTitle: 'Red Satin Corsage Midaxi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '10, 12, 14, 16, 18, 6, 8',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '100% Polyester',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [
+      '10', '12', '14',
+      '16', '18', '6',
+      '8'
+    ],
+    finish: 'Glossy',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '10, 12, 14, 16, 18, 6, 8',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.944Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '203710551',
+  productTitle: 'Red Tie Shoulder Maxi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: { queryValue: [Array], productValue: '14+', score: 0, weighted: 0 },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '95% Polyester, 5% Elastane',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'price_band',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'value_framing',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'Has Slit',
+    sizes: [ '14' ],
+    finish: 'Matte',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '14+',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.944Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '203833000',
+  productTitle: 'Curve Black Diamante Bow Midi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '16, 18, 20, 22, 24, 26',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '95% Polyester, 5% Elastane',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'price_band',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'set_vs_single',
+    'value_framing',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [ '16', '18', '20', '22', '24', '26' ],
+    finish: 'Matte',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '16, 18, 20, 22, 24, 26',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Feminine', 'Sophisticated' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.944Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '203833553',
+  productTitle: 'Curve Burgundy Diamante Bow Midi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '16, 18, 20, 22, 24, 26',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'Fall, Winter',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '95% Polyester, 5% Elastane',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'set_vs_single',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [ '16', '18', '20', '22', '24', '26' ],
+    finish: 'Matte',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '16, 18, 20, 22, 24, 26',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Feminine', 'Sophisticated' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.944Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '203846402',
+  productTitle: 'Rust Drape Front Maxi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '10, 12, 14, 16, 18, 20, 8',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '95% Polyester, 5% Elastane',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'Has Slit',
+    sizes: [
+      '10', '12', '14',
+      '16', '18', '20',
+      '8'
+    ],
+    finish: 'Satin',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '10, 12, 14, 16, 18, 20, 8',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.945Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '203992551',
+  productTitle: 'Red Diamante Trim Maxi Dress',
+  finalScore: 0.4559270516717325,
+  sumWeights: 3.4545,
+  sumScores: 1.5749999999999997,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: 'Adult',
+      score: 1,
+      weighted: 1.5749999999999997
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '95% Polyester, 5% Elastane',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'rain_wind',
+    'vibe_mood',
+    'price_band',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'set_vs_single',
+    'value_framing',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [
+      '10', '12', '14',
+      '16', '18', '6',
+      '8'
+    ],
+    finish: 'Matte',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: 'Adult',
+    detailing: [],
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ],
+    price_band: 'Budget'
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.945Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '204034460',
+  productTitle: 'Pink Embellished Bardot Midaxi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '10, 12, 14, 16, 18, 6, 8',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'Spring',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '100% Polyester',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'set_vs_single',
+    'value_framing',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'sensory_friendly',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'Has Slit',
+    sizes: [
+      '10', '12', '14',
+      '16', '18', '6',
+      '8'
+    ],
+    finish: 'Glossy',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '10, 12, 14, 16, 18, 6, 8',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.945Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '204103100',
+  productTitle: 'Brown Diamante Mesh Midaxi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: { queryValue: [Array], productValue: '18', score: 0, weighted: 0 },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '100% Polyester',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'Has Slit',
+    sizes: [ '18' ],
+    finish: 'Glossy',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '18',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.945Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '204192054',
+  productTitle: 'Navy Diamante Strap Maxi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '12, 14, 16, 18',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '95% Polyester, 5% Elastane',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'set_vs_single',
+    'value_framing',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [ '12', '14', '16', '18' ],
+    finish: 'Satin',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '12, 14, 16, 18',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.946Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '204194100',
+  productTitle: 'Brown Diamante Mesh Mini Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '16, 18+',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'Winter',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '100% Polyester',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'price_band',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'set_vs_single',
+    'value_framing',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'sensory_friendly',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [ '16', '6', '8' ],
+    finish: 'Glossy',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '16, 18+',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.946Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '204216101',
+  productTitle: 'Mocha Mesh Diamante Maxi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '10, 12, 14, 16, 18, 6, 8',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '95% Polyester, 5% Elastane',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'price_band',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'set_vs_single',
+    'value_framing',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'No Slit',
+    sizes: [
+      '10', '12', '14',
+      '16', '18', '6',
+      '8'
+    ],
+    finish: 'Matte',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '10, 12, 14, 16, 18, 6, 8',
+    detailing: [],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.946Z] [Velou:INFO] {
+  message: 'constraint_match_details',
+  productId: '204277552',
+  productTitle: 'Curve Burgundy Wrap Midi Dress',
+  finalScore: 0,
+  sumWeights: 3.4545,
+  sumScores: 0,
+  scoreDetails: {
+    ageGroups: {
+      queryValue: [Array],
+      productValue: '16, 18, 20, 22, 24',
+      score: 0,
+      weighted: 0
+    },
+    occasions: {
+      queryValue: [Array],
+      productValue: [Array],
+      score: 0,
+      weighted: 0
+    },
+    seasons: {
+      queryValue: [Array],
+      productValue: 'All Season',
+      score: 0,
+      weighted: 0
+    },
+    materials: {
+      queryValue: [Array],
+      productValue: '96% Polyester, 4% Elastane',
+      score: 0,
+      weighted: 0
+    }
+  },
+  constraintsProvided: [ 'occasions', 'ageGroups', 'seasons' ],
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  rawAttributesKeys: [
+    'slit',
+    'sizes',
+    'finish',
+    'gender',
+    'pockets',
+    'age_group',
+    'detailing',
+    'hem_style',
+    'rain_wind',
+    'vibe_mood',
+    'price_band',
+    'collar_type',
+    'deal_intent',
+    'lining_type',
+    'bra_solution',
+    'modesty_cues',
+    'style_labels',
+    'eco_materials',
+    'pattern_print',
+    'set_vs_single',
+    'value_framing',
+    'variant_sizes',
+    'enriched_color',
+    'neckline_depth',
+    'pairing_intent',
+    'variant_colors',
+    'layering_intent',
+    'travel_features',
+    'waist_structure',
+    'llm_evidence_json',
+    'additional_image_links',
+    'llm_confidence_overall'
+  ],
+  rawAttributesSample: {
+    slit: 'Has Slit',
+    sizes: [ '16', '18', '20', '22', '24' ],
+    finish: 'Matte',
+    gender: 'female',
+    pockets: 'No Pockets',
+    age_group: '16, 18, 20, 22, 24',
+    detailing: [ 'Pleats' ],
+    hem_style: 'Straight',
+    rain_wind: 'Not Weather Resistant',
+    vibe_mood: [ 'Sophisticated', 'Feminine' ]
+  },
+  hasExtensible: false,
+  extensibleKeys: [],
+  extractedColor: undefined,
+  extractedPattern: undefined,
+  extractedPatternCapitalized: undefined,
+  extractedOccasion: undefined,
+  inferredOccasion: [],
+  extractedStyle: undefined,
+  inferredStyle: [],
+  dynamicWeights: {
+    occasions: 0.728,
+    materials: 0.21,
+    seasons: 0.315,
+    fits: 0.175,
+    lengths: 0.385,
+    styles: 0.35
+  }
+}
+[2026-01-18T15:50:41.948Z] [Velou:INFO] {
+  message: 'constraint_ranking_applied',
+  productCount: 40,
+  avgConstraintScore: 0.16048632218844988,
+  minConstraintScore: 0,
+  maxConstraintScore: 0.4559270516717325,
+  effectiveBoost: 0.4,
+  avgFinalScore: 0.48846028784325046,
+  topFinalScore: 0.6158912946829218,
+  constraintFields: [ 'occasions', 'ageGroups', 'seasons' ],
+  topProducts: [
+    {
+      rank: 1,
+      productId: '202089161',
+      productTitle: 'Sage Diamante Bow Midi Dress',
+      vectorScore: 0.4335204740142288,
+      constraintScore: 0.4559270516717325,
+      constraintBoost: 0.182370820668693,
+      finalScore: 0.6158912946829218
+    },
+    {
+      rank: 2,
+      productId: '204034501',
+      productTitle: 'Lilac Embellished Bardot Midaxi Dress',
+      vectorScore: 0.43236330554704727,
+      constraintScore: 0.4559270516717325,
+      constraintBoost: 0.182370820668693,
+      finalScore: 0.6147341262157403
+    },
+    {
+      rank: 3,
+      productId: '200833355',
+      productTitle: 'Curve Asymmetric Buckle Midi Dress',
+      vectorScore: 0.42991889358533997,
+      constraintScore: 0.4559270516717325,
+      constraintBoost: 0.182370820668693,
+      finalScore: 0.612289714254033
+    },
+    {
+      rank: 4,
+      productId: '204317460',
+      productTitle: 'Pink Taffeta Midi Dress',
+      vectorScore: 0.42898062718145824,
+      constraintScore: 0.4559270516717325,
+      constraintBoost: 0.182370820668693,
+      finalScore: 0.6113514478501513
+    },
+    {
+      rank: 5,
+      productId: '203872054',
+      productTitle: 'Navy Bardot Diamante Bow Midi Dress',
+      vectorScore: 0.4266970928437488,
+      constraintScore: 0.4559270516717325,
+      constraintBoost: 0.182370820668693,
+      finalScore: 0.6090679135124418
+    }
+  ],
+  constraintValues: {
+    colors: undefined,
+    patterns: undefined,
+    occasions: { values: [Array], intent: 'strong' },
+    materials: undefined,
+    sizes: undefined,
+    ageGroups: { values: [Array], intent: 'strong' },
+    priceMinCents: null,
+    priceMaxCents: null
+  }
+}
+[2026-01-18T15:50:41.948Z] [Velou:DEBUG] {
+  message: 'constraint_ranking_applied',
+  productCount: 40,
+  avgConstraintScore: 0.16048632218844988,
+  effectiveBoost: 0.4,
+  avgFinalScore: 0.48846028784325046,
+  topFinalScore: 0.6158912946829218,
+  constraintFields: [ 'occasions', 'ageGroups', 'seasons' ]
+}
+[2026-01-18T15:50:41.948Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: ranking_complete',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  productCount: 40,
+  rankingDurationMs: 21,
+  rankingDurationSeconds: '0.02',
+  topScore: 0.6158912946829218
+}
+[2026-01-18T15:50:41.948Z] [Velou:INFO] {
+  message: 'constraint_based_ranking_applied',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  productCount: 40,
+  avgConstraintScore: 0.16048632218844988,
+  avgFinalScore: 0.48846028784325046,
+  queryContext: {
+    queryType: 'occasion_based',
+    explicitMentions: [],
+    originalQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+  },
+  constraintsForRanking: {
+    colors: undefined,
+    occasions: { values: [Array], intent: 'strong' },
+    ageGroups: { values: [Array], intent: 'strong' },
+    materials: undefined,
+    seasons: [ 'Summer' ],
+    fits: undefined,
+    lengths: undefined,
+    styles: undefined
+  }
+}
+[2026-01-18T15:50:41.948Z] [Velou:INFO] {
+  message: 'fashion_ranking_complete',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  productCount: 40,
+  topScore: 0.6158912946829218,
+  avgScore: 0.48846028784325046,
+  scoreRange: '0.419 - 0.616'
+}
+[2026-01-18T15:50:41.948Z] [Velou:INFO] {
+  message: 'age_group_hard_filter_applied',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  ageGroups: { values: [ 'Adult' ], intent: 'strong' },
+  beforeFilterCount: 40,
+  afterFilterCount: 13,
+  rejectedCount: 27,
+  note: 'Products with age group score of 0 were rejected'
+}
+[2026-01-18T15:50:41.948Z] [Velou:DEBUG] {
+  message: 'dynamic_threshold_calculation',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  isFollowUp: false,
+  categoryConfidence: 0.8,
+  calculatedThreshold: 0.25,
+  note: 'Dynamic relevance threshold calculated based on query type and category confidence'
+}
+[2026-01-18T15:50:41.949Z] [Velou:DEBUG] {
+  message: 'dynamic_threshold_recalculated_after_product_type_check',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  isFollowUp: false,
+  categoryConfidence: 0.8,
+  productTypeMatches: true,
+  recalculatedThreshold: 0.25,
+  note: 'Dynamic relevance threshold recalculated after product type matching check'
+}
+[2026-01-18T15:50:41.949Z] [Velou:INFO] {
+  message: 'category_validation_all_products',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  totalProducts: 4,
+  validatedProducts: 4,
+  filteredCount: 0,
+  categories: [ "Women's Dresses" ],
+  categoryConfidence: 0.8,
+  note: 'All products validated by category to prevent cross-category contamination'
+}
+[2026-01-18T15:50:41.949Z] [Velou:DEBUG] {
+  message: 'confidence_threshold_calculation',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  topScore: 0.6158912946829218,
+  productTypeMatches: true,
+  topProductRelevant: true,
+  effectiveConfidenceThreshold: 0.2,
+  hasHighConfidence: true,
+  isFollowUp: false,
+  minTopScore: 0.25,
+  thresholdApplied: false
+}
+[2026-01-18T15:50:41.949Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: starting_reply_generation',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  productCount: 4
+}
+[2026-01-18T15:50:41.950Z] [Velou:INFO] {
+  message: 'generateReply: starting',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  productCount: 4,
+  hasContext: false,
+  isFollowUp: false
+}
+[2026-01-18T15:50:41.970Z] [Velou:INFO] {
+  message: 'emotional_keywords_generation_start',
+  productCount: 4,
+  enhancedQuery: 'I am going to Bahamas for vacation, suggest me a dress.'
+}
+[2026-01-18T15:50:41.970Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_generation_start',
+  productCount: 4,
+  enhancedQuery: 'I am going to Bahamas for vacation, suggest me a dress.',
+  brandName: 'LoveShackFancy'
+}
+[2026-01-18T15:50:43.606Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_llm_response',
+  rawText: '\n' +
+    '{\n' +
+    '  "result": [\n' +
+    '    ["sunlit shimmer", "playful pleats", "evening sparkle"],\n' +
+    '    ["lilac glow", "bardot breeze", "island elegance"],\n' +
+    '    ["asymmetric allure", "carefree chic", "tropical ease"],\n' +
+    '    ["pink radiance", "taffeta twirl", "vacation glamour"]\n' +
+    '  ]\n' +
+    '}',
+  rawTextLength: 259
+}
+[2026-01-18T15:50:43.607Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_extracted_from_result_key',
+  key: 'result'
+}
+[2026-01-18T15:50:43.607Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_parsed',
+  arrayLength: 4,
+  expectedLength: 4,
+  firstFewKeywords: [
+    [ 'sunlit shimmer', 'playful pleats', 'evening sparkle' ],
+    [ 'lilac glow', 'bardot breeze', 'island elegance' ],
+    [ 'asymmetric allure', 'carefree chic', 'tropical ease' ]
+  ]
+}
+[2026-01-18T15:50:43.607Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_product_validation',
+  productIndex: 0,
+  productTitle: 'Sage Diamante Bow Midi Dress',
+  rawKeywords: [ 'sunlit shimmer', 'playful pleats', 'evening sparkle' ],
+  validKeywords: [ 'sunlit shimmer', 'playful pleats', 'evening sparkle' ],
+  validCount: 3
+}
+[2026-01-18T15:50:43.607Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_product_validation',
+  productIndex: 1,
+  productTitle: 'Lilac Embellished Bardot Midaxi Dress',
+  rawKeywords: [ 'lilac glow', 'bardot breeze', 'island elegance' ],
+  validKeywords: [ 'lilac glow', 'bardot breeze', 'island elegance' ],
+  validCount: 3
+}
+[2026-01-18T15:50:43.608Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_product_validation',
+  productIndex: 2,
+  productTitle: 'Curve Asymmetric Buckle Midi Dress',
+  rawKeywords: [ 'asymmetric allure', 'carefree chic', 'tropical ease' ],
+  validKeywords: [ 'asymmetric allure', 'carefree chic', 'tropical ease' ],
+  validCount: 3
+}
+[2026-01-18T15:50:43.608Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_product_validation',
+  productIndex: 3,
+  productTitle: 'Pink Taffeta Midi Dress',
+  rawKeywords: [ 'pink radiance', 'taffeta twirl', 'vacation glamour' ],
+  validKeywords: [ 'pink radiance', 'taffeta twirl', 'vacation glamour' ],
+  validCount: 3
+}
+[2026-01-18T15:50:43.608Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_generation_complete',
+  productCount: 4,
+  validatedCount: 4,
+  sampleKeywords: [
+    [ 'sunlit shimmer', 'playful pleats', 'evening sparkle' ],
+    [ 'lilac glow', 'bardot breeze', 'island elegance' ]
+  ]
+}
+[2026-01-18T15:50:43.608Z] [Velou:INFO] {
+  message: 'emotional_keywords_received',
+  keywordsArrayLength: 4,
+  expectedLength: 4,
+  sampleKeywords: [
+    [ 'sunlit shimmer', 'playful pleats', 'evening sparkle' ],
+    [ 'lilac glow', 'bardot breeze', 'island elegance' ]
+  ],
+  allKeywords: [
+    {
+      productIndex: 0,
+      productTitle: 'Sage Diamante Bow Midi Dress',
+      keywords: [Array]
+    },
+    {
+      productIndex: 1,
+      productTitle: 'Lilac Embellished Bardot Midaxi Dress',
+      keywords: [Array]
+    },
+    {
+      productIndex: 2,
+      productTitle: 'Curve Asymmetric Buckle Midi Dress',
+      keywords: [Array]
+    },
+    {
+      productIndex: 3,
+      productTitle: 'Pink Taffeta Midi Dress',
+      keywords: [Array]
+    }
+  ]
+}
+[2026-01-18T15:50:43.608Z] [Velou:INFO] {
+  message: 'emotional_keywords_product_card',
+  productIndex: 0,
+  productTitle: 'Sage Diamante Bow Midi Dress',
+  keywords: [ 'sunlit shimmer', 'playful pleats', 'evening sparkle' ],
+  keywordsCount: 3
+}
+[2026-01-18T15:50:43.608Z] [Velou:INFO] {
+  message: 'emotional_keywords_product_card',
+  productIndex: 1,
+  productTitle: 'Lilac Embellished Bardot Midaxi Dress',
+  keywords: [ 'lilac glow', 'bardot breeze', 'island elegance' ],
+  keywordsCount: 3
+}
+[2026-01-18T15:50:43.609Z] [Velou:INFO] {
+  message: 'emotional_keywords_product_card',
+  productIndex: 2,
+  productTitle: 'Curve Asymmetric Buckle Midi Dress',
+  keywords: [ 'asymmetric allure', 'carefree chic', 'tropical ease' ],
+  keywordsCount: 3
+}
+[2026-01-18T15:50:43.609Z] [Velou:INFO] {
+  message: 'emotional_keywords_product_card',
+  productIndex: 3,
+  productTitle: 'Pink Taffeta Midi Dress',
+  keywords: [ 'pink radiance', 'taffeta twirl', 'vacation glamour' ],
+  keywordsCount: 3
+}
+[2026-01-18T15:50:49.089Z] [Velou:DEBUG] {
+  message: 'reply_split_result',
+  totalParagraphs: 7,
+  productCount: 4,
+  expectedParagraphs: 7,
+  replyTextBeforeLength: 471,
+  replyTextAfterLength: 1035,
+  hasReplyTextAfter: true,
+  isFollowUp: undefined
+}
+[2026-01-18T15:50:49.089Z] [Velou:INFO] {
+  message: 'generateReply: complete',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  productCount: 4,
+  totalDurationMs: 7139,
+  totalDurationSeconds: '7.14',
+  llmDurationMs: 7138,
+  llmDurationSeconds: '7.14',
+  replyTextLength: 471,
+  replyTextAfterLength: 1035
+}
+[2026-01-18T15:50:49.089Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: reply_generation_complete',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  replyDurationMs: 7140,
+  replyDurationSeconds: '7.14',
+  replyTextLength: 471,
+  hasReplyTextAfter: true
+}
+[2026-01-18T15:50:49.089Z] [Velou:INFO] {
+  message: 'show_more_action_added',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  currentProductCount: 4,
+  totalAvailableProducts: 13,
+  route: 'DISCOVERY'
+}
+[2026-01-18T15:50:49.089Z] [Velou:INFO] {
+  message: 'orchestrator_final_constraints',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  isFollowUp: false,
+  hasMergedConstraints: false,
+  finalConstraintsSource: 'classification',
+  finalConstraintsCount: 3,
+  allFinalConstraints: {
+    occasions: { values: [Array], intent: 'strong' },
+    seasons: [ 'Summer' ],
+    ageGroups: { values: [Array], intent: 'strong' }
+  },
+  productTerms: 'dress',
+  hasProductTerms: true
+}
+[2026-01-18T15:50:49.090Z] [Velou:INFO] {
+  message: 'orchestrator_resolved_constraints',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  resolvedConstraints: {
+    colors: undefined,
+    sizes: undefined,
+    materials: undefined,
+    occasions: [ 'Vacation' ],
+    seasons: [ 'Summer' ],
+    priceMinCents: undefined,
+    priceMaxCents: undefined,
+    ageGroups: [ 'Adult' ],
+    styleTags: undefined
+  },
+  constraintsPassedToRanking: {
+    colors: undefined,
+    patterns: undefined,
+    occasions: { values: [Array], intent: 'strong' },
+    materials: undefined,
+    sizes: undefined,
+    ageGroups: { values: [Array], intent: 'strong' },
+    priceMinCents: null,
+    priceMaxCents: null,
+    seasons: [ 'Summer' ],
+    styles: undefined,
+    fits: undefined,
+    lengths: undefined,
+    necklines: undefined,
+    sleeveLengths: undefined,
+    collections: undefined,
+    embellishments: undefined
+  }
+}
+[2026-01-18T15:50:49.090Z] [Velou:INFO] {
+  message: 'orchestrator_pipeline_summary',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  isFollowUp: false,
+  enhancedQueryText: 'I am going to Bahamas for vacation, suggest me a dress.',
+  productTerms: 'dress',
+  classificationType: 'occasion_based',
+  topCategories: [ "Women's Dresses" ],
+  candidateProductCount: 40,
+  finalProductCount: 4,
+  constraintsFlow: {
+    classificationConstraints: {
+      colors: undefined,
+      patterns: undefined,
+      occasions: [Object],
+      priceMinCents: null,
+      priceMaxCents: null
+    },
+    parsedConstraints: null,
+    mergedConstraints: null,
+    finalConstraints: {
+      colors: undefined,
+      patterns: undefined,
+      occasions: [Object],
+      priceMinCents: null,
+      priceMaxCents: null
+    },
+    constraintsPassedToRanking: {
+      colors: undefined,
+      patterns: undefined,
+      occasions: [Object],
+      priceMinCents: null,
+      priceMaxCents: null,
+      seasons: [Array],
+      styles: undefined,
+      materials: undefined,
+      fits: undefined,
+      lengths: undefined,
+      ageGroups: [Object]
+    }
+  },
+  topProducts: [
+    {
+      rank: 1,
+      productId: '202089161',
+      productTitle: 'Sage Diamante Bow Midi Dress'
+    },
+    {
+      rank: 2,
+      productId: '204034501',
+      productTitle: 'Lilac Embellished Bardot Midaxi Dress'
+    },
+    {
+      rank: 3,
+      productId: '200833355',
+      productTitle: 'Curve Asymmetric Buckle Midi Dress'
+    },
+    {
+      rank: 4,
+      productId: '204317460',
+      productTitle: 'Pink Taffeta Midi Dress'
+    }
+  ]
+}
+[2026-01-18T15:50:49.557Z] [Velou:DEBUG] {
+  message: 'stored_ranked_products_for_show_more',
+  query: 'I am going to Bahamas for vacation, suggest me a dress.',
+  rankedProductCount: 13,
+  sessionId: 'test-bahamas-query-1768751424948'
+}
+[2026-01-18T15:50:49.557Z] [Velou:INFO] {
+  message: 'I am going to Bahamas for vacation, suggest me a dress.',
+  sessionId: 'test-bahamas-query-1768751424948',
+  enhancedQuery: 'I am going to Bahamas for vacation, suggest me a dress.',
+  isFollowUp: false,
+  productCount: 4,
+  route: 'DISCOVERY'
+}
+
+📊 Results:
+
+   Reply Text Length: 471 characters
+   Products Returned: 0
+   Categories Classified: 0
+
+⚠️  No products returned!
+
+================================================================================
+
+✅ Test complete!
+

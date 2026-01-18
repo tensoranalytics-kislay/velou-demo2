@@ -1,0 +1,5924 @@
+[
+  {
+    "original": "Black",
+    "normalized": "Black",
+    "productCount": 831,
+    "verified": true
+  },
+  {
+    "original": "Blue",
+    "normalized": "Blue",
+    "productCount": 299,
+    "verified": true
+  },
+  {
+    "original": "White",
+    "normalized": "White",
+    "productCount": 262,
+    "verified": true
+  },
+  {
+    "original": "Navy",
+    "normalized": "Navy",
+    "productCount": 228,
+    "verified": true
+  },
+  {
+    "original": "Brown",
+    "normalized": "Brown",
+    "productCount": 212,
+    "verified": true
+  },
+  {
+    "original": "Gold",
+    "normalized": "Gold",
+    "productCount": 121,
+    "verified": true
+  },
+  {
+    "original": "Silver",
+    "normalized": "Silver",
+    "productCount": 112,
+    "verified": true
+  },
+  {
+    "original": "Green",
+    "normalized": "Green",
+    "productCount": 109,
+    "verified": true
+  },
+  {
+    "original": "Pink",
+    "normalized": "Pink",
+    "productCount": 109,
+    "verified": true
+  },
+  {
+    "original": "Khaki",
+    "normalized": "Khaki",
+    "productCount": 103,
+    "verified": true
+  },
+  {
+    "original": "Red",
+    "normalized": "Red",
+    "productCount": 90,
+    "verified": true
+  },
+  {
+    "original": "Multi",
+    "normalized": "Multi",
+    "productCount": 89,
+    "verified": true
+  },
+  {
+    "original": "Stone",
+    "normalized": "Stone",
+    "productCount": 87,
+    "verified": true
+  },
+  {
+    "original": "Cream",
+    "normalized": "Cream",
+    "productCount": 85,
+    "verified": true
+  },
+  {
+    "original": "Berry",
+    "normalized": "Berry",
+    "productCount": 80,
+    "verified": true
+  },
+  {
+    "original": "Gray",
+    "normalized": "Gray",
+    "productCount": 74,
+    "verified": true
+  },
+  {
+    "original": "Burgundy",
+    "normalized": "Burgundy",
+    "productCount": 65,
+    "verified": true
+  },
+  {
+    "original": "Bottle Green",
+    "normalized": "Bottle Green",
+    "productCount": 65,
+    "verified": true
+  },
+  {
+    "original": "Wine",
+    "normalized": "Wine",
+    "productCount": 55,
+    "verified": true
+  },
+  {
+    "original": "Nude",
+    "normalized": "Nude",
+    "productCount": 44,
+    "verified": true
+  },
+  {
+    "original": "Neutral",
+    "normalized": "Neutral",
+    "productCount": 41,
+    "verified": true
+  },
+  {
+    "original": "Lilac",
+    "normalized": "Lilac",
+    "productCount": 32,
+    "verified": true
+  },
+  {
+    "original": "Royal Blue",
+    "normalized": "Royal Blue",
+    "productCount": 30,
+    "verified": true
+  },
+  {
+    "original": "Sage",
+    "normalized": "Sage",
+    "productCount": 29,
+    "verified": true
+  },
+  {
+    "original": "Beige",
+    "normalized": "Beige",
+    "productCount": 26,
+    "verified": true
+  },
+  {
+    "original": "Light Blue",
+    "normalized": "Light Blue",
+    "productCount": 25,
+    "verified": true
+  },
+  {
+    "original": "Pale Blue",
+    "normalized": "Pale Blue",
+    "productCount": 23,
+    "verified": true
+  },
+  {
+    "original": "Pale Pink",
+    "normalized": "Pale Pink",
+    "productCount": 22,
+    "verified": true
+  },
+  {
+    "original": "Blush",
+    "normalized": "Blush",
+    "productCount": 22,
+    "verified": true
+  },
+  {
+    "original": "Yellow",
+    "normalized": "Yellow",
+    "productCount": 20,
+    "verified": true
+  },
+  {
+    "original": "Champagne",
+    "normalized": "Champagne",
+    "productCount": 20,
+    "verified": true
+  },
+  {
+    "original": "Denim",
+    "normalized": "Denim",
+    "productCount": 17,
+    "verified": true
+  },
+  {
+    "original": "Olive",
+    "normalized": "Olive",
+    "productCount": 17,
+    "verified": true
+  },
+  {
+    "original": "Orange",
+    "normalized": "Orange",
+    "productCount": 16,
+    "verified": true
+  },
+  {
+    "original": "Lemon",
+    "normalized": "Lemon",
+    "productCount": 14,
+    "verified": true
+  },
+  {
+    "original": "Coral",
+    "normalized": "Coral",
+    "productCount": 13,
+    "verified": true
+  },
+  {
+    "original": "White/Black",
+    "normalized": "White/Black",
+    "productCount": 13,
+    "verified": true
+  },
+  {
+    "original": "Purple",
+    "normalized": "Purple",
+    "productCount": 12,
+    "verified": true
+  },
+  {
+    "original": "Teal",
+    "normalized": "Teal",
+    "productCount": 12,
+    "verified": true
+  },
+  {
+    "original": "Dark Gray",
+    "normalized": "Dark Gray",
+    "productCount": 11,
+    "verified": true
+  },
+  {
+    "original": "Baby Pink",
+    "normalized": "Baby Pink",
+    "productCount": 11,
+    "verified": true
+  },
+  {
+    "original": "Indigo",
+    "normalized": "Indigo",
+    "productCount": 10,
+    "verified": true
+  },
+  {
+    "original": "Light Yellow",
+    "normalized": "Light Yellow",
+    "productCount": 9,
+    "verified": true
+  },
+  {
+    "original": "Plum",
+    "normalized": "Plum",
+    "productCount": 9,
+    "verified": true
+  },
+  {
+    "original": "Black/Navy/White",
+    "normalized": "Black/Navy/White",
+    "productCount": 8,
+    "verified": true
+  },
+  {
+    "original": "Taupe",
+    "normalized": "Taupe",
+    "productCount": 8,
+    "verified": true
+  },
+  {
+    "original": "Black/White",
+    "normalized": "Black/White",
+    "productCount": 8,
+    "verified": true
+  },
+  {
+    "original": "Light Pink",
+    "normalized": "Light Pink",
+    "productCount": 7,
+    "verified": true
+  },
+  {
+    "original": "Mint",
+    "normalized": "Mint",
+    "productCount": 7,
+    "verified": true
+  },
+  {
+    "original": "Dark Green",
+    "normalized": "Dark Green",
+    "productCount": 7,
+    "verified": true
+  },
+  {
+    "original": "Light Gray/Khaki",
+    "normalized": "Light Gray/Khaki",
+    "productCount": 7,
+    "verified": true
+  },
+  {
+    "original": "Black/Navy",
+    "normalized": "Black/Navy",
+    "productCount": 7,
+    "verified": true
+  },
+  {
+    "original": "White/Black/Navy",
+    "normalized": "White/Black/Navy",
+    "productCount": 7,
+    "verified": true
+  },
+  {
+    "original": "Medium Blue/Medium Dark Blue",
+    "normalized": "Medium Blue/Medium Dark Blue",
+    "productCount": 7,
+    "verified": true
+  },
+  {
+    "original": "Khaki/Blue",
+    "normalized": "Khaki/Blue",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "Mocha",
+    "normalized": "Mocha",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "Light Gray/Navy",
+    "normalized": "Light Gray/Navy",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "Black/Beige/Green",
+    "normalized": "Black/Beige/Green",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "Khaki/Blue/Navy",
+    "normalized": "Khaki/Blue/Navy",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "Light Gray/Khaki/Light Khaki",
+    "normalized": "Light Gray/Khaki/Light Khaki",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "Black/Steel Gray/Gray",
+    "normalized": "Black/Steel Gray/Gray",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "Light Gray/Light Khaki",
+    "normalized": "Light Gray/Light Khaki",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "Rust",
+    "normalized": "Rust",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "Dark Blue/Medium Blue",
+    "normalized": "Dark Blue/Medium Blue",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "Steel Gray",
+    "normalized": "Steel Gray",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "Black/Heather Gray",
+    "normalized": "Black/Heather Gray",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Tan",
+    "normalized": "Tan",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Jade",
+    "normalized": "Jade",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Granite",
+    "normalized": "Granite",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Heather Gray",
+    "normalized": "Heather Gray",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Light/Medium Blue / Light Blue",
+    "normalized": "Light/Medium Blue / Light Blue",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Light/Medium Blue / Dark Blue",
+    "normalized": "Light/Medium Blue / Dark Blue",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Gray/Navy/Black",
+    "normalized": "Gray/Navy/Black",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Navy/Steel Gray/Gray",
+    "normalized": "Navy/Steel Gray/Gray",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Heather Gray/White",
+    "normalized": "Heather Gray/White",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "White/Black/Heather Gray",
+    "normalized": "White/Black/Heather Gray",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Peach",
+    "normalized": "Peach",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Light Khaki/Military Green",
+    "normalized": "Light Khaki/Military Green",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Black/Heather Gray/White",
+    "normalized": "Black/Heather Gray/White",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Ecru",
+    "normalized": "Ecru",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Sand",
+    "normalized": "Sand",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "White/White/Black",
+    "normalized": "White/White/Black",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Navy/Khaki",
+    "normalized": "Navy/Khaki",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "White/Heather Gray",
+    "normalized": "White/Heather Gray",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Olive/Khaki",
+    "normalized": "Olive/Khaki",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Hot Pink",
+    "normalized": "Hot Pink",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Steel Gray/Navy/Black",
+    "normalized": "Steel Gray/Navy/Black",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Dark Blue / Dark Blue",
+    "normalized": "Dark Blue / Dark Blue",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Medium/Dark Blue / Light/Medium Blue",
+    "normalized": "Medium/Dark Blue / Light/Medium Blue",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Khaki/Black",
+    "normalized": "Khaki/Black",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Vintage White",
+    "normalized": "Vintage White",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Cardamom",
+    "normalized": "Cardamom",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Military Green",
+    "normalized": "Military Green",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Dark Blue / Medium/Dark Blue",
+    "normalized": "Dark Blue / Medium/Dark Blue",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "White/Vintage White/Heather Gray/Olive",
+    "normalized": "White/Vintage White/Heather Gray/Olive",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Medium/Dark Blue / Dark Blue",
+    "normalized": "Medium/Dark Blue / Dark Blue",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Mauve",
+    "normalized": "Mauve",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Heather Gray/Black",
+    "normalized": "Heather Gray/Black",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Magenta",
+    "normalized": "Magenta",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Riverside",
+    "normalized": "Riverside",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Vintage Gray",
+    "normalized": "Vintage Gray",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Hydrangea",
+    "normalized": "Hydrangea",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Fuchsia",
+    "normalized": "Fuchsia",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "3 White/Vintage White/Heather Gray/Military Green/Navy/2 Black",
+    "normalized": null,
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Rosemary",
+    "normalized": "Rosemary",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Metallic",
+    "normalized": "Metallic",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Neon Yellow",
+    "normalized": "Neon Yellow",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "2 White/2 Black/Heather Gray/Navy/Military Green/Crimson/Cardamon",
+    "normalized": null,
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Dark Pink",
+    "normalized": "Dark Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "2 White/Heather Gray/Military Green/Crimson/2 Navy/2 Black",
+    "normalized": null,
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "3 White/3 Navy/3 Black",
+    "normalized": null,
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Charcoal",
+    "normalized": "Charcoal",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Vintage Navy",
+    "normalized": "Vintage Navy",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Aqua",
+    "normalized": "Aqua",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Rose Pink",
+    "normalized": "Rose Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Dusty Pink",
+    "normalized": "Dusty Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Baltic Blue",
+    "normalized": "Baltic Blue",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "2 White/Rosemary",
+    "normalized": null,
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pine",
+    "normalized": "Pine",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Dark Silver",
+    "normalized": "Dark Silver",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Assorted",
+    "normalized": "Assorted",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Camel",
+    "normalized": "Camel",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Rose Gold",
+    "normalized": "Rose Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "2 Vintage White/2 Navy/2 Black/2 Military Green/1 Cardamon",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "2 White/2 Black/2 Heather Gray/2 Navy/Military Green",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Dark Moss",
+    "normalized": "Dark Moss",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "3 Heather Gray/3 Dark Gray",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Slate",
+    "normalized": "Slate",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "2 Black/2 Dark Gray/2 Navy/California Blue/2 White",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "2 Black/1 White",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Cerise",
+    "normalized": "Cerise",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Ice Blue",
+    "normalized": "Ice Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Medium Blue",
+    "normalized": "Medium Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "1 White/2 Black",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Venice Blue",
+    "normalized": "Venice Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Walnut",
+    "normalized": "Walnut",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "2 White/Black",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "3 Navy/3 Heather Gray",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Dark Olive",
+    "normalized": "Dark Olive",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "2 White",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black / Medium Gray",
+    "normalized": "Black / Medium Gray",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "2 White/1 Black",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "2 Black/2 Navy/2 Heather Gray",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "2 Black/4 White",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Cement",
+    "normalized": "Cement",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Denim",
+    "normalized": "Light Denim",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Espresso",
+    "normalized": "Espresso",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Honewdew",
+    "normalized": "Honewdew",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "2 White/Navy",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Sienna",
+    "normalized": "Sienna",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "2 Dark Gray/2 California Blue/2 Navy",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black / Black",
+    "normalized": "Black / Black",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Vintage Black",
+    "normalized": "Vintage Black",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "California Blue",
+    "normalized": "California Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "2 Vintage White/3 Navy/3 Black/1 Light Gray",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Lime",
+    "normalized": "Lime",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "2 White/2 Navy/2 Dark Gray",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Vintage Dark Moss",
+    "normalized": "Vintage Dark Moss",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "3 White",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Oat",
+    "normalized": "Oat",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Emerald Green",
+    "normalized": "Emerald Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Vintage Slate",
+    "normalized": "Vintage Slate",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "3 Black/3 Dark Gray",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Navy / Medium Blue",
+    "normalized": "Navy / Medium Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Natural",
+    "normalized": "Natural",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Tobacco",
+    "normalized": "Tobacco",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "2 White/Dark Gray",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Vintage Pewter",
+    "normalized": "Vintage Pewter",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "3 Black/3 White/3 Heather Gray",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Midnight",
+    "normalized": "Midnight",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pistachio",
+    "normalized": "Pistachio",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "3 Vintage White/3 Navy /3 Black",
+    "normalized": null,
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "dark black",
+    "normalized": "Dark Black",
+    "productCount": 568,
+    "verified": true
+  },
+  {
+    "original": "blue",
+    "normalized": "Blue",
+    "productCount": 222,
+    "verified": true
+  },
+  {
+    "original": "black",
+    "normalized": "Black",
+    "productCount": 193,
+    "verified": true
+  },
+  {
+    "original": "dark red",
+    "normalized": "Dark Red",
+    "productCount": 184,
+    "verified": true
+  },
+  {
+    "original": "dark navy",
+    "normalized": "Dark Navy",
+    "productCount": 177,
+    "verified": true
+  },
+  {
+    "original": "light white",
+    "normalized": "Light White",
+    "productCount": 149,
+    "verified": true
+  },
+  {
+    "original": "light pink",
+    "normalized": "Light Pink",
+    "productCount": 121,
+    "verified": true
+  },
+  {
+    "original": "light beige",
+    "normalized": "Light Beige",
+    "productCount": 115,
+    "verified": true
+  },
+  {
+    "original": "light brown",
+    "normalized": "Light Brown",
+    "productCount": 115,
+    "verified": true
+  },
+  {
+    "original": "gray",
+    "normalized": "Gray",
+    "productCount": 110,
+    "verified": true
+  },
+  {
+    "original": "medium brown",
+    "normalized": "Medium Brown",
+    "productCount": 102,
+    "verified": true
+  },
+  {
+    "original": "light blue",
+    "normalized": "Light Blue",
+    "productCount": 93,
+    "verified": true
+  },
+  {
+    "original": "dark green",
+    "normalized": "Dark Green",
+    "productCount": 84,
+    "verified": true
+  },
+  {
+    "original": "light cream",
+    "normalized": "Light Cream",
+    "productCount": 81,
+    "verified": true
+  },
+  {
+    "original": "bright red",
+    "normalized": "Bright Red",
+    "productCount": 78,
+    "verified": true
+  },
+  {
+    "original": "green",
+    "normalized": "Green",
+    "productCount": 78,
+    "verified": true
+  },
+  {
+    "original": "white",
+    "normalized": "White",
+    "productCount": 77,
+    "verified": true
+  },
+  {
+    "original": "beige",
+    "normalized": "Beige",
+    "productCount": 61,
+    "verified": true
+  },
+  {
+    "original": "medium blue",
+    "normalized": "Medium Blue",
+    "productCount": 55,
+    "verified": true
+  },
+  {
+    "original": "black, white",
+    "normalized": "Black, White",
+    "productCount": 55,
+    "verified": true
+  },
+  {
+    "original": "dark brown",
+    "normalized": "Dark Brown",
+    "productCount": 53,
+    "verified": true
+  },
+  {
+    "original": "medium green",
+    "normalized": "Medium Green",
+    "productCount": 52,
+    "verified": true
+  },
+  {
+    "original": "black, white, gray",
+    "normalized": "Black, White, Gray",
+    "productCount": 52,
+    "verified": true
+  },
+  {
+    "original": "brown, cream, light brown",
+    "normalized": "Brown, Cream, Light Brown",
+    "productCount": 47,
+    "verified": true
+  },
+  {
+    "original": "bright blue",
+    "normalized": "Bright Blue",
+    "productCount": 43,
+    "verified": true
+  },
+  {
+    "original": "medium green, dark green",
+    "normalized": "Medium Green, Dark Green",
+    "productCount": 42,
+    "verified": true
+  },
+  {
+    "original": "light yellow",
+    "normalized": "Light Yellow",
+    "productCount": 39,
+    "verified": true
+  },
+  {
+    "original": "light green",
+    "normalized": "Light Green",
+    "productCount": 38,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, Soft Pink",
+    "normalized": "Pink, Light Pink, Blush, Soft Pink",
+    "productCount": 37,
+    "verified": true
+  },
+  {
+    "original": "black, brown, dark brown",
+    "normalized": "Black, Brown, Dark Brown",
+    "productCount": 34,
+    "verified": true
+  },
+  {
+    "original": "light purple",
+    "normalized": "Light Purple",
+    "productCount": 34,
+    "verified": true
+  },
+  {
+    "original": "navy",
+    "normalized": "Navy",
+    "productCount": 33,
+    "verified": true
+  },
+  {
+    "original": "bright pink",
+    "normalized": "Bright Pink",
+    "productCount": 33,
+    "verified": true
+  },
+  {
+    "original": "light blue, green, white",
+    "normalized": "Light Blue, Green, White",
+    "productCount": 28,
+    "verified": true
+  },
+  {
+    "original": "black, gray",
+    "normalized": "Black, Gray",
+    "productCount": 24,
+    "verified": true
+  },
+  {
+    "original": "gray, green",
+    "normalized": "Gray, Green",
+    "productCount": 24,
+    "verified": true
+  },
+  {
+    "original": "light pink, light blue, light green",
+    "normalized": "Light Pink, Light Blue, Light Green",
+    "productCount": 24,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, Blush",
+    "normalized": "Pink, Light Pink, Soft Pink, Blush",
+    "productCount": 22,
+    "verified": true
+  },
+  {
+    "original": "black, white, navy",
+    "normalized": "Black, White, Navy",
+    "productCount": 22,
+    "verified": true
+  },
+  {
+    "original": "bright white",
+    "normalized": "Bright White",
+    "productCount": 21,
+    "verified": true
+  },
+  {
+    "original": "light beige, white",
+    "normalized": "Light Beige, White",
+    "productCount": 21,
+    "verified": true
+  },
+  {
+    "original": "dark blue, white",
+    "normalized": "Dark Blue, White",
+    "productCount": 20,
+    "verified": true
+  },
+  {
+    "original": "black, gray, navy",
+    "normalized": "Black, Gray, Navy",
+    "productCount": 20,
+    "verified": true
+  },
+  {
+    "original": "black, brown, beige",
+    "normalized": "Black, Brown, Beige",
+    "productCount": 20,
+    "verified": true
+  },
+  {
+    "original": "dark blue",
+    "normalized": "Dark Blue",
+    "productCount": 19,
+    "verified": true
+  },
+  {
+    "original": "Black, Dark Black, Jet Black",
+    "normalized": "Black, Dark Black, Jet Black",
+    "productCount": 18,
+    "verified": true
+  },
+  {
+    "original": "dark green, brown",
+    "normalized": "Dark Green, Brown",
+    "productCount": 18,
+    "verified": true
+  },
+  {
+    "original": "white, gray",
+    "normalized": "White, Gray",
+    "productCount": 18,
+    "verified": true
+  },
+  {
+    "original": "light pink, purple, blue",
+    "normalized": "Light Pink, Purple, Blue",
+    "productCount": 17,
+    "verified": true
+  },
+  {
+    "original": "bright pink, light blue, cream",
+    "normalized": "Bright Pink, Light Blue, Cream",
+    "productCount": 17,
+    "verified": true
+  },
+  {
+    "original": "brown, pink, purple",
+    "normalized": "Brown, Pink, Purple",
+    "productCount": 17,
+    "verified": true
+  },
+  {
+    "original": "green, black",
+    "normalized": "Green, Black",
+    "productCount": 16,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Pure White, Optic White",
+    "normalized": "White, Bright White, Pure White, Optic White",
+    "productCount": 15,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Pure White, Snow White",
+    "normalized": "White, Bright White, Pure White, Snow White",
+    "productCount": 15,
+    "verified": true
+  },
+  {
+    "original": "bright green",
+    "normalized": "Bright Green",
+    "productCount": 14,
+    "verified": true
+  },
+  {
+    "original": "light cream, pink, beige",
+    "normalized": "Light Cream, Pink, Beige",
+    "productCount": 13,
+    "verified": true
+  },
+  {
+    "original": "bright orange",
+    "normalized": "Bright Orange",
+    "productCount": 13,
+    "verified": true
+  },
+  {
+    "original": "gray, navy",
+    "normalized": "Gray, Navy",
+    "productCount": 13,
+    "verified": true
+  },
+  {
+    "original": "bright blue, light green",
+    "normalized": "Bright Blue, Light Green",
+    "productCount": 13,
+    "verified": true
+  },
+  {
+    "original": "brown",
+    "normalized": "Brown",
+    "productCount": 12,
+    "verified": true
+  },
+  {
+    "original": "white, black",
+    "normalized": "White, Black",
+    "productCount": 12,
+    "verified": true
+  },
+  {
+    "original": "navy, green",
+    "normalized": "Navy, Green",
+    "productCount": 12,
+    "verified": true
+  },
+  {
+    "original": "light white, black",
+    "normalized": "Light White, Black",
+    "productCount": 12,
+    "verified": true
+  },
+  {
+    "original": "green, beige, brown",
+    "normalized": "Green, Beige, Brown",
+    "productCount": 12,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Cream, Off-White",
+    "normalized": "Ivory, Cream, Off-White",
+    "productCount": 11,
+    "verified": true
+  },
+  {
+    "original": "dark red, pink",
+    "normalized": "Dark Red, Pink",
+    "productCount": 11,
+    "verified": true
+  },
+  {
+    "original": "light pink, white, green",
+    "normalized": "Light Pink, White, Green",
+    "productCount": 10,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink",
+    "normalized": "Pink, Light Pink, Soft Pink",
+    "productCount": 10,
+    "verified": true
+  },
+  {
+    "original": "white, green",
+    "normalized": "White, Green",
+    "productCount": 10,
+    "verified": true
+  },
+  {
+    "original": "light gray",
+    "normalized": "Light Gray",
+    "productCount": 10,
+    "verified": true
+  },
+  {
+    "original": "Gold, Bright Gold, Shiny Gold",
+    "normalized": "Gold, Bright Gold, Shiny Gold",
+    "productCount": 10,
+    "verified": true
+  },
+  {
+    "original": "Gold, Bright Gold, Metallic Gold",
+    "normalized": "Gold, Bright Gold, Metallic Gold",
+    "productCount": 10,
+    "verified": true
+  },
+  {
+    "original": "dark purple",
+    "normalized": "Dark Purple",
+    "productCount": 9,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Lavender, Floral",
+    "normalized": "Pink, Light Pink, Lavender, Floral",
+    "productCount": 9,
+    "verified": true
+  },
+  {
+    "original": "dark green, white, black",
+    "normalized": "Dark Green, White, Black",
+    "productCount": 8,
+    "verified": true
+  },
+  {
+    "original": "black, navy",
+    "normalized": "Black, Navy",
+    "productCount": 8,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, Rose Pink",
+    "normalized": "Pink, Light Pink, Blush, Rose Pink",
+    "productCount": 8,
+    "verified": true
+  },
+  {
+    "original": "white, gray, navy",
+    "normalized": "White, Gray, Navy",
+    "productCount": 8,
+    "verified": true
+  },
+  {
+    "original": "gray, navy, green",
+    "normalized": "Gray, Navy, Green",
+    "productCount": 8,
+    "verified": true
+  },
+  {
+    "original": "light green, white, light blue",
+    "normalized": "Light Green, White, Light Blue",
+    "productCount": 8,
+    "verified": true
+  },
+  {
+    "original": "black, white, green",
+    "normalized": "Black, White, Green",
+    "productCount": 8,
+    "verified": true
+  },
+  {
+    "original": "medium red",
+    "normalized": "Medium Red",
+    "productCount": 7,
+    "verified": true
+  },
+  {
+    "original": "dark brown, light blue, pink",
+    "normalized": "Dark Brown, Light Blue, Pink",
+    "productCount": 7,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Cream, Off-White, Light Beige",
+    "normalized": "Ivory, Cream, Off-White, Light Beige",
+    "productCount": 7,
+    "verified": true
+  },
+  {
+    "original": "light beige, light brown, white",
+    "normalized": "Light Beige, Light Brown, White",
+    "productCount": 7,
+    "verified": true
+  },
+  {
+    "original": "red",
+    "normalized": "Red",
+    "productCount": 7,
+    "verified": true
+  },
+  {
+    "original": "beige, brown, gray",
+    "normalized": "Beige, Brown, Gray",
+    "productCount": 7,
+    "verified": true
+  },
+  {
+    "original": "Black, Dark Black, Jet Black, Charcoal",
+    "normalized": "Black, Dark Black, Jet Black, Charcoal",
+    "productCount": 7,
+    "verified": true
+  },
+  {
+    "original": "navy, blue, green",
+    "normalized": "Navy, Blue, Green",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "blue, green",
+    "normalized": "Blue, Green",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "black, pink",
+    "normalized": "Black, Pink",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "navy, blue",
+    "normalized": "Navy, Blue",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "Pale Pink, Light Pink, Soft Pink",
+    "normalized": "Pale Pink, Light Pink, Soft Pink",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "white, gray, green",
+    "normalized": "White, Gray, Green",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Peony, Blush",
+    "normalized": "Pink, Light Pink, Peony, Blush",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "black, green",
+    "normalized": "Black, Green",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "blue, light blue",
+    "normalized": "Blue, Light Blue",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "bright red, pink, blue",
+    "normalized": "Bright Red, Pink, Blue",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "dark blue, white, brown",
+    "normalized": "Dark Blue, White, Brown",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "white, navy",
+    "normalized": "White, Navy",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "black, green, beige",
+    "normalized": "Black, Green, Beige",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "White, Light Blue, Pink",
+    "normalized": "White, Light Blue, Pink",
+    "productCount": 6,
+    "verified": true
+  },
+  {
+    "original": "gray, navy, blue",
+    "normalized": "Gray, Navy, Blue",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Pink, White",
+    "normalized": "Blue, Light Blue, Pink, White",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, Soft Pink, White",
+    "normalized": "Pink, Light Pink, Blush, Soft Pink, White",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "White, Off-White, Cream",
+    "normalized": "White, Off-White, Cream",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "tan",
+    "normalized": "Tan",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, White",
+    "normalized": "Pink, Light Pink, Pastel Pink, White",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Pink, Floral",
+    "normalized": "Light Blue, Sky Blue, Pink, Floral",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Pink, Metallic Pink, Light Pink",
+    "normalized": "Pink, Metallic Pink, Light Pink",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "black, navy, green",
+    "normalized": "Black, Navy, Green",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Baby Pink, White",
+    "normalized": "Pink, Light Pink, Baby Pink, White",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "pink",
+    "normalized": "Pink",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Orchid, Blush",
+    "normalized": "Pink, Light Pink, Orchid, Blush",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Soft Blue",
+    "normalized": "Light Blue, Sky Blue, Soft Blue",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "gray, beige",
+    "normalized": "Gray, Beige",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Off White, Cream, Ivory, Light Beige",
+    "normalized": "Off White, Cream, Ivory, Light Beige",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "dark red, pink, white",
+    "normalized": "Dark Red, Pink, White",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "white, red",
+    "normalized": "White, Red",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Angel Pink, Soft Pink",
+    "normalized": "Pink, Light Pink, Angel Pink, Soft Pink",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "light pink, pink, white",
+    "normalized": "Light Pink, Pink, White",
+    "productCount": 5,
+    "verified": true
+  },
+  {
+    "original": "black, gray, blue",
+    "normalized": "Black, Gray, Blue",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "White, Off-White, Cream, Ivory",
+    "normalized": "White, Off-White, Cream, Ivory",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Black, Dark Black",
+    "normalized": "Black, Dark Black",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "gray, blue, green",
+    "normalized": "Gray, Blue, Green",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "White, Peach, Pink, Floral",
+    "normalized": "White, Peach, Pink, Floral",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "dark gray",
+    "normalized": "Dark Gray",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "black, white, blue",
+    "normalized": "Black, White, Blue",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, Rose",
+    "normalized": "Pink, Light Pink, Blush, Rose",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Cream, Beige",
+    "normalized": "Pink, Light Pink, Cream, Beige",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, White, Gold",
+    "normalized": "Pink, Light Pink, White, Gold",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "purple",
+    "normalized": "Purple",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Peppermint Pink",
+    "normalized": "Pink, Light Pink, Pastel Pink, Peppermint Pink",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "black, white, red",
+    "normalized": "Black, White, Red",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Pure White",
+    "normalized": "White, Bright White, Pure White",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "silver",
+    "normalized": "Silver",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "white, pink",
+    "normalized": "White, Pink",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "White, Light Blue, Pink, Floral",
+    "normalized": "White, Light Blue, Pink, Floral",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "Chocolate Brown, Dark Brown, Rich Brown",
+    "normalized": "Chocolate Brown, Dark Brown, Rich Brown",
+    "productCount": 4,
+    "verified": true
+  },
+  {
+    "original": "green, black, white",
+    "normalized": "Green, Black, White",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "medium pink",
+    "normalized": "Medium Pink",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Camel, Beige, Tan, Light Brown",
+    "normalized": "Camel, Beige, Tan, Light Brown",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "black, white, pink",
+    "normalized": "Black, White, Pink",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Yellow, Green, Red, Floral",
+    "normalized": "Pink, Light Pink, Yellow, Green, Red, Floral",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Berry, Floral",
+    "normalized": "Pink, Light Pink, Berry, Floral",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, Floral",
+    "normalized": "Pink, Light Pink, Blush, Floral",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Sky Blue, Soft Blue",
+    "normalized": "Blue, Light Blue, Sky Blue, Soft Blue",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Mint, White",
+    "normalized": "Pink, Light Pink, Mint, White",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "white, blue",
+    "normalized": "White, Blue",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "bright pink, black",
+    "normalized": "Bright Pink, Black",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Pure White, Off-White",
+    "normalized": "White, Bright White, Pure White, Off-White",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Lilac, White",
+    "normalized": "Pink, Light Pink, Lilac, White",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "light brown, beige",
+    "normalized": "Light Brown, Beige",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Ivory, White, Cream",
+    "normalized": "Ivory, White, Cream",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Lilac, Pink, White, Light Blue",
+    "normalized": "Lilac, Pink, White, Light Blue",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Black, White, Cream",
+    "normalized": "Black, White, Cream",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, Nude",
+    "normalized": "Pink, Light Pink, Blush, Nude",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Off-White, Cream, Light Beige",
+    "normalized": "Ivory, Off-White, Cream, Light Beige",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "black, gray, beige",
+    "normalized": "Black, Gray, Beige",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "bright orange, blue, red",
+    "normalized": "Bright Orange, Blue, Red",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Red, Cherry Red, Bright Red, Tartan",
+    "normalized": "Red, Cherry Red, Bright Red, Tartan",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "black, blue",
+    "normalized": "Black, Blue",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blue, Light Blue, Floral",
+    "normalized": "Pink, Light Pink, Blue, Light Blue, Floral",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "beige, cream",
+    "normalized": "Beige, Cream",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink",
+    "normalized": "Pink, Light Pink, Pastel Pink",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Blue, Denim Blue, Light Blue",
+    "normalized": "Blue, Denim Blue, Light Blue",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Chilled Blue, Soft Blue",
+    "normalized": "Light Blue, Chilled Blue, Soft Blue",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "white, pink, orange",
+    "normalized": "White, Pink, Orange",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "light pink, pink, green",
+    "normalized": "Light Pink, Pink, Green",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Dusty Pink, Light Pink, Soft Pink",
+    "normalized": "Dusty Pink, Light Pink, Soft Pink",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "green, silver",
+    "normalized": "Green, Silver",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Powder Blue, Soft Blue, White",
+    "normalized": "Light Blue, Powder Blue, Soft Blue, White",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, White",
+    "normalized": "Pink, Light Pink, Soft Pink, White",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "White, Light Blue, Blue",
+    "normalized": "White, Light Blue, Blue",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Pink, Bright Pink, Rainbow, Multicolor",
+    "normalized": "Pink, Bright Pink, Rainbow, Multicolor",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Red, Bright Red, Candy Apple",
+    "normalized": "Red, Bright Red, Candy Apple",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Brown, Chocolate Brown, Dark Brown",
+    "normalized": "Brown, Chocolate Brown, Dark Brown",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Gold, Metallic Gold, Pink, Light Pink",
+    "normalized": "Gold, Metallic Gold, Pink, Light Pink",
+    "productCount": 3,
+    "verified": true
+  },
+  {
+    "original": "Black, Jet Black, Deep Black",
+    "normalized": "Black, Jet Black, Deep Black",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Peach, Pink, Light Pink, Lavender",
+    "normalized": "Peach, Pink, Light Pink, Lavender",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "white, purple",
+    "normalized": "White, Purple",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Peony Pink, Light Pink, Soft Pink",
+    "normalized": "Pink, Peony Pink, Light Pink, Soft Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Soft Pink, Blush, Light Pink",
+    "normalized": "Pink, Soft Pink, Blush, Light Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Floral Print",
+    "normalized": "Pink, Light Pink, Pastel Pink, Floral Print",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Cream",
+    "normalized": "White, Bright White, Cream",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pale Blue, Light Blue, Soft Blue",
+    "normalized": "Pale Blue, Light Blue, Soft Blue",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Mint, Light Blue, Pink, Floral",
+    "normalized": "Mint, Light Blue, Pink, Floral",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "White, Cream, Ivory, Beige, Light Beige",
+    "normalized": "White, Cream, Ivory, Beige, Light Beige",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "green, beige, cream",
+    "normalized": "Green, Beige, Cream",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "navy, green, beige",
+    "normalized": "Navy, Green, Beige",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Camel, Brown, Tan",
+    "normalized": "Camel, Brown, Tan",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "black, gray, green",
+    "normalized": "Black, Gray, Green",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Lavender, Purple, Floral",
+    "normalized": "Pink, Light Pink, Lavender, Purple, Floral",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "bright yellow, pink, orange",
+    "normalized": "Bright Yellow, Pink, Orange",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "light green, white, dark green",
+    "normalized": "Light Green, White, Dark Green",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Bright Pink, Fuchsia",
+    "normalized": "Pink, Light Pink, Bright Pink, Fuchsia",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Starlit Pink, Light Pink",
+    "normalized": "Pink, Starlit Pink, Light Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "White, Red, Bright Red, Cherry Red",
+    "normalized": "White, Red, Bright Red, Cherry Red",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Blue, Pink, White",
+    "normalized": "Light Blue, Blue, Pink, White",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "white, navy, green",
+    "normalized": "White, Navy, Green",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Cream, Off-White, Beige, Light Beige",
+    "normalized": "Cream, Off-White, Beige, Light Beige",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "light purple, pink",
+    "normalized": "Light Purple, Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "navy, blue, brown",
+    "normalized": "Navy, Blue, Brown",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "green, beige",
+    "normalized": "Green, Beige",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Champagne, Cream, White",
+    "normalized": "Pink, Light Pink, Champagne, Cream, White",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Brown, Brown Sugar, Light Brown, Pink, Soft Pink",
+    "normalized": "Brown, Brown Sugar, Light Brown, Pink, Soft Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "White, Optic White, Bright White, Pure White",
+    "normalized": "White, Optic White, Bright White, Pure White",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "gray, green, beige",
+    "normalized": "Gray, Green, Beige",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Aspen Blue, Light Blue, Soft Blue, Pale Blue",
+    "normalized": "Aspen Blue, Light Blue, Soft Blue, Pale Blue",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "cream",
+    "normalized": "Cream",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "light beige, beige",
+    "normalized": "Light Beige, Beige",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Natural, Beige, Tan, Light Brown",
+    "normalized": "Natural, Beige, Tan, Light Brown",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "White, Light Blue, Blue, Cream",
+    "normalized": "White, Light Blue, Blue, Cream",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "White, Antique White, Cream",
+    "normalized": "White, Antique White, Cream",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Cherry Red, Pink",
+    "normalized": "White, Bright White, Cherry Red, Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "light pink, dark pink, cream",
+    "normalized": "Light Pink, Dark Pink, Cream",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Soft Blue, Pink, Light Pink, White",
+    "normalized": "Light Blue, Soft Blue, Pink, Light Pink, White",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "light blue, pink",
+    "normalized": "Light Blue, Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "red, black, pink",
+    "normalized": "Red, Black, Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Floral Print, Green, Blue",
+    "normalized": "Pink, Light Pink, Floral Print, Green, Blue",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Baby Blue",
+    "normalized": "Light Blue, Sky Blue, Baby Blue",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Cream, Off-white, Light Beige",
+    "normalized": "Ivory, Cream, Off-White, Light Beige",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, Strawberry",
+    "normalized": "Pink, Light Pink, Blush, Strawberry",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Denim Blue",
+    "normalized": "Blue, Light Blue, Denim Blue",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Whisper Blue, Light Blue, Pink, Lavender, Floral",
+    "normalized": "Whisper Blue, Light Blue, Pink, Lavender, Floral",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "White, Light Blue, Blue, Striped",
+    "normalized": "White, Light Blue, Blue, Striped",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "green, white, black",
+    "normalized": "Green, White, Black",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Blue, Light Blue, White",
+    "normalized": "Pink, Light Pink, Pastel Pink, Blue, Light Blue, White",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, White",
+    "normalized": "Blue, Light Blue, White",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "light blue, purple, dark blue",
+    "normalized": "Light Blue, Purple, Dark Blue",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Powder Pink, Soft Pink, Blush",
+    "normalized": "Pink, Powder Pink, Soft Pink, Blush",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Orchid, Lavender, White",
+    "normalized": "Pink, Light Pink, Orchid, Lavender, White",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "white, navy, blue",
+    "normalized": "White, Navy, Blue",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "white, gray, red",
+    "normalized": "White, Gray, Red",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Snowdrop Blue, Floral",
+    "normalized": "Blue, Light Blue, Snowdrop Blue, Floral",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Eau De Nil, Light Green, Mint Green",
+    "normalized": "Eau De Nil, Light Green, Mint Green",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Lilac, Floral",
+    "normalized": "Pink, Light Pink, Lilac, Floral",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "light yellow, blue",
+    "normalized": "Light Yellow, Blue",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Off White, White, Cream",
+    "normalized": "Off White, White, Cream",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Bright Pink, Pastel Pink",
+    "normalized": "Pink, Light Pink, Bright Pink, Pastel Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Rose",
+    "normalized": "Pink, Light Pink, Pastel Pink, Rose",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "bright red, pink",
+    "normalized": "Bright Red, Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "White, Pink, Light Pink",
+    "normalized": "White, Pink, Light Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "White, Pink, Light Pink, Floral",
+    "normalized": "White, Pink, Light Pink, Floral",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, Peach, Coral",
+    "normalized": "Pink, Light Pink, Blush, Peach, Coral",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "bright green, black, white",
+    "normalized": "Bright Green, Black, White",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Rose Pink, White",
+    "normalized": "Pink, Light Pink, Rose Pink, White",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Gold, Yellow",
+    "normalized": "Pink, Light Pink, Gold, Yellow",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Ballerina Pink, Light Pink, Soft Pink",
+    "normalized": "Pink, Ballerina Pink, Light Pink, Soft Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "light green, blue, white",
+    "normalized": "Light Green, Blue, White",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "medium pink, dark pink, purple",
+    "normalized": "Medium Pink, Dark Pink, Purple",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Blush, Soft Pink",
+    "normalized": "Pink, Blush, Soft Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Alpine Blue, Light Blue, Pastel Blue, Pink, Light Pink, Soft Pink",
+    "normalized": "Alpine Blue, Light Blue, Pastel Blue, Pink, Light Pink, Soft Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Rose, Cream, Yellow, Green",
+    "normalized": "Pink, Light Pink, Rose, Cream, Yellow, Green",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pastel Blue, Pink, Green, White",
+    "normalized": "Pastel Blue, Pink, Green, White",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Black, Velvet Black, Deep Black",
+    "normalized": "Black, Velvet Black, Deep Black",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Cream, Off-White, Ivory, Light Beige",
+    "normalized": "Cream, Off-White, Ivory, Light Beige",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, Floral Pink",
+    "normalized": "Pink, Light Pink, Soft Pink, Floral Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Lavender, Pink, Light Purple",
+    "normalized": "Lavender, Pink, Light Purple",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "white, gray, blue",
+    "normalized": "White, Gray, Blue",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Light Pink, Blush Pink",
+    "normalized": "Ivory, Light Pink, Blush Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "purple, light blue, pink",
+    "normalized": "Purple, Light Blue, Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, French Rose, Soft Pink, Blush",
+    "normalized": "Pink, French Rose, Soft Pink, Blush",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Gold, Light Pink, Pink",
+    "normalized": "Gold, Light Pink, Pink",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Green, Mint Green, White",
+    "normalized": "Pink, Light Pink, Green, Mint Green, White",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Sky Blue, Gingham",
+    "normalized": "Blue, Light Blue, Sky Blue, Gingham",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Cream, Light Beige, Soft White",
+    "normalized": "Ivory, Cream, Light Beige, Soft White",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Camel, Tan, Beige, Light Brown",
+    "normalized": "Camel, Tan, Beige, Light Brown",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Rose, Floral Green",
+    "normalized": "Pink, Light Pink, Rose, Floral Green",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "White, Cream, Gold, Metallic Gold",
+    "normalized": "White, Cream, Gold, Metallic Gold",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Lavender, Blue, Light Blue, White, Floral",
+    "normalized": "Pink, Light Pink, Lavender, Blue, Light Blue, White, Floral",
+    "productCount": 2,
+    "verified": true
+  },
+  {
+    "original": "light pink, light green, white",
+    "normalized": "Light Pink, Light Green, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Perennial Pink, Light Pink",
+    "normalized": "Pink, Perennial Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Bright Red, Lipstick Red",
+    "normalized": "Red, Bright Red, Lipstick Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Ballet Pink, Light Pink, Soft Pink",
+    "normalized": "Ballet Pink, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Dark Black, Jet Black, White, Bright White, Pure White",
+    "normalized": "Black, Dark Black, Jet Black, White, Bright White, Pure White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, White, Pink",
+    "normalized": "Blue, Light Blue, White, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Blue, Light Blue, Sky Blue",
+    "normalized": "Pink, Light Pink, Pastel Pink, Blue, Light Blue, Sky Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Airy Blue, Light Blue, Soft Blue, Sky Blue",
+    "normalized": "Airy Blue, Light Blue, Soft Blue, Sky Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Thulian Pink, Light Pink, White",
+    "normalized": "Pink, Thulian Pink, Light Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Raspberry, Blush, Rose",
+    "normalized": "Pink, Light Pink, Raspberry, Blush, Rose",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, Soft Pink, Shimmer Pink",
+    "normalized": "Pink, Light Pink, Blush, Soft Pink, Shimmer Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Airy Blue, Soft Blue",
+    "normalized": "Light Blue, Airy Blue, Soft Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Gold, Pink, Rose",
+    "normalized": "White, Gold, Pink, Rose",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Coconut White, Cream, Gold",
+    "normalized": "White, Coconut White, Cream, Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Cream, White",
+    "normalized": "Pink, Light Pink, Pastel Pink, Cream, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, White",
+    "normalized": "Black, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Antique White, Black, Polka Dot",
+    "normalized": "White, Antique White, Black, Polka Dot",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Rose, Yellow, Floral",
+    "normalized": "Pink, Light Pink, Rose, Yellow, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Light Pink, Pastel Pink, Blue, Yellow, Green",
+    "normalized": "White, Light Pink, Pastel Pink, Blue, Yellow, Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Deep Rose, Burgundy, Pink",
+    "normalized": "Deep Rose, Burgundy, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Denim Blue",
+    "normalized": "Light Blue, Denim Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Soft Pink, Ice Petal",
+    "normalized": "Pink, Light Pink, Pastel Pink, Soft Pink, Ice Petal",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Pink, White",
+    "normalized": "Light Blue, Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Red, Cherry Red",
+    "normalized": "White, Bright White, Red, Cherry Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Baby Blue, Light Blue, Soft Blue",
+    "normalized": "Baby Blue, Light Blue, Soft Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Iced Strawberry, Blush",
+    "normalized": "Pink, Light Pink, Iced Strawberry, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Pink, Pastel Pink, Soft Yellow, Light Blue, Cream",
+    "normalized": "Light Pink, Pastel Pink, Soft Yellow, Light Blue, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Lemonade Yellow, Soft Yellow",
+    "normalized": "Pink, Light Pink, Lemonade Yellow, Soft Yellow",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Rose Pink, Shimmering Pink, Rose Gold",
+    "normalized": "Pink, Rose Pink, Shimmering Pink, Rose Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Purple, Light Purple, Pink, Floral Pink",
+    "normalized": "Purple, Light Purple, Pink, Floral Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Optic White, Pink, Light Pink, Red, Cherry Red",
+    "normalized": "White, Optic White, Pink, Light Pink, Red, Cherry Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Light Pink, Light Blue",
+    "normalized": "White, Light Pink, Light Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Bright Pink, Crimson, Red",
+    "normalized": "Pink, Bright Pink, Crimson, Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Denim Blue, Red, Cherry Red",
+    "normalized": "Light Blue, Denim Blue, Red, Cherry Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Turquoise, Light Blue, Pearl, Cream",
+    "normalized": "Turquoise, Light Blue, Pearl, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Cognac, Brown, Tan, Light Brown",
+    "normalized": "Cognac, Brown, Tan, Light Brown",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Soft Blue, White, Floral Print",
+    "normalized": "Light Blue, Soft Blue, White, Floral Print",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Baby Blue, Pastel Blue, White",
+    "normalized": "Light Blue, Baby Blue, Pastel Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Chilled Blue",
+    "normalized": "Blue, Light Blue, Chilled Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Pink, Green, Gold",
+    "normalized": "White, Pink, Green, Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Red, Green, White",
+    "normalized": "Pink, Light Pink, Red, Green, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Dark Black, Jet Black, White, Bright White, Cream",
+    "normalized": "Black, Dark Black, Jet Black, White, Bright White, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Rose Pink, Floral Green",
+    "normalized": "Pink, Light Pink, Rose Pink, Floral Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Silver, Metallic Silver, Icicle Silver",
+    "normalized": "Silver, Metallic Silver, Icicle Silver",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "light yellow, pink, blue",
+    "normalized": "Light Yellow, Pink, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Soft Blue, Blue, Pastel Blue",
+    "normalized": "Light Blue, Sky Blue, Soft Blue, Blue, Pastel Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Purple, Light Purple, Teal, Aqua, White",
+    "normalized": "Purple, Light Purple, Teal, Aqua, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Whisper Blue, Light Blue, Soft Blue",
+    "normalized": "Whisper Blue, Light Blue, Soft Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Light Pink, Floral Pink",
+    "normalized": "White, Light Pink, Floral Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Green, Dark Green, Red, Bright Red, Pink, Yellow, Black, White",
+    "normalized": "Green, Dark Green, Red, Bright Red, Pink, Yellow, Black, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Pure White, Ivory",
+    "normalized": "White, Bright White, Pure White, Ivory",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Bubble Blue, Light Blue, Pink, Soft Pink",
+    "normalized": "Bubble Blue, Light Blue, Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Antique Gold, Bright Gold, Yellow Gold",
+    "normalized": "Gold, Antique Gold, Bright Gold, Yellow Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Optic White, Pink, Light Pink",
+    "normalized": "White, Optic White, Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Yellow, Light Yellow, Lemon, Soft Yellow, Pink, Light Pink, Blush",
+    "normalized": "Yellow, Light Yellow, Lemon, Soft Yellow, Pink, Light Pink, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Sky Blue, Baby Blue",
+    "normalized": "Blue, Light Blue, Sky Blue, Baby Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Oatmeal, Beige, Light Brown, Purple, Burgundy",
+    "normalized": "Oatmeal, Beige, Light Brown, Purple, Burgundy",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Shimmering Gold, Bright Gold, Metallic Gold",
+    "normalized": "Gold, Shimmering Gold, Bright Gold, Metallic Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Rose Pink, Soft Pink, Blush",
+    "normalized": "Pink, Rose Pink, Soft Pink, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Natural, Beige, Pink",
+    "normalized": "Natural, Beige, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Soft Pink, Blush, Vintage Nude",
+    "normalized": "Pink, Soft Pink, Blush, Vintage Nude",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "gray, blue",
+    "normalized": "Gray, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Arctic Blush, Light Pink",
+    "normalized": "White, Arctic Blush, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blue, Lavender, Floral",
+    "normalized": "Pink, Light Pink, Blue, Lavender, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Clouded Rose, Light Pink, Soft Pink, Light Blue",
+    "normalized": "Clouded Rose, Light Pink, Soft Pink, Light Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Orchid",
+    "normalized": "Pink, Light Pink, Pastel Pink, Orchid",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Lavender, Cream, Gold",
+    "normalized": "Pink, Lavender, Cream, Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pearl Pink, Blush Pink",
+    "normalized": "Pink, Light Pink, Pearl Pink, Blush Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Blush Pink, Light Pink, White",
+    "normalized": "Pink, Blush Pink, Light Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Green, Soft Green",
+    "normalized": "Pink, Light Pink, Pastel Pink, Green, Soft Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Lilac, Light Purple, Soft Purple, Pink, Light Pink",
+    "normalized": "Lilac, Light Purple, Soft Purple, Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Hot Pink, Blush Pink",
+    "normalized": "Pink, Light Pink, Hot Pink, Blush Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Pink, Aqua, Pastel Pink, Soft Blue",
+    "normalized": "Light Blue, Pink, Aqua, Pastel Pink, Soft Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Gray",
+    "normalized": "Pink, Light Pink, Gray",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Green, Mint Green, Light Green, Pink",
+    "normalized": "Green, Mint Green, Light Green, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Bright Pink, Berry, Purple",
+    "normalized": "Pink, Light Pink, Bright Pink, Berry, Purple",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Pure White, Black, Dark Black",
+    "normalized": "White, Bright White, Pure White, Black, Dark Black",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Floral Print, Cream, White",
+    "normalized": "Pink, Light Pink, Floral Print, Cream, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Bright Red, Cherry Red, Crimson, Scarlet, Plaid",
+    "normalized": "Red, Bright Red, Cherry Red, Crimson, Scarlet, Plaid",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Bright Gold, Yellow Gold, Pearl White",
+    "normalized": "Gold, Bright Gold, Yellow Gold, Pearl White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Off White, White, Cream, Ivory",
+    "normalized": "Off White, White, Cream, Ivory",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Denim Blue, Bright Medium Wash",
+    "normalized": "Blue, Light Blue, Denim Blue, Bright Medium Wash",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "dark pink, blue, red",
+    "normalized": "Dark Pink, Blue, Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Soft Blue, Pastel Blue, Pink, Floral Pink",
+    "normalized": "Light Blue, Soft Blue, Pastel Blue, Pink, Floral Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Lavender, Blue, Light Blue, Floral",
+    "normalized": "Pink, Light Pink, Lavender, Blue, Light Blue, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Lilac, Pink, White",
+    "normalized": "Lilac, Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Antique Gold, Cream, White",
+    "normalized": "Gold, Antique Gold, Cream, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Rose, Black",
+    "normalized": "Pink, Light Pink, Rose, Black",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Snowdrop Blue, Soft Blue, Floral Print",
+    "normalized": "Light Blue, Snowdrop Blue, Soft Blue, Floral Print",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Soft Pink, White, Green",
+    "normalized": "Light Blue, Soft Pink, White, Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Cream, Off-white, Beige, Light Beige",
+    "normalized": "Cream, Off-White, Beige, Light Beige",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Cream, Light Beige, Pink, Red, Green",
+    "normalized": "White, Cream, Light Beige, Pink, Red, Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Skylight Blue, White, Pink, Floral",
+    "normalized": "Light Blue, Skylight Blue, White, Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Shell Pink, Light Pink, Blush",
+    "normalized": "Pink, Shell Pink, Light Pink, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "bright purple, light blue, pink",
+    "normalized": "Bright Purple, Light Blue, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "pink, purple, white",
+    "normalized": "Pink, Purple, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, White",
+    "normalized": "Pink, Light Pink, Blush, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Angel Pink, Light Pink, Soft Pink",
+    "normalized": "Pink, Angel Pink, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Rose Pink, Blush, Soft Pink",
+    "normalized": "Pink, Rose Pink, Blush, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Bright Red, White, Gingham",
+    "normalized": "Red, Bright Red, White, Gingham",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Bright Pink, Floral Pink",
+    "normalized": "Pink, Light Pink, Bright Pink, Floral Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Gold, Shimmering Gold",
+    "normalized": "Black, Gold, Shimmering Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Bright Gold, Metallic Gold, Pearl, White, Off-White",
+    "normalized": "Gold, Bright Gold, Metallic Gold, Pearl, White, Off-White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Pink, Floral",
+    "normalized": "Black, Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Soft Pink, Blush, Rose Pink",
+    "normalized": "Pink, Soft Pink, Blush, Rose Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Yellow, Light Yellow, Marigold, White",
+    "normalized": "Yellow, Light Yellow, Marigold, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Pink, Floral Print",
+    "normalized": "Light Blue, Sky Blue, Pink, Floral Print",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Ivory, White, Light Pink, Soft Pink",
+    "normalized": "Ivory, White, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "pink, orange, light pink",
+    "normalized": "Pink, Orange, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Tea Rose Pink, Light Pink, Soft Pink, Blush",
+    "normalized": "Tea Rose Pink, Light Pink, Soft Pink, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Cream, Light Pink",
+    "normalized": "White, Cream, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Yellow Gold, Pink",
+    "normalized": "Gold, Yellow Gold, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Raspberry, Floral Pink",
+    "normalized": "Pink, Light Pink, Raspberry, Floral Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Red, Blue, White",
+    "normalized": "Pink, Light Pink, Red, Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Soft Pink, Wistful Pink",
+    "normalized": "Pink, Soft Pink, Wistful Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Optic White, Bright White",
+    "normalized": "White, Optic White, Bright White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Pastel Pink, Soft Pink",
+    "normalized": "Pink, Pastel Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Strawberry, Blush",
+    "normalized": "Pink, Light Pink, Strawberry, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Silver, Bright Silver, Metallic Silver",
+    "normalized": "Silver, Bright Silver, Metallic Silver",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "bright yellow, pink, blue",
+    "normalized": "Bright Yellow, Pink, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Optic White, Cream, Off-White",
+    "normalized": "White, Optic White, Cream, Off-White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Navy, Celestial Navy, Dark Blue",
+    "normalized": "Navy, Celestial Navy, Dark Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Icicle Blue, Light Blue, Soft Blue, Pale Blue",
+    "normalized": "Icicle Blue, Light Blue, Soft Blue, Pale Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Powder Pink, Light Pink, Soft Pink, Cream",
+    "normalized": "Powder Pink, Light Pink, Soft Pink, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Sky Blue, Light Blue, White, Pink, Floral",
+    "normalized": "Sky Blue, Light Blue, White, Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Rose Pink, Soft Pink",
+    "normalized": "Pink, Light Pink, Rose Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Emerald Green, Teal, Pink",
+    "normalized": "Emerald Green, Teal, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Floral Pink, Green, Gold",
+    "normalized": "Pink, Light Pink, Floral Pink, Green, Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Light Blue, Blue, Pastel Blue",
+    "normalized": "White, Light Blue, Blue, Pastel Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Sugared Pink, Light Pink, Soft Pink",
+    "normalized": "Pink, Sugared Pink, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Metallic Gold, Shimmering Gold, Honey",
+    "normalized": "Gold, Metallic Gold, Shimmering Gold, Honey",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Orchid, Soft Pink",
+    "normalized": "Pink, Light Pink, Orchid, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Angel Pink, Pastel Pink, Gingham Pink",
+    "normalized": "Pink, Light Pink, Angel Pink, Pastel Pink, Gingham Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Lilac, Light Purple, Soft Purple, Pink",
+    "normalized": "Lilac, Light Purple, Soft Purple, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Rose Pink, Gold, Ombre",
+    "normalized": "Pink, Light Pink, Rose Pink, Gold, Ombre",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Starlit Pink, Soft Pink, Light Pink",
+    "normalized": "Pink, Starlit Pink, Soft Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Optic White, Red, Cherry Red, Pink",
+    "normalized": "White, Bright White, Optic White, Red, Cherry Red, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Dark Pink, Green, Dark Green, White, Blue",
+    "normalized": "Pink, Light Pink, Dark Pink, Green, Dark Green, White, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Bright Red, Crimson, White",
+    "normalized": "Red, Bright Red, Crimson, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Baby Blue, Soft Blue",
+    "normalized": "Light Blue, Sky Blue, Baby Blue, Soft Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Floral Print, White, Pink",
+    "normalized": "Blue, Light Blue, Floral Print, White, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Oat Taupe, Beige, Light Brown, Cream",
+    "normalized": "Oat Taupe, Beige, Light Brown, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Crimson, White, Floral",
+    "normalized": "Pink, Light Pink, Crimson, White, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Cream, Light Beige, Soft Pink",
+    "normalized": "Cream, Light Beige, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Daisy White, Soft White, Light Pink",
+    "normalized": "White, Daisy White, Soft White, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Rose, Floral",
+    "normalized": "Pink, Light Pink, Rose, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Bright Pink, Ballet Pink, Soft Pink",
+    "normalized": "Pink, Bright Pink, Ballet Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Dark Blue, Denim Blue, Cosmic Rinse",
+    "normalized": "Dark Blue, Denim Blue, Cosmic Rinse",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Purple, Lavender, Pink, Light Pink, Floral",
+    "normalized": "Purple, Lavender, Pink, Light Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Sunset Pink, Light Pink, Soft Pink, White, Cream",
+    "normalized": "Sunset Pink, Light Pink, Soft Pink, White, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Rose, Lavender, Red",
+    "normalized": "Pink, Light Pink, Rose, Lavender, Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Lavender, Purple",
+    "normalized": "Blue, Light Blue, Lavender, Purple",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Tea Rose Pink, Light Pink, Soft Pink",
+    "normalized": "Pink, Tea Rose Pink, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "brown, beige, black",
+    "normalized": "Brown, Beige, Black",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "gray, blue, red",
+    "normalized": "Gray, Blue, Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Pink, Bright Pink, Fuchsia",
+    "normalized": "Black, Pink, Bright Pink, Fuchsia",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Blue, Lavender",
+    "normalized": "Pink, Light Pink, Pastel Pink, Blue, Lavender",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Soft Blue, White",
+    "normalized": "Blue, Light Blue, Soft Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Apricot, Light Pink, White, Floral",
+    "normalized": "Apricot, Light Pink, White, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "pink, blue, white",
+    "normalized": "Pink, Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Floral, Green, Blue",
+    "normalized": "Pink, Light Pink, Floral, Green, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Pastel Blue, Pink, Soft Pink, White",
+    "normalized": "Light Blue, Pastel Blue, Pink, Soft Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Cherry Red, Pink, Green, Dark Green, Gold, Yellow",
+    "normalized": "Red, Cherry Red, Pink, Green, Dark Green, Gold, Yellow",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Antique Gold, White, Pearl",
+    "normalized": "Gold, Antique Gold, White, Pearl",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Floral Pink, Primrose",
+    "normalized": "Pink, Light Pink, Floral Pink, Primrose",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Lilac, Light Purple, Pink, Blue",
+    "normalized": "Lilac, Light Purple, Pink, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pastel Blue, Light Blue, White, Pink, Floral",
+    "normalized": "Pastel Blue, Light Blue, White, Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Pearlescent Pink, White, Silver",
+    "normalized": "Pink, Pearlescent Pink, White, Silver",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Purple, Light Purple, Lavender, Gold, Pink, Strawberry Red, White",
+    "normalized": "Purple, Light Purple, Lavender, Gold, Pink, Strawberry Red, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Gingham Pink",
+    "normalized": "Pink, Light Pink, Pastel Pink, Gingham Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Red, Bright Red, Tartan",
+    "normalized": "Pink, Light Pink, Red, Bright Red, Tartan",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Frozen Blue, Sky Blue",
+    "normalized": "Blue, Light Blue, Frozen Blue, Sky Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Barely Pink, Light Pink, Pastel Pink, Floral",
+    "normalized": "Pink, Barely Pink, Light Pink, Pastel Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, Sandy Blush, White",
+    "normalized": "Pink, Light Pink, Blush, Sandy Blush, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Off White, Cream, Light Beige, Soft White",
+    "normalized": "Off White, Cream, Light Beige, Soft White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Blush, Light Pink, White",
+    "normalized": "Pink, Blush, Light Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Brown, White, Neutral",
+    "normalized": "Gold, Brown, White, Neutral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, Orchid Rose",
+    "normalized": "Pink, Light Pink, Blush, Orchid Rose",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Bright Pink, Festive Pink, Light Pink, Rose Pink",
+    "normalized": "Pink, Bright Pink, Festive Pink, Light Pink, Rose Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Lavender, White, Blue",
+    "normalized": "Pink, Light Pink, Lavender, White, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Dusty Rose, Pink, Light Pink",
+    "normalized": "Dusty Rose, Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pastel Blue, Light Blue, Pink, Floral",
+    "normalized": "Pastel Blue, Light Blue, Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Red, Pink, Green",
+    "normalized": "White, Red, Pink, Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Lavender, Floral Print",
+    "normalized": "Pink, Light Pink, Lavender, Floral Print",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Antique White, Pink, Light Pink, Floral",
+    "normalized": "Antique White, Pink, Light Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Bright Pink, Cherry Pink, Gray, Light Gray",
+    "normalized": "Pink, Bright Pink, Cherry Pink, Gray, Light Gray",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Beige, Natural, Pink",
+    "normalized": "Beige, Natural, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "blue, black",
+    "normalized": "Blue, Black",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Whisper Blue, Light Blue, Pastel Blue, Soft Blue, Cream, Light Pink",
+    "normalized": "Whisper Blue, Light Blue, Pastel Blue, Soft Blue, Cream, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Snowflake Blue, White",
+    "normalized": "Blue, Light Blue, Snowflake Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Whisper Blue, Light Blue, Floral Print",
+    "normalized": "Blue, Whisper Blue, Light Blue, Floral Print",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, Pearl Pink",
+    "normalized": "Pink, Light Pink, Soft Pink, Pearl Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Snowdrop Blue, Pink, Cream",
+    "normalized": "Blue, Light Blue, Snowdrop Blue, Pink, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Antique Gold, Pink, White, Cream, Red, Green, Blue",
+    "normalized": "Gold, Antique Gold, Pink, White, Cream, Red, Green, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Light Blue, Blue, Floral",
+    "normalized": "White, Light Blue, Blue, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Champagne, Beige, Cream, Light Beige, Soft White",
+    "normalized": "Champagne, Beige, Cream, Light Beige, Soft White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Floral, Blue, Light Blue",
+    "normalized": "Pink, Light Pink, Floral, Blue, Light Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Wistful Pink, Light Pink, Soft Pink",
+    "normalized": "Pink, Wistful Pink, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Off-White, Cream",
+    "normalized": "Ivory, Off-White, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Mint, White",
+    "normalized": "Pink, Mint, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Bright Red, Vibrant Red",
+    "normalized": "Red, Bright Red, Vibrant Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Peony, Soft Pink",
+    "normalized": "Pink, Light Pink, Peony, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Peony",
+    "normalized": "Pink, Light Pink, Peony",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Denim Blue, Faded Blue",
+    "normalized": "Light Blue, Denim Blue, Faded Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Blush Pink, Light Pink, Cream, White",
+    "normalized": "Pink, Blush Pink, Light Pink, Cream, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "medium blue, dark blue",
+    "normalized": "Medium Blue, Dark Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Daylight White, Pink, Soft Pink",
+    "normalized": "White, Bright White, Daylight White, Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Green, Mint Green, Lavender, Misty Iris",
+    "normalized": "Pink, Light Pink, Pastel Pink, Green, Mint Green, Lavender, Misty Iris",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, Bright Pink",
+    "normalized": "Pink, Light Pink, Soft Pink, Bright Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, French Blue, White, Cream",
+    "normalized": "Blue, Light Blue, French Blue, White, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Bright Pink, Carnation Pink",
+    "normalized": "Pink, Bright Pink, Carnation Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Light Pink, Rose Pink",
+    "normalized": "White, Light Pink, Rose Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "medium beige",
+    "normalized": "Medium Beige",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Blue, Light Blue",
+    "normalized": "White, Blue, Light Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Antique White, Off-White, Cream",
+    "normalized": "White, Antique White, Off-White, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Pink, Light Blue, Floral",
+    "normalized": "White, Pink, Light Blue, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Bright Red, Velvet Red, Pink, Light Pink, White",
+    "normalized": "Red, Bright Red, Velvet Red, Pink, Light Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Silver, Metallic",
+    "normalized": "Gold, Silver, Metallic",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Off White, Cream, Ivory, Beige",
+    "normalized": "Off White, Cream, Ivory, Beige",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Sky Blue, Soft Blue, Pale Blue, White",
+    "normalized": "Blue, Light Blue, Sky Blue, Soft Blue, Pale Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Cherry Red, Red",
+    "normalized": "White, Bright White, Cherry Red, Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Sky Blue, Light Blue, Floral Pink, White",
+    "normalized": "Sky Blue, Light Blue, Floral Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "light green, yellow, pink",
+    "normalized": "Light Green, Yellow, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Raspberry, Blush",
+    "normalized": "Pink, Light Pink, Raspberry, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Bright Red, Vibrant Red, Crimson",
+    "normalized": "Red, Bright Red, Vibrant Red, Crimson",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, White, Cream",
+    "normalized": "Pink, Light Pink, Soft Pink, White, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Pastel Blue, Pink, Light Pink, Soft Pink",
+    "normalized": "Blue, Light Blue, Pastel Blue, Pink, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Floral, Pastel Pink",
+    "normalized": "Pink, Light Pink, Floral, Pastel Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Rosewater, Soft Pink",
+    "normalized": "Pink, Light Pink, Rosewater, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Bright Pink, Light Pink, Rose Pink",
+    "normalized": "Pink, Bright Pink, Light Pink, Rose Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Wistful Pink, Soft Pink",
+    "normalized": "Pink, Light Pink, Wistful Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Beige, Oatmeal, Light Brown, Pink, Burgundy",
+    "normalized": "Beige, Oatmeal, Light Brown, Pink, Burgundy",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Light Blue, Soft Blue",
+    "normalized": "White, Light Blue, Soft Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Red, Cherry Red, Pink",
+    "normalized": "White, Bright White, Red, Cherry Red, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Soft Blue, Pastel Blue",
+    "normalized": "Light Blue, Sky Blue, Soft Blue, Pastel Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Lilac, White, Floral",
+    "normalized": "Pink, Light Pink, Lilac, White, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Metallic Pink, Light Pink, Rose Pink",
+    "normalized": "Pink, Metallic Pink, Light Pink, Rose Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Gold, Pink, Red, Green",
+    "normalized": "White, Gold, Pink, Red, Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Light Blue, Gold",
+    "normalized": "White, Light Blue, Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Heart Rush Pink",
+    "normalized": "Pink, Light Pink, Heart Rush Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Blush Pink, Light Pink, White, Cream",
+    "normalized": "Pink, Blush Pink, Light Pink, White, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, Tulip Pink",
+    "normalized": "Pink, Light Pink, Soft Pink, Tulip Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Blush Pink, Brown, Dark Brown, Black",
+    "normalized": "Pink, Blush Pink, Brown, Dark Brown, Black",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Peppermint Pink, Light Pink, Fairisle",
+    "normalized": "Pink, Peppermint Pink, Light Pink, Fairisle",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Blue, Pink, White, Green",
+    "normalized": "Light Blue, Blue, Pink, White, Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Yellow, Bright Yellow, Light Yellow, Pink, Light Pink, Floral",
+    "normalized": "Yellow, Bright Yellow, Light Yellow, Pink, Light Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Pink, Soft Pink, White",
+    "normalized": "Blue, Light Blue, Pink, Soft Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Soft Pink",
+    "normalized": "Pink, Light Pink, Pastel Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Brown, Chocolate Brown, Dark Brown, Rich Brown",
+    "normalized": "Brown, Chocolate Brown, Dark Brown, Rich Brown",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Soft Blue, Blue",
+    "normalized": "Light Blue, Sky Blue, Soft Blue, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Dark Black, Charcoal",
+    "normalized": "Black, Dark Black, Charcoal",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "gray, silver",
+    "normalized": "Gray, Silver",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Baby Blue, White",
+    "normalized": "Light Blue, Sky Blue, Baby Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Gold, Purple, Yellow",
+    "normalized": "Pink, Light Pink, Gold, Purple, Yellow",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Alpine Blue, Light Blue, Pink, White",
+    "normalized": "Alpine Blue, Light Blue, Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Blushing Pink, Soft Pink, Light Pink, Red, Blue, White",
+    "normalized": "Pink, Blushing Pink, Soft Pink, Light Pink, Red, Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Angel Pink, Light Pink, Pastel Pink",
+    "normalized": "Pink, Angel Pink, Light Pink, Pastel Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Bright Red, Vibrant Red, Cherry Red",
+    "normalized": "Red, Bright Red, Vibrant Red, Cherry Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Rose, White",
+    "normalized": "Pink, Light Pink, Rose, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Pink, Bright Pink",
+    "normalized": "Blue, Light Blue, Pink, Bright Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Velvet Black, Shimmering Black, Ivory",
+    "normalized": "Black, Velvet Black, Shimmering Black, Ivory",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Distressed Black, Dark Brown",
+    "normalized": "Black, Distressed Black, Dark Brown",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Rose Pink",
+    "normalized": "Pink, Light Pink, Pastel Pink, Rose Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, Floral Pink, White",
+    "normalized": "Pink, Light Pink, Blush, Floral Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Cream, Pink, Light Pink",
+    "normalized": "White, Cream, Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Purple, Light Purple, Pink, Blue, Light Blue, Floral",
+    "normalized": "Purple, Light Purple, Pink, Blue, Light Blue, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Dark Black, Soft Pink, Blush Pink",
+    "normalized": "Black, Dark Black, Soft Pink, Blush Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Yellow, Pink, White, Floral",
+    "normalized": "Yellow, Pink, White, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Blue, Floral Print",
+    "normalized": "Ivory, Blue, Floral Print",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Soft Blue, Pink, Floral Print",
+    "normalized": "Light Blue, Sky Blue, Soft Blue, Pink, Floral Print",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Cream, Off-White, Light Beige, Ivory",
+    "normalized": "Cream, Off-White, Light Beige, Ivory",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Cream, Gold",
+    "normalized": "White, Cream, Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Coral, Peach, Pink, Rose Gold",
+    "normalized": "Coral, Peach, Pink, Rose Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Baby Blue, Pink, Soft Pink",
+    "normalized": "Blue, Light Blue, Baby Blue, Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Cream, Gold, Metallic Gold, White",
+    "normalized": "Cream, Gold, Metallic Gold, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Peach, Cream, Blue, Green",
+    "normalized": "Pink, Light Pink, Peach, Cream, Blue, Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Lilac, Light Purple, Pink, Soft Pink",
+    "normalized": "Lilac, Light Purple, Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Whisper Blue, Light Blue, Soft Pink, Cream, Pastel Pink",
+    "normalized": "Whisper Blue, Light Blue, Soft Pink, Cream, Pastel Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Pure White, Light Pink, Soft Pink",
+    "normalized": "White, Bright White, Pure White, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gray, Light Gray, Blue, Sky Blue, White",
+    "normalized": "Gray, Light Gray, Blue, Sky Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Ballet Slipper, Soft Pink",
+    "normalized": "Pink, Light Pink, Ballet Slipper, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Flamenco Pink, Light Pink, Bright Pink",
+    "normalized": "Pink, Flamenco Pink, Light Pink, Bright Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "light blue, white",
+    "normalized": "Light Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Pink, Soft Pink, Floral",
+    "normalized": "Blue, Light Blue, Pink, Soft Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Dusty Heather, Light Pink, Cream, White",
+    "normalized": "Dusty Heather, Light Pink, Cream, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "navy, beige",
+    "normalized": "Navy, Beige",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, Cream, Gold",
+    "normalized": "Pink, Light Pink, Blush, Cream, Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Cream, Off-White, Parchment",
+    "normalized": "White, Cream, Off-White, Parchment",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Pink, Lavender, Floral",
+    "normalized": "Blue, Light Blue, Pink, Lavender, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Festive Pink, Light Pink, Soft Pink",
+    "normalized": "Pink, Festive Pink, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blue, Light Blue, White",
+    "normalized": "Pink, Light Pink, Blue, Light Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Sunset Pink, Light Pink, Soft Pink",
+    "normalized": "Pink, Sunset Pink, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Whisper Blue, Light Blue, Soft Blue, Floral White, Cream",
+    "normalized": "Whisper Blue, Light Blue, Soft Blue, Floral White, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Beige, Natural, Tan, Light Brown",
+    "normalized": "Beige, Natural, Tan, Light Brown",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Dusty Rose, Pink",
+    "normalized": "Dusty Rose, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, White, Pink, Lavender, Floral",
+    "normalized": "Blue, Light Blue, White, Pink, Lavender, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "black, navy, silver",
+    "normalized": "Black, Navy, Silver",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Powder Blue, Sky Blue, White",
+    "normalized": "Light Blue, Powder Blue, Sky Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Navy, Dark Blue, Deep Blue",
+    "normalized": "Navy, Dark Blue, Deep Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Bright Pink, Light Pink, Berry, Strawberry Red",
+    "normalized": "Pink, Bright Pink, Light Pink, Berry, Strawberry Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Bright Gold, Metallic Gold, Shiny Gold",
+    "normalized": "Gold, Bright Gold, Metallic Gold, Shiny Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "French Blue, Light Blue, Pastel Blue, Cream, Soft Green",
+    "normalized": "French Blue, Light Blue, Pastel Blue, Cream, Soft Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "black, navy, blue",
+    "normalized": "Black, Navy, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Cream, Off-White",
+    "normalized": "White, Bright White, Cream, Off-White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "black, pink, orange",
+    "normalized": "Black, Pink, Orange",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Blue, Floral",
+    "normalized": "Ivory, Blue, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Floral, Pink, Gold",
+    "normalized": "Blue, Light Blue, Floral, Pink, Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Soft Blue, White, Silver",
+    "normalized": "Light Blue, Sky Blue, Soft Blue, White, Silver",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Bright Gold, Metallic Gold, Cream, Off-White",
+    "normalized": "Gold, Bright Gold, Metallic Gold, Cream, Off-White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Angel Pink, Gingham",
+    "normalized": "Pink, Light Pink, Angel Pink, Gingham",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Champagne, Metallic Gold, Light Gold",
+    "normalized": "Champagne, Metallic Gold, Light Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Lavender, Orchid, Pink, Light Pink",
+    "normalized": "Lavender, Orchid, Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Dark Black, Jet Black, Silver, Metallic Silver",
+    "normalized": "Black, Dark Black, Jet Black, Silver, Metallic Silver",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "light blue, blue",
+    "normalized": "Light Blue, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Blue, Lavender, Pink, Floral",
+    "normalized": "Light Blue, Blue, Lavender, Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Soft Blue, Pink, Light Pink, Floral",
+    "normalized": "Light Blue, Soft Blue, Pink, Light Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Light Pink, Pastel Pink",
+    "normalized": "White, Light Pink, Pastel Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Bubblegum Pink, Soft Pink, Light Pink",
+    "normalized": "Pink, Bubblegum Pink, Soft Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Beige, Biscotti, Light Brown, Cream",
+    "normalized": "Beige, Biscotti, Light Brown, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Cream, Off-White",
+    "normalized": "White, Cream, Off-White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Velvet Black, Deep Black, Ivory",
+    "normalized": "Black, Velvet Black, Deep Black, Ivory",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, White, Green, Yellow, Red",
+    "normalized": "Pink, Light Pink, Pastel Pink, White, Green, Yellow, Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Pastel Blue, Soft Blue, White, Green",
+    "normalized": "Light Blue, Pastel Blue, Soft Blue, White, Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Golden, Honey, Pink, Light Pink, Blush",
+    "normalized": "Gold, Golden, Honey, Pink, Light Pink, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Dusty Pink, Soft Pink, Light Pink",
+    "normalized": "Dusty Pink, Soft Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Perennial Pink",
+    "normalized": "Pink, Light Pink, Perennial Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Strawberry, White",
+    "normalized": "Pink, Light Pink, Strawberry, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "dark pink, light pink, white",
+    "normalized": "Dark Pink, Light Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Optic White, Cream",
+    "normalized": "White, Optic White, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Whisper Blue, Light Blue, Pink, Floral",
+    "normalized": "Whisper Blue, Light Blue, Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Ivory, White, Off-White",
+    "normalized": "Ivory, White, Off-White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Dusty Rose, Pink, Light Pink, Blush",
+    "normalized": "Dusty Rose, Pink, Light Pink, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Morning Sky",
+    "normalized": "Light Blue, Sky Blue, Morning Sky",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Soft Blue, Light Blue, Pastel Blue, White",
+    "normalized": "Soft Blue, Light Blue, Pastel Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, White, Multicolor",
+    "normalized": "Pink, Light Pink, White, Multicolor",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Cream, Light Beige, Pink, Floral",
+    "normalized": "Cream, Light Beige, Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Lilac, Light Pink, White, Blue",
+    "normalized": "Lilac, Light Pink, White, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Pastry Pink, White",
+    "normalized": "Pink, Pastry Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Whisper Blue, Light Blue, Floral Pink, Lavender, Light Purple",
+    "normalized": "Whisper Blue, Light Blue, Floral Pink, Lavender, Light Purple",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, White, Creamy White, Light Blue",
+    "normalized": "Pink, Light Pink, Soft Pink, White, Creamy White, Light Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Ecru, Cream, Off-White",
+    "normalized": "White, Ecru, Cream, Off-White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Pink",
+    "normalized": "White, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Pink, Light Pink, Blush",
+    "normalized": "White, Pink, Light Pink, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Daydream Pink",
+    "normalized": "Pink, Light Pink, Daydream Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Floral Pink, Gold",
+    "normalized": "Pink, Light Pink, Floral Pink, Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Light Blue, Cream",
+    "normalized": "White, Light Blue, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Baby Blue, Light Blue, Sky Blue",
+    "normalized": "Baby Blue, Light Blue, Sky Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Bright Pink, Cherry Pink, Light Pink",
+    "normalized": "Pink, Bright Pink, Cherry Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Sky Blue, Denim Blue, Floral White",
+    "normalized": "Blue, Light Blue, Sky Blue, Denim Blue, Floral White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Strawberry, Floral",
+    "normalized": "Pink, Light Pink, Strawberry, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Pink, Light Pink, Blue",
+    "normalized": "Ivory, Pink, Light Pink, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Bright Red, White, Pink",
+    "normalized": "Red, Bright Red, White, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Sky Blue, Light Blue, Pink, Floral",
+    "normalized": "Sky Blue, Light Blue, Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Metallic Gold, Bright Gold",
+    "normalized": "Gold, Metallic Gold, Bright Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Peach, Blue, Cream, Beige",
+    "normalized": "Pink, Light Pink, Peach, Blue, Cream, Beige",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Cream, Off-White, Light Beige",
+    "normalized": "Cream, Off-White, Light Beige",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Baby Blue, Sky Blue",
+    "normalized": "Light Blue, Baby Blue, Sky Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "dark brown, light pink, light blue",
+    "normalized": "Dark Brown, Light Pink, Light Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Wistful Pink, Soft Pink",
+    "normalized": "Pink, Wistful Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Sky Blue, Blissful Blue, White",
+    "normalized": "Blue, Light Blue, Sky Blue, Blissful Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Cherry Red, Green, Dark Green, Pink, Black, White",
+    "normalized": "Red, Cherry Red, Green, Dark Green, Pink, Black, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Dark Black, Jet Black, Burgundy, Dark Red, Wine Red",
+    "normalized": "Black, Dark Black, Jet Black, Burgundy, Dark Red, Wine Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Peach, Light Blue, Pink",
+    "normalized": "Peach, Light Blue, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Powder Blue, White",
+    "normalized": "Light Blue, Powder Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Soft Blue, Snowdrop Blue",
+    "normalized": "Light Blue, Sky Blue, Soft Blue, Snowdrop Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Blue, Light Blue, Cream, White",
+    "normalized": "Pink, Light Pink, Pastel Pink, Blue, Light Blue, Cream, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Wistful Pink, Soft Pink, Light Pink",
+    "normalized": "Pink, Wistful Pink, Soft Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Cream, Off-white, Light Beige, Ivory",
+    "normalized": "Cream, Off-White, Light Beige, Ivory",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Silver, Gold",
+    "normalized": "Black, Silver, Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Purple, Light Purple, Lavender, Pink, Soft Pink",
+    "normalized": "Purple, Light Purple, Lavender, Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Brown, Dark Brown, Chocolate Brown",
+    "normalized": "Brown, Dark Brown, Chocolate Brown",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Pure White, Light Blue, Soft Blue",
+    "normalized": "White, Bright White, Pure White, Light Blue, Soft Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Cream, Pink, Light Pink, Rose",
+    "normalized": "White, Cream, Pink, Light Pink, Rose",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, Coral, Peach",
+    "normalized": "Pink, Light Pink, Soft Pink, Coral, Peach",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Red, Green, Blue, White",
+    "normalized": "Pink, Red, Green, Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Pink, Bright Pink",
+    "normalized": "White, Pink, Bright Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, White, Green",
+    "normalized": "Blue, Light Blue, White, Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Brown, Burnt Caramel, Tan, Beige",
+    "normalized": "Brown, Burnt Caramel, Tan, Beige",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Peach, Pink, Light Pink, Floral Print",
+    "normalized": "Peach, Pink, Light Pink, Floral Print",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "medium purple",
+    "normalized": "Medium Purple",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "light blue, brown",
+    "normalized": "Light Blue, Brown",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Rose Pink, Bright Pink",
+    "normalized": "Pink, Rose Pink, Bright Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Lilac, Light Purple, White, Blue",
+    "normalized": "Lilac, Light Purple, White, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Lavender, Purple",
+    "normalized": "Pink, Light Pink, Lavender, Purple",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pastel Pink, Light Pink, Yellow, Light Blue, White",
+    "normalized": "Pastel Pink, Light Pink, Yellow, Light Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Floral",
+    "normalized": "Pink, Light Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Pink, Bright Pink, Light Pink",
+    "normalized": "White, Pink, Bright Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Antique White, Bright White",
+    "normalized": "White, Antique White, Bright White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Black",
+    "normalized": "Ivory, Black",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Whisper Blue, Light Blue, Soft Blue, Floral Blue",
+    "normalized": "Whisper Blue, Light Blue, Soft Blue, Floral Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Lilac, Light Purple, Pink, Floral",
+    "normalized": "Lilac, Light Purple, Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Cherry Red, Bright Red, Pink, Light Pink",
+    "normalized": "Red, Cherry Red, Bright Red, Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Dusty Pink, Soft Pink, Blush",
+    "normalized": "Dusty Pink, Soft Pink, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Yellow, Light Yellow, Green, Mint Green",
+    "normalized": "Pink, Light Pink, Pastel Pink, Yellow, Light Yellow, Green, Mint Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Champagne, Light Beige, Soft Gold, Cream",
+    "normalized": "Champagne, Light Beige, Soft Gold, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Captiva Pink, Blush",
+    "normalized": "Pink, Light Pink, Captiva Pink, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "brown, black, beige",
+    "normalized": "Brown, Black, Beige",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Shimmering Gold, Metallic Gold, Bright Gold",
+    "normalized": "Gold, Shimmering Gold, Metallic Gold, Bright Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Snowflake Blue, Light Blue, White, Pink",
+    "normalized": "Snowflake Blue, Light Blue, White, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Lilac, Light Purple, Soft Purple, Pink, Floral Print",
+    "normalized": "Lilac, Light Purple, Soft Purple, Pink, Floral Print",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Passion Pink, Light Pink, Floral Pink",
+    "normalized": "Pink, Passion Pink, Light Pink, Floral Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Soft Pink, Blush, Light Pink, Gold, Shimmering Gold",
+    "normalized": "Pink, Soft Pink, Blush, Light Pink, Gold, Shimmering Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Yellow, Melon, Pink, Cream, Light Pink",
+    "normalized": "Yellow, Melon, Pink, Cream, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Barely Pink, Pastel Pink, Floral",
+    "normalized": "Pink, Barely Pink, Pastel Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Cherry Red, Bright Red, Pink, Plaid",
+    "normalized": "Red, Cherry Red, Bright Red, Pink, Plaid",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blush, Light Pink, Soft Pink",
+    "normalized": "Blush, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, Pastel Pink",
+    "normalized": "Pink, Light Pink, Soft Pink, Pastel Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush Pink, Rose Pink",
+    "normalized": "Pink, Light Pink, Blush Pink, Rose Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Antique White, Bright White, Pure White",
+    "normalized": "White, Antique White, Bright White, Pure White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Pink, Yellow, Blue, Clear, Silver",
+    "normalized": "Red, Pink, Yellow, Blue, Clear, Silver",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Thulian Pink, White, Floral",
+    "normalized": "Pink, Thulian Pink, White, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Blue, Light Blue, Green, Lavender",
+    "normalized": "Pink, Light Pink, Pastel Pink, Blue, Light Blue, Green, Lavender",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "white, gray, purple",
+    "normalized": "White, Gray, Purple",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Soft Blue, White, Plaid",
+    "normalized": "Light Blue, Sky Blue, Soft Blue, White, Plaid",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Floral Pink",
+    "normalized": "Pink, Light Pink, Floral Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Bright Red, Crimson, Black, Pink, Plaid",
+    "normalized": "Red, Bright Red, Crimson, Black, Pink, Plaid",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Mountain Blue, Light Blue, Pink",
+    "normalized": "White, Bright White, Mountain Blue, Light Blue, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Silver, Gold, Shimmering Gold",
+    "normalized": "Black, Silver, Gold, Shimmering Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pale Blue, Light Blue, Sky Blue",
+    "normalized": "Pale Blue, Light Blue, Sky Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Pink, Light Pink, Red",
+    "normalized": "White, Pink, Light Pink, Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Cream, Pink, Floral",
+    "normalized": "Cream, Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "blue, white, light brown",
+    "normalized": "Blue, White, Light Brown",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Bright Pink, Soft Pink, Rose Pink",
+    "normalized": "Pink, Bright Pink, Soft Pink, Rose Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Lavender, White, Floral",
+    "normalized": "Pink, Light Pink, Lavender, White, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Soft Pink, Red, Bright Red",
+    "normalized": "White, Bright White, Soft Pink, Red, Bright Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "gray, purple",
+    "normalized": "Gray, Purple",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Lilac, Lavender",
+    "normalized": "Pink, Light Pink, Lilac, Lavender",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Vintage Blue, Denim Blue",
+    "normalized": "Light Blue, Vintage Blue, Denim Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Baby Blue, Winter Ice, White",
+    "normalized": "Light Blue, Baby Blue, Winter Ice, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Cream, Light Pink, Blush",
+    "normalized": "White, Cream, Light Pink, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Light Blue, Blue, Floral Print",
+    "normalized": "White, Light Blue, Blue, Floral Print",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "light beige, brown",
+    "normalized": "Light Beige, Brown",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Bright Red, Crimson, Pink, White, Dark Red",
+    "normalized": "Red, Bright Red, Crimson, Pink, White, Dark Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Navy, Red, Orange, Gray",
+    "normalized": "Navy, Red, Orange, Gray",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Pure White, Pink, Light Pink, Soft Pink",
+    "normalized": "White, Bright White, Pure White, Pink, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Fuchsia, Blush",
+    "normalized": "Pink, Light Pink, Fuchsia, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Red, Bright Red",
+    "normalized": "Pink, Light Pink, Red, Bright Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Cherry Red, Bright Red, Crimson, Tartan",
+    "normalized": "Red, Cherry Red, Bright Red, Crimson, Tartan",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Cream, Off-White, Ivory",
+    "normalized": "White, Cream, Off-White, Ivory",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Blush, Floral Print",
+    "normalized": "Pink, Light Pink, Blush, Floral Print",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Yellow Gold, Pearl White",
+    "normalized": "Gold, Yellow Gold, Pearl White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Captiva Pink, Striped",
+    "normalized": "Pink, Light Pink, Captiva Pink, Striped",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Broomstick Black, Dark Black, Green, Bright Green",
+    "normalized": "Black, Broomstick Black, Dark Black, Green, Bright Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Purple, Lavender, Pink, Floral",
+    "normalized": "Purple, Lavender, Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Light Gold, Beige, Champagne",
+    "normalized": "Gold, Light Gold, Beige, Champagne",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Nude, Beige, Gold, Metallic",
+    "normalized": "Nude, Beige, Gold, Metallic",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Yellow Gold, Bright Gold, Cream, White, Beige, Brown",
+    "normalized": "Gold, Yellow Gold, Bright Gold, Cream, White, Beige, Brown",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Candy Pink, Bright Pink, Melange",
+    "normalized": "Pink, Candy Pink, Bright Pink, Melange",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Baby Blue, Soft Blue, White",
+    "normalized": "Light Blue, Sky Blue, Baby Blue, Soft Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Antique Gold, Yellow, Cream, White, Brown, Pink",
+    "normalized": "Gold, Antique Gold, Yellow, Cream, White, Brown, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Posey Pink",
+    "normalized": "Pink, Light Pink, Posey Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Soft White, Light Beige, Blush Pink, Dusty Rose",
+    "normalized": "Ivory, Soft White, Light Beige, Blush Pink, Dusty Rose",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Sky Blue, Pink",
+    "normalized": "Blue, Light Blue, Sky Blue, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "black, navy, pink",
+    "normalized": "Black, Navy, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Bright Blue, Medium Blue, Denim Blue",
+    "normalized": "Blue, Bright Blue, Medium Blue, Denim Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Light Pink, Aegean Blue, Floral Print",
+    "normalized": "White, Light Pink, Aegean Blue, Floral Print",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Clear, Crystal, Brown",
+    "normalized": "Gold, Clear, Crystal, Brown",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Peony Pink, Light Pink, Soft Pink",
+    "normalized": "Peony Pink, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Yellow, Purple, Gold",
+    "normalized": "Pink, Light Pink, Yellow, Purple, Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Yellow, Bright Yellow, Soft Yellow, Floral, Pink, Purple, Green",
+    "normalized": "Yellow, Bright Yellow, Soft Yellow, Floral, Pink, Purple, Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Silver, Shimmering Blue",
+    "normalized": "Light Blue, Sky Blue, Silver, Shimmering Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Lilac, Light Purple, White, Floral Print",
+    "normalized": "Lilac, Light Purple, White, Floral Print",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Soft Pink, Light Pink, White",
+    "normalized": "Pink, Soft Pink, Light Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Pure White, Off-White, Cream",
+    "normalized": "White, Bright White, Pure White, Off-White, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Marigold, Yellow, Pink, Light Pink",
+    "normalized": "Marigold, Yellow, Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "white, green, beige",
+    "normalized": "White, Green, Beige",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Bright Red, Pink, Fuchsia, Light Pink, Blue, Light Blue, White",
+    "normalized": "Red, Bright Red, Pink, Fuchsia, Light Pink, Blue, Light Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Bordeaux, Wine, Deep Red, Burgundy",
+    "normalized": "Bordeaux, Wine, Deep Red, Burgundy",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Blue, Pink, Floral",
+    "normalized": "Light Blue, Blue, Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Pastel Blue, Soft Blue, Light Pink, Pastel Pink",
+    "normalized": "Light Blue, Pastel Blue, Soft Blue, Light Pink, Pastel Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, Blush, Fizz Pink",
+    "normalized": "Pink, Light Pink, Soft Pink, Blush, Fizz Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Black, White",
+    "normalized": "Gold, Black, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pastel Pink, Light Pink, Soft Pink, White, Light Blue",
+    "normalized": "Pastel Pink, Light Pink, Soft Pink, White, Light Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, Sweet Peony",
+    "normalized": "Pink, Light Pink, Soft Pink, Sweet Peony",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Soft Pink, Light Pink, Blush Pink",
+    "normalized": "Soft Pink, Light Pink, Blush Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Angel Pink, Pastel Pink",
+    "normalized": "Pink, Light Pink, Angel Pink, Pastel Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Lavender, Cream, White",
+    "normalized": "Pink, Light Pink, Lavender, Cream, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Peach, Light Peach, Soft Peach, Blush",
+    "normalized": "Peach, Light Peach, Soft Peach, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Pure White, Light Blue, Sky Blue",
+    "normalized": "White, Bright White, Pure White, Light Blue, Sky Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Floral Pink, Lavender, White",
+    "normalized": "Pink, Light Pink, Floral Pink, Lavender, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Bright Pink, Soft Pink",
+    "normalized": "Pink, Bright Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Candy Pink, Light Pink, Melange Pink",
+    "normalized": "Pink, Candy Pink, Light Pink, Melange Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Cream, Beige, Off-White, Gold",
+    "normalized": "Cream, Beige, Off-White, Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Cream, Beige, Off-White",
+    "normalized": "Cream, Beige, Off-White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Light Pink, Ivory",
+    "normalized": "Gold, Light Pink, Ivory",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Baby Blue, Silver, White",
+    "normalized": "Light Blue, Sky Blue, Baby Blue, Silver, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Pastel Pink, Blush",
+    "normalized": "Pink, Light Pink, Pastel Pink, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Peach, Light Pink, Soft Pink, Blush",
+    "normalized": "Peach, Light Pink, Soft Pink, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Candy Pink, Light Pink, Melange Pink, Soft Pink",
+    "normalized": "Pink, Candy Pink, Light Pink, Melange Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Purple, Light Purple, Pink, Light Pink, Blue, Light Blue",
+    "normalized": "Purple, Light Purple, Pink, Light Pink, Blue, Light Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Soft Blue, Baby Blue",
+    "normalized": "Light Blue, Sky Blue, Soft Blue, Baby Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Soft Blue, Cream, Off-White, Ivory",
+    "normalized": "Light Blue, Sky Blue, Soft Blue, Cream, Off-White, Ivory",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Yellow, Light Yellow, Honey, Gingham",
+    "normalized": "Yellow, Light Yellow, Honey, Gingham",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "light brown, black, beige",
+    "normalized": "Light Brown, Black, Beige",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Cream, Light Beige, Soft Beige",
+    "normalized": "Ivory, Cream, Light Beige, Soft Beige",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Antique Cream, Cream, Beige, Gold",
+    "normalized": "Antique Cream, Cream, Beige, Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Alpine Blue, Light Blue, Baby Blue, White",
+    "normalized": "Alpine Blue, Light Blue, Baby Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Rose, Blush",
+    "normalized": "Pink, Light Pink, Rose, Blush",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Shell Pink, Light Pink, Pastel Pink",
+    "normalized": "Pink, Shell Pink, Light Pink, Pastel Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Soft Pink, Blush, Light Pink, White",
+    "normalized": "Pink, Soft Pink, Blush, Light Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, Floral Pink, Cream",
+    "normalized": "Pink, Light Pink, Soft Pink, Floral Pink, Cream",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Soft Blue, Pale Blue, Pink, Light Pink",
+    "normalized": "Light Blue, Soft Blue, Pale Blue, Pink, Light Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Snowdrop Blue, Soft Blue",
+    "normalized": "Light Blue, Snowdrop Blue, Soft Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "bright green, blue, white",
+    "normalized": "Bright Green, Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Cream, Beige, Light Beige",
+    "normalized": "Ivory, Cream, Beige, Light Beige",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Cream, Floral",
+    "normalized": "Pink, Light Pink, Cream, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Yellow, Brown, Red, Blue, Purple, Green, Clear",
+    "normalized": "Pink, Yellow, Brown, Red, Blue, Purple, Green, Clear",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Whisper Blue, Light Blue, Soft Blue, Pink, Light Pink, Floral",
+    "normalized": "Whisper Blue, Light Blue, Soft Blue, Pink, Light Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Baby Blue, Soft Blue, Blue Moon",
+    "normalized": "Light Blue, Sky Blue, Baby Blue, Soft Blue, Blue Moon",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Cherished Pink, Light Pink, Soft Pink",
+    "normalized": "Pink, Cherished Pink, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "pink, green, brown",
+    "normalized": "Pink, Green, Brown",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Gold, Pink, Purple, Green, Blue, Orange, Red",
+    "normalized": "Gold, Pink, Purple, Green, Blue, Orange, Red",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Light Blue, Green, Cream, White",
+    "normalized": "Blue, Light Blue, Green, Cream, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Whisper Blue, Light Blue, Pink, Soft Pink, Floral",
+    "normalized": "Whisper Blue, Light Blue, Pink, Soft Pink, Floral",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "brown, light brown",
+    "normalized": "Brown, Light Brown",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Cream, Green",
+    "normalized": "Pink, Light Pink, Cream, Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Lavender, Light Pink, Soft Pink",
+    "normalized": "Lavender, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Ivory, Light Pink, Soft Pink",
+    "normalized": "Ivory, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Shell Pink, Light Pink, Polka Dot",
+    "normalized": "Pink, Shell Pink, Light Pink, Polka Dot",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Blue, Bright Blue, Pink, Hot Pink",
+    "normalized": "Blue, Bright Blue, Pink, Hot Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Red, Bright Red, Cherry Red, Plaid",
+    "normalized": "Red, Bright Red, Cherry Red, Plaid",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, Gold, Metallic Gold",
+    "normalized": "Pink, Light Pink, Soft Pink, Gold, Metallic Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Soft Pink, Antique White",
+    "normalized": "Pink, Light Pink, Soft Pink, Antique White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Pastry Pink, Light Pink, White",
+    "normalized": "Pink, Pastry Pink, Light Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Snowflake Blue, Light Blue, Soft Blue",
+    "normalized": "Snowflake Blue, Light Blue, Soft Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Cream, Beige, Off-White, Light Tan",
+    "normalized": "Cream, Beige, Off-White, Light Tan",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Peach, Blue",
+    "normalized": "Pink, Light Pink, Peach, Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Baby Pink, Blue, Light Blue",
+    "normalized": "Pink, Light Pink, Baby Pink, Blue, Light Blue",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Proper Pink, Light Pink, Rose Pink, Gold, Metallic Gold",
+    "normalized": "Pink, Proper Pink, Light Pink, Rose Pink, Gold, Metallic Gold",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Lilac, Light Purple, Blue, White",
+    "normalized": "Lilac, Light Purple, Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Off-White, Cream, Dove Blanc",
+    "normalized": "White, Off-White, Cream, Dove Blanc",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Pink, Floral Pink",
+    "normalized": "Light Blue, Sky Blue, Pink, Floral Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Red, Pink",
+    "normalized": "White, Red, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Light Pink, Orchid, Pastel Pink",
+    "normalized": "Pink, Light Pink, Orchid, Pastel Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Black, Pink",
+    "normalized": "Black, Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Pastel Blue, Pink, Light Pink, White",
+    "normalized": "Light Blue, Pastel Blue, Pink, Light Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Yellow, Pink, Black, Clear, Purple",
+    "normalized": "Yellow, Pink, Black, Clear, Purple",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Pink, Light Pink, Rosé",
+    "normalized": "White, Pink, Light Pink, Rosé",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Rose Pink, Soft Pink, White, Bright White",
+    "normalized": "Pink, Rose Pink, Soft Pink, White, Bright White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Light Blue, Sky Blue, Soft Blue, White",
+    "normalized": "Light Blue, Sky Blue, Soft Blue, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Pink, Icicle Pink, Light Pink, Soft Pink",
+    "normalized": "Pink, Icicle Pink, Light Pink, Soft Pink",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "light pink, green",
+    "normalized": "Light Pink, Green",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "Peony Pink, Light Pink, White",
+    "normalized": "Peony Pink, Light Pink, White",
+    "productCount": 1,
+    "verified": true
+  },
+  {
+    "original": "White, Bright White, Daisy White",
+    "normalized": "White, Bright White, Daisy White",
+    "productCount": 1,
+    "verified": true
+  }
+]

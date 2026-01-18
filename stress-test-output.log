@@ -1,0 +1,452 @@
+🚀 Starting Pipeline Stress Test
+================================================================================
+API URL: http://localhost:3000
+Log file: /Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/app.log
+Conversations: 7
+✅ Server is running
+
+
+================================================================================
+💬 Conversation 1/7: Women's Jeans Discovery with Refinement
+Description: User starts vague, then refines with color and fit
+Messages: 3
+================================================================================
+
+📨 Message 1/3: "I need jeans"
+  ⏱️  Duration: 15.95s
+  📦 Products: 4
+  🔗 Pipeline Steps: 9
+  🎯 Gender: null ✅
+  🎯 AgeGroup: Adult ✅
+  ✅ Product Matches: Product count: 4
+  ⚠️  Log Issues: 1
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+  📋 Sample Products:
+     1. Mid Rise Slim Straight Grand Jeans
+        Reason: Chosen because comfortable and flattering....
+     2. Women's Mom Blue Jeans | Eco Friendly Sustainable Jeans; Hemp Jeans | Comfort Stretch Charlton by Mott & Bow
+        Reason: Chosen because comfortable and flattering....
+
+📨 Message 2/3: "for women"
+  ⏱️  Duration: 21.72s
+  📦 Products: 4
+  🔗 Pipeline Steps: 10
+  🎯 Gender: female ✅
+  🎯 AgeGroup: Adult ✅
+  📂 Categories: Womens-jeans
+  ❌ Product Issues:
+     - Wrong gender products found (expected female)
+     - Contains forbidden terms: men's, mens, boys
+  ✅ Product Matches: Product count: 4, Category: jeans
+  ⚠️  Log Issues: 2
+     - WARN: category_classifier_with_confidence: invalid_categories_filtered - {"message":"category_classi
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+  📋 Sample Products:
+     1. Women's High Rise Wide Leg Gilmore - Mott & Bow
+        Reason: Chosen because flattering and comfortable....
+     2. Mid Rise Slim Straight Charlton Jeans
+        Reason: Chosen because comfortable and flattering....
+
+📨 Message 3/3: "in dark colors"
+  ⏱️  Duration: 33.49s
+  📦 Products: 4
+  🔗 Pipeline Steps: 10
+  🎯 Gender: female ✅
+  🎯 AgeGroup: Adult ✅
+  📂 Categories: Womens-jeans
+  ❌ Product Issues:
+     - Wrong gender products found (expected female)
+     - Contains forbidden terms: men's, mens
+  ✅ Product Matches: Product count: 4, Category: jeans
+  ⚠️  Log Issues: 2
+     - WARN: category_classifier_with_confidence: invalid_categories_filtered - {"message":"category_classi
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+  📋 Sample Products:
+     1. Women's High Rise Blue Jeans | Stretch Beekman by Mott & Bow
+        Reason: Chosen because flattering and comfortable....
+     2. Slim Straight Laight Jeans
+        Reason: Chosen because flattering and comfortable....
+
+❌ Conversation Result: FAIL
+   Total Issues: 9
+
+⏳ Waiting 3 seconds before next conversation...
+
+================================================================================
+💬 Conversation 2/7: Men's Shirt Discovery
+Description: Direct query for men's shirts
+Messages: 1
+================================================================================
+
+📨 Message 1/1: "Show me dress shirts for men"
+  ⏱️  Duration: 14.74s
+  📦 Products: 0
+  🔗 Pipeline Steps: 10
+  🎯 Gender: male ✅
+  🎯 AgeGroup: Adult ✅
+  📂 Categories: t-shirts
+  ❌ Product Issues:
+     - No products returned (expected at least 1)
+  ⚠️  Log Issues: 5
+     - WARN: category_classifier_with_confidence: invalid_categories_filtered - {"message":"category_classi
+     - WARN: constraint_relaxation_all_dropped - {"message":"constraint_relaxation_all_dropped","originalCo
+     - WARN: product_type_mismatch - {"message":"product_type_mismatch","query":"Show me dress shirts for m
+     - WARN: low_confidence_or_irrelevant_recommendation - {"message":"low_confidence_or_irrelevant_recomme
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+
+❌ Conversation Result: FAIL
+   Total Issues: 6
+
+⏳ Waiting 3 seconds before next conversation...
+
+================================================================================
+💬 Conversation 3/7: Kids Clothing with Age Change
+Description: User asks for kids, then changes to baby
+Messages: 2
+================================================================================
+
+📨 Message 1/2: "I need clothes for my 5 year old"
+  ⏱️  Duration: 19.48s
+  📦 Products: 4
+  🔗 Pipeline Steps: 7
+  🎯 Gender: null ✅
+  🎯 AgeGroup: Adult ❌
+  ❌ Product Issues:
+     - Contains forbidden terms: adult, women's, men's
+  ✅ Product Matches: Product count: 4
+  ⚠️  Log Issues: 2
+     - WARN: buildCategorySpecificDictionaries: no product IDs provided - {"message":"buildCategorySpecific
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+  📋 Sample Products:
+     1. Men's Skinny Crosby Jeans - Mott & Bow
+        Reason: Chosen because comfortable and has pockets....
+     2. Men's Set: 1 Pair of Tech Pants + 2 tees - Mott & Bow
+        Reason: Chosen because comfortable and flattering....
+
+📨 Message 2/2: "actually, for a baby"
+  ⏱️  Duration: 19.16s
+  📦 Products: 0
+  🔗 Pipeline Steps: 9
+  🎯 Gender: null ✅
+  🎯 AgeGroup: Baby ✅
+  ❌ Product Issues:
+     - No products returned (expected at least 1)
+  ⚠️  Log Issues: 4
+     - WARN: buildCategorySpecificDictionaries: no product IDs provided - {"message":"buildCategorySpecific
+     - WARN: constraint_relaxation_all_dropped - {"message":"constraint_relaxation_all_dropped","originalCo
+     - WARN: low_confidence_or_irrelevant_recommendation - {"message":"low_confidence_or_irrelevant_recomme
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+
+❌ Conversation Result: FAIL
+   Total Issues: 9
+
+⏳ Waiting 3 seconds before next conversation...
+
+================================================================================
+💬 Conversation 4/7: Dress Discovery with Occasion
+Description: User asks for dress, then adds occasion
+Messages: 2
+================================================================================
+
+📨 Message 1/2: "I need a dress"
+  ⏱️  Duration: 19.28s
+  📦 Products: 4
+  🔗 Pipeline Steps: 9
+  🎯 Gender: null ❌
+  🎯 AgeGroup: Adult ✅
+  ✅ Product Matches: Product count: 4, Gender: female, Category: dress, No forbidden terms
+  ⚠️  Log Issues: 1
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+  📋 Sample Products:
+     1. Eclipse Rhinestone Scallop Bandage Dress for Women in Ballet Slipper
+        Reason: Chosen because flattering and comfortable....
+     2. Talissa Sequin Maxi Dress for Women in Black
+        Reason: Chosen because flattering and comfortable....
+
+📨 Message 2/2: "for a wedding"
+  ⏱️  Duration: 29.97s
+  📦 Products: 4
+  🔗 Pipeline Steps: 9
+  🎯 Gender: null ❌
+  🎯 AgeGroup: Adult ✅
+  ✅ Product Matches: Product count: 4, Gender: female, Category: dress
+  ⚠️  Log Issues: 2
+     - WARN: classifier_constraint_validation: invalid styles - {"message":"classifier_constraint_validatio
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+  📋 Sample Products:
+     1. Galatea Metallic Silk Chiffon Maxi Dress for Women in Airy Blue
+        Reason: Chosen because flattering and comfortable....
+     2. Secret Crush Rialto Maxi Dress for Women in Chantilly Shimmer
+        Reason: Chosen because flattering and comfortable....
+
+❌ Conversation Result: FAIL
+   Total Issues: 5
+
+⏳ Waiting 3 seconds before next conversation...
+
+================================================================================
+💬 Conversation 5/7: Complex Refinement
+Description: Multiple refinements in sequence
+Messages: 4
+================================================================================
+
+📨 Message 1/4: "Show me tops"
+  ⏱️  Duration: 27.76s
+  📦 Products: 4
+  🔗 Pipeline Steps: 18
+  🎯 Gender: female ✅
+  🎯 AgeGroup: Adult ✅
+  ✅ Product Matches: Product count: 4
+  ⚠️  Log Issues: 2
+     - WARN: buildCategorySpecificDictionaries: no product IDs provided - {"message":"buildCategorySpecific
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+  📋 Sample Products:
+     1. Cambron Luna Rosa Fleur Top for Women in Apple Blossom
+        Reason: Chosen because comfortable and flattering....
+     2. Charlieann Cotton Cami Top for Women in Bright White
+        Reason: Chosen because comfortable and flattering....
+
+📨 Message 2/4: "for women"
+  ⏱️  Duration: 30.79s
+  📦 Products: 4
+  🔗 Pipeline Steps: 10
+  🎯 Gender: female ✅
+  🎯 AgeGroup: Adult ✅
+  📂 Categories: Tops
+  ✅ Product Matches: Product count: 4, Gender: female, No forbidden terms
+  ⚠️  Log Issues: 2
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+  📋 Sample Products:
+     1. Condie Eyelet Lace Top for Women in Optic White
+        Reason: Chosen because comfortable and flattering....
+     2. Constantina Satin & Lace Top for Women in Black
+        Reason: Chosen because comfortable and adjustable....
+
+📨 Message 3/4: "in blue"
+  ⏱️  Duration: 42.57s
+  📦 Products: 4
+  🔗 Pipeline Steps: 19
+  🎯 Gender: female ✅
+  🎯 AgeGroup: Adult ✅
+  📂 Categories: Tops
+  ✅ Product Matches: Product count: 4, Gender: female
+  ⚠️  Log Issues: 2
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+  📋 Sample Products:
+     1. Lova Silk Chiffon Lace Top for Women in Country Air
+        Reason: Chosen because comfortable and flattering....
+     2. Marzenia Smocked Striped Floral Top for Women in Coastline Blue
+        Reason: Chosen because comfortable and flattering....
+
+📨 Message 4/4: "casual style"
+  ⏱️  Duration: 27.20s
+  📦 Products: 4
+  🔗 Pipeline Steps: 19
+  🎯 Gender: female ✅
+  🎯 AgeGroup: Adult ✅
+  📂 Categories: Tops
+  ✅ Product Matches: Product count: 4, Gender: female
+  ⚠️  Log Issues: 3
+     - WARN: classifier_constraint_validation: invalid styles - {"message":"classifier_constraint_validatio
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+  📋 Sample Products:
+     1. Marzenia Liberty Fabric Top for Women in Paddington Poppy
+        Reason: Chosen because comfortable and flattering....
+     2. Rowina Cotton Lace Sleeveless Top for Women in Black
+        Reason: Chosen because comfortable and flattering....
+
+❌ Conversation Result: FAIL
+   Total Issues: 9
+
+⏳ Waiting 3 seconds before next conversation...
+
+================================================================================
+💬 Conversation 6/7: Gender Switch
+Description: User switches from women to men
+Messages: 2
+================================================================================
+
+📨 Message 1/2: "Show me jeans for women"
+  ⏱️  Duration: 24.03s
+  📦 Products: 4
+  🔗 Pipeline Steps: 10
+  🎯 Gender: female ✅
+  🎯 AgeGroup: Adult ✅
+  📂 Categories: Womens-jeans
+  ❌ Product Issues:
+     - Wrong gender products found (expected female)
+     - Contains forbidden terms: men's, mens
+  ✅ Product Matches: Product count: 4, Category: jeans
+  ⚠️  Log Issues: 2
+     - WARN: category_classifier_with_confidence: invalid_categories_filtered - {"message":"category_classi
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+  📋 Sample Products:
+     1. Mid Rise Slim Straight Grand Jeans
+        Reason: Chosen because comfortable and flattering....
+     2. Women's Mom Blue Jeans | Eco Friendly Sustainable Jeans; Hemp Jeans | Comfort Stretch Charlton by Mott & Bow
+        Reason: Chosen because comfortable and flattering....
+
+📨 Message 2/2: "actually, for men"
+  ⏱️  Duration: 31.06s
+  📦 Products: 4
+  🔗 Pipeline Steps: 9
+  🎯 Gender: male ✅
+  🎯 AgeGroup: Adult ✅
+  ❌ Product Issues:
+     - Category not found: expected jeans
+  ✅ Product Matches: Product count: 4, Gender: male, No forbidden terms
+  ⚠️  Log Issues: 2
+     - WARN: buildCategorySpecificDictionaries: no product IDs provided - {"message":"buildCategorySpecific
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+  📋 Sample Products:
+     1. Long Sleeve Crew Tee Driggs 2-Pack Black/White
+        Reason: Chosen because comfortable and humidity-friendly....
+     2. Jersey Sueded Polo 2-Pack Black/California Blue
+        Reason: Chosen because comfortable and has pockets....
+
+❌ Conversation Result: FAIL
+   Total Issues: 7
+
+⏳ Waiting 3 seconds before next conversation...
+
+================================================================================
+💬 Conversation 7/7: Vague to Specific
+Description: User starts very vague, becomes specific
+Messages: 3
+================================================================================
+
+📨 Message 1/3: "what do you have"
+  ⏱️  Duration: 17.84s
+  📦 Products: 4
+  🔗 Pipeline Steps: 7
+  🎯 Gender: null ✅
+  🎯 AgeGroup: Adult ✅
+  ✅ Product Matches: Product count: 4
+  ⚠️  Log Issues: 2
+     - WARN: buildCategorySpecificDictionaries: no product IDs provided - {"message":"buildCategorySpecific
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+  📋 Sample Products:
+     1. PINK x LoveShackFancy Wink Lace Thong Panties for Women in Notes Pack
+        Reason: Chosen because comfortable and flattering....
+     2. PINK x LoveShackFancy Wink Cotton Thong Panties for Women in Shine Graphic Pack
+        Reason: Chosen because comfortable and flattering....
+
+📨 Message 2/3: "dresses"
+  ⏱️  Duration: 19.24s
+  📦 Products: 0
+  🔗 Pipeline Steps: 8
+  🎯 Gender: female ✅
+  🎯 AgeGroup: Adult ✅
+  📂 Categories: Women's Dresses
+  ❌ Product Issues:
+     - No products returned (expected at least 1)
+  ⚠️  Log Issues: 1
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+
+📨 Message 3/3: "in black"
+  ⏱️  Duration: 29.53s
+  📦 Products: 4
+  🔗 Pipeline Steps: 9
+  🎯 Gender: null ❌
+  🎯 AgeGroup: Adult ✅
+  ❌ Product Issues:
+     - Category not found: expected dress
+  ✅ Product Matches: Product count: 4, Gender: female
+  ⚠️  Log Issues: 2
+     - WARN: buildCategorySpecificDictionaries: no product IDs provided - {"message":"buildCategorySpecific
+     - ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error
+  📋 Sample Products:
+     1. Tech Short 3-Pack Black/Stone/Khaki
+        Reason: Chosen because comfortable and humidity-friendly....
+     2. Tech Short 2-Pack Khaki/Black
+        Reason: Chosen because comfortable and humidity-friendly....
+
+❌ Conversation Result: FAIL
+   Total Issues: 8
+
+
+================================================================================
+📊 Stress Test Summary
+================================================================================
+
+Overall Statistics:
+  Total conversations: 7
+  ✅ Passed: 0
+  ❌ Failed: 7
+  Total messages: 17
+  ✅ Successful messages: 0
+  ❌ Failed messages: 17
+
+🔗 Pipeline Step Analysis:
+  Average pipeline steps per message: 10.7
+
+⚠️  Issue Types:
+  Message 1: 21
+  Message 2: 19
+  Message 3: 10
+  Message 4: 3
+
+❌ Failed Conversations:
+
+  1. Women's Jeans Discovery with Refinement
+     Issues: 9
+       - Message 1: ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error":"\nInvalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create()` invocation in\n/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/.next/dev/server/chunks/src_lib_35728e4a._.js:155:158\n\n  152 try {\n  153     const truncatedQuery = truncate(payload.userQuery.trim(), TRUNCATE_LENGTH);\n  154     const truncatedReply = truncate(payload.assistantReply, TRUNCATE_LENGTH);\n→ 155     await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create({\n            data: {\n              id: \"2436cce6-98e1-4adb-ac47-e161ae582a4f\",\n              merchant: {\n                connect: {\n                  id: \"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b\"\n                }\n              },\n              sessionId: \"stress-test-1768580598023-c0mpj9rfe\",\n              userQuery: \"I need jeans\",\n              assistantReplySnippet: \"Jeans are such a timeless essential for days that call for ease and confidence. I love how the perfect pair can make you feel both effortless and refined, ready for anything that unfolds.\\n\\nWhether you want something classic and fitted or a little more r...\",\n              productIds: [\n                \"sboy-gran-10mo\",\n                \"mom-char-4mon\",\n                \"sboy-char-4mon\",\n                \"high-rise-skinny-jane-2-pack-d-3\"\n              ],\n              hadExactMatch: true,\n              clicked: false,\n              route: null,\n              actionType: null,\n              hadActionClick: false,\n              hadTypedYesNo: false,\n          +   pageType: PageType\n            }\n          })\n\nArgument `pageType` is missing.","sessionId":"stress-test-1768580598023-c0mpj9rfe"}
+       - Message 2: Wrong gender products found (expected female)
+       - Message 2: Contains forbidden terms: men's, mens, boys
+       - Message 2: WARN: category_classifier_with_confidence: invalid_categories_filtered - {"message":"category_classifier_with_confidence: invalid_categories_filtered","invalid":["womens-jeans"],"valid":["Womens-jeans"],"query":"jeans for women","merchantId":"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b"}
+       - Message 2: ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error":"\nInvalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create()` invocation in\n/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/.next/dev/server/chunks/src_lib_35728e4a._.js:155:158\n\n  152 try {\n  153     const truncatedQuery = truncate(payload.userQuery.trim(), TRUNCATE_LENGTH);\n  154     const truncatedReply = truncate(payload.assistantReply, TRUNCATE_LENGTH);\n→ 155     await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create({\n            data: {\n              id: \"e5e9a00a-7f4e-4a43-bab4-52f5a21ae31a\",\n              merchant: {\n                connect: {\n                  id: \"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b\"\n                }\n              },\n              sessionId: \"stress-test-1768580598023-c0mpj9rfe\",\n              userQuery: \"for women\",\n              assistantReplySnippet: \"You’re seeking jeans crafted especially for women, which brings a lovely sense of purpose. I understand you want denim that feels thoughtfully designed for a feminine fit and everyday versatility.\\n\\nEach pair I’ve gathered celebrates that combination of ...\",\n              productIds: [\n                \"hwdl-gilm-rins\",\n                \"sboy-char-16mo\",\n                \"hcrl-gilm-10mo\",\n                \"slim-straight-ridge-2-pack-d-1\"\n              ],\n              hadExactMatch: true,\n              clicked: false,\n              route: null,\n              actionType: null,\n              hadActionClick: false,\n              hadTypedYesNo: false,\n          +   pageType: PageType\n            }\n          })\n\nArgument `pageType` is missing.","sessionId":"stress-test-1768580598023-c0mpj9rfe"}
+
+  2. Men's Shirt Discovery
+     Issues: 6
+       - Message 1: No products returned (expected at least 1)
+       - Message 1: WARN: category_classifier_with_confidence: invalid_categories_filtered - {"message":"category_classifier_with_confidence: invalid_categories_filtered","invalid":["shirt"],"valid":["t-shirts"],"query":"Show me dress shirts for men","merchantId":"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b"}
+       - Message 1: WARN: constraint_relaxation_all_dropped - {"message":"constraint_relaxation_all_dropped","originalCount":1,"note":"All constraints relaxed but still no results, falling back to vector scores only"}
+       - Message 1: WARN: product_type_mismatch - {"message":"product_type_mismatch","query":"Show me dress shirts for men","queryProductType":"dres","closestCategory":"Mens-jeans","topProductTitle":"Bundle 18: Bestselling Marcy Short-Sleeved Tees - 3-Pack","topProductCategory":"t-shirts","topScore":0.4132776312066544,"note":"Product type mismatch and confidence below 0.5 threshold"}
+       - Message 1: WARN: low_confidence_or_irrelevant_recommendation - {"message":"low_confidence_or_irrelevant_recommendation","query":"Show me dress shirts for men","productCount":1,"topScore":0.4132776312066544,"hasHighConfidence":true,"topProductRelevant":true,"productTypeMatches":false,"isFollowUp":false,"reason":"product_type_mismatch"}
+
+  3. Kids Clothing with Age Change
+     Issues: 9
+       - Message 1: AgeGroup mismatch - got Adult, expected Kids
+       - Message 1: Contains forbidden terms: adult, women's, men's
+       - Message 1: WARN: buildCategorySpecificDictionaries: no product IDs provided - {"message":"buildCategorySpecificDictionaries: no product IDs provided"}
+       - Message 1: ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error":"\nInvalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create()` invocation in\n/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/.next/dev/server/chunks/src_lib_35728e4a._.js:155:158\n\n  152 try {\n  153     const truncatedQuery = truncate(payload.userQuery.trim(), TRUNCATE_LENGTH);\n  154     const truncatedReply = truncate(payload.assistantReply, TRUNCATE_LENGTH);\n→ 155     await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create({\n            data: {\n              id: \"5be7b09a-b885-4c73-bdc9-5db71df2ce16\",\n              merchant: {\n                connect: {\n                  id: \"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b\"\n                }\n              },\n              sessionId: \"stress-test-1768580702076-rw97lnkso\",\n              userQuery: \"I need clothes for my 5 year old\",\n              assistantReplySnippet: \"I couldn’t find any children’s clothes for your five-year-old right now. Instead, I have some men’s tees and sets that might inspire a little family style moment together.\\n\\nThese pieces are comfortable, casual, and made for everyday adventures, though n...\",\n              productIds: [\n                \"skin_cros_1mon\",\n                \"8366304792295533170\",\n                \"475424152530651146\",\n                \"slim-mercer-jeans-3-pack-d-6\"\n              ],\n              hadExactMatch: true,\n              clicked: false,\n              route: null,\n              actionType: null,\n              hadActionClick: false,\n              hadTypedYesNo: false,\n          +   pageType: PageType\n            }\n          })\n\nArgument `pageType` is missing.","sessionId":"stress-test-1768580702076-rw97lnkso"}
+       - Message 2: No products returned (expected at least 1)
+
+  4. Dress Discovery with Occasion
+     Issues: 5
+       - Message 1: Gender mismatch - got null, expected female
+       - Message 1: ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error":"\nInvalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create()` invocation in\n/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/.next/dev/server/chunks/src_lib_35728e4a._.js:155:158\n\n  152 try {\n  153     const truncatedQuery = truncate(payload.userQuery.trim(), TRUNCATE_LENGTH);\n  154     const truncatedReply = truncate(payload.assistantReply, TRUNCATE_LENGTH);\n→ 155     await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create({\n            data: {\n              id: \"c52290b5-b25d-4b44-a3b2-c9a679356bdc\",\n              merchant: {\n                connect: {\n                  id: \"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b\"\n                }\n              },\n              sessionId: \"stress-test-1768580749774-wzzjig3x2\",\n              userQuery: \"I need a dress\",\n              assistantReplySnippet: \"A beautiful dress can transform any moment into something unforgettable. I love how you're seeking a piece that feels just right for you.\\n\\nWhether you're after romance, sophistication, or a playful twist, there’s a style here to fit your mood and plans.\",\n              productIds: [\n                \"8244347928761\",\n                \"8244346880185\",\n                \"8244348158137\",\n                \"8084019216569\"\n              ],\n              hadExactMatch: true,\n              clicked: false,\n              route: null,\n              actionType: null,\n              hadActionClick: false,\n              hadTypedYesNo: false,\n          +   pageType: PageType\n            }\n          })\n\nArgument `pageType` is missing.","sessionId":"stress-test-1768580749774-wzzjig3x2"}
+       - Message 2: Gender mismatch - got null, expected female
+       - Message 2: WARN: classifier_constraint_validation: invalid styles - {"message":"classifier_constraint_validation: invalid styles","query":"dresses for wedding","providedValues":["Romantic","Feminine","Elegant","Bridal"]}
+       - Message 2: ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error":"\nInvalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create()` invocation in\n/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/.next/dev/server/chunks/src_lib_35728e4a._.js:155:158\n\n  152 try {\n  153     const truncatedQuery = truncate(payload.userQuery.trim(), TRUNCATE_LENGTH);\n  154     const truncatedReply = truncate(payload.assistantReply, TRUNCATE_LENGTH);\n→ 155     await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create({\n            data: {\n              id: \"cd4a3d14-34e4-4a96-a439-e1a3ab1fe993\",\n              merchant: {\n                connect: {\n                  id: \"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b\"\n                }\n              },\n              sessionId: \"stress-test-1768580749774-wzzjig3x2\",\n              userQuery: \"for a wedding\",\n              assistantReplySnippet: \"A wedding calls for a dress that feels truly special and memorable. I know you’re searching for something with an elegant spirit, perfect for celebrating love.\\n\\nThese styles are designed to capture the romance and sophistication a wedding deserves, with...\",\n              productIds: [\n                \"8217312821433\",\n                \"8203051008185\",\n                \"8084019511481\",\n                \"8193121747129\"\n              ],\n              hadExactMatch: true,\n              clicked: false,\n              route: null,\n              actionType: null,\n              hadActionClick: false,\n              hadTypedYesNo: false,\n          +   pageType: PageType\n            }\n          })\n\nArgument `pageType` is missing.","sessionId":"stress-test-1768580749774-wzzjig3x2"}
+
+  5. Complex Refinement
+     Issues: 9
+       - Message 1: WARN: buildCategorySpecificDictionaries: no product IDs provided - {"message":"buildCategorySpecificDictionaries: no product IDs provided"}
+       - Message 1: ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error":"\nInvalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create()` invocation in\n/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/.next/dev/server/chunks/src_lib_35728e4a._.js:155:158\n\n  152 try {\n  153     const truncatedQuery = truncate(payload.userQuery.trim(), TRUNCATE_LENGTH);\n  154     const truncatedReply = truncate(payload.assistantReply, TRUNCATE_LENGTH);\n→ 155     await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create({\n            data: {\n              id: \"d47a31e9-edb3-450b-8199-894ab50d00f1\",\n              merchant: {\n                connect: {\n                  id: \"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b\"\n                }\n              },\n              sessionId: \"stress-test-1768580808077-k9lc0hwd4\",\n              userQuery: \"Show me tops\",\n              assistantReplySnippet: \"There’s something so inviting about refreshing your wardrobe with lovely new tops. Whether you’re dreaming of easy days in the sun or moments that feel a touch more special, I’ve gathered a set of pieces that blend soft femininity with everyday comfort....\",\n              productIds: [\n                \"8179603243193\",\n                \"7692188942521\",\n                \"8244337639609\",\n                \"8106592108729\"\n              ],\n              hadExactMatch: true,\n              clicked: false,\n              route: null,\n              actionType: null,\n              hadActionClick: false,\n              hadTypedYesNo: false,\n          +   pageType: PageType\n            }\n          })\n\nArgument `pageType` is missing.","sessionId":"stress-test-1768580808077-k9lc0hwd4"}
+       - Message 2: ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error":"\nInvalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create()` invocation in\n/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/.next/dev/server/chunks/src_lib_35728e4a._.js:155:158\n\n  152 try {\n  153     const truncatedQuery = truncate(payload.userQuery.trim(), TRUNCATE_LENGTH);\n  154     const truncatedReply = truncate(payload.assistantReply, TRUNCATE_LENGTH);\n→ 155     await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create({\n            data: {\n              id: \"05e9e187-0a5f-4f94-900f-10dfd005e9f1\",\n              merchant: {\n                connect: {\n                  id: \"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b\"\n                }\n              },\n              sessionId: \"test-gender-filter-fix\",\n              userQuery: \"for women\",\n              assistantReplySnippet: \"I don’t have women’s clothing to share at the moment, but I do have some men’s tees, jeans, and casual bundles that might still inspire a relaxed, everyday style. These are comfortable, easy pieces that could be borrowed or styled for a laid-back, effor...\",\n              productIds: [\n                \"475424152530651146\",\n                \"skin_cros_1mon\",\n                \"8366304792295533170\",\n                \"set-every-occasion-pack\"\n              ],\n              hadExactMatch: true,\n              clicked: false,\n              route: null,\n              actionType: null,\n              hadActionClick: false,\n              hadTypedYesNo: false,\n          +   pageType: PageType\n            }\n          })\n\nArgument `pageType` is missing.","sessionId":"test-gender-filter-fix"}
+       - Message 2: ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error":"\nInvalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create()` invocation in\n/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/.next/dev/server/chunks/src_lib_35728e4a._.js:155:158\n\n  152 try {\n  153     const truncatedQuery = truncate(payload.userQuery.trim(), TRUNCATE_LENGTH);\n  154     const truncatedReply = truncate(payload.assistantReply, TRUNCATE_LENGTH);\n→ 155     await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create({\n            data: {\n              id: \"c941e80c-0e95-4f49-9991-5b25bd9b0697\",\n              merchant: {\n                connect: {\n                  id: \"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b\"\n                }\n              },\n              sessionId: \"stress-test-1768580808077-k9lc0hwd4\",\n              userQuery: \"for women\",\n              assistantReplySnippet: \"You’re looking for beautiful tops designed for women, a detail that brings focus to feminine silhouettes and thoughtful tailoring. I love how you’re refining your search to something that feels personal and just right for your wardrobe.\\n\\nEach of these p...\",\n              productIds: [\n                \"8061023682745\",\n                \"8244342718649\",\n                \"8043995988153\",\n                \"8203051106489\"\n              ],\n              hadExactMatch: true,\n              clicked: false,\n              route: null,\n              actionType: null,\n              hadActionClick: false,\n              hadTypedYesNo: false,\n          +   pageType: PageType\n            }\n          })\n\nArgument `pageType` is missing.","sessionId":"stress-test-1768580808077-k9lc0hwd4"}
+       - Message 3: ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error":"\nInvalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create()` invocation in\n/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/.next/dev/server/chunks/src_lib_35728e4a._.js:155:158\n\n  152 try {\n  153     const truncatedQuery = truncate(payload.userQuery.trim(), TRUNCATE_LENGTH);\n  154     const truncatedReply = truncate(payload.assistantReply, TRUNCATE_LENGTH);\n→ 155     await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create({\n            data: {\n              id: \"e769634e-a781-4b12-bc38-89a3cae3a355\",\n              merchant: {\n                connect: {\n                  id: \"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b\"\n                }\n              },\n              sessionId: \"test-all-fixes\",\n              userQuery: \"I need a dress\",\n              assistantReplySnippet: \"You’re searching for a dress that captures beauty and ease. I understand you want something special—an elegant piece with a polished touch.\\n\\nWhether you’re dreaming of something romantic for evening, playful for a party, or simply a dress that makes you...\",\n              productIds: [\n                \"8244347928761\",\n                \"8244346880185\",\n                \"8179608846521\",\n                \"8084019216569\"\n              ],\n              hadExactMatch: true,\n              clicked: false,\n              route: null,\n              actionType: null,\n              hadActionClick: false,\n              hadTypedYesNo: false,\n          +   pageType: PageType\n            }\n          })\n\nArgument `pageType` is missing.","sessionId":"test-all-fixes"}
+
+  6. Gender Switch
+     Issues: 7
+       - Message 1: Wrong gender products found (expected female)
+       - Message 1: Contains forbidden terms: men's, mens
+       - Message 1: WARN: category_classifier_with_confidence: invalid_categories_filtered - {"message":"category_classifier_with_confidence: invalid_categories_filtered","invalid":["womens-jeans"],"valid":["Womens-jeans"],"query":"Show me jeans for women","merchantId":"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b"}
+       - Message 1: ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error":"\nInvalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create()` invocation in\n/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/.next/dev/server/chunks/src_lib_35728e4a._.js:155:158\n\n  152 try {\n  153     const truncatedQuery = truncate(payload.userQuery.trim(), TRUNCATE_LENGTH);\n  154     const truncatedReply = truncate(payload.assistantReply, TRUNCATE_LENGTH);\n→ 155     await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create({\n            data: {\n              id: \"166a778a-3b3a-4785-958b-089747560aa9\",\n              merchant: {\n                connect: {\n                  id: \"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b\"\n                }\n              },\n              sessionId: \"stress-test-1768580953545-rrl3o8lq6\",\n              userQuery: \"Show me jeans for women\",\n              assistantReplySnippet: \"Jeans are that effortless essential, perfect for days when comfort mingles with style. I sense you’re looking for denim that feels both flattering and easy, with a timeless spirit woven in.\\n\\nThese choices are easygoing and versatile, made for everyday m...\",\n              productIds: [\n                \"sboy-gran-10mo\",\n                \"mom-char-4mon\",\n                \"sboy-char-4mon\",\n                \"high-rise-skinny-jane-2-pack-d-3\"\n              ],\n              hadExactMatch: true,\n              clicked: false,\n              route: null,\n              actionType: null,\n              hadActionClick: false,\n              hadTypedYesNo: false,\n          +   pageType: PageType\n            }\n          })\n\nArgument `pageType` is missing.","sessionId":"stress-test-1768580953545-rrl3o8lq6"}
+       - Message 2: Category not found: expected jeans
+
+  7. Vague to Specific
+     Issues: 8
+       - Message 1: WARN: buildCategorySpecificDictionaries: no product IDs provided - {"message":"buildCategorySpecificDictionaries: no product IDs provided"}
+       - Message 1: ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error":"\nInvalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create()` invocation in\n/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/.next/dev/server/chunks/src_lib_35728e4a._.js:155:158\n\n  152 try {\n  153     const truncatedQuery = truncate(payload.userQuery.trim(), TRUNCATE_LENGTH);\n  154     const truncatedReply = truncate(payload.assistantReply, TRUNCATE_LENGTH);\n→ 155     await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create({\n            data: {\n              id: \"ec7bfe6c-b28d-48cf-9681-59ee9c0c671c\",\n              merchant: {\n                connect: {\n                  id: \"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b\"\n                }\n              },\n              sessionId: \"stress-test-1768581017773-y3ryeni4k\",\n              userQuery: \"what do you have\",\n              assistantReplySnippet: \"You’re looking for a little inspiration and a sense of what’s possible. I’d love to show you a mix of romantic pieces, playful accessories, and beauty essentials that feel fresh and feminine.\\n\\nEach one is thoughtfully chosen to spark a bit of joy, wheth...\",\n              productIds: [\n                \"8271056175289\",\n                \"8271481536697\",\n                \"8011137450169\",\n                \"8264874328249\"\n              ],\n              hadExactMatch: true,\n              clicked: false,\n              route: null,\n              actionType: null,\n              hadActionClick: false,\n              hadTypedYesNo: false,\n          +   pageType: PageType\n            }\n          })\n\nArgument `pageType` is missing.","sessionId":"stress-test-1768581017773-y3ryeni4k"}
+       - Message 2: No products returned (expected at least 1)
+       - Message 2: ERROR: failed_to_record_conversation_event - {"message":"failed_to_record_conversation_event","error":"\nInvalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create()` invocation in\n/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/.next/dev/server/chunks/src_lib_35728e4a._.js:155:158\n\n  152 try {\n  153     const truncatedQuery = truncate(payload.userQuery.trim(), TRUNCATE_LENGTH);\n  154     const truncatedReply = truncate(payload.assistantReply, TRUNCATE_LENGTH);\n→ 155     await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$db$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__[\"prisma\"].conversationEvent.create({\n            data: {\n              id: \"3ff3aed1-395a-4332-a9ed-fdea4f09ab37\",\n              merchant: {\n                connect: {\n                  id: \"default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b\"\n                }\n              },\n              sessionId: \"stress-test-1768581017773-y3ryeni4k\",\n              userQuery: \"dresses\",\n              assistantReplySnippet: \"It sounds like you're in search of dreamy dresses for adults. I’m sorry we don’t have the perfect fit in this moment.\\n\\nIf you’re open to exploring our full selection without the adult filter, a world of beautiful possibilities awaits. Many of our dresse...\",\n              productIds: [],\n              hadExactMatch: false,\n              clicked: false,\n              route: null,\n              actionType: null,\n              hadActionClick: false,\n              hadTypedYesNo: false,\n          +   pageType: PageType\n            }\n          })\n\nArgument `pageType` is missing.","sessionId":"stress-test-1768581017773-y3ryeni4k"}
+       - Message 3: Gender mismatch - got null, expected female
+
+💾 Detailed report saved to: stress-test-report.json
+
+✅ Stress test complete!

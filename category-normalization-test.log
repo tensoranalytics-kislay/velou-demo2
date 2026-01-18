@@ -1,0 +1,71 @@
+🎯 Category Normalization Script
+
+   Mode: DRY RUN (preview only)
+
+📦 Extracting unique categories with sample products from database...
+
+   Found 100 unique categories
+
+   Extracted samples for 100 categories
+
+🤖 Normalizing 100 categories using LLM (batch size: 10)...
+
+   Processing batch 1/10 (10 categories)...
+   ❌ Error processing batch 1: jsonResponse is not iterable
+   Processing batch 2/10 (10 categories)...
+   ❌ Error processing batch 2: jsonResponse is not iterable
+   Processing batch 3/10 (10 categories)...
+   ❌ Error processing batch 3: jsonResponse is not iterable
+   Processing batch 4/10 (10 categories)...
+   ❌ Error processing batch 4: jsonResponse is not iterable
+   Processing batch 5/10 (10 categories)...
+   ❌ Error processing batch 5: jsonResponse is not iterable
+   Processing batch 6/10 (10 categories)...
+   ❌ Error processing batch 6: jsonResponse is not iterable
+   Processing batch 7/10 (10 categories)...
+   ❌ Error processing batch 7: jsonResponse is not iterable
+   Processing batch 8/10 (10 categories)...
+   ❌ Error processing batch 8: jsonResponse is not iterable
+   Processing batch 9/10 (10 categories)...
+   ❌ Error processing batch 9: jsonResponse is not iterable
+   Processing batch 10/10 (10 categories)...
+   ❌ Error processing batch 10: jsonResponse is not iterable
+
+   ✅ Normalization complete: 0 mappings created, 100 errors
+
+   ⚠️  Errors encountered:
+      - "Womens-tees": jsonResponse is not iterable
+      - "Mens-jeans": jsonResponse is not iterable
+      - "Mens-tees": jsonResponse is not iterable
+      - "Tops": jsonResponse is not iterable
+      - "Women's Dresses": jsonResponse is not iterable
+      - "Womens-jeans": jsonResponse is not iterable
+      - "Skirts": jsonResponse is not iterable
+      - "Mens-pants": jsonResponse is not iterable
+      - "Girls Tops": jsonResponse is not iterable
+      - "Accessories": jsonResponse is not iterable
+      ... and 90 more errors
+
+   💾 Mapping saved to /Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/category-normalization-mapping.json
+
+🔍 Verifying category mappings for safety...
+
+   ✅ Verified: 0 safe mappings
+   ⚠️  Failed verification: 0 mappings
+
+📝 Updating categories in database (DRY RUN - no changes will be made)...
+
+
+📊 Summary:
+
+   Categories processed: 0
+   Verified mappings: 0
+   Verification failures: 0
+   Products processed: 0
+   Products updated: 0
+   Products skipped: 0
+   Errors: 0
+
+   ⚠️  DRY RUN mode: No database changes were made
+   Run without --dry-run to apply changes
+

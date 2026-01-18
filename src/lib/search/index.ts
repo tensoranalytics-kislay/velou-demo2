@@ -322,6 +322,7 @@ export async function searchProducts(
         length: product.length ?? null,
         sleeve: product.sleeve ?? null,
         neckline: product.neckline ?? null,
+        silhouetteCut: (product as any).silhouetteCut ?? null,
         formalityLevel: product.formalityLevel ?? null,
         temperatureIntent: product.temperatureIntent ?? null,
         humidityFriendly: product.humidityFriendly ?? null,

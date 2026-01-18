@@ -1,0 +1,128 @@
+🎯 Category Normalization Script
+
+   Mode: DRY RUN (preview only)
+
+📦 Extracting unique categories with sample products from database...
+
+   Found 100 unique categories
+
+   Extracted samples for 100 categories
+
+🤖 Normalizing 100 categories using LLM (batch size: 10)...
+
+   Processing batch 1/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 1, converting to array format (1 entries)
+   Debug - Object keys: error
+      ❌ LLM returned error: Input contains 10 categories but only one category normalization per request is supported. Please provide one category at a time.
+      Converted 0 entries from object format
+   ⚠️  Warning: Expected 10 mappings but got 0
+   Batch categories: Womens-tees, Mens-jeans, Mens-tees, Tops, Women's Dresses, Womens-jeans, Skirts, Mens-pants, Girls Tops, Accessories
+   Parsed categories: 
+   ✅ Batch 1 completed: 0 normalized
+   Processing batch 2/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 2, converting to array format (1 entries)
+   Debug - Object keys: error
+      ❌ LLM returned error: Input contains 10 categories, but only one category normalization per request is supported. Please provide one category at a time.
+      Converted 0 entries from object format
+   ⚠️  Warning: Expected 10 mappings but got 0
+   Batch categories: Womens-lounge, Jewelry, Mens-underwear, Bedding, Mens-shorts, Girls Dresses, Bottoms, Tabletop, Girls Bottoms, Interiors
+   Parsed categories: 
+   ✅ Batch 2 completed: 0 normalized
+   Processing batch 3/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 3, converting to array format (1 entries)
+   Debug - Object keys: error
+      ❌ LLM returned error: Input contains 10 categories but only one category normalization per request is supported. Please provide one category at a time.
+      Converted 0 entries from object format
+   ⚠️  Warning: Expected 10 mappings but got 0
+   Batch categories: Perfumes, Apparel, Mens-pajamas, Womens-pajamas, clothing, Mens-swims, jeans, Swimsuits, Girls Swimwear, Womens-sweaters
+   Parsed categories: 
+   ✅ Batch 3 completed: 0 normalized
+   Processing batch 4/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 4, converting to array format (1 entries)
+   Debug - Object keys: error
+      ❌ LLM returned error: Input contains 10 categories, but the instructions require a JSON array with one object per category. Please provide the categories as a list for proper JSON array output.
+      Converted 0 entries from object format
+   ⚠️  Warning: Expected 10 mappings but got 0
+   Batch categories: Crop | £10 and under | £15 and under | £20 and under | £30 and under | Co-ords | Co-ords | Co-ords | Crop Tops | Crop Tops, Womens-pants, Drinkware, t-shirt, Crop | £10 and under | £15 and under | £20 and under | £30 and under | Co-ords | Co-ords | Co-ords | Concert Looks | Crop Tops, Stationary, skinny jeans, Mens-sweaters, Clothing Accessories, Handbags, Wallets & Cases
+   Parsed categories: 
+   ✅ Batch 4 completed: 0 normalized
+   Processing batch 5/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 5, converting to array format (1 entries)
+   Debug - Object keys: error
+      ❌ LLM returned error: Input contains 10 categories, but the instructions specify to return a JSON array with one object per category. Please provide the categories one at a time or confirm to proceed with all.
+      Converted 0 entries from object format
+   ⚠️  Warning: Expected 10 mappings but got 0
+   Batch categories: Clothing, Mens-jackets, Pom | £10 and under | £15 and under | £20 and under | £30 and under | Casualwear | Hats | Hats | Knitwear | Layer up, Shoes, Cold Weather Essentials, Activewear, Underwear & Socks, Bikini | £10 and under | £15 and under | £20 and under | £30 and under | Bikinis | Holiday Accessories | Holiday | Holiday | Holiday, Loungewear, Gift Wrapping
+   Parsed categories: 
+   ✅ Batch 5 completed: 0 normalized
+   Processing batch 6/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 6, converting to array format (1 entries)
+   Debug - Object keys: error
+      ❌ LLM returned error: Input contains 10 categories but instructions specify to return a JSON array with one object per category. Please provide all categories in one input or confirm to proceed with all.
+      Converted 0 entries from object format
+   ⚠️  Warning: Expected 10 mappings but got 0
+   Batch categories: Crop | £10 and under | £15 and under | £20 and under | £30 and under | Airport Ready | Basic Tops | Brunch Outfits | Casual Clothing | Casualwear, Maxi Occasion | Bardot Dresses | Black Tie Dresses | Bridesmaid Dresses | Bridesmaid | Dresses | Evening Dresses | Evening Dresses | Formal Dresses | Maxi Dresses, Maxi Dress, Artwork, Towels, Crop | £15 and under | £20 and under | £30 and under | Brunch Outfits | Casual Clothing | Casualwear | Co-ords | Co-ords | Co-ords, Headband | £10 and under | £15 and under | £20 and under | £30 and under | Day at the Races | Fascinators | Mother of the Bride | Occasion Accessories | Sale Accessories, Swim Cover-ups, Stiletto | £15 and under | £20 and under | £30 and under | Bridal Shoes | Bridal Shoes | Bridal | Bride To Be | Heels | Occasion Shoes, Flat | £15 and under | £20 and under | £30 and under | Airport Ready | Casualwear | Comfortable Shoes | Flatforms | Flatforms | Flats
+   Parsed categories: 
+   ✅ Batch 6 completed: 0 normalized
+   Processing batch 7/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 7, converting to array format (1 entries)
+   Debug - Object keys: error
+      ❌ LLM returned error: Input contains 10 categories but the instructions specify to return a JSON array with one object per category. Please provide the categories one at a time or confirm if you want all normalized in one response.
+      Converted 0 entries from object format
+   ⚠️  Warning: Expected 10 mappings but got 0
+   Batch categories: Flat | £15 and under | £20 and under | £30 and under | Airport Ready | Brunch Outfits | Casualwear | Comfortable Shoes | Flats | Holiday Shoes, Flat | £15 and under | £20 and under | £30 and under | Casualwear | Comfortable Shoes | Concert Looks | Faux Leather | Sale Shoes | Shoes, Sleepwear & Loungewear, Stiletto | £15 and under | £20 and under | £30 and under | Brunch Outfits | Date Nights | Day Glam | Day Glam | Faux Leather | Going Out Shoes, Palazzo | £10 and under | £15 and under | £20 and under | £30 and under | Airport Ready | Casual Clothing | Casualwear | Co-ords | Co-ords, Other | £10 and under | £15 and under | £20 and under | £30 and under | Airport Ready | Casual Clothing | Casualwear | Co-ords | Co-ords, Other | £15 and under | £20 and under | £30 and under | Brunch Outfits | Casual Clothing | Casualwear | Co-ords | Co-ords | Co-ords, Crop | £10 and under | £15 and under | £20 and under | £30 and under | Airport Ready | Basic Tops | Casual Clothing | Casualwear | Crop Tops, Crop | £10 and under | £15 and under | £20 and under | £30 and under | Brunch Outfits | Co-ords | Co-ords | Co-ords | Concert Looks, Mini Dress
+   Parsed categories: 
+   ✅ Batch 7 completed: 0 normalized
+   Processing batch 8/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 8, converting to array format (1 entries)
+   Debug - Object keys: error
+      ❌ LLM returned error: Input contains 10 categories, but the system expects a JSON array with one object per category. Please provide the input as a JSON array of objects with 'original' and 'samples' fields.
+      Converted 0 entries from object format
+   ⚠️  Warning: Expected 10 mappings but got 0
+   Batch categories: Maxi Occasion | £30 and under | Black Tie Dresses | Christmas Party Dresses | Cocktail Dresses | Dresses | Evening Dresses | Evening Dresses | Formal Dresses | Maxi Dresses, Blazer | £30 and under | Blazers | Blazers | Christening Guest | Co-ords | Co-ords | Co-ords | Date Nights | Day at the Races, Midaxi | £20 and under | £30 and under | Christening Guest | Cocktail Dresses | Day at the Races | Dresses | Evening Dresses | Evening Dresses | Formal Dresses, Light Knit | Casual Clothing | Casualwear | Christmas Tops | Day Tops | Jumpers | Jumpers | Knitted Tops | Knitwear | Knitwear, Light Knit | £30 and under | Casual Clothing | Casualwear | Christmas Tops | Day Tops | Jumpers | Jumpers | Knitted Tops | Knitwear, Kitchen & Dining, Light Knit | Cardigans & Shrugs | Cardigans & Shrugs | Casual Clothing | Casualwear | Clothing | Day Tops | Knitted Tops | Knitwear | Knitwear, Headband | £10 and under | £15 and under | £20 and under | £30 and under | Day at the Races | Fascinators | Hair Accessories | Mother of the Bride | Occasion Accessories, Flat | £15 and under | £20 and under | £30 and under | Casualwear | Comfortable Shoes | Faux Leather | Flats | Holiday Shoes | Holiday, Stiletto | £15 and under | £20 and under | £30 and under | Bridesmaid | Christening Guest | Glitz & Glam | Heels | Mother of the Bride | Occasion Shoes
+   Parsed categories: 
+   ✅ Batch 8 completed: 0 normalized
+   Processing batch 9/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 9, converting to array format (1 entries)
+   Debug - Object keys: error
+      ❌ LLM returned error: Request exceeds maximum allowed length. Please reduce the number of categories or split the request.
+      Converted 0 entries from object format
+   ⚠️  Warning: Expected 10 mappings but got 0
+   Batch categories: Stiletto | £15 and under | £20 and under | £30 and under | Bridesmaid | Glitz & Glam | Going Out Shoes | Heels | Occasion Shoes | Occasion Shoes, Skater | £30 and under | Brunch Outfits | Casual Clothing | Casualwear | Day Dresses | Day Dresses | Day Dresses | Day Glam | Day Glam, Skater | £20 and under | £30 and under | Brunch Outfits | Casual Clothing | Casualwear | Co-ords | Co-ords | Co-ords | Concert Looks, Baby & Toddler Bottoms, Skater | £20 and under | £30 and under | Brunch Outfits | Casual Clothing | Casualwear | Concert Looks | Day Dresses | Day Dresses | Day Dresses, Playsuit | £10 and under | £15 and under | £20 and under | £30 and under | Airport Ready | Casual Clothing | Casualwear | Holiday | Holiday, Palazzo | Brunch Outfits | Casual Clothing | Casualwear | Clothing | Co-ords | Co-ords | Co-ords | Concert Looks | Date Nights, Peplum | £10 and under | £15 and under | £20 and under | £30 and under | Animal print | Crop Tops | Date Nights | Day Glam | Day Glam, Mini | £10 and under | £15 and under | £20 and under | £30 and under | Brunch Outfits | Co-ords | Co-ords | Co-ords | Concert Looks, Flat | £15 and under | £20 and under | £30 and under | Day Glam | Day Glam | Flats | Holiday Shoes | Holiday | Holiday
+   Parsed categories: 
+   ✅ Batch 9 completed: 0 normalized
+   Processing batch 10/10 (10 categories)...
+   ⚠️  LLM returned object format for batch 10, converting to array format (1 entries)
+   Debug - Object keys: error
+      ❌ LLM returned error: Request exceeds maximum allowed length for a single response. Please reduce the number of categories or split the request.
+      Converted 0 entries from object format
+   ⚠️  Warning: Expected 10 mappings but got 0
+   Batch categories: Crop | £20 and under | £30 and under | Casual Clothing | Casualwear | Co-ords | Co-ords | Co-ords | Crop Tops | Crop Tops, Midi | £20 and under | £30 and under | Brunch Outfits | Casual Clothing | Casualwear | Day Dresses | Day Dresses | Day Dresses | Dresses, Other | £30 and under | Casual Clothing | Casualwear | Christmas Tops | Day Tops | Jumpers | Jumpers | Knitted Tops | Knitwear, Skater | Schoolwear | Skirts | Workwear | Excluded, Stud | £10 and under | £15 and under | £20 and under | £30 and under | Casualwear | Concert Looks | Date Nights | Earrings | Going out, Midaxi | Bodycon Dresses | Christening Guest | Clothing | Date Nights | Day at the Races | Dresses | Dresses | Going Out Dresses | Going out, Midaxi | £15 and under | £20 and under | £30 and under | Bodycon Dresses | Christening Guest | Date Nights | Day at the Races | Dresses | Going Out Dresses, Crop | £15 and under | £20 and under | £30 and under | Christmas Party Tops | Christmas Tops | Co-ords | Co-ords | Co-ords | Crop Tops, Midaxi | £20 and under | £30 and under | Bodycon Dresses | Curve Dresses | Date Nights | Dresses | Dresses | Going Out Dresses | Going Out Dresses, Crop | £10 and under | £15 and under | £20 and under | £30 and under | Basic Tops | Casual Clothing | Casualwear | Co-ords | Co-ords
+   Parsed categories: 
+   ✅ Batch 10 completed: 0 normalized
+
+   ✅ Normalization complete: 0 mappings created, 0 errors
+
+   💾 Mapping saved to /Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/category-normalization-mapping.json
+
+🔍 Verifying category mappings for safety...
+
+   ✅ Verified: 0 safe mappings
+   ⚠️  Failed verification: 0 mappings
+
+📝 Updating categories in database (DRY RUN - no changes will be made)...
+
+
+📊 Summary:
+
+   Categories processed: 0
+   Verified mappings: 0
+   Verification failures: 0
+   Products processed: 0
+   Products updated: 0
+   Products skipped: 0
+   Errors: 0
+
+   ⚠️  DRY RUN mode: No database changes were made
+   Run without --dry-run to apply changes
+

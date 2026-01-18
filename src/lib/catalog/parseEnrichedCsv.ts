@@ -62,9 +62,10 @@ export async function* parseEnrichedCsv(
       gtin: raw['gtin'] || null,
       merchant_item_id: raw['merchant item id'] || null,
       brand: raw['brand'] || 'Unknown Brand',
-      // Generate fallback title from product_type or id if title_clean is missing
-      title_clean: raw['title_clean'] || raw['product type'] || `Product ${raw['id']}`,
-      description_clean: raw['description_clean'] || raw['title_clean'] || raw['product type'] || '',
+      // Use title_clean if present and non-empty, otherwise fallback to id-based title
+      // DO NOT use product_type as fallback - it contains category strings, not product titles
+      title_clean: (raw['title_clean'] && raw['title_clean'].trim()) || `Product ${raw['id']}`,
+      description_clean: (raw['description_clean'] && raw['description_clean'].trim()) || (raw['title_clean'] && raw['title_clean'].trim()) || '',
       // Generate link_base from image_link domain if missing
       link_base: raw['link_base'] || extractBaseDomain(raw['image_link']) || 'https://example.com',
       image_link: raw['image_link'],

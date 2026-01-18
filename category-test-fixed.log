@@ -1,0 +1,74 @@
+🎯 Category Normalization Script
+
+   Mode: DRY RUN (preview only)
+
+📦 Extracting unique categories with sample products from database...
+
+   Found 10 unique categories
+
+   Extracted samples for 10 categories
+
+🤖 Normalizing 10 categories using LLM (batch size: 3)...
+
+   Processing batch 1/4 (3 categories)...
+   ⚠️  LLM returned object format for batch 1, converting to array format (1 entries)
+   Debug - Object keys: error
+      ❌ LLM returned error: Response must be a JSON array with exactly 3 objects, one for each category.
+      Converted 0 entries from object format
+   ⚠️  Warning: Expected 3 mappings but got 0
+   Batch categories: Womens-tees, Mens-jeans, Mens-tees
+   Parsed categories: 
+   ✅ Batch 1 completed: 0 normalized
+   Processing batch 2/4 (3 categories)...
+   ⚠️  LLM returned object format for batch 2, converting to array format (1 entries)
+   Debug - Object keys: error
+      ❌ LLM returned error: Input specifies 3 categories but only 2 are provided in the prompt. Please provide all 3 categories for normalization.
+      Converted 0 entries from object format
+   ⚠️  Warning: Expected 3 mappings but got 0
+   Batch categories: Tops, Women's Dresses, Womens-jeans
+   Parsed categories: 
+   ✅ Batch 2 completed: 0 normalized
+   Processing batch 3/4 (3 categories)...
+   ⚠️  LLM returned object format for batch 3, converting to array format (1 entries)
+   Debug - Object keys: error
+      ❌ LLM returned error: Input specifies 3 categories but only 2 are provided in the prompt. Please provide all 3 categories with samples.
+      Converted 0 entries from object format
+   ⚠️  Warning: Expected 3 mappings but got 0
+   Batch categories: Skirts, Mens-pants, Girls Tops
+   Parsed categories: 
+   ✅ Batch 3 completed: 0 normalized
+   Processing batch 4/4 (1 categories)...
+   ⚠️  LLM returned object format for batch 4, converting to array format (1 entries)
+   Debug - Object keys: error
+      ❌ LLM returned error: Response must be a JSON array with exactly 1 object.
+      Converted 0 entries from object format
+   ⚠️  Warning: Expected 1 mappings but got 0
+   Batch categories: Accessories
+   Parsed categories: 
+   ✅ Batch 4 completed: 0 normalized
+
+   ✅ Normalization complete: 0 mappings created, 0 errors
+
+   💾 Mapping saved to /Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/category-normalization-mapping.json
+
+🔍 Verifying category mappings for safety...
+
+   ✅ Verified: 0 safe mappings
+   ⚠️  Failed verification: 0 mappings
+
+📝 Updating categories in database (DRY RUN - no changes will be made)...
+
+
+📊 Summary:
+
+   Categories processed: 0
+   Verified mappings: 0
+   Verification failures: 0
+   Products processed: 0
+   Products updated: 0
+   Products skipped: 0
+   Errors: 0
+
+   ⚠️  DRY RUN mode: No database changes were made
+   Run without --dry-run to apply changes
+

@@ -1,0 +1,67 @@
+🎯 Category Normalization Script
+
+   Mode: DRY RUN (preview only)
+
+📦 Extracting unique categories with sample products from database...
+
+   Found 2854 unique categories
+
+   Extracted data for 100/2854 categories...
+   Extracted data for 200/2854 categories...
+   Extracted data for 300/2854 categories...
+   Extracted data for 400/2854 categories...
+   Extracted data for 500/2854 categories...
+   Extracted data for 600/2854 categories...
+   Extracted data for 700/2854 categories...
+   Extracted data for 800/2854 categories...
+   Extracted data for 900/2854 categories...
+prisma:error 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Server has closed the connection.
+   ⚠️  Connection error for category "Maxi Occasion | £20 and under | £30 and under | Chiffon Dresses | Christening Guest | Day at the Races | Day Glam | Day Glam | Dresses | High Neck Dresses", skipping...
+prisma:error 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `ep-icy-forest-adq5qfri-pooler.c-2.us-east-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-icy-forest-adq5qfri-pooler.c-2.us-east-1.aws.neon.tech:5432`.
+
+❌ Normalization failed: PrismaClientInitializationError: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `ep-icy-forest-adq5qfri-pooler.c-2.us-east-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-icy-forest-adq5qfri-pooler.c-2.us-east-1.aws.neon.tech:5432`.
+    at Ln.handleRequestError (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:121:8053)
+    at Ln.handleAndLogRequestError (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:121:7061)
+    at Ln.request (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:121:6745)
+    at async l (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async extractCategoriesWithSamples (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/scripts/normalize-categories.ts:114:23)
+    at async main (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/scripts/normalize-categories.ts:953:22) {
+  clientVersion: '5.19.1',
+  errorCode: undefined
+}
+   Error message: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `ep-icy-forest-adq5qfri-pooler.c-2.us-east-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-icy-forest-adq5qfri-pooler.c-2.us-east-1.aws.neon.tech:5432`.
+   Stack: PrismaClientInitializationError: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `ep-icy-forest-adq5qfri-pooler.c-2.us-east-1.aws.neon.tech:5432`
+
+Please make sure your database server is running at `ep-icy-forest-adq5qfri-pooler.c-2.us-east-1.aws.neon.tech:5432`.
+    at Ln.handleRequestError (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:121:8053)
+    at Ln.handleAndLogRequestError (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:121:7061)
+    at Ln.request (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:121:6745)
+    at async l (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/@prisma/client/runtime/library.js:130:9633)
+    at async extractCategoriesWithSamples (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/scripts/normalize-categories.ts:114:23)
+    at async main (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/scripts/normalize-categories.ts:953:22)

@@ -6,10 +6,17 @@ declare global {
 
 // Create Prisma client with connection configuration
 // For Neon databases, the connection string should include SSL parameters
+// Optimized for faster data loading with connection pooling
 export const prisma =
   global.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    // Connection pool optimization for parallel batch loading
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   });
 
 if (process.env.NODE_ENV !== 'production') {

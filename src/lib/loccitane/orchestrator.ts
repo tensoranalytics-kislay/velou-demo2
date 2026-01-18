@@ -91,38 +91,44 @@ async function loadLoccitaneProducts(
 ): Promise<ProductWithLoccitaneAttributes[]> {
   if (productIds.length === 0) return [];
   
-  // OPTIMIZATION: Load products in batches if list is large to avoid very large IN clauses
-  // PostgreSQL IN clauses with >100 items can be slow
+  // OPTIMIZATION: Load products in parallel batches for faster loading
+  // PostgreSQL IN clauses with >100 items can be slow, but parallel batches are faster
   const BATCH_SIZE = 100;
-  const allProducts = [];
+  const batches: string[][] = [];
   
   for (let i = 0; i < productIds.length; i += BATCH_SIZE) {
-    const batch = productIds.slice(i, i + BATCH_SIZE);
-  const products = await prisma.product.findMany({
-    where: {
-        id: { in: batch },
-      isActive: true,
-      ...(merchantId ? { merchantId } : {}),
-    },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      imageUrl: true,
-      productUrl: true,
-      priceCents: true,
-      salePriceCents: true,
-      currency: true,
-      category: true,
-      subcategory: true,
-      stockStatus: true,
-      attributes: true,
-      shopifyBestseller: true,
-      shopifySalesRank: true,
-    },
-  });
-    allProducts.push(...products);
+    batches.push(productIds.slice(i, i + BATCH_SIZE));
   }
+  
+  // Load all batches in parallel for better performance
+  const batchPromises = batches.map(batch =>
+    prisma.product.findMany({
+      where: {
+        id: { in: batch },
+        isActive: true,
+        ...(merchantId ? { merchantId } : {}),
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        imageUrl: true,
+        productUrl: true,
+        priceCents: true,
+        salePriceCents: true,
+        currency: true,
+        category: true,
+        subcategory: true,
+        stockStatus: true,
+        attributes: true,
+        shopifyBestseller: true,
+        shopifySalesRank: true,
+      },
+    })
+  );
+  
+  const batchResults = await Promise.all(batchPromises);
+  const allProducts = batchResults.flat();
   
   const products = allProducts;
   
@@ -1228,9 +1234,9 @@ export async function handleLoccitaneQuery(
     // Normal flow: load products from retrieval results
     // OPTIMIZATION: Only load top candidates to reduce database load time
     // We only need ~20 products for ranking (top 4 shown, top 20 stored for "show more"),
-    // but load 48 to account for filtering (size, productType, etc.) and previously shown products
-    // Increased from 24 to 48 to ensure we have enough products after filtering
-    const MAX_PRODUCTS_TO_LOAD = 48;
+    // but load 35 to account for filtering (size, productType, etc.) and previously shown products
+    // Reduced from 48 to 35 - parallel batch loading is faster, so we can load fewer products
+    const MAX_PRODUCTS_TO_LOAD = 35;
     
     // If constraints are specified, prioritize concept search results that match ALL constraints (intersection)
     // This ensures we get products that match all criteria (e.g., lavender AND hand cream)
