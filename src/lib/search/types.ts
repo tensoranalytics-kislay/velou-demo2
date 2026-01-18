@@ -40,6 +40,7 @@ export type SearchConstraints = {
   customLabels4?: string[];
   conditions?: string[];
   ageGroups?: string[];
+  inclusivitySizing?: string[]; // Plus Size, Petite, Tall, Extended Sizes, Standard Sizing
   inStockOnly?: boolean;
   excludeProductIds?: string[];
   limit?: number;
@@ -136,6 +137,7 @@ export type SearchResultItem = {
   length?: string | null;
   sleeve?: string | null;
   neckline?: string | null;
+  riseWaist?: string | null;
   formalityLevel?: string | null;
   temperatureIntent?: string | null;
   humidityFriendly?: boolean | null;

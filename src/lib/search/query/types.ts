@@ -35,6 +35,8 @@ export type BroadWhereFilters = {
   colorShade?: string[];
   colorUndertone?: string[];
   multicolor?: boolean;
+  // Inclusivity sizing filter: hard filter at DB level
+  inclusivitySizing?: string[]; // Plus Size, Petite, Tall, Extended Sizes, Standard Sizing
 };
 
 /**

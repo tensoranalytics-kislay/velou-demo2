@@ -398,6 +398,12 @@ export async function dbRankedSearch(
     whereParts.push(Prisma.sql`"multicolor" = ${whereFilters.multicolor}`);
   }
 
+  // Inclusivity sizing: hard filter at DB level (Plus Size, Petite, Tall, etc.)
+  if (whereFilters.inclusivitySizing && whereFilters.inclusivitySizing.length > 0) {
+    const values = whereFilters.inclusivitySizing.map((v) => `'${v.replace(/'/g, "''")}'`).join(', ');
+    whereParts.push(Prisma.raw(`"inclusivitySizing" = ANY(ARRAY[${values}]::text[])`));
+  }
+
   const whereClause =
     whereParts.length > 0
       ? (() => {

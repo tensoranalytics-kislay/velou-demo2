@@ -17,11 +17,51 @@ import { LOVESHACKFANCY_ONTOLOGY } from './ontology';
 import { getContextAwareConstraints } from './constraint-context';
 import { validateProductCategory } from './validation/category-validator';
 import { expandCategoriesForOptimalCoverage } from '../search/filtering/category';
-import { buildCategorySpecificDictionaries } from '../search/filtering/category-dictionaries';
-import { applyPostSQLFilters, extractSleeveFromSleeveLengths } from '../search/filtering/post-filter';
+import { type CategoryDictionaryMap } from '../search/filtering/category-dictionaries';
+import { buildDictionariesAndFilter, extractSleeveFromSleeveLengths } from '../search/filtering/post-filter';
 import { extractConstraintValues, extractConstraintIntent, type ConstraintWithIntent } from './constraint-utils';
 import { prisma } from '../db';
 import type { SearchResultItem } from '../search/types';
+
+/**
+ * Format FashionConstraints into natural language text for vector embedding
+ * Includes all extracted constraints to improve semantic search quality
+ */
+function formatConstraintsForEmbedding(constraints: FashionConstraints): string {
+  const parts: string[] = [];
+  
+  // Helper to extract and format constraint values
+  const formatConstraint = (key: string, value: any): string[] => {
+    const values = extractConstraintValues(value);
+    if (values && values.length > 0) {
+      const formatted = Array.isArray(values) ? values.join(', ') : String(values);
+      return [`${key}: ${formatted}`];
+    }
+    return [];
+  };
+  
+  // Format all constraint types
+  if (constraints.patterns) parts.push(...formatConstraint('pattern', constraints.patterns));
+  if (constraints.materials) parts.push(...formatConstraint('material', constraints.materials));
+  if (constraints.occasions) parts.push(...formatConstraint('occasion', constraints.occasions));
+  if (constraints.seasons) parts.push(...formatConstraint('season', constraints.seasons));
+  if (constraints.styles) parts.push(...formatConstraint('style', constraints.styles));
+  if (constraints.collections) parts.push(...formatConstraint('collection', constraints.collections));
+  if (constraints.sleeveLengths) parts.push(...formatConstraint('sleeve', constraints.sleeveLengths));
+  if (constraints.necklines) parts.push(...formatConstraint('neckline', constraints.necklines));
+  if (constraints.sizes) parts.push(...formatConstraint('size', constraints.sizes));
+  if (constraints.fits) parts.push(...formatConstraint('fit', constraints.fits));
+  if (constraints.lengths) parts.push(...formatConstraint('length', constraints.lengths));
+  if (constraints.rises) parts.push(...formatConstraint('rise', constraints.rises));
+  if (constraints.embellishments) parts.push(...formatConstraint('embellishment', constraints.embellishments));
+  if (constraints.formalityLevel) parts.push(...formatConstraint('formality', constraints.formalityLevel));
+  if (constraints.colorShade) parts.push(...formatConstraint('color shade', constraints.colorShade));
+  if (constraints.colorUndertone) parts.push(...formatConstraint('color undertone', constraints.colorUndertone));
+  if (constraints.seasonalPalette) parts.push(...formatConstraint('seasonal palette', constraints.seasonalPalette));
+  
+  // Join all constraint parts
+  return parts.length > 0 ? ` ${parts.join(', ')}` : '';
+}
 
 /**
  * Generate a simple hash from query text for consistent but diverse variant selection
@@ -36,6 +76,7 @@ export type MultiViewRetrievalResult = {
   lexicalScores: Map<string, number>;
   semanticScores: Map<string, number>;
   conceptMatches: Map<string, Set<string>>;
+  categoryDictionaries?: CategoryDictionaryMap;
 };
 
 /**
@@ -64,24 +105,73 @@ export async function multiViewRetrieval(
     concept: false,  // Disable concept - attributes aren't structured in this dataset
   },
   topCategories?: string[], // Optional: top 3 categories for hard SQL-level filtering
-  categoryConfidence?: number // Optional: category classification confidence for post-filtering
+  categoryConfidence?: number, // Optional: category classification confidence for post-filtering
+  resolvedGender?: 'male' | 'female' | null, // Optional: resolved gender for HARD SQL filter (never relaxed)
+  resolvedAgeGroup?: string | null // Optional: resolved ageGroup for HARD SQL filter (never relaxed)
 ): Promise<MultiViewRetrievalResult> {
   const candidateIds = new Set<string>();
   const lexicalScores = new Map<string, number>();
   const semanticScores = new Map<string, number>();
   const conceptMatches = new Map<string, Set<string>>();
+  let categoryDictionaries: CategoryDictionaryMap | undefined;
 
   // Expand categories to maximize product coverage
   // This handles singular/plural variations and parent-child relationships
   // Example: "Maxi Dress" → ["Maxi Dress", "Women's Dresses"] to catch both standalone category and subcategory
   // This ensures maximum product coverage when products exist in both category field and subcategory field
-  const expandedCategories = topCategories && topCategories.length > 0
+  let expandedCategories = topCategories && topCategories.length > 0
     ? expandCategoriesForOptimalCoverage(topCategories)
     : undefined;
+  
+  // CRITICAL: Filter expanded categories by resolved gender to prevent wrong-gender products
+  // When gender is resolved, remove opposite-gender categories from expansion
+  // Example: If resolvedGender = "female" and expansion includes "Mens-jeans", remove it
+  // NOTE: Cannot use .includes("men's") because "women's" contains "men's" as substring!
+  // Must use word boundary patterns or prefix checks instead
+  if (expandedCategories && resolvedGender) {
+    const genderFiltered = expandedCategories.filter(cat => {
+      const catLower = cat.toLowerCase();
+      if (resolvedGender === 'female') {
+        // Remove men's/male categories
+        // Check for "mens-" or "men-" at start or after space/dash (word boundary)
+        // Cannot check "men's" with includes because "women's" contains "men's" as substring
+        return !(/\b(men|mens)[-\s]/i.test(cat)) &&
+               !catLower.startsWith("men ") &&
+               !catLower.startsWith("mens ") &&
+               !catLower.startsWith("men'") && // "men's" at start
+               catLower !== "men" &&
+               catLower !== "mens";
+      } else if (resolvedGender === 'male') {
+        // Remove women's/female categories
+        // Check for "womens-" or "women-" at start or after space/dash (word boundary)
+        // Cannot check "women's" with includes because it could match other patterns
+        return !(/\b(women|womens)[-\s]/i.test(cat)) &&
+               !catLower.startsWith("women ") &&
+               !catLower.startsWith("womens ") &&
+               !catLower.startsWith("women'") && // "women's" at start
+               catLower !== "women" &&
+               catLower !== "womens" &&
+               !catLower.includes("girls");
+      }
+      return true;
+    });
+    
+    if (genderFiltered.length !== expandedCategories.length) {
+      logger.info('expanded_categories_filtered_by_gender', {
+        query: query.substring(0, 100),
+        resolvedGender,
+        originalCount: expandedCategories.length,
+        filteredCount: genderFiltered.length,
+        removed: expandedCategories.filter(c => !genderFiltered.includes(c)),
+        note: 'Removed opposite-gender categories from expansion to prevent wrong-gender products',
+      });
+      expandedCategories = genderFiltered;
+    }
+  }
 
   // Extract intent from classification.constraints BEFORE conversion
   // Intent is lost when converting FashionConstraints → SearchConstraints, so we preserve it separately
-  // This will be used later for intent-aware post-SQL filtering
+  // This will be used later for intent-aware post-SQL filtering and hard SQL filtering
   const constraintIntents = {
     colors: extractConstraintIntent(classification.constraints.colors),
     lengths: extractConstraintIntent(classification.constraints.lengths),
@@ -89,12 +179,106 @@ export async function multiViewRetrieval(
     necklines: extractConstraintIntent(classification.constraints.necklines),
     formalityLevel: extractConstraintIntent(classification.constraints.formalityLevel),
     colorShade: extractConstraintIntent(classification.constraints.colorShade),
+    patterns: extractConstraintIntent(classification.constraints.patterns),
+    materials: extractConstraintIntent(classification.constraints.materials),
+    occasions: extractConstraintIntent(classification.constraints.occasions),
+    sizes: extractConstraintIntent(classification.constraints.sizes),
+    fits: extractConstraintIntent(classification.constraints.fits),
+    styles: extractConstraintIntent(classification.constraints.styles),
+    collections: extractConstraintIntent(classification.constraints.collections),
+    seasons: extractConstraintIntent(classification.constraints.seasons),
+    rises: extractConstraintIntent(classification.constraints.rises),
+    embellishments: extractConstraintIntent(classification.constraints.embellishments),
+    colorUndertone: extractConstraintIntent(classification.constraints.colorUndertone),
+    seasonalPalette: extractConstraintIntent(classification.constraints.seasonalPalette),
   };
+  
+  // Extract constraints with "required" intent for hard SQL filtering BEFORE retrieval
+  // These will be applied as SQL WHERE clauses to filter the database before vector search
+  const requiredIntentFilters: {
+    patterns?: string[];
+    materials?: string[];
+    occasions?: string[];
+    sleeves?: string[];
+    necklines?: string[];
+    sizes?: string[];
+    fits?: string[];
+    styles?: string[];
+    collections?: string[];
+    seasons?: string[];
+    rises?: string[];
+    embellishments?: string[];
+    formalityLevel?: string[];
+    colorShade?: string[];
+    colorUndertone?: string[];
+    seasonalPalette?: string[];
+  } = {};
+  
+  // Helper function to extract and set required intent filters
+  const extractRequiredFilter = (
+    intent: 'required' | 'strong' | 'preferred' | 'excluded' | null | undefined,
+    constraint: any,
+    filterKey: keyof typeof requiredIntentFilters
+  ) => {
+    if (intent === 'required') {
+      const values = extractConstraintValues(constraint);
+      if (values && values.length > 0) {
+        (requiredIntentFilters as any)[filterKey] = values;
+      }
+    }
+  };
+  
+  // Extract all constraints with "required" intent
+  extractRequiredFilter(constraintIntents.patterns, classification.constraints.patterns, 'patterns');
+  extractRequiredFilter(constraintIntents.materials, classification.constraints.materials, 'materials');
+  extractRequiredFilter(constraintIntents.occasions, classification.constraints.occasions, 'occasions');
+  extractRequiredFilter(constraintIntents.sleeveLengths, classification.constraints.sleeveLengths, 'sleeves');
+  extractRequiredFilter(constraintIntents.necklines, classification.constraints.necklines, 'necklines');
+  extractRequiredFilter(constraintIntents.sizes, classification.constraints.sizes, 'sizes');
+  extractRequiredFilter(constraintIntents.fits, classification.constraints.fits, 'fits');
+  extractRequiredFilter(constraintIntents.styles, classification.constraints.styles, 'styles');
+  extractRequiredFilter(constraintIntents.collections, classification.constraints.collections, 'collections');
+  extractRequiredFilter(constraintIntents.seasons, classification.constraints.seasons, 'seasons');
+  extractRequiredFilter(constraintIntents.rises, classification.constraints.rises, 'rises');
+  extractRequiredFilter(constraintIntents.embellishments, classification.constraints.embellishments, 'embellishments');
+  extractRequiredFilter(constraintIntents.formalityLevel, classification.constraints.formalityLevel, 'formalityLevel');
+  extractRequiredFilter(constraintIntents.colorShade, classification.constraints.colorShade, 'colorShade');
+  extractRequiredFilter(constraintIntents.colorUndertone, classification.constraints.colorUndertone, 'colorUndertone');
+  extractRequiredFilter(constraintIntents.seasonalPalette, classification.constraints.seasonalPalette, 'seasonalPalette');
+  
+  // Log required intent filters being applied
+  if (Object.keys(requiredIntentFilters).length > 0) {
+    logger.info('required_intent_filters_extracted_for_hard_sql_filtering', {
+      query: query.substring(0, 100),
+      requiredIntentFilters,
+      note: 'Constraints with "required" intent will be applied as hard SQL filters BEFORE retrieval',
+    });
+  }
 
   // Convert classification constraints to search constraints
   // Include top categories for hard SQL-level filtering if provided
   // This hard filters the catalog BEFORE retrieval (applied at SQL level)
   const searchConstraints = classificationToSearchConstraints(classification, expandedCategories || topCategories);
+  
+  // Override gender and ageGroup with resolved values (HARD SQL filters - never relaxed)
+  // These values come from early extraction in orchestrator and take priority over classification
+  if (resolvedGender) {
+    searchConstraints.genders = [resolvedGender];
+    logger.info('gender_hard_filter_applied_to_retrieval', {
+      query: query.substring(0, 100),
+      resolvedGender,
+      note: 'Gender applied as HARD SQL filter - will never be relaxed',
+    });
+  }
+  
+  if (resolvedAgeGroup) {
+    searchConstraints.ageGroups = [resolvedAgeGroup];
+    logger.info('agegroup_hard_filter_applied_to_retrieval', {
+      query: query.substring(0, 100),
+      resolvedAgeGroup,
+      note: 'AgeGroup applied as HARD SQL filter - will never be relaxed',
+    });
+  }
   
   // Expand colors using embedding similarity ONLY when:
   // 1. User explicitly requests "similar colours" (handled in orchestrator)
@@ -222,12 +406,20 @@ export async function multiViewRetrieval(
         try {
           // Use product terms if provided (from query parser), otherwise use full query
           // Product terms are cleaner and improve vector search matching
-          const queryTextForEmbedding = productTermsForVector || query;
+          let queryTextForEmbedding = productTermsForVector || query;
+          
+          // Enhance query embedding with all extracted constraints from LLM classification
+          // This improves vector search by including semantic information about patterns, occasions, seasons, etc.
+          const constraintsText = formatConstraintsForEmbedding(classification.constraints);
+          if (constraintsText) {
+            queryTextForEmbedding = queryTextForEmbedding + constraintsText;
+          }
           
           logger.debug('fashion_semantic_search: query for embedding', {
             original: query.substring(0, 100),
             productTerms: productTermsForVector?.substring(0, 100),
-            usingForEmbedding: queryTextForEmbedding.substring(0, 100),
+            usingForEmbedding: queryTextForEmbedding.substring(0, 200),
+            constraintsAdded: constraintsText ? 'yes' : 'no',
           });
           
           const queryEmbedding = await embedText(queryTextForEmbedding);
@@ -356,7 +548,7 @@ export async function multiViewRetrieval(
                 note: 'Stage 1: Category-only SQL filter completed',
               });
 
-              // Stage 2: Build category-specific dictionaries
+              // Stage 2: Build dictionaries AND filter products in single pass
               if (categoryFilteredIds.length === 0) {
                 logger.warn('fashion_semantic_search: post_sql_filtering_stage1_returned_zero', {
                   query: query.substring(0, 100),
@@ -366,24 +558,11 @@ export async function multiViewRetrieval(
                 });
                 productIdsToSearch = [];
               } else {
-                const categoryDictionaries = await buildCategorySpecificDictionaries(
-                  categoryFilteredIds,
-                  merchantId || ''
-                );
-
-                logger.info('fashion_semantic_search: post_sql_filtering_stage2_complete', {
-                  query: query.substring(0, 100),
-                  dictionaryCount: categoryDictionaries.size,
-                  categoryFilteredCount: categoryFilteredIds.length,
-                  note: 'Stage 2: Category-specific dictionaries built',
-                });
-
-                // Stage 3: Apply post-SQL filters using category-specific dictionaries
                 // Helper to convert null to undefined
                 const nullToUndefined = <T>(value: T | null | undefined): T | undefined => 
                   value === null ? undefined : value;
                 
-                logger.info('fashion_semantic_search: calling_applyPostSQLFilters_with_intents', {
+                logger.info('fashion_semantic_search: calling_buildDictionariesAndFilter_with_intents', {
                   query: query.substring(0, 100),
                   contextAwareIntents,
                   hasColorsIntent: !!contextAwareIntents.colors,
@@ -391,30 +570,32 @@ export async function multiViewRetrieval(
                   hasSleevesIntent: !!contextAwareIntents.sleeves,
                   hasNecklinesIntent: !!contextAwareIntents.necklines,
                   hasFormalityIntent: !!contextAwareIntents.formalityLevels,
-                  note: 'About to call applyPostSQLFilters with intent information',
+                  note: 'About to build dictionaries and filter products in single pass',
                 });
                 
-                const postFilteredIds = await applyPostSQLFilters(
-                  categoryFilteredIds,
-                  {
-                    colors: nullToUndefined(extractConstraintValues(contextAware.sqlFilters.colors)),
-                    lengths: nullToUndefined(contextAware.sqlFilters.lengths),
-                    sleeves: contextAware.sqlFilters.sleeves ? extractSleeveFromSleeveLengths(contextAware.sqlFilters.sleeves) : undefined,
-                    necklines: nullToUndefined(contextAware.sqlFilters.necklines),
-                    formalityLevels: nullToUndefined(contextAware.sqlFilters.formalityLevel),
-                    colorShades: nullToUndefined(contextAware.sqlFilters.colorShade),
-                  },
-                  categoryDictionaries,
-                  contextAwareIntents // Pass intent information for intent-aware filtering
-                );
+                const { dictionaries: categoryDictionaries, filteredIds: postFilteredIds } = 
+                  await buildDictionariesAndFilter(
+                    categoryFilteredIds,
+                    {
+                      colors: nullToUndefined(extractConstraintValues(contextAware.sqlFilters.colors)),
+                      lengths: nullToUndefined(contextAware.sqlFilters.lengths),
+                      sleeves: contextAware.sqlFilters.sleeves ? extractSleeveFromSleeveLengths(contextAware.sqlFilters.sleeves) : undefined,
+                      necklines: nullToUndefined(contextAware.sqlFilters.necklines),
+                      formalityLevels: nullToUndefined(contextAware.sqlFilters.formalityLevel),
+                      colorShades: nullToUndefined(contextAware.sqlFilters.colorShade),
+                    },
+                    contextAwareIntents,
+                    merchantId
+                  );
 
-                logger.info('fashion_semantic_search: post_sql_filtering_stage3_complete', {
+                logger.info('fashion_semantic_search: post_sql_filtering_stage2_complete', {
                   query: query.substring(0, 100),
                   originalCount: categoryFilteredIds.length,
                   postFilteredCount: postFilteredIds.length,
                   reductionPercentage: categoryFilteredIds.length > 0 
                     ? ((categoryFilteredIds.length - postFilteredIds.length) / categoryFilteredIds.length * 100).toFixed(2) + '%'
                     : '0%',
+                  dictionaryCount: categoryDictionaries.size,
                   filtersApplied: {
                     colors: extractConstraintValues(contextAware.sqlFilters.colors)?.length || 0,
                     colorValues: extractConstraintValues(contextAware.sqlFilters.colors),
@@ -429,7 +610,7 @@ export async function multiViewRetrieval(
                     colorShades: contextAware.sqlFilters.colorShade?.length || 0,
                     colorShadeValues: contextAware.sqlFilters.colorShade,
                   },
-                  note: 'Stage 3: Post-SQL filters applied using category-specific dictionaries',
+                  note: 'Stage 2: Dictionaries built and products filtered in single pass',
                 });
 
                 productIdsToSearch = postFilteredIds;
@@ -470,14 +651,32 @@ export async function multiViewRetrieval(
                   inStockOnly: true,
                   merchantId,
                   categories: undefined, // Already filtered
+                  genders: contextAware.sqlFilters.genders, // CRITICAL: Always apply gender filter
+                  ageGroups: contextAware.sqlFilters.ageGroups, // Always apply age group filter
                   priceMinCents: contextAware.sqlFilters.priceMinCents,
                   priceMaxCents: contextAware.sqlFilters.priceMaxCents,
                   // NOTE: If post-SQL filtering is enabled, colors, lengths, sleeves, necklines, formalityLevels, colorShades
                   // are already filtered, so we don't need to apply them again in SQL
                   colors: USE_POST_SQL_FILTERING ? undefined : contextAware.sqlFilters.colors,
                   excludedColors: USE_POST_SQL_FILTERING ? undefined : (contextAware.sqlFilters as any).excludedColors,
-                  ageGroups: contextAware.sqlFilters.ageGroups, // Always apply age group filter
                   lengths: USE_POST_SQL_FILTERING ? undefined : contextAware.sqlFilters.lengths,
+                  // CRITICAL: Apply hard SQL filters for constraints with "required" intent
+                  patterns: requiredIntentFilters.patterns,
+                  materials: requiredIntentFilters.materials,
+                  occasions: requiredIntentFilters.occasions,
+                  sleeves: requiredIntentFilters.sleeves,
+                  necklines: requiredIntentFilters.necklines,
+                  sizes: requiredIntentFilters.sizes,
+                  fits: requiredIntentFilters.fits,
+                  styles: requiredIntentFilters.styles,
+                  collections: requiredIntentFilters.collections,
+                  seasons: requiredIntentFilters.seasons,
+                  rises: requiredIntentFilters.rises,
+                  embellishments: requiredIntentFilters.embellishments,
+                  formalityLevel: requiredIntentFilters.formalityLevel,
+                  colorShade: requiredIntentFilters.colorShade,
+                  colorUndertone: requiredIntentFilters.colorUndertone,
+                  seasonalPalette: requiredIntentFilters.seasonalPalette,
                 },
                 undefined,
                 productIdsToSearch
@@ -521,9 +720,10 @@ export async function multiViewRetrieval(
               {
                 inStockOnly: true,
                 merchantId,
+                genders: contextAware.sqlFilters.genders, // CRITICAL: Always apply gender filter
+                ageGroups: contextAware.sqlFilters.ageGroups,
                 priceMinCents: contextAware.sqlFilters.priceMinCents,
                 priceMaxCents: contextAware.sqlFilters.priceMaxCents,
-                ageGroups: contextAware.sqlFilters.ageGroups,
               }
             );
 
@@ -580,11 +780,18 @@ export async function multiViewRetrieval(
                     inStockOnly: true,
                     merchantId,
                     categories: expandedCategories || topCategories, // Use expanded categories for maximum coverage
+                    genders: contextAware.sqlFilters.genders, // CRITICAL: Always apply gender filter
+                    ageGroups: contextAware.sqlFilters.ageGroups,
                     priceMinCents: contextAware.sqlFilters.priceMinCents,
                     priceMaxCents: contextAware.sqlFilters.priceMaxCents,
-                    ageGroups: contextAware.sqlFilters.ageGroups,
                     // NOTE: If post-SQL filtering is enabled, lengths are post-filtered, so skip here
                     lengths: USE_POST_SQL_FILTERING ? undefined : contextAware.sqlFilters.lengths,
+                    // CRITICAL: Apply hard SQL filters for constraints with "required" intent
+                    patterns: requiredIntentFilters.patterns,
+                    materials: requiredIntentFilters.materials,
+                    occasions: requiredIntentFilters.occasions,
+                    sleeves: requiredIntentFilters.sleeves,
+                    necklines: requiredIntentFilters.necklines,
                   },
                   undefined,
                   undefined // No pre-deduplicated IDs, search all products in category
@@ -673,12 +880,13 @@ export async function multiViewRetrieval(
               {
                 inStockOnly: true,
                 merchantId,
+                genders: contextAware.sqlFilters.genders || searchConstraints.genders, // CRITICAL: Always apply gender filter (gender never relaxes)
                   categories: expandedCategories || topCategories, // Use expanded categories for maximum coverage
+                ageGroups: contextAware.relaxedConstraints.ageGroups,
                 priceMinCents: contextAware.relaxedConstraints.priceMinCents,
                 priceMaxCents: contextAware.relaxedConstraints.priceMaxCents,
                 colors: shouldDropColors ? undefined : relaxedColors, // Drop colors if too many
                 excludedColors: shouldDropColors ? undefined : (contextAware.relaxedConstraints as any).excludedColors, // Excluded colors
-                ageGroups: contextAware.relaxedConstraints.ageGroups,
                   lengths: contextAware.relaxedConstraints.lengths, // Hard SQL filter for length (preserve in relaxed tier)
               },
               1500,
@@ -694,12 +902,19 @@ export async function multiViewRetrieval(
                   inStockOnly: true,
                   merchantId,
                   categories: undefined,
+                  genders: contextAware.sqlFilters.genders || searchConstraints.genders, // CRITICAL: Always apply gender filter (gender never relaxes)
+                  ageGroups: contextAware.relaxedConstraints.ageGroups,
                   priceMinCents: contextAware.relaxedConstraints.priceMinCents,
                   priceMaxCents: contextAware.relaxedConstraints.priceMaxCents,
                   colors: shouldDropColors ? undefined : relaxedColors, // Drop colors if too many
                   excludedColors: shouldDropColors ? undefined : (contextAware.relaxedConstraints as any).excludedColors, // Excluded colors
-                  ageGroups: contextAware.relaxedConstraints.ageGroups,
                     lengths: contextAware.relaxedConstraints.lengths, // Hard SQL filter for length (preserve in relaxed tier)
+                  // CRITICAL: Apply hard SQL filters for constraints with "required" intent (never relaxed)
+                  patterns: requiredIntentFilters.patterns,
+                  materials: requiredIntentFilters.materials,
+                  occasions: requiredIntentFilters.occasions,
+                  sleeves: requiredIntentFilters.sleeves,
+                  necklines: requiredIntentFilters.necklines,
                 },
                 undefined,
                 productIdsToSearch
@@ -746,9 +961,10 @@ export async function multiViewRetrieval(
               {
                 inStockOnly: true,
                 merchantId,
+                genders: contextAware.sqlFilters.genders, // CRITICAL: Always apply gender filter
+                ageGroups: contextAware.sqlFilters.ageGroups,
                 priceMinCents: contextAware.sqlFilters.priceMinCents,
                 priceMaxCents: contextAware.sqlFilters.priceMaxCents,
-                ageGroups: contextAware.sqlFilters.ageGroups,
               }
             );
 
@@ -827,8 +1043,10 @@ export async function multiViewRetrieval(
                   {
                     inStockOnly: true,
                     merchantId,
+                    genders: searchConstraints.genders, // CRITICAL: Always apply gender filter even in Tier 4
+                    ageGroups: searchConstraints.ageGroups, // CRITICAL: Always apply ageGroup filter even in Tier 4
                     categories: expandedCategories || topCategories, // Use expanded categories for maximum coverage
-                    // No price, color, age groups, or other filters - pure category-based search
+                    // No price, color, or other filters - pure category-based search with gender/ageGroup
                   },
                   1500,
                   queryHash,
@@ -843,7 +1061,14 @@ export async function multiViewRetrieval(
                       inStockOnly: true,
                       merchantId,
                       categories: undefined,
-                      // No constraint filters - pure vector similarity search
+                      genders: searchConstraints.genders, // CRITICAL: Always apply gender filter even in Tier 4
+                      ageGroups: searchConstraints.ageGroups, // CRITICAL: Always apply ageGroup filter even in Tier 4
+                      // CRITICAL: Apply hard SQL filters for constraints with "required" intent even in Tier 4
+                      patterns: requiredIntentFilters.patterns,
+                      materials: requiredIntentFilters.materials,
+                      occasions: requiredIntentFilters.occasions,
+                      sleeves: requiredIntentFilters.sleeves,
+                      necklines: requiredIntentFilters.necklines,
                     },
                     undefined,
                     productIdsToSearch
@@ -861,7 +1086,14 @@ export async function multiViewRetrieval(
           }
           
           // Fallback: If no categories, use original flow
+          // CRITICAL: Still apply gender and ageGroup filters even when no categories
           if (result.length === 0 && (!topCategories || topCategories.length === 0)) {
+            logger.info('fashion_semantic_search: fallback_no_categories_applying_gender_filter', {
+              query: query.substring(0, 100),
+              resolvedGender,
+              resolvedAgeGroup,
+              note: 'No categories classified, using fallback path but still applying gender/ageGroup filters',
+            });
             result = await searchVectorIndexWithDeduplication(
             queryEmbedding,
               150,
@@ -869,11 +1101,18 @@ export async function multiViewRetrieval(
               inStockOnly: true,
               merchantId,
                 categories: undefined,
+              genders: searchConstraints.genders, // CRITICAL: Apply gender filter even in fallback
+              ageGroups: searchConstraints.ageGroups, // CRITICAL: Apply ageGroup filter even in fallback
               priceMinCents: searchConstraints.priceMinCents,
               priceMaxCents: searchConstraints.priceMaxCents,
               colors: expandedColors,
-              ageGroups: searchConstraints.ageGroups,
               lengths: searchConstraints.lengths, // Hard SQL filter for length
+              // CRITICAL: Apply hard SQL filters for constraints with "required" intent even in fallback
+              patterns: requiredIntentFilters.patterns,
+              materials: requiredIntentFilters.materials,
+              occasions: requiredIntentFilters.occasions,
+              sleeves: requiredIntentFilters.sleeves,
+              necklines: requiredIntentFilters.necklines,
             },
               450,
               undefined
@@ -1057,6 +1296,7 @@ export async function multiViewRetrieval(
     lexicalScores,
     semanticScores,
     conceptMatches,
+    categoryDictionaries,
   };
 }
 
@@ -1128,6 +1368,9 @@ export function classificationToSearchConstraints(
   const ageGroupValues = extractConstraintValues(constraints.ageGroups);
   const ageGroupIntent = extractConstraintIntent(constraints.ageGroups);
   
+  const inclusivitySizingValues = extractConstraintValues(constraints.inclusivitySizing);
+  const inclusivitySizingIntent = extractConstraintIntent(constraints.inclusivitySizing);
+  
   // Extract values for additional constraints
   const colorShadeValues = extractConstraintValues(constraints.colorShade);
   const benefitsValues = extractConstraintValues(constraints.benefits);
@@ -1164,6 +1407,8 @@ export function classificationToSearchConstraints(
     priceMinCents: constraints.priceMinCents === null ? undefined : constraints.priceMinCents,
     priceMaxCents: constraints.priceMaxCents === null ? undefined : constraints.priceMaxCents,
     ageGroups: ageGroupIntent === 'excluded' ? undefined : nullToUndefined(ageGroupValues),
+    // Inclusivity sizing: hard SQL filter (Plus Size, Petite, Tall, etc.)
+    inclusivitySizing: inclusivitySizingIntent === 'excluded' ? undefined : nullToUndefined(inclusivitySizingValues),
     // Map fashion-specific fields to generic SearchConstraints fields
     // styles + patterns -> styleTags (both are style descriptors)
     // If either has excluded intent, handle separately

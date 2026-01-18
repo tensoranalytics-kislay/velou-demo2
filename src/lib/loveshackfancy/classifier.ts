@@ -39,6 +39,7 @@ export type FashionConstraints = {
   necklines?: string[] | ConstraintWithIntent | null;
   sleeveLengths?: string[] | ConstraintWithIntent | null;
   ageGroups?: string[] | ConstraintWithIntent | null;
+  inclusivitySizing?: string[] | ConstraintWithIntent | null; // Plus Size, Petite, Tall, Extended Sizes, Standard Sizing
   
   // Enriched fashion facets
   formalityLevel?: string[] | ConstraintWithIntent | null;
@@ -181,7 +182,8 @@ export function computeGenderContext(
 export async function classifyQueryWithMetadata(
   message: string,
   lastConstraints?: FashionConstraints | null,
-  enhancedQuery?: string | null
+  enhancedQuery?: string | null,
+  classifiedCategories?: string[]
 ): Promise<ClassificationWithMetadata> {
   const startTime = Date.now();
   const queryForClassification = enhancedQuery || message;
@@ -219,8 +221,8 @@ export async function classifyQueryWithMetadata(
       ? JSON.stringify(lastConstraints, null, 2)
       : 'null';
     
-    // STEP 3: Build prompt with gender-filtered categories
-    const basePrompt = buildQueryClassifierPrompt(categoriesForPrompt);
+    // STEP 3: Build prompt with gender-filtered categories and category-specific dictionaries
+    const basePrompt = buildQueryClassifierPrompt(categoriesForPrompt, classifiedCategories);
     const prompt = basePrompt
       .replace('{QUERY}', queryForClassification)
       .replace('{LAST_CONSTRAINTS}', lastConstraintsText);

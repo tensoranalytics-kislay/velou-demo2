@@ -112,6 +112,8 @@ export async function buildBroadWhereFilters(
     colorUndertone: constraints.colorUndertone?.length ? constraints.colorUndertone : undefined,
     multicolor:
       constraints.multicolor === undefined ? undefined : constraints.multicolor === true ? true : false,
+    // Inclusivity sizing: hard filter at DB level
+    inclusivitySizing: constraints.inclusivitySizing?.length ? constraints.inclusivitySizing : undefined,
   };
 
   const ontology = await getCatalogOntology();
