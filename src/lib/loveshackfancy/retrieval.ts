@@ -17,10 +17,8 @@ import { LOVESHACKFANCY_ONTOLOGY } from './ontology';
 import { getContextAwareConstraints } from './constraint-context';
 import { validateProductCategory } from './validation/category-validator';
 import { expandCategoriesForOptimalCoverage } from '../search/filtering/category';
-import { type CategoryDictionaryMap } from '../search/filtering/category-dictionaries';
-import { extractSleeveFromSleeveLengths } from '../search/filtering/post-filter';
-import { buildCategorySpecificDictionaries } from '../search/filtering/category-dictionaries';
-import { applyPostSQLFilters } from '../search/filtering/post-filter';
+import { type CategoryDictionaryMap, buildCategorySpecificDictionaries } from '../search/filtering/category-dictionaries';
+import { extractSleeveFromSleeveLengths, applyPostSQLFilters } from '../search/filtering/post-filter';
 import { extractConstraintValues, extractConstraintIntent, type ConstraintWithIntent } from './constraint-utils';
 import { prisma } from '../db';
 import type { SearchResultItem } from '../search/types';
@@ -261,6 +259,13 @@ export async function multiViewRetrieval(
   // Include top categories for hard SQL-level filtering if provided
   // This hard filters the catalog BEFORE retrieval (applied at SQL level)
   const searchConstraints = classificationToSearchConstraints(classification, expandedCategories || topCategories);
+  
+  logger.debug('classificationToSearchConstraints_result', {
+    query: query.substring(0, 100),
+    inclusivitySizing: searchConstraints.inclusivitySizing,
+    inclusivitySizingLength: searchConstraints.inclusivitySizing?.length || 0,
+    note: 'After classificationToSearchConstraints - check if inclusivitySizing is preserved',
+  });
   
   // Override gender and ageGroup with resolved values (HARD SQL filters - never relaxed)
   // These values come from early extraction in orchestrator and take priority over classification
@@ -531,14 +536,22 @@ export async function multiViewRetrieval(
 
               // POST-SQL FILTERING MODE: Two-stage filtration
               // Stage 1: Gender + Category SQL filter (skip post-filterable attributes)
+              logger.info('fashion_semantic_search: deduplicateProductsByCategoryForPostFiltering_input', {
+                query: query.substring(0, 100),
+                inclusivitySizing: contextAware.sqlFilters.inclusivitySizing,
+                inclusivitySizingLength: contextAware.sqlFilters.inclusivitySizing?.length || 0,
+                note: 'Checking inclusivitySizing filter before SQL query',
+              });
+              
               const categoryFilteredIds = await deduplicateProductsByCategoryForPostFiltering(
                 {
                   genders: contextAware.sqlFilters.genders, // NEW: Gender as primary filter
                   categories: expandedCategories,
                   ageGroups: contextAware.sqlFilters.ageGroups,
+                  inclusivitySizing: contextAware.sqlFilters.inclusivitySizing, // Hard SQL filter for body type
                   priceMinCents: contextAware.sqlFilters.priceMinCents,
                   priceMaxCents: contextAware.sqlFilters.priceMaxCents,
-                  merchantId,
+                  merchantId: merchantId || 'default',
                   inStockOnly: true,
                 },
                 1500
@@ -564,7 +577,7 @@ export async function multiViewRetrieval(
                 const nullToUndefined = <T>(value: T | null | undefined): T | undefined => 
                   value === null ? undefined : value;
                 
-                logger.info('fashion_semantic_search: calling_buildDictionariesAndFilter_with_intents', {
+                logger.info('fashion_semantic_search: calling_post_sql_filtering_with_intents', {
                   query: query.substring(0, 100),
                   contextAwareIntents,
                   hasColorsIntent: !!contextAwareIntents.colors,
@@ -575,8 +588,13 @@ export async function multiViewRetrieval(
                   note: 'About to build dictionaries and filter products in single pass',
                 });
                 
-                // Build dictionaries and apply post-SQL filters separately
-                const categoryDictionaries = await buildCategorySpecificDictionaries(categoryFilteredIds, merchantId || 'default');
+                // Stage 2a: Build category-specific dictionaries
+                const categoryDictionaries = await buildCategorySpecificDictionaries(
+                  categoryFilteredIds,
+                  merchantId || 'default'
+                );
+                
+                // Stage 2b: Apply post-SQL filters
                 const postFilteredIds = await applyPostSQLFilters(
                   categoryFilteredIds,
                   {
@@ -1373,6 +1391,14 @@ export function classificationToSearchConstraints(
   
   const inclusivitySizingValues = extractConstraintValues(constraints.inclusivitySizing);
   const inclusivitySizingIntent = extractConstraintIntent(constraints.inclusivitySizing);
+  
+  logger.debug('classificationToSearchConstraints_inclusivitySizing_extraction', {
+    rawInclusivitySizing: constraints.inclusivitySizing,
+    inclusivitySizingValues,
+    inclusivitySizingIntent,
+    inclusivitySizingValuesLength: inclusivitySizingValues?.length || 0,
+    note: 'Check inclusivitySizing extraction in classificationToSearchConstraints',
+  });
   
   // Extract values for additional constraints
   const colorShadeValues = extractConstraintValues(constraints.colorShade);

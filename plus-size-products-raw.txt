@@ -1,0 +1,81 @@
+Total Plus Size products: 78
+
+Products:
+1. Brown Scarf Detail Midaxi Dress | Category: Women's Dresses | AgeGroup: Adult | Gender: female | Stock: in_stock | Price: 36.99
+2. Curve Asymmetric Buckle Midi Dress | Category: Women's Dresses | AgeGroup: Adult | Gender: female | Stock: in_stock | Price: 34.99
+3. Curve Black Contrast Bardot Skater Midi Dress | Category: Women's Dresses | AgeGroup: 16+ years | Gender: female | Stock: in_stock | Price: 69.99
+4. Curve Black Diamante Bow Midi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 49.99
+5. Curve Black Diamante Satin Midi Dress | Category: Women's Dresses | AgeGroup: Adult | Gender: female | Stock: in_stock | Price: 44.99
+6. Curve Black Floral Midaxi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 49.99
+7. Curve Black Gingham Midaxi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 39.99
+8. Curve Black Gingham Peplum Top | Category: Tops | AgeGroup: 16, 18, 20, 22, 24 | Gender: female | Stock: in_stock | Price: 29.99
+9. Curve Black Glitter Mesh Long Sleeve Top | Category: Tops | AgeGroup: 20, 22, 24 | Gender: female | Stock: in_stock | Price: 26.99
+10. Curve Black Glitter Mesh Midaxi Skirt | Category: Bottoms | AgeGroup: 18, 20, 22, 24 | Gender: female | Stock: in_stock | Price: 26.99
+11. Curve Black Mesh Midaxi Skirt | Category: Skirts | AgeGroup: 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 22.99
+12. Curve Black Peplum Top | Category: Tops | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 26.99
+13. Curve Black Sequin Boxy Tunic Dress | Category: Women's Dresses | AgeGroup: 18, 20, 22 | Gender: female | Stock: in_stock | Price: 54.99
+14. Curve Black Sequin Buckle Detail Midaxi Dress | Category: Women's Dresses | AgeGroup: 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 49.99
+15. Curve Black Sequin Midi Dress | Category: Women's Dresses | AgeGroup: 24, 26 | Gender: female | Stock: in_stock | Price: 54.99
+16. Curve Black Stud Detail Top | Category: Womens-tees | AgeGroup: 20 | Gender: female | Stock: in_stock | Price: 24.99
+17. Curve Black Tie Top | Category: Tops | AgeGroup: 18, 20 | Gender: female | Stock: in_stock | Price: 24.99
+18. Curve Black Velvet Maxi Skirt | Category: Skirts | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 26.99
+19. Curve Black Velvet Twisted Top | Category: Tops | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 24.99
+20. Curve Black Velvet Wrap Midi Dress | Category: Women's Dresses | AgeGroup: 16, 20, 22, 24 | Gender: female | Stock: in_stock | Price: 44.99
+21. Curve Blue Floral Chiffon Midaxi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 54.99
+22. Curve Blue Printed Long Sleeve Midaxi Dress | Category: Women's Dresses | AgeGroup: 18, 20, 22, 26 | Gender: female | Stock: in_stock | Price: 36.99
+23. Curve Blue Satin Floral Midaxi Dress | Category: Women's Dresses | AgeGroup: Adult | Gender: female | Stock: in_stock | Price: 39.99
+24. Curve Blue Satin Marble Midaxi Dress | Category: Women's Dresses | AgeGroup: 16, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 39.99
+25. Curve Bottle Green Bardot Midi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 49.99
+26. Curve Bottle Green Bow Front Midi Dress | Category: Women's Dresses | AgeGroup: 18, 20, 22, 26 | Gender: female | Stock: in_stock | Price: 39.99
+27. Curve Bottle Green Satin Ruched Midi Dress | Category: Women's Dresses | AgeGroup: Adult | Gender: female | Stock: in_stock | Price: 44.99
+28. Curve Bottle Green Sequin Midi Dress | Category: Women's Dresses | AgeGroup: 16, 24 | Gender: female | Stock: in_stock | Price: 54.99
+29. Curve Brown Drop Waist Midaxi Dress | Category: Women's Dresses | AgeGroup: 18, 20, 22 | Gender: female | Stock: in_stock | Price: 36.99
+30. Curve Brown Glitter Mesh Long Sleeve Top | Category: Tops | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 26.99
+31. Curve Brown Glitter Mesh Midaxi Skirt | Category: Bottoms | AgeGroup: 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 26.99
+32. Curve Brown Leopard Print Tie Top | Category: Tops | AgeGroup: 20 | Gender: female | Stock: in_stock | Price: 24.99
+33. Curve Brown Marble Midaxi Skirt | Category: Skirts | AgeGroup: 16, 18, 20, 22, 26 | Gender: female | Stock: in_stock | Price: 26.99
+34. Curve Brown Mesh Ombre Midaxi Dress | Category: Women's Dresses | AgeGroup: 24, 26 | Gender: female | Stock: in_stock | Price: 36.99
+35. Curve Brown One Shoulder Ruched Dress | Category: Women's Dresses | AgeGroup: 22, 24 | Gender: female | Stock: in_stock | Price: 39.99
+36. Curve Brown Square Neck Mini Dress | Category: Women's Dresses | AgeGroup: 18, 22, 24 | Gender: female | Stock: in_stock | Price: 32.99
+37. Curve Burgundy Bandeau Midi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 36.99
+38. Curve Burgundy Chiffon Bardot Maxi Dress | Category: Women's Dresses | AgeGroup: Adult | Gender: female | Stock: in_stock | Price: 69.99
+39. Curve Burgundy Printed Satin Midaxi Dress | Category: Women's Dresses | AgeGroup: Adult | Gender: female | Stock: in_stock | Price: 44.99
+40. Curve Burgundy Strapless Sequin Midaxi Dress | Category: Midaxi | £30 and under | Bodycon Dresses | Christmas Party Dresses | Curve Dresses | Dresses | Dresses | Embellished Dresses | Evening Dresses | Evening Dresses | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 54.99
+41. Curve Burgundy Wrap Midi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22, 24 | Gender: female | Stock: in_stock | Price: 36.99
+42. Curve Camel Ribbed Bardot Bodycon Midi Dress | Category: Women's Dresses | AgeGroup: 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 34.99
+43. Curve Camel Tailored Trousers | Category: Womens-pants | AgeGroup: 16, 18, 20, 22, 24 | Gender: female | Stock: in_stock | Price: 29.99
+44. Curve Dark Red Bandeau Skater Dress | Category: Women's Dresses | AgeGroup: 18, 20, 22, 24 | Gender: female | Stock: in_stock | Price: 59.99
+45. Curve Dark Red Floral Tiered Midaxi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22, 24 | Gender: female | Stock: in_stock | Price: 64.99
+46. Curve Dark Red Skater Midi Dress | Category: Women's Dresses | AgeGroup: 16, 20 | Gender: female | Stock: in_stock | Price: 64.99
+47. Curve Floral Smudge Midaxi Dress | Category: Women's Dresses | AgeGroup: 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 36.99
+48. Curve Grey Tired Midi Dress | Category: Women's Dresses | AgeGroup: 18, 20 | Gender: female | Stock: in_stock | Price: 29.99
+49. Curve Jade Green Sequin Ruched Midi Dress | Category: Women's Dresses | AgeGroup: 20, 22, 24 | Gender: female | Stock: in_stock | Price: 49.99
+50. Curve Khaki Printed Long Sleeve Midaxi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 36.99
+51. Curve Khaki Printed Satin Midaxi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 39.99
+52. Curve Light Blue Tailored Trousers | Category: Womens-pants | AgeGroup: 20 | Gender: female | Stock: in_stock | Price: 34.99
+53. Curve Light Pink Tailored Trousers | Category: Womens-pants | AgeGroup: 20 | Gender: female | Stock: in_stock | Price: 34.99
+54. Curve Lilac Knot Front Midi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 26 | Gender: female | Stock: in_stock | Price: 36.99
+55. Curve Navy Bandeau Midi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 36.99
+56. Curve Navy Button Detail Jumpsuit | Category: Tops | AgeGroup: Adult | Gender: female | Stock: in_stock | Price: 44.99
+57. Curve Navy Drape Neck Top | Category: Tops | AgeGroup: 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 24.99
+58. Curve Navy Drop Sleeve Maxi Dress | Category: Women's Dresses | AgeGroup: 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 69.99
+59. Curve Navy Floral Print Skater Dress | Category: Women's Dresses | AgeGroup: 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 54.99
+60. Curve Navy Floral Skater Dress | Category: Women's Dresses | AgeGroup: Adult | Gender: female | Stock: in_stock | Price: 59.99
+61. Curve Navy One Shoulder Maxi Dress | Category: Women's Dresses | AgeGroup: 20, 26 | Gender: female | Stock: in_stock | Price: 79.99
+62. Curve Navy Pleated Peplum Top | Category: Tops | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 26.99
+63. Curve Navy Sequin Cowl Neck Midi Dress | Category: Women's Dresses | AgeGroup: 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 49.99
+64. Curve Pale Blue Striped Top | Category: Tops | AgeGroup: 16, 18, 20, 22, 24 | Gender: female | Stock: in_stock | Price: 26.99
+65. Curve Pink Chiffon Midaxi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22 | Gender: female | Stock: in_stock | Price: 44.99
+66. Curve Pink Floral Chiffon Midaxi Dress | Category: Women's Dresses | AgeGroup: 20, 22, 24 | Gender: female | Stock: in_stock | Price: 49.99
+67. Curve Quilted Wrap Coat | Category: Coat | £30 and under | Casual Clothing | Casualwear | Jackets & Coats | Neutrals | Sale Clothing | Sale Curve | Sale Winter Warmers | Winter Warmers | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 59.99
+68. Curve Red Drop Waist Mini Dress | Category: Women's Dresses | AgeGroup: 20, 24 | Gender: female | Stock: in_stock | Price: 36.99
+69. Curve Red Floral Bardot Midaxi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22 | Gender: female | Stock: in_stock | Price: 44.99
+70. Curve Red Satin Midi Dress | Category: Women's Dresses | AgeGroup: 20 | Gender: female | Stock: in_stock | Price: 39.99
+71. Curve Red Sequin Midaxi Dress | Category: Women's Dresses | AgeGroup: 18, 20, 22 | Gender: female | Stock: in_stock | Price: 74.99
+72. Curve Sage Chiffon Midaxi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20 | Gender: female | Stock: in_stock | Price: 44.99
+73. Curve Sage Drop Waist Midaxi Dress | Category: Women's Dresses | AgeGroup: 18, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 39.99
+74. Curve Sage Jacquard Frill Midaxi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 49.99
+75. Curve Satin Marble Print Midi Dress | Category: Women's Dresses | AgeGroup: Adult | Gender: female | Stock: in_stock | Price: 44.99
+76. Curve Silver Satin Bardot Midi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20, 22, 24, 26 | Gender: female | Stock: in_stock | Price: 44.99
+77. Curve Stone Chiffon Polka Dot Midi Dress | Category: Women's Dresses | AgeGroup: 16, 18, 20 | Gender: female | Stock: in_stock | Price: 39.99
+78. Navy Velvet Buckle Midaxi Dress | Category: Girls Dresses | AgeGroup: 10, 12, 14, 8 | Gender: female | Stock: in_stock | Price: 44.99

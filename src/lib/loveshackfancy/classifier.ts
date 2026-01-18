@@ -419,6 +419,9 @@ export async function classifyQueryWithMetadata(
     if (parsed.constraints.ageGroups) {
       normalizedConstraints.ageGroups = extractArrayValues(parsed.constraints.ageGroups);
     }
+    if (parsed.constraints.inclusivitySizing) {
+      normalizedConstraints.inclusivitySizing = extractArrayValues(parsed.constraints.inclusivitySizing);
+    }
     if (parsed.constraints.lengths) {
       normalizedConstraints.lengths = extractArrayValues(parsed.constraints.lengths);
     }

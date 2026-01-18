@@ -1364,6 +1364,12 @@
     "Summer",
     "Winter"
   ],
+  "inclusivitySizing": [
+    "Extended Sizes",
+    "Petite",
+    "Plus Size",
+    "Standard Sizing"
+  ],
   "extractedAt": "2026-01-18T15:50:12.025Z",
   "totalProducts": 5490
 }

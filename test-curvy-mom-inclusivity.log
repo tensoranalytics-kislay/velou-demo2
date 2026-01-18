@@ -1,0 +1,26 @@
+================================================================================
+Testing: "I am a curvy mom, suggest me a dress"
+================================================================================
+
+❌ Error: TypeError: Cannot read properties of undefined (reading 'substring')
+    at handleLoveshackfancyQuery (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/src/lib/loveshackfancy/orchestrator.ts:270:26)
+    at testCurvyMomQuery (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/test-curvy-mom-inclusivity.ts:12:26)
+    at <anonymous> (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/test-curvy-mom-inclusivity.ts:50:1)
+    at Object.<anonymous> (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/test-curvy-mom-inclusivity.ts:50:19)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Object.transformer (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at cjsLoader (node:internal/modules/esm/translators:298:15)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:240:7)
+Stack: TypeError: Cannot read properties of undefined (reading 'substring')
+    at handleLoveshackfancyQuery (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/src/lib/loveshackfancy/orchestrator.ts:270:26)
+    at testCurvyMomQuery (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/test-curvy-mom-inclusivity.ts:12:26)
+    at <anonymous> (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/test-curvy-mom-inclusivity.ts:50:1)
+    at Object.<anonymous> (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/test-curvy-mom-inclusivity.ts:50:19)
+    at Module._compile (node:internal/modules/cjs/loader:1529:14)
+    at Object.transformer (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/tsx/dist/register-D46fvsV_.cjs:3:1104)
+    at Module.load (node:internal/modules/cjs/loader:1275:32)
+    at Module._load (node:internal/modules/cjs/loader:1096:12)
+    at cjsLoader (node:internal/modules/esm/translators:298:15)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:240:7)

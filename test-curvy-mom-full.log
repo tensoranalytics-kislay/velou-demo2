@@ -1,0 +1,740 @@
+================================================================================
+Testing: "I am a curvy mom, suggest me a dress"
+================================================================================
+
+[2026-01-18T22:07:41.005Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: starting',
+  query: 'I am a curvy mom, suggest me a dress',
+  sessionId: 'test-session-curvy-mom',
+  isFollowUp: false,
+  merchantId: 'default'
+}
+[2026-01-18T22:07:41.006Z] [Velou:DEBUG] {
+  message: 'I am a curvy mom, suggest me a dress',
+  sessionId: 'test-session-curvy-mom',
+  merchantId: 'default',
+  productContextId: undefined
+}
+[ORCHESTRATOR] START - input.conversationState: {
+  hasConversationState: false,
+  hasMemory: false,
+  hasPendingFollowups: false,
+  memoryKeys: []
+}
+[ORCHESTRATOR] Checking for pendingFollowups: {
+  hasInputConversationState: false,
+  hasMemory: true,
+  hasPendingFollowups: false,
+  pendingFollowupsData: null,
+  message: 'I am a curvy mom, suggest me a dress',
+  fullMemory: '{}'
+}
+[2026-01-18T22:07:41.008Z] [Velou:DEBUG] {
+  message: 'not_checking_followup',
+  currentMessage: 'I am a curvy mom, suggest me a dress',
+  hasQueryToMergeWith: false,
+  hasPreviousConstraints: false,
+  isShortMessage: true,
+  matchesFollowUpPattern: false,
+  messageLength: 9
+}
+[2026-01-18T22:07:41.016Z] [Velou:INFO] {
+  message: 'gender_and_agegroup_extracted_early',
+  query: 'I am a curvy mom, suggest me a dress',
+  resolvedGender: 'female',
+  resolvedAgeGroup: 'Adult',
+  genderSource: 'query',
+  ageGroupSource: 'default'
+}
+[2026-01-18T22:07:41.016Z] [Velou:DEBUG] {
+  message: 'query_categorizer: starting',
+  query: 'I am a curvy mom, suggest me a dress',
+  merchantId: 'default'
+}
+[2026-01-18T22:07:41.895Z] [Velou:DEBUG] {
+  message: 'query_categorizer: complete',
+  query: 'I am a curvy mom, suggest me a dress',
+  category: 'direct_search',
+  confidence: 0.95,
+  duration: 879
+}
+[2026-01-18T22:07:41.895Z] [Velou:INFO] {
+  message: 'query_categorization_result',
+  query: 'I am a curvy mom, suggest me a dress',
+  category: 'direct_search',
+  confidence: 0.95,
+  note: 'Query categorizer classification result'
+}
+[2026-01-18T22:07:41.895Z] [Velou:INFO] {
+  message: 'sequential_classification_category_first_then_constraints',
+  query: 'I am a curvy mom, suggest me a dress',
+  categorizationCategory: 'direct_search',
+  isFollowUp: false,
+  hasCategorySignals: true
+}
+[2026-01-18T22:07:41.902Z] [Velou:DEBUG] {
+  message: 'buildAllowedCategoriesForClassifier: gender_interpretable',
+  genderContext: 'female',
+  totalCategories: 121,
+  allowedCategories: 101,
+  sampleAllowed: [
+    'Pajama Set',
+    'Textiles',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Home Decor',
+    'Sleepwear & Loungewear',
+    'Phone Cases',
+    'Kitchen & Dining',
+    'gift card'
+  ]
+}
+[2026-01-18T22:07:41.903Z] [Velou:INFO] {
+  message: 'categories_filtered_before_classification',
+  query: 'I am a curvy mom, suggest me a dress',
+  resolvedGender: 'female',
+  totalCategories: 101,
+  sampleCategories: [
+    'Pajama Set',
+    'Textiles',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Home Decor',
+    'Sleepwear & Loungewear',
+    'Phone Cases',
+    'Kitchen & Dining',
+    'gift card'
+  ]
+}
+[ORCHESTRATOR] Calling category classification (sequential - step 1) {
+  query: 'I am a curvy mom, suggest me a dress',
+  originalMessage: 'I am a curvy mom, suggest me a dress',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  merchantId: 'default',
+  categorizationCategory: 'direct_search'
+}
+[2026-01-18T22:07:41.903Z] [Velou:INFO] {
+  message: 'category_classification_calling_function_sequential',
+  query: 'I am a curvy mom, suggest me a dress',
+  originalMessage: 'I am a curvy mom, suggest me a dress',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  merchantId: 'default',
+  categorizationCategory: 'direct_search'
+}
+[2026-01-18T22:07:41.903Z] [Velou:INFO] {
+  message: 'category_classifier: using_pre_filtered_categories',
+  query: 'I am a curvy mom, suggest me a dress',
+  preFilteredCategoryCount: 101,
+  merchantId: 'default',
+  note: 'Using pre-filtered categories from orchestrator (gender already extracted)'
+}
+[2026-01-18T22:07:41.903Z] [Velou:INFO] {
+  message: 'category_classifier: starting classification with confidence',
+  query: 'I am a curvy mom, suggest me a dress',
+  merchantId: 'default',
+  allowedCategoryCount: 101,
+  usingPreFiltered: true
+}
+[2026-01-18T22:07:42.821Z] [Velou:INFO] {
+  message: 'category_classifier: classification with confidence complete',
+  query: 'I am a curvy mom, suggest me a dress',
+  categories: [ "Women's Dresses" ],
+  categoryCount: 1,
+  confidence: 0.9,
+  elapsedMs: 917,
+  merchantId: 'default'
+}
+[ORCHESTRATOR] Category classification result (with confidence) {
+  query: 'I am a curvy mom, suggest me a dress',
+  originalMessage: 'I am a curvy mom, suggest me a dress',
+  isFollowUp: false,
+  categories: [ "Women's Dresses" ],
+  count: 1,
+  confidence: 0.9,
+  categorizationCategory: 'direct_search'
+}
+[2026-01-18T22:07:42.821Z] [Velou:INFO] {
+  message: 'category_classification_complete_with_confidence_sequential',
+  query: 'I am a curvy mom, suggest me a dress',
+  originalMessage: 'I am a curvy mom, suggest me a dress',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  categorizationCategory: 'direct_search',
+  categories: [ "Women's Dresses" ],
+  categoryCount: 1,
+  confidence: 0.9
+}
+[2026-01-18T22:07:42.821Z] [Velou:INFO] {
+  message: 'category_filter_will_be_applied',
+  query: 'I am a curvy mom, suggest me a dress',
+  categories: [ "Women's Dresses" ],
+  filterType: 'hard_sql_level',
+  appliesTo: 'multi_view_retrieval'
+}
+[2026-01-18T22:07:42.821Z] [Velou:INFO] {
+  message: 'constraint_classification_calling_sequential_after_categories',
+  query: 'I am a curvy mom, suggest me a dress',
+  classifiedCategories: [ "Women's Dresses" ],
+  categoryCount: 1,
+  willUseCategorySpecificDictionaries: true
+}
+[2026-01-18T22:07:42.823Z] [Velou:INFO] {
+  message: 'classifyQuery: starting',
+  query: 'I am a curvy mom, suggest me a dress',
+  hasLastConstraints: false,
+  hasEnhancedQuery: true
+}
+[2026-01-18T22:07:42.823Z] [Velou:INFO] {
+  message: 'classifyQuery: gender_context_computed',
+  query: 'I am a curvy mom, suggest me a dress',
+  genderContext: 'female',
+  lastConstraintsGender: undefined,
+  note: 'Gender context computed before building classifier prompt'
+}
+[2026-01-18T22:07:42.824Z] [Velou:DEBUG] {
+  message: 'buildAllowedCategoriesForClassifier: gender_interpretable',
+  genderContext: 'female',
+  totalCategories: 121,
+  allowedCategories: 101,
+  sampleAllowed: [
+    'Pajama Set',
+    'Textiles',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Home Decor',
+    'Sleepwear & Loungewear',
+    'Phone Cases',
+    'Kitchen & Dining',
+    'gift card'
+  ]
+}
+[2026-01-18T22:07:42.824Z] [Velou:INFO] {
+  message: 'classifyQuery: allowed_categories_computed',
+  query: 'I am a curvy mom, suggest me a dress',
+  genderContext: 'female',
+  usedStrictMajorityMode: false,
+  allowedCategoryCount: 101,
+  sampleCategories: [
+    'Pajama Set',
+    'Textiles',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Home Decor',
+    'Sleepwear & Loungewear',
+    'Phone Cases',
+    'Kitchen & Dining',
+    'gift card',
+    'mom jeans',
+    'Artwork',
+    'joggers',
+    'underwear',
+    'Bedding'
+  ],
+  note: 'Category list filtered based on gender context before building classifier prompt'
+}
+[2026-01-18T22:07:46.654Z] [Velou:INFO] {
+  message: 'classifyQuery: llm_raw_response',
+  query: 'I am a curvy mom, suggest me a dress',
+  rawTextLength: 626,
+  parsedType: 'gift_or_vague',
+  parsedConstraints: {
+    inclusivitySizing: { values: [Array], intent: 'required' },
+    colors: { values: [Array], intent: 'required' },
+    ageGroups: null,
+    styles: null,
+    lengths: null,
+    occasions: null,
+    seasons: null,
+    materials: null,
+    patterns: null,
+    sizes: null,
+    fits: null,
+    collections: null,
+    priceMinCents: null,
+    priceMaxCents: null,
+    embellishments: null,
+    necklines: null,
+    sleeveLengths: null,
+    scents: null,
+    rooms: null,
+    useCases: null,
+    benefits: null,
+    claims: null,
+    sensoryProfile: null,
+    compatibility: null
+  },
+  parsedColors: {
+    values: [
+      'White', 'Beige',
+      'Blush', 'Pink',
+      'Peach', 'Lemon',
+      'Mint',  'Sky Blue'
+    ],
+    intent: 'required'
+  },
+  parsedLengths: null,
+  parsedSleeveLengths: null,
+  parsedAgeGroups: null,
+  note: 'Raw LLM response for constraint extraction debugging'
+}
+[2026-01-18T22:07:46.655Z] [Velou:INFO] {
+  message: 'classifyQuery: constraint_extraction_results',
+  query: 'I am a curvy mom, suggest me a dress',
+  extractedColors: {
+    values: [
+      'White', 'Beige',
+      'Blush', 'Pink',
+      'Peach', 'Lemon',
+      'Mint',  'Sky Blue'
+    ],
+    intent: 'required'
+  },
+  extractedLengths: null,
+  extractedSleeveLengths: null,
+  extractedAgeGroups: null,
+  colorsFormat: 'object',
+  lengthsFormat: 'null',
+  sleeveLengthsFormat: 'null',
+  ageGroupsFormat: 'null',
+  note: 'Extracted constraints after normalization - verify all explicit constraints were extracted'
+}
+[2026-01-18T22:07:46.657Z] [Velou:INFO] {
+  message: 'classifier_constraints_extracted',
+  query: 'I am a curvy mom, suggest me a dress',
+  type: 'gift_or_vague',
+  productTerms: 'dress',
+  confidence: 0.85,
+  constraintsCount: 3,
+  colors: {
+    values: [
+      'White', 'Beige',
+      'Blush', 'Pink',
+      'Peach', 'Lemon',
+      'Mint',  'Sky Blue'
+    ],
+    intent: 'required'
+  },
+  lengths: undefined,
+  sleeveLengths: undefined,
+  ageGroups: undefined,
+  missingConstraints: undefined,
+  allConstraints: {
+    colors: { values: [Array], intent: 'required' },
+    priceMinCents: null,
+    priceMaxCents: null
+  },
+  hasLastConstraints: false,
+  lastConstraintsKeys: []
+}
+[2026-01-18T22:07:46.657Z] [Velou:DEBUG] {
+  message: 'fashion_query_classified',
+  query: 'I am a curvy mom, suggest me a dress',
+  type: 'gift_or_vague',
+  productTerms: 'dress',
+  constraintsCount: 4
+}
+[2026-01-18T22:07:46.657Z] [Velou:INFO] {
+  message: 'classifyQuery: complete',
+  query: 'I am a curvy mom, suggest me a dress',
+  type: 'gift_or_vague',
+  totalDurationMs: 3834,
+  totalDurationSeconds: '3.83',
+  llmDurationMs: 3825,
+  llmDurationSeconds: '3.83',
+  constraintsCount: 4,
+  genderContext: 'female',
+  usedStrictMajorityMode: false
+}
+[2026-01-18T22:07:46.657Z] [Velou:INFO] {
+  message: 'classification_metadata_extracted',
+  query: 'I am a curvy mom, suggest me a dress',
+  usedStrictMajorityMode: false,
+  genderContext: 'female',
+  classificationConfidence: 0.85,
+  classifiedGender: undefined
+}
+[2026-01-18T22:07:46.657Z] [Velou:INFO] {
+  message: 'category_categories_set_from_sequential_classification',
+  query: 'I am a curvy mom, suggest me a dress',
+  categories: [ "Women's Dresses" ],
+  confidence: 0.9
+}
+[2026-01-18T22:07:46.664Z] [Velou:INFO] {
+  message: 'categories_filtered_by_gender_after_classification',
+  query: 'I am a curvy mom, suggest me a dress',
+  resolvedGender: 'female',
+  originalCategories: [ "Women's Dresses" ],
+  filteredCategories: [ "Women's Dresses" ],
+  removedCount: 0
+}
+[2026-01-18T22:07:46.665Z] [Velou:INFO] {
+  message: 'gender_added_to_classification_constraints',
+  gender: 'female',
+  isFollowUp: false,
+  note: 'Gender extracted early and added to classification constraints'
+}
+[2026-01-18T22:07:46.665Z] [Velou:DEBUG] {
+  message: 'clarification_triggers_evaluation',
+  query: 'I am a curvy mom, suggest me a dress',
+  topCategoriesCount: 1,
+  classificationType: 'gift_or_vague',
+  hasProductTerms: true,
+  productTerms: 'dress',
+  classificationConfidence: 0.85,
+  needsClarification: false
+}
+[2026-01-18T22:07:46.665Z] [Velou:INFO] {
+  message: 'category_filter_applied_to_retrieval',
+  query: 'I am a curvy mom, suggest me a dress',
+  categories: [ "Women's Dresses" ],
+  filterType: 'hard_sql_level',
+  note: 'Catalog will be filtered to these categories before multi-view retrieval'
+}
+[2026-01-18T22:07:46.665Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: starting_retrieval',
+  query: 'I am a curvy mom, suggest me a dress',
+  productTerms: 'dress',
+  classificationType: 'gift_or_vague',
+  categoryCount: 1
+}
+[2026-01-18T22:07:46.667Z] [Velou:DEBUG] {
+  message: 'category_expansion_parent_with_subcategories',
+  originalCategory: "Women's Dresses",
+  subcategoryCount: 5,
+  reason: 'parent_category_naturally_covers_subcategories_via_sql'
+}
+[2026-01-18T22:07:46.667Z] [Velou:DEBUG] {
+  message: 'category_expansion_complete',
+  inputCategories: [ "Women's Dresses" ],
+  expandedCategories: [ "Women's Dresses" ],
+  expansionCount: 0
+}
+[2026-01-18T22:07:46.668Z] [Velou:INFO] {
+  message: 'gender_hard_filter_applied_to_retrieval',
+  query: 'I am a curvy mom, suggest me a dress',
+  resolvedGender: 'female',
+  note: 'Gender applied as HARD SQL filter - will never be relaxed'
+}
+[2026-01-18T22:07:46.668Z] [Velou:INFO] {
+  message: 'agegroup_hard_filter_applied_to_retrieval',
+  query: 'I am a curvy mom, suggest me a dress',
+  resolvedAgeGroup: 'Adult',
+  note: 'AgeGroup applied as HARD SQL filter - will never be relaxed'
+}
+[2026-01-18T22:07:46.668Z] [Velou:DEBUG] {
+  message: 'color_expansion_skipped',
+  query: 'I am a curvy mom, suggest me a dress',
+  colors: [
+    'White', 'Beige',
+    'Blush', 'Pink',
+    'Peach', 'Lemon',
+    'Mint',  'Sky Blue'
+  ],
+  colorCount: 8,
+  hasNonOntologyColor: false,
+  reason: 'Multiple explicit colors specified, using as-is'
+}
+[2026-01-18T22:07:46.668Z] [Velou:INFO] {
+  message: 'category_filter_passed_to_search_constraints',
+  query: 'I am a curvy mom, suggest me a dress',
+  categories: [ "Women's Dresses" ],
+  willFilterLexical: false,
+  willFilterSemantic: true
+}
+[2026-01-18T22:07:46.668Z] [Velou:DEBUG] {
+  message: 'fashion_semantic_search: query for embedding',
+  original: 'I am a curvy mom, suggest me a dress',
+  productTerms: 'dress',
+  usingForEmbedding: 'dress',
+  constraintsAdded: 'no'
+}
+[2026-01-18T22:07:47.504Z] [Velou:DEBUG] {
+  message: 'constraint_context: age_groups_preserved_in_sql_filters',
+  categories: [ "Women's Dresses" ],
+  ageGroups: [ 'Adult' ],
+  originalFormat: 'array',
+  note: 'Age groups preserved as hard SQL filters'
+}
+[2026-01-18T22:07:47.504Z] [Velou:DEBUG] {
+  message: 'constraint_context: applied_category_metadata',
+  categories: [ "Women's Dresses" ],
+  originalConstraints: {
+    colors: 8,
+    materials: 0,
+    fabrics: 0,
+    sizes: 0,
+    occasions: 0,
+    seasons: 0,
+    lengths: 0,
+    sleeves: 0,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  sqlFilters: {
+    colors: 8,
+    materials: 0,
+    fabrics: 0,
+    sizes: 0,
+    occasions: 0,
+    seasons: 0,
+    lengths: 0,
+    sleeves: 0,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  excludedFilters: {
+    colors: 0,
+    materials: 0,
+    fabrics: 0,
+    sizes: 0,
+    occasions: 0,
+    seasons: 0,
+    styleTags: 0,
+    pattern: 0,
+    fit: 0,
+    lengths: 0,
+    sleeves: 0,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  keywordTerms: 0,
+  categoryKeywordsExtracted: 0,
+  categoryKeywordsSample: [],
+  applicableConstraints: [
+    'colors',    'sizes',
+    'fabrics',   'materials',
+    'occasions', 'seasons',
+    'fit',       'price'
+  ],
+  textOnlyConstraints: []
+}
+[2026-01-18T22:07:47.504Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: intent_extraction_for_post_sql_filtering',
+  query: 'I am a curvy mom, suggest me a dress',
+  constraintIntents: {
+    colors: 'required',
+    lengths: null,
+    sleeveLengths: null,
+    necklines: null,
+    formalityLevel: null,
+    colorShade: null
+  },
+  contextAwareIntents: {
+    colors: 'required',
+    lengths: null,
+    sleeves: null,
+    necklines: null,
+    formalityLevels: null,
+    colorShades: null
+  },
+  note: 'Intent information extracted and mapped for post-SQL filtering'
+}
+[2026-01-18T22:07:47.504Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: context_aware_constraints_applied',
+  query: 'I am a curvy mom, suggest me a dress',
+  categories: [ "Women's Dresses" ],
+  originalColors: [
+    'White', 'Beige',
+    'Blush', 'Pink',
+    'Peach', 'Lemon',
+    'Mint',  'Sky Blue'
+  ],
+  originalAgeGroups: [ 'Adult' ],
+  sqlFiltersColors: [
+    'White', 'Beige',
+    'Blush', 'Pink',
+    'Peach', 'Lemon',
+    'Mint',  'Sky Blue'
+  ],
+  sqlFiltersAgeGroups: [ 'Adult' ],
+  keywordTerms: [],
+  keywordTermsSample: [],
+  textOnlyConstraints: [],
+  allowKeywordMatching: false
+}
+[2026-01-18T22:07:47.505Z] [Velou:DEBUG] {
+  message: 'fashion_semantic_search: post_sql_filtering_flag',
+  query: 'I am a curvy mom, suggest me a dress',
+  usePostSQLFiltering: true,
+  flagValue: 'true'
+}
+[2026-01-18T22:07:47.505Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: tier1_strict_filtering',
+  query: 'I am a curvy mom, suggest me a dress',
+  originalCategories: [ "Women's Dresses" ],
+  expandedCategories: [ "Women's Dresses" ],
+  usePostSQLFiltering: true,
+  sqlFilters: {
+    colors: 8,
+    materials: 0,
+    fabrics: 0,
+    lengths: 0,
+    sleeves: 0,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  keywordTerms: 0
+}
+[2026-01-18T22:07:47.505Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: tier1_before_post_sql_check',
+  query: 'I am a curvy mom, suggest me a dress',
+  USE_POST_SQL_FILTERING: true,
+  envValue: 'true',
+  expandedCategories: [ "Women's Dresses" ],
+  ageGroups: [ 'Adult' ],
+  note: 'Checking which mode to use (post-SQL filtering vs existing mode)'
+}
+[2026-01-18T22:07:47.505Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: post_sql_filtering_mode_enabled',
+  query: 'I am a curvy mom, suggest me a dress',
+  expandedCategories: [ "Women's Dresses" ],
+  ageGroups: [ 'Adult' ],
+  note: 'Post-SQL filtering mode enabled - Stage 1: Category-only SQL filter starting'
+}
+[2026-01-18T22:07:47.506Z] [Velou:INFO] {
+  message: 'deduplicateProductsByCategoryForPostFiltering: executing query',
+  filters: {
+    genders: [ 'female' ],
+    categories: [ "Women's Dresses" ],
+    ageGroups: [ 'Adult' ],
+    priceMinCents: undefined,
+    priceMaxCents: undefined,
+    merchantId: 'default',
+    inStockOnly: true
+  },
+  limit: 1500,
+  categoryCount: 1,
+  categories: [ "Women's Dresses" ],
+  hasPriceFilter: false,
+  priceMinCents: undefined,
+  priceMaxCents: undefined,
+  hasAgeGroupFilter: true,
+  ageGroups: [ 'Adult' ],
+  ageGroupCount: 1,
+  paramCount: 6,
+  whereClausePreview: `p."isActive" = true AND p."merchantId" = $1 AND p."stockStatus" = 'in_stock' AND ((p."gender" = 'female' OR p."gender" = 'unisex')) AND ((\n` +
+    '            LOWER(p."category") = LOWER($2) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($3)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($2) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($3)\n` +
+    '          )) AND ((((\n' +
+    `          LOWER(COALESCE(p."ageGroup", '')) = LOWER($4) \n` +
+    `          OR LOWER(COALESCE(p."ageGroup", '')) LIKE LOWER($5)\n` +
+    '          OR\n' +
+    "          LOWER(COALESCE(p.attributes->>'ageGroup', '')) = LOWER($4) \n" +
+    "          OR LOWER(COALESCE(p.attributes->>'ageGroup', '')) LIKE LOWER($5)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'age_group', '')) = LOWER($4)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'age_group', '')) LIKE LOWER($5)\n" +
+    "          OR (p.attributes->'extensible' IS NOT NULL AND (\n" +
+    "            LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) = LOWER($4) \n" +
+    "            OR LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) LIKE LOWER($5)\n" +
+    '          ))\n' +
+    `        ) OR (LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%'))) AND NOT ((LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')))`,
+  note: 'Post-filterable attributes (colors, lengths, sleeves, necklines, formalityLevels, colorShades) intentionally omitted from SQL filters'
+}
+[2026-01-18T22:07:49.578Z] [Velou:INFO] {
+  message: 'deduplicateProductsByCategoryForPostFiltering: results found',
+  count: 0,
+  requestedLimit: 1500,
+  categoryCount: 1
+}
+[2026-01-18T22:07:49.578Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: post_sql_filtering_stage1_complete',
+  query: 'I am a curvy mom, suggest me a dress',
+  categoryFilteredCount: 0,
+  note: 'Stage 1: Category-only SQL filter completed'
+}
+[2026-01-18T22:07:49.578Z] [Velou:WARN] {
+  message: 'fashion_semantic_search: post_sql_filtering_stage1_returned_zero',
+  query: 'I am a curvy mom, suggest me a dress',
+  expandedCategories: [ "Women's Dresses" ],
+  ageGroups: [ 'Adult' ],
+  note: 'Stage 1 returned 0 products - skipping post-SQL filtering stages'
+}
+[2026-01-18T22:07:49.578Z] [Velou:WARN] {
+  message: 'fashion_semantic_search: tier1_no_results',
+  query: 'I am a curvy mom, suggest me a dress',
+  categories: [ "Women's Dresses" ],
+  usePostSQLFiltering: true,
+  productIdsToSearchCount: 0
+}
+[2026-01-18T22:07:49.578Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: tier2_skipped_due_to_post_sql_filtering',
+  query: 'I am a curvy mom, suggest me a dress',
+  categories: [ "Women's Dresses" ],
+  note: 'Tier 2 skipped because post-SQL filtering is enabled and Tier 1 correctly filtered out non-matching products (e.g., sleeveless vs long sleeves). Returning 0 results to respect user constraints.'
+}
+[2026-01-18T22:07:49.579Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: tier4_skipped_due_to_post_sql_filtering',
+  query: 'I am a curvy mom, suggest me a dress',
+  categories: [ "Women's Dresses" ],
+  note: 'Tier 4 skipped because post-SQL filtering is enabled and Tier 1 correctly filtered out non-matching products. Returning 0 results to respect user constraints.'
+}
+[2026-01-18T22:07:49.579Z] [Velou:INFO] {
+  message: 'fashion_semantic_search',
+  query: 'I am a curvy mom, suggest me a dress',
+  resultCount: 0,
+  topSimilarity: undefined,
+  avgSimilarity: 0,
+  fallbackTier: 'strict',
+  keywordTermsUsed: 0
+}
+[2026-01-18T22:07:49.579Z] [Velou:INFO] {
+  message: 'fashion_multiview_retrieval',
+  query: 'I am a curvy mom, suggest me a dress',
+  totalCandidates: 0,
+  lexicalCount: 0,
+  semanticCount: 0,
+  conceptCount: 0
+}
+[2026-01-18T22:07:50.033Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: retrieval_complete',
+  query: 'I am a curvy mom, suggest me a dress',
+  candidateCount: 0,
+  retrievalDurationMs: 3368,
+  retrievalDurationSeconds: '3.37'
+}
+[2026-01-18T22:07:50.034Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: product_loading_complete',
+  query: 'I am a curvy mom, suggest me a dress',
+  loadedCount: 0,
+  requestedCount: 0,
+  productLoadingDurationMs: 1,
+  productLoadingDurationSeconds: '0.00'
+}
+[2026-01-18T22:07:51.772Z] [Velou:INFO] {
+  message: 'regretful_reply_llm_response',
+  query: 'I am a curvy mom, suggest me a dress',
+  fullReplyLength: 479,
+  fullReplyPreview: "I understand you're seeking a dress that embraces your beautiful curves with grace and comfort. Though we don’t have an exact match right now, I’d love to help you find something special.\n" +
+    '\n' +
+    'Consider ex'
+}
+[2026-01-18T22:07:51.773Z] [Velou:INFO] {
+  message: 'regretful_reply_final',
+  query: 'I am a curvy mom, suggest me a dress',
+  replyLength: 396,
+  paragraphCount: 3,
+  replyPreview: "I understand you're seeking a dress that embraces your beautiful curves with grace and comfort. Though we don’t have an exact match right now, I’d lov"
+}
+✅ Query completed successfully
+
+📊 Results Summary:
+  Products returned: 0
+  Has reply: true
+
+💬 Reply Preview:
+I understand you're seeking a dress that embraces your beautiful curves with grace and comfort. Though we don’t have an exact match right now, I’d love to help you find something special.
+
+Consider ex
+

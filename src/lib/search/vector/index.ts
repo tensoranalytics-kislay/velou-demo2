@@ -730,6 +730,7 @@ export async function deduplicateProductsByCategoryForPostFiltering(
     genders?: string[]; // NEW: Gender filter (primary)
     categories?: string[];
     ageGroups?: string[];
+    inclusivitySizing?: string[]; // Hard SQL filter for body type (Plus Size, Petite, Tall, etc.)
     priceMinCents?: number;
     priceMaxCents?: number;
     merchantId?: string;
@@ -912,6 +913,12 @@ export async function deduplicateProductsByCategoryForPostFiltering(
         }
         whereConditions.push(finalCondition);
       }
+    }
+    
+    // STEP 2.5: Inclusivity sizing filter (hard SQL filter for body type - Plus Size, Petite, Tall, etc.)
+    if (filters?.inclusivitySizing && filters.inclusivitySizing.length > 0) {
+      const values = filters.inclusivitySizing.map((v) => `'${v.replace(/'/g, "''")}'`).join(', ');
+      whereConditions.push(`p."inclusivitySizing" = ANY(ARRAY[${values}]::text[])`);
     }
     
     // STEP 3: Price filtering (if specified)

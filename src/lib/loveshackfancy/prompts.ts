@@ -84,7 +84,7 @@ export function buildQueryClassifierPrompt(
   const formatCategoryConstraint: ((type: 'colors' | 'materials' | 'sizes' | 'occasions' | 'seasons' | 'styles' | 
                                      'patterns' | 'lengths' | 'formalityLevel' | 'fits' | 'rises' | 'necklines' | 
                                      'sleeveLengths' | 'colorShade' | 'colorUndertone' | 'embellishments' | 
-                                     'collections' | 'seasonalPalette', categories: string[]) => string) | null = 
+                                     'collections' | 'seasonalPalette' | 'inclusivitySizing', categories: string[]) => string) | null = 
     (classifiedCategories && classifiedCategories.length > 0) ? formatCategoryConstraintForPrompt : null;
   
   // Organize categories into semantic groups
@@ -435,6 +435,11 @@ ${formatCategoryConstraint && classifiedCategories && classifiedCategories.lengt
   ? formatCategoryConstraint('seasonalPalette', classifiedCategories)
   : formatDictionaryForPrompt('seasonalPalette', 100)}
 
+**INCLUSIVITY SIZING** - Body type/size inclusivity tags (e.g., "Plus Size", "Petite", "Tall", "Extended Sizes", "Standard Sizing"). Match user body type mentions (e.g., "curvy", "plus size", "petite", "tall") to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('inclusivitySizing', classifiedCategories)
+  : formatDictionaryForPrompt('inclusivitySizing', 100)}
+
 **CRITICAL: DICTIONARY-BASED CONSTRAINT EXTRACTION**
 
 You MUST extract constraints by matching user queries to the dictionary values shown above. Follow these rules:
@@ -450,23 +455,19 @@ You MUST extract constraints by matching user queries to the dictionary values s
    - "ankle-length" → lengths: ["Maxi"] (ankle-length = maxi length)
 
 3. **CONTEXTUAL INFERENCE**: For queries like "dresses for curvy women", infer constraints from context and map to dictionary:
-   - **CRITICAL: BODY TYPE EXTRACTION** - Extract body type mentions as inclusivitySizing constraint (HARD SQL filter):
-     * "curvy", "curvy women", "curvy woman", "curvy mom", "curvy moms" → inclusivitySizing: { values: ["Plus Size"], intent: "required" }
-     * "fat", "overweight", "larger size", "bigger size" → inclusivitySizing: { values: ["Plus Size"], intent: "required" }
-     * "plus size", "plus-size", "plus sized" → inclusivitySizing: { values: ["Plus Size"], intent: "required" }
-     * "petite", "small frame" → inclusivitySizing: { values: ["Petite"], intent: "required" }
-     * "tall", "long torso" → inclusivitySizing: { values: ["Tall"], intent: "required" }
-     * "extended sizes" → inclusivitySizing: { values: ["Extended Sizes"], intent: "required" }
-   - **IMPORTANT**: Body type mentions are HARD FILTERS - extract with "required" intent for SQL-level filtering
-   - **FALLBACK**: If inclusivitySizing is not available, map to styles: "curvy" → styles: ["A-Line", "Wrap", "Fit and Flare", "Empire"] (from styles dictionary)
+   - **BODY TYPE EXTRACTION** - Extract body type mentions as inclusivitySizing constraint (HARD SQL filter - OR filter):
+     * Match user terms like "curvy", "curvy women", "curvy mom", "fat", "overweight", "plus size", "larger size", "bigger size" → match to "Plus Size" in inclusivitySizing dictionary → inclusivitySizing: { values: ["Plus Size"], intent: "required" }
+     * Match user terms like "petite", "small frame" → match to "Petite" in inclusivitySizing dictionary → inclusivitySizing: { values: ["Petite"], intent: "required" }
+     * Match user terms like "tall", "long torso" → match to "Tall" in inclusivitySizing dictionary → inclusivitySizing: { values: ["Tall"], intent: "required" }
+     * Match user terms like "extended sizes" → match to "Extended Sizes" in inclusivitySizing dictionary → inclusivitySizing: { values: ["Extended Sizes"], intent: "required" }
+   - **IMPORTANT**: Body type mentions are HARD FILTERS - extract with "required" intent for SQL-level OR filtering (products matching ANY value in the inclusivitySizing array)
+   - **SYNONYM MATCHING**: Use semantic similarity to map user terms to dictionary values (e.g., "curvy" → "Plus Size", "petite" → "Petite")
 
 4. **STYLE INFERENCE RULES**: When inferring styles for body types/occasions:
-   - **PRIMARY**: Extract body type mentions as inclusivitySizing first (see rule 3 above)
-   - **FALLBACK**: If body type inference is needed, map to styles dictionary:
-     * "curvy women", "plus size" → styles: ["A-Line", "Wrap", "Fit and Flare", "Empire"] (from styles dictionary) - only if inclusivitySizing is not extracted
-   - "petite" → styles: ["A-Line", "Empire Waist", "Fit and Flare"] (from styles dictionary)
-   - "formal event" → styles: ["Elegant", "Classic", "Formal"] (from styles dictionary)
-   - "casual" → styles: ["Casual", "Bohemian", "Sporty"] (from styles dictionary)
+   - **PRIMARY**: Extract body type mentions as inclusivitySizing first (see rule 3 above) - use dictionary matching
+   - **STYLE MAPPING**: For style preferences (not body type), map to styles dictionary:
+     * "formal event" → styles: ["Elegant", "Classic", "Formal"] (from styles dictionary)
+     * "casual" → styles: ["Casual", "Bohemian", "Sporty"] (from styles dictionary)
 
 5. **MULTIPLE SOURCE MATCHING**: Some constraints can come from multiple sources - use ALL relevant dictionary values:
    - Styles can come from: style_labels (attributes) AND silhouetteCut (column) - both are in the styles dictionary
@@ -800,11 +801,11 @@ CONSTRAINT EXTRACTION RULES:
     - "for kids", "children" → ageGroups: ["kids"], NOT sizes
   - **Explicit size mentions** (extract as sizes):
     - "size 4", "size 6", "size small", "size medium" → sizes: ["4"], ["6"], ["S"], ["M"]
-    - **CRITICAL**: Body type mentions should be extracted as inclusivitySizing (HARD SQL filter), NOT sizes:
-      * "curvy", "curvy women", "fat", "plus size", "overweight" → inclusivitySizing: { values: ["Plus Size"], intent: "required" } (NOT sizes)
-      * "petite" → inclusivitySizing: { values: ["Petite"], intent: "required" } (NOT sizes)
-      * "tall" → inclusivitySizing: { values: ["Tall"], intent: "required" } (NOT sizes)
-    - **IMPORTANT**: Body type descriptors are NOT size mentions - extract as inclusivitySizing constraint, not sizes
+    - **CRITICAL**: Body type mentions should be extracted as inclusivitySizing (HARD SQL filter - OR filter), NOT sizes:
+      * Match user terms to inclusivitySizing dictionary: "curvy", "curvy women", "fat", "plus size", "overweight" → match to "Plus Size" in dictionary → inclusivitySizing: { values: ["Plus Size"], intent: "required" } (NOT sizes)
+      * Match user terms to inclusivitySizing dictionary: "petite" → match to "Petite" in dictionary → inclusivitySizing: { values: ["Petite"], intent: "required" } (NOT sizes)
+      * Match user terms to inclusivitySizing dictionary: "tall" → match to "Tall" in dictionary → inclusivitySizing: { values: ["Tall"], intent: "required" } (NOT sizes)
+    - **IMPORTANT**: Body type descriptors are NOT size mentions - extract as inclusivitySizing constraint by matching to inclusivitySizing dictionary values, not sizes
   - **IMPORTANT**: Always distinguish between age and size. Age mentions go to ageGroups, explicit size mentions go to sizes. When in doubt, prefer ageGroups for age-related mentions.
 - **CRITICAL: INTELLIGENT AGE GROUPS INFERENCE** - Enhanced inference from context using EXACT dictionary values:
   - **MANDATORY EXTRACTION RULE**: If the query contains ANY age-related information (explicit or inferred), you MUST extract AT LEAST 1 age group from the dictionary, even if confidence is low. Age groups are HARD FILTERS and must be applied for accurate product filtering.
@@ -1169,7 +1170,7 @@ export const LOVESHACKFANCY_QUERY_CLASSIFIER_SCHEMA = {
                 required: ['values', 'intent']
               }
             ],
-            description: 'Inclusivity sizing for body types. Examples: "Plus Size", "Petite", "Tall", "Extended Sizes", "Standard Sizing", "Inclusive Range". Extract from body type mentions: "curvy", "curvy women", "curvy mom", "fat", "plus size", "overweight", etc. → inclusivitySizing: ["Plus Size"]'
+            description: 'Inclusivity sizing for body types. Match user body type mentions (e.g., "curvy", "curvy women", "curvy mom", "fat", "plus size", "overweight", "petite", "tall", "extended sizes") to values in the inclusivitySizing dictionary (e.g., "Plus Size", "Petite", "Tall", "Extended Sizes", "Standard Sizing"). Use semantic matching to map user terms to dictionary values. This is a HARD SQL filter (OR filter - products matching ANY value in the array).'
           },
           lengths: { 
             oneOf: [
