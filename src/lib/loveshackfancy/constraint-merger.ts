@@ -841,7 +841,13 @@ RULES:
 6. Always preserve constraints NOT mentioned in the follow-up message
 7. For price: preserve priceMinCents if not mentioned, preserve priceMaxCents if not mentioned (independent handling)
 8. For arrays (colors, sizes, patterns): MERGE adds to array, REPLACE replaces entire array, REMOVE sets to null
-9. The enhancedQueryText should be a complete, searchable query that includes ALL merged constraints
+9. **CRITICAL: enhancedQueryText should ONLY include what the user explicitly typed, NOT extracted/inferred constraints from PREVIOUS_CONSTRAINTS**
+   - The enhancedQueryText must ONLY include words/phrases that appear in PREVIOUS_QUERY or CURRENT_MESSAGE
+   - DO NOT include constraints that were extracted/inferred by the classifier (e.g., if PREVIOUS_CONSTRAINTS has colors=["White", "Yellow", "Coral"] but the user never said these colors, do NOT include them in enhancedQueryText)
+   - DO NOT include materials, occasions, patterns, etc. from PREVIOUS_CONSTRAINTS unless they were explicitly mentioned by the user in PREVIOUS_QUERY or CURRENT_MESSAGE
+   - Example: If PREVIOUS_QUERY="dresses for vacation" and PREVIOUS_CONSTRAINTS has colors=["White", "Yellow", "Coral"] (extracted), but user never said these colors → enhancedQueryText="dresses for vacation" (NOT "white yellow coral dresses for vacation")
+   - Example: If PREVIOUS_QUERY="floral dresses" (user said "floral"), CURRENT_MESSAGE="for the beach" → enhancedQueryText="floral dresses for the beach" (includes "floral" because user said it)
+   - The enhancedQueryText should read naturally and be searchable, but it must be grounded ONLY in actual user input
 10. "Actually, I prefer X" or "I prefer X instead" → REPLACE the constraint for X, keep all other constraints from previous query
 11. CRITICAL: When creating enhancedQueryText, ALWAYS preserve the COMPLETE product type/category from PREVIOUS_QUERY
     - **MOST IMPORTANT**: If PREVIOUS_QUERY mentions a product type (dresses, tops, swimsuits, etc.), it MUST appear in enhancedQueryText, even if CURRENT_MESSAGE doesn't mention it
@@ -854,7 +860,55 @@ RULES:
     - If PREVIOUS_QUERY was "one piece swimsuit" and current message is "under $150", enhancedQueryText should be "one piece swimsuit under $150" (NOT just "one piece under $150")
     - If PREVIOUS_QUERY was "red silk maxi dress..." and current message is "price can be higher", enhancedQueryText should be "red silk maxi dress [other constraints]" (preserve all constraints except price max)
     - **NEVER drop the product type** unless CURRENT_MESSAGE explicitly changes it (e.g., "show me tops instead" after "dresses")
-12. CRITICAL: enhancedQueryText must be NATURAL and COHERENT
+12. CRITICAL: ALWAYS preserve ALL context types from PREVIOUS_QUERY that the LLM constraint extractor can use
+    - **MOST IMPORTANT**: The LLM extractor uses many context types to understand user intent. ALL of the following context types from PREVIOUS_QUERY MUST be preserved in enhancedQueryText unless CURRENT_MESSAGE explicitly replaces or removes them:
+    
+    **Context types to preserve (15-20+ types the LLM extractor uses):**
+    1. **Occasions**: "wedding", "beach", "formal event", "vacation", "party", "office", "casual", "evening", "black tie", etc.
+    2. **Seasons**: "summer", "winter", "spring", "fall", "tropical", "cold weather", "warm weather", etc.
+    3. **Locations/Destinations**: "Bahamas", "Paris", "Hawaii", "Caribbean", "Miami", "Europe", "tropical", etc.
+    4. **Weather/Climate context**: "humid", "tropical", "cold", "warm", "hot", "cool", etc.
+    5. **Event types**: "black tie", "beach wedding", "summer vacation", "tropical getaway", "resort", etc.
+    6. **Style context**: "formal", "casual", "elegant", "professional", "bohemian", etc.
+    7. **Time context**: "evening", "daytime", "night", "day", etc.
+    8. **Formality level**: "formal", "semi-formal", "casual", etc. (if explicitly mentioned)
+    9. **Pattern mentions**: "floral", "striped", "solid", etc. (if explicitly mentioned)
+    10. **Material mentions**: "silk", "cotton", "linen", etc. (if explicitly mentioned)
+    11. **Length mentions**: "maxi", "mini", "midi", etc. (if explicitly mentioned)
+    12. **Color mentions**: "red", "blue", "black", etc. (if explicitly mentioned)
+    13. **Sleeve mentions**: "long sleeves", "sleeveless", etc. (if explicitly mentioned)
+    14. **Neckline mentions**: "v-neck", "round neck", etc. (if explicitly mentioned)
+    15. **Audience mentions**: "for kids", "for men", "for women", "for curvy", "petite", etc.
+    16. **Use case context**: "travel-friendly", "work", "gym", "everyday", etc.
+    17. **Feature context**: "with pockets", "wrinkle-free", "breathable", etc. (if explicitly mentioned)
+    18. **Price context**: "under $X", "over $X", "affordable", etc. (unless removed)
+    
+    - **Preservation rules**:
+      * If PREVIOUS_QUERY mentions "Bahamas vacation" and CURRENT_MESSAGE says "something floral", preserve BOTH "Bahamas" AND "vacation" in enhancedQueryText
+      * If PREVIOUS_QUERY mentions "summer beach wedding" and CURRENT_MESSAGE says "in blue", preserve "summer", "beach", and "wedding"
+      * If PREVIOUS_QUERY mentions "formal evening event" and CURRENT_MESSAGE says "long sleeves", preserve "formal", "evening", and "event"
+      * If PREVIOUS_QUERY mentions "tropical vacation" and CURRENT_MESSAGE says "something casual", preserve "tropical" and "vacation"
+      * If PREVIOUS_QUERY mentions "black tie wedding" and CURRENT_MESSAGE says "in navy", preserve "black tie" and "wedding"
+    
+    - **Examples of preserving ALL context**:
+      * PREVIOUS_QUERY="I am going to Bahamas for vacation, suggest me a dress", CURRENT_MESSAGE="something for the beach, floral" 
+        → enhancedQueryText="floral dresses for Bahamas beach vacation" (PRESERVE "Bahamas" AND "vacation")
+      * PREVIOUS_QUERY="attending a black tie wedding, suggest me a dress", CURRENT_MESSAGE="in navy"
+        → enhancedQueryText="navy dresses for black tie wedding" (PRESERVE "black tie" AND "wedding")
+      * PREVIOUS_QUERY="summer beach wedding dress", CURRENT_MESSAGE="something more casual"
+        → enhancedQueryText="casual summer beach wedding dress" (PRESERVE "summer", "beach", "wedding")
+      * PREVIOUS_QUERY="formal evening event outfit", CURRENT_MESSAGE="long sleeves"
+        → enhancedQueryText="long sleeves formal evening event outfit" (PRESERVE "formal", "evening", "event")
+      * PREVIOUS_QUERY="tropical vacation dresses", CURRENT_MESSAGE="floral patterns"
+        → enhancedQueryText="floral tropical vacation dresses" (PRESERVE "tropical" AND "vacation")
+    
+    - **When to NOT preserve**:
+      * ONLY drop context if CURRENT_MESSAGE explicitly replaces it (e.g., "for Miami instead" replaces "Bahamas")
+      * ONLY drop context if CURRENT_MESSAGE explicitly removes it (e.g., "any occasion is fine" removes occasion context)
+      * If CURRENT_MESSAGE changes a constraint (e.g., "more casual" replaces "formal"), update that specific constraint but keep other context
+    
+    - **NEVER drop context** unless explicitly replaced or removed by CURRENT_MESSAGE
+13. CRITICAL: enhancedQueryText must be NATURAL and COHERENT
     - **DECOMPOSE THEN RECOMPOSE**: Always parse PREVIOUS_QUERY into components first, then merge CURRENT_MESSAGE's constraints into natural positions
     - Write the query as a natural, searchable phrase that flows well
     - Use natural attribute ordering: color → material → product type → style attributes → size → occasion → age group → price
@@ -881,7 +935,7 @@ RULES:
     - Ensure the query reads like a complete, natural search query that a user might type
     - Group related attributes together (e.g., "long sleeves" together, not separated)
     - Use common fashion terminology (e.g., "v-neck" not "v neck", "maxi dress" not "maxi-dress")
-13. CRITICAL: When REMOVING constraints, REMOVE related keywords from enhancedQueryText
+14. CRITICAL: When REMOVING constraints, REMOVE related keywords from enhancedQueryText
     - If colors is set to null (removed), DO NOT include color words (red, blue, black, navy, etc.) in enhancedQueryText
     - If sizes is set to null (removed), DO NOT include size words (size 4, small, medium, etc.) in enhancedQueryText
     - If materials is set to null (removed), DO NOT include material words (silk, cotton, linen, etc.) in enhancedQueryText
@@ -910,7 +964,7 @@ RULES:
         → mergedConstraints: { materials: null, colors: ["Chocolate"], lengths: ["Maxi"], sleeveLengths: ["Long"], patterns: ["Floral", "Solid"], occasions: ["Formal", "Wedding"], sizes: ["4"] }
         → enhancedQueryText: "chocolate maxi dress long sleeves floral solid formal wedding size 4" (REMOVED "silk" because materials is null)
         → NOT: "chocolate silk maxi dress..." (should not include "silk" when materials is null)
-14. CONSTRAINT RELAXATION: Phrases like "close matches", "similar options", "price can be higher" indicate the user wants to relax specific constraints while keeping others
+15. CONSTRAINT RELAXATION: Phrases like "close matches", "similar options", "price can be higher" indicate the user wants to relax specific constraints while keeping others
     - "show me close matches" → MERGE (keep all constraints, no changes)
     - "price can be higher" → REMOVE priceMaxCents (set to null), keep all other constraints including priceMinCents if exists
     - "show me close matches, price can be higher" → REMOVE priceMaxCents (set to null), keep all other constraints
@@ -921,7 +975,7 @@ RULES:
 Output JSON:
 {
   "mergedConstraints": { ...FashionConstraints },
-  "enhancedQueryText": "complete, natural query text with all constraints in logical order (or CURRENT_MESSAGE as-is if new_search)",
+  "enhancedQueryText": "complete, natural query text ONLY including words/phrases from PREVIOUS_QUERY and CURRENT_MESSAGE (or CURRENT_MESSAGE as-is if new_search). DO NOT include extracted/inferred constraints from PREVIOUS_CONSTRAINTS that weren't explicitly mentioned by the user.",
   "mergeAction": "merge" | "replace" | "remove" | "new_search",
   "reason": "brief explanation of what was merged/replaced/removed, OR why this is a new search (e.g., 'bikinis are not appropriate for weddings')"
 }
@@ -956,12 +1010,26 @@ CRITICAL: When mergeAction is "new_search":
   }
 
 CRITICAL REMINDERS FOR enhancedQueryText:
-- **MOST IMPORTANT: DECOMPOSE THEN RECOMPOSE, NEVER CONCATENATE**
-  * Parse PREVIOUS_QUERY into components (product type, colors, materials, audience, etc.)
-  * Extract new constraints from CURRENT_MESSAGE
+- **MOST IMPORTANT: ONLY USE USER INPUT, NOT EXTRACTED CONSTRAINTS**
+  * The enhancedQueryText must ONLY include words/phrases that appear in PREVIOUS_QUERY or CURRENT_MESSAGE
+  * DO NOT include constraints from PREVIOUS_CONSTRAINTS that were extracted/inferred but not explicitly mentioned by the user
+  * Parse PREVIOUS_QUERY into components (product type, colors, materials, audience, locations, etc.) - but only use what's actually in the text
+  * Extract new constraints from CURRENT_MESSAGE - only what the user actually said
   * Merge new constraints into natural positions
   * Remove redundant phrases
   * DO NOT append strings together
+  * DO NOT add extracted colors, materials, occasions, etc. that the user never mentioned
+- **PRESERVE ALL CONTEXT TYPES FROM PREVIOUS_QUERY**: ALWAYS preserve ALL context types that the LLM constraint extractor can use
+  * **Occasions**: "wedding", "beach", "formal event", "vacation", "party", etc. → PRESERVE unless replaced/removed
+  * **Seasons**: "summer", "winter", "tropical", etc. → PRESERVE unless replaced/removed
+  * **Locations**: "Bahamas", "Paris", "Hawaii", etc. → PRESERVE unless replaced/removed
+  * **Weather/Climate**: "humid", "tropical", "cold", "warm", etc. → PRESERVE unless replaced/removed
+  * **Event types**: "black tie", "beach wedding", "summer vacation", etc. → PRESERVE unless replaced/removed
+  * **Style context**: "formal", "casual", "elegant", etc. → PRESERVE unless replaced/removed
+  * **Time context**: "evening", "daytime", "night", etc. → PRESERVE unless replaced/removed
+  * **All other context types** (formality, patterns, materials, lengths, colors, sleeves, necklines, audience, use cases, features, price) → PRESERVE unless explicitly replaced/removed
+  * Example: PREVIOUS="I am going to Bahamas for vacation", CURRENT="something floral" → enhancedQueryText="floral dresses for Bahamas vacation" (preserve "Bahamas" AND "vacation")
+  * Example: PREVIOUS="black tie wedding", CURRENT="in navy" → enhancedQueryText="navy dresses for black tie wedding" (preserve "black tie" AND "wedding")
 - Must read as a natural, searchable query (like a user would type)
 - Use natural attribute ordering: color → material → product type → style details → size → occasion → age group → price
 - Avoid redundant words ("chocolate color" → "chocolate", "silk material" → "silk")

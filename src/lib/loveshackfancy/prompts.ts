@@ -8,6 +8,8 @@
 import { LOVESHACKFANCY_ONTOLOGY } from './ontology';
 import { formatDictionaryForPrompt, loadConstraintDictionaries } from './constraint-dictionaries';
 import { CATEGORY_GENDER_MAP } from '../catalog/category-gender-map';
+import type { CategoryDictionaryMap } from '../search/filtering/category-dictionaries';
+import { logger } from '../telemetry/logger';
 
 // ============================================================================
 // QUERY CLASSIFIER PROMPT
@@ -71,8 +73,21 @@ function organizeCategoriesIntoGroups(allowedCategories: string[]): {
  * 
  * @param allowedCategories - Categories filtered by gender context (if applicable)
  */
-export function buildQueryClassifierPrompt(allowedCategories: string[]): string {
+export function buildQueryClassifierPrompt(
+  allowedCategories: string[],
+  classifiedCategories?: string[]
+): string {
   const dictionaries = loadConstraintDictionaries();
+  
+  // Import category-specific dictionary helpers if categories are provided
+  let formatCategoryConstraint: ((type: 'colors' | 'materials' | 'sizes' | 'occasions' | 'seasons' | 'styles' | 
+                                   'patterns' | 'lengths' | 'formalityLevel' | 'fits' | 'rises' | 'necklines' | 
+                                   'sleeveLengths' | 'colorShade' | 'colorUndertone' | 'embellishments' | 
+                                   'collections' | 'seasonalPalette', categories: string[]) => string) | null = null;
+  if (classifiedCategories && classifiedCategories.length > 0) {
+    const { formatCategoryConstraintForPrompt } = require('./category-constraint-dictionaries');
+    formatCategoryConstraint = formatCategoryConstraintForPrompt;
+  }
   
   // Organize categories into semantic groups
   const groups = organizeCategoriesIntoGroups(allowedCategories);
@@ -218,13 +233,14 @@ COMMON EXTRACTION PATTERNS:
 **CRITICAL: CONSTRAINT INTENT LEVELS**
 Each constraint can have an intent level indicating how strongly the user wants it:
 
-- **REQUIRED** ("only wants", "must be", "only", "just", "exactly", "specifically")
-  * Example: "only red dresses" → colors: { values: ["Red"], intent: "required" }
+- **REQUIRED** (Hard SQL filter - products MUST match. Use for any constraint directly interpretable from query text)
+  * Example: "red dress" → colors: { values: ["Red"], intent: "required" } (user directly said "red")
+  * Example: "wedding dress" → occasions: { values: ["Wedding"], intent: "required" } (user directly said "wedding")
   * Example: "must be under $100" → priceMaxCents: { value: 10000, intent: "required" }
 
-- **STRONG** ("seriously wants", "really want", "preferably", "ideally", "or similar", "would prefer")
-  * Example: "red dresses, preferably" → colors: { values: ["Red"], intent: "strong" }
-  * Example: "ideally under $200" → priceMaxCents: { value: 20000, intent: "strong" }
+- **STRONG** (Used only when constraint is inferred/implied from context but NOT directly mentioned in query text)
+  * Example: "for work" (formalityLevel inferred, not directly said) → formalityLevel: { values: ["Professional"], intent: "strong" }
+  * Example: "professional look" (style inferred from context) → styles: { values: ["Professional"], intent: "strong" }
 
 - **PREFERRED** ("mildly wants", "would like", "if possible", "maybe", "could be")
   * Example: "maybe something in blue" → colors: { values: ["Blue"], intent: "preferred" }
@@ -233,10 +249,36 @@ Each constraint can have an intent level indicating how strongly the user wants 
   * Example: "not floral" → patterns: { values: ["Floral"], intent: "excluded" }
   * Example: "avoid silk" → materials: { values: ["Silk"], intent: "excluded" }
 
-DEFAULT RULES:
-- Explicit mentions → "strong" (e.g., "red dress" → colors: { values: ["Red"], intent: "strong" })
-- Vague mentions → "preferred" (e.g., "maybe something blue" → colors: { values: ["Blue"], intent: "preferred" })
-- Negative mentions → "excluded" (e.g., "not red" → colors: { values: ["Red"], intent: "excluded" })
+**CRITICAL: DEFAULT RULES FOR INTENT ASSIGNMENT**
+Use these standardized rules for ALL constraint types (colors, occasions, materials, lengths, sleeveLengths, necklines, patterns, styles, etc.):
+
+1. **DIRECTLY INTERPRETABLE FROM QUERY → "required" (Hard SQL filter)**
+   - If the user's query text contains words/phrases that can be directly mapped to a constraint value, use intent: "required"
+   - This applies universally to ALL constraint types
+   - Examples:
+     * "red dress" → colors: { values: ["Red"], intent: "required" }
+     * "wedding dress" OR "attending a wedding" → occasions: { values: ["Wedding"], intent: "required" }
+     * "floral maxi dress" → patterns: { values: ["Floral"], intent: "required" } AND lengths: { values: ["Maxi"], intent: "required" }
+     * "cotton shirt" → materials: { values: ["Cotton"], intent: "required" }
+     * "long sleeve top" → sleeveLengths: { values: ["Long Sleeve"], intent: "required" }
+     * "v-neck dress" → necklines: { values: ["V-Neck"], intent: "required" }
+     * "for beach" → occasions: { values: ["Beach"], intent: "required" }
+     * "summer dress" → seasons: { values: ["Summer"], intent: "required" }
+   - NO special rules needed - if the constraint can be directly interpreted, it's "required"
+
+2. **VAGUE/SUGGESTIVE → "preferred"**
+   - Vague language: "maybe", "could be", "if possible", "something like"
+   - Example: "maybe something blue" → colors: { values: ["Blue"], intent: "preferred" }
+
+3. **NEGATIVE → "excluded"**
+   - Negative language: "not", "avoid", "no", "without", "don't want"
+   - Example: "not floral" → patterns: { values: ["Floral"], intent: "excluded" }
+
+4. **INFERRED/IMPLIED (not directly mentioned) → "strong"**
+   - When constraint is inferred from context but not directly stated in query
+   - Example: "for work" (formalityLevel inferred) → formalityLevel: { values: ["Professional"], intent: "strong" }
+
+**REMEMBER**: The default for any directly interpretable constraint is "required", not "strong". "Strong" is only for inferred/implied constraints.
 
 FORMAT:
 - Array constraints: { values: ["Red", "Blue"], intent: "strong" }
@@ -305,46 +347,164 @@ RULES:
 You MUST match user queries to values that ACTUALLY EXIST in the database. 
 Do NOT use values that are not in the dictionaries below.
 
-${formatDictionaryForPrompt('colors', 100)}
+**COLORS** - Product color/appearance values. Match user color mentions (e.g., "blue", "red", "navy") to these exact dictionary values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('colors', classifiedCategories)
+  : formatDictionaryForPrompt('colors', 100)}
 
-${formatDictionaryForPrompt('materials', 100)}
+**MATERIALS** - Fabric/material composition. Match user mentions (e.g., "cotton", "silk", "linen", "breathable") to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('materials', classifiedCategories)
+  : formatDictionaryForPrompt('materials', 100)}
 
-${formatDictionaryForPrompt('occasions', 100)}
+**OCCASIONS** - Events/situations where the product is appropriate. Match user mentions (e.g., "beach", "wedding", "work", "vacation") to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('occasions', classifiedCategories)
+  : formatDictionaryForPrompt('occasions', 100)}
 
-${formatDictionaryForPrompt('styles', 100)}
+**STYLES** - Aesthetic/style descriptors (e.g., "A-Line", "Wrap", "Romantic", "Casual"). Match user style mentions to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('styles', classifiedCategories)
+  : formatDictionaryForPrompt('styles', 100)}
 
-${formatDictionaryForPrompt('patterns', 100)}
+**PATTERNS** - Pattern/print types (e.g., "Floral", "Striped", "Polka Dot"). Match user pattern mentions to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('patterns', classifiedCategories)
+  : formatDictionaryForPrompt('patterns', 100)}
 
-${formatDictionaryForPrompt('sizes', 100)}
+**SIZES** - Product size values (e.g., "S", "M", "L", "4", "6", "8"). Match user size mentions to these exact values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('sizes', classifiedCategories)
+  : formatDictionaryForPrompt('sizes', 100)}
 
-${formatDictionaryForPrompt('lengths', 100)}
+**LENGTHS** - Dress/skirt/pant length types (e.g., "Mini", "Midi", "Maxi"). Match user length mentions (e.g., "maxi dress", "knee-length", "long dress") to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('lengths', classifiedCategories)
+  : formatDictionaryForPrompt('lengths', 100)}
 
-${formatDictionaryForPrompt('formalityLevel', 100)}
+**FORMALITY LEVEL** - Dress code formality (e.g., "Casual", "Semi-Formal", "Formal"). Match user mentions (e.g., "formal", "casual", "wedding") to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('formalityLevel', classifiedCategories)
+  : formatDictionaryForPrompt('formalityLevel', 100)}
+
+**FITS** - Fit/style types for pants/jeans (e.g., "Slim", "Relaxed", "Skinny", "Regular"). Match user fit mentions to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('fits', classifiedCategories)
+  : formatDictionaryForPrompt('fits', 100)}
+
+**RISES** - Waist/rise placement for pants (e.g., "Low Rise", "Mid Rise", "High Rise"). Match user mentions (e.g., "high-waisted", "low-rise") to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('rises', classifiedCategories)
+  : formatDictionaryForPrompt('rises', 100)}
+
+**NECKLINES** - Neckline types (e.g., "V-Neck", "Round", "Bardot", "High"). Match user mentions (e.g., "v-neck", "off-shoulder") to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('necklines', classifiedCategories)
+  : formatDictionaryForPrompt('necklines', 100)}
+
+**SLEEVE LENGTHS** - Sleeve types (e.g., "Long Sleeve", "Short Sleeve", "Sleeveless", "Three-Quarter Sleeve"). Match user mentions (e.g., "long sleeves", "sleeveless") to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('sleeveLengths', classifiedCategories)
+  : formatDictionaryForPrompt('sleeveLengths', 100)}
+
+**COLLECTIONS** - Product collection names. Match user collection mentions to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('collections', classifiedCategories)
+  : formatDictionaryForPrompt('collections', 100)}
+
+**SEASONS** - Seasonal appropriateness (e.g., "Spring", "Summer", "Fall", "Winter"). Match user mentions (e.g., "summer", "winter", "warm weather") to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('seasons', classifiedCategories)
+  : formatDictionaryForPrompt('seasons', 100)}
+
+**COLOR SHADE** - Color lightness/darkness (e.g., "Light", "Medium", "Dark"). Match user mentions (e.g., "light blue", "dark navy") to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('colorShade', classifiedCategories)
+  : formatDictionaryForPrompt('colorShade', 100)}
+
+**COLOR UNDERTONE** - Color temperature (e.g., "Warm", "Cool", "Neutral"). Match user mentions (e.g., "warm tones", "cool colors") to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('colorUndertone', classifiedCategories)
+  : formatDictionaryForPrompt('colorUndertone', 100)}
+
+**EMBELLISHMENTS** - Decorative details (e.g., "Lace", "Beading", "Sequins"). Match user mentions to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('embellishments', classifiedCategories)
+  : formatDictionaryForPrompt('embellishments', 100)}
+
+**SEASONAL PALETTE** - Seasonal color/style palettes. Match user seasonal style mentions to these values:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('seasonalPalette', classifiedCategories)
+  : formatDictionaryForPrompt('seasonalPalette', 100)}
+
+**CRITICAL: DICTIONARY-BASED CONSTRAINT EXTRACTION**
+
+You MUST extract constraints by matching user queries to the dictionary values shown above. Follow these rules:
+
+1. **EXACT MATCHING**: First, check if the user's term exists exactly in the dictionary (case-insensitive match)
+   - "maxi dress" → lengths: ["Maxi"] (if "Maxi" exists in lengths dictionary)
+   - "v-neck" → necklines: ["V-Neck"] (if "V-Neck" exists in necklines dictionary)
+   - "a-line" → styles: ["A-Line"] (if "A-Line" exists in styles dictionary)
+
+2. **SYNONYM/RELATED TERM MATCHING**: If exact match not found, find the closest semantic match from dictionary
+   - "full sleeves" → sleeveLengths: ["Long Sleeve"] (full sleeves = long sleeves in fashion)
+   - "knee-length" → lengths: ["Midi"] (knee-length = midi length)
+   - "ankle-length" → lengths: ["Maxi"] (ankle-length = maxi length)
+
+3. **CONTEXTUAL INFERENCE**: For queries like "dresses for curvy women", infer constraints from context and map to dictionary:
+   - "curvy" → fits: ["Fitted", "Relaxed", "Loose", "Regular"] (map "curvy" to dictionary fit values that work for curvy body types)
+   - Body type contexts should map to styles dictionary: ["A-Line", "Wrap", "Fit and Flare", "Empire"] (styles that flatter curvy figures)
+
+4. **STYLE INFERENCE RULES**: When inferring styles for body types/occasions:
+   - "curvy women", "plus size" → styles: ["A-Line", "Wrap", "Fit and Flare", "Empire"] (from styles dictionary)
+   - "petite" → styles: ["A-Line", "Empire Waist", "Fit and Flare"] (from styles dictionary)
+   - "formal event" → styles: ["Elegant", "Classic", "Formal"] (from styles dictionary)
+   - "casual" → styles: ["Casual", "Bohemian", "Sporty"] (from styles dictionary)
+
+5. **MULTIPLE SOURCE MATCHING**: Some constraints can come from multiple sources - use ALL relevant dictionary values:
+   - Styles can come from: style_labels (attributes) AND silhouetteCut (column) - both are in the styles dictionary
+   - Seasons can come from: season (column), seasonalCues (column), seasonalPalette (column) - check all season-related dictionaries
 
 **INTENT-BASED MATCHING RULES:**
-- **REQUIRED intent** ("only wants", "must be", "only", "just", "exactly", "specifically") → **Conservative**: Use EXACT dictionary match only. Do NOT include similar values.
-- **STRONG intent** ("preferably", "or similar", "ideally", "would prefer") → **Moderate**: Use exact match + 1-2 semantically similar values from dictionary
+- **REQUIRED intent** → **CRITICAL: Use "required" when the user EXPLICITLY mentions a constraint value, even without words like "only" or "must"**
+  - Examples: "floral dress", "blue shirt", "maxi dress", "cotton top" → REQUIRED (user explicitly stated the attribute)
+  - Explicit keywords: "only wants", "must be", "only", "just", "exactly", "specifically" → REQUIRED
+  - **Conservative**: Use EXACT dictionary match only. Do NOT include similar values.
+- **STRONG intent** ("preferably", "or similar", "ideally", "would prefer", "something with X") → **Moderate**: Use exact match + 1-2 semantically similar values from dictionary
 - **PREFERRED intent** ("maybe", "could be", "something like", "if possible") → **Relaxed**: Use exact match + all semantically similar values from dictionary
 - **EXCLUDED intent** ("not", "avoid", "no", "without", "don't want") → **Exclude**: Filter out products matching these dictionary values
+
+**CRITICAL INTENT ASSIGNMENT RULE:**
+- **If a constraint value is EXPLICITLY mentioned in the user query (e.g., "floral", "blue", "maxi", "cotton"), use "required" intent by default**
+- Only use "strong" or "preferred" if the user explicitly uses softening language (e.g., "something floral", "floral or similar", "maybe floral")
+- **Examples:**
+  - "floral dress" → patterns: { values: ["Floral"], intent: "required" } ✅ (explicit mention)
+  - "something for the beach, floral" → patterns: { values: ["Floral"], intent: "required" } ✅ (explicit mention)
+  - "floral or similar" → patterns: { values: ["Floral", "Polka Dot"], intent: "strong" } ✅ (softening language)
+  - "something with pattern" → patterns: { values: ["Floral", "Polka Dot", ...], intent: "preferred" } ✅ (vague)
 
 **MATCHING EXAMPLES:**
 
 Patterns:
-- "only floral dresses" (REQUIRED) → patterns: { values: ["Floral"], intent: "required" } (exact match only)
-- "floral or similar patterns" (STRONG) → patterns: { values: ["Floral", "Polka Dot"], intent: "strong" } (exact + 1-2 similar)
-- "something with pattern" (PREFERRED) → patterns: { values: ["Floral", "Polka Dot", "Striped", "Gingham", "Plaid", "Tie-Dye"], intent: "preferred" } (exact + all similar)
+- "floral dress" (REQUIRED) → patterns: { values: ["Floral"], intent: "required" } ✅ (explicit mention, no softening language)
+- "only floral dresses" (REQUIRED) → patterns: { values: ["Floral"], intent: "required" } ✅ (explicit mention + "only")
+- "something for the beach, floral" (REQUIRED) → patterns: { values: ["Floral"], intent: "required" } ✅ (explicit mention)
+- "floral or similar patterns" (STRONG) → patterns: { values: ["Floral", "Polka Dot"], intent: "strong" } (softening: "or similar")
+- "something with pattern" (PREFERRED) → patterns: { values: ["Floral", "Polka Dot", "Striped", "Gingham", "Plaid", "Tie-Dye"], intent: "preferred" } (vague: "something with")
 - "not floral" (EXCLUDED) → patterns: { values: ["Floral"], intent: "excluded" }
 
 Colors:
-- "only red" (REQUIRED) → colors: { values: ["Red"], intent: "required" } (exact match only)
-- "red or similar" (STRONG) → colors: { values: ["Red", "Burgundy"], intent: "strong" } (exact + 1-2 similar)
-- "maybe something red" (PREFERRED) → colors: { values: ["Red", "Burgundy", "Coral", "Pink"], intent: "preferred" } (exact + all similar)
+- "red dress" (REQUIRED) → colors: { values: ["Red"], intent: "required" } ✅ (explicit mention)
+- "only red" (REQUIRED) → colors: { values: ["Red"], intent: "required" } ✅ (explicit mention + "only")
+- "red or similar" (STRONG) → colors: { values: ["Red", "Burgundy"], intent: "strong" } (softening: "or similar")
+- "maybe something red" (PREFERRED) → colors: { values: ["Red", "Burgundy", "Coral", "Pink"], intent: "preferred" } (softening: "maybe")
 - "not red" (EXCLUDED) → colors: { values: ["Red"], intent: "excluded" }
 
 Materials:
-- "only cotton" (REQUIRED) → materials: { values: ["Cotton"], intent: "required" } (exact match only)
-- "cotton or similar" (STRONG) → materials: { values: ["Cotton", "Linen"], intent: "strong" } (exact + 1-2 similar)
-- "something breathable" (PREFERRED) → materials: { values: ["Cotton", "Linen", "Modal"], intent: "preferred" } (exact + all similar)
+- "cotton shirt" (REQUIRED) → materials: { values: ["Cotton"], intent: "required" } ✅ (explicit mention)
+- "only cotton" (REQUIRED) → materials: { values: ["Cotton"], intent: "required" } ✅ (explicit mention + "only")
+- "cotton or similar" (STRONG) → materials: { values: ["Cotton", "Linen"], intent: "strong" } (softening: "or similar")
+- "something breathable" (PREFERRED) → materials: { values: ["Cotton", "Linen", "Modal"], intent: "preferred" } (vague: indirect mention)
 - "not silk" (EXCLUDED) → materials: { values: ["Silk"], intent: "excluded" }
 
 Occasions:
@@ -424,34 +584,33 @@ CONSTRAINT EXTRACTION RULES:
 - Extract color constraints (e.g., "white" → colors: ["White"])
 - **CRITICAL: COMPREHENSIVE CONTEXT-AWARE CONSTRAINT EXTRACTION** - You MUST extract ALL possible constraints from context, not just explicit mentions. Think like a stylist who understands cultural sensitivity, appropriateness, and what works for different contexts. Extract constraints that would help find the most appropriate products.
 
-  **EXTRACTION PRINCIPLES:**
-  1. **Explicit constraints**: Directly mentioned colors, sizes, styles, occasions, etc. - extract these EXACTLY as mentioned
-  2. **Inferred constraints**: Derived from context (skin tone, cultural background, religious context, location, weather, occasion type, time of day, etc.) - infer these using semantic understanding
-  3. **Implicit constraints**: Understood from semantic context (e.g., "wedding" implies formal, "beach" implies casual and summer) - extract these
-  4. **Negative constraints**: What to avoid (e.g., "not mini" → avoid lengths: ["Mini"], "no silk" → avoid materials: ["Silk"]) - extract these
-  5. **Appropriateness constraints**: Infer appropriate styles/lengths/necklines/sleeves based on context (e.g., "muslim wedding" → prefer modest styles, avoid revealing styles)
+  **EXTRACTION PRINCIPLES - Think Like a Stylist:**
+  
+  Your goal is to understand the user's intent holistically, not just extract literal keywords. Use your knowledge of fashion, cultural contexts, geography, and human behavior to infer what the user truly wants.
 
-  **OVERRIDE LOGIC - CRITICAL:**
-  - Explicit mentions ALWAYS override inferred constraints
-  - If user explicitly mentions a constraint (e.g., "in red", "mini dress", "silk"), use that EXACT constraint and DO NOT override with inferred constraints
-  - Only infer constraints when they are NOT explicitly mentioned
-  - Example: "wheatish skin, suggest red dresses" → colors: ["Red"] (explicit "red" overrides inferred colors from wheatish)
-  - Example: "wheatish skin, suggest dresses" → colors: ["Burgundy", "Emerald", "Navy", "Coral", "Peach", "Olive", "Sage", "Rust", "Terracotta", "Gold"] (inferred from wheatish)
+  1. **Explicit constraints**: Directly mentioned values - extract these EXACTLY as mentioned
+  2. **Inferred constraints**: Use semantic understanding to derive meaning from context clues
+  3. **Implicit constraints**: Extract what's implied but not stated (e.g., "Bahamas" → beach/vacation/tropical context)
+  4. **Negative constraints**: Extract what to avoid when clearly stated
+  5. **Appropriateness constraints**: Infer what works best for the given context using fashion knowledge
 
-  **CONTEXT TYPES TO CONSIDER:**
-  - Skin tone/complexion (wheatish, fair, dark, olive, tan, pale, brown, etc.)
-  - Cultural background (Indian, Western, Middle Eastern, Asian, etc.)
-  - Religious context (Muslim, Christian, Hindu, Jewish, etc.)
-  - Location/geography (Miami, Utah, beach, mountain, tropical, etc.)
-  - Weather/climate (sunny, rainy, cold, hot, humid, etc.)
-  - Time of day (morning, afternoon, evening, night)
-  - Occasion type (wedding, party, office, casual, formal, etc.)
-  - Event formality (formal, semi-formal, casual, black tie, etc.)
-  - Season (spring, summer, fall, winter)
-  - Age group (kids, toddler, baby, adult, etc.)
-  - Body type/size preferences (petite, plus size, tall, etc.)
-  - Style preferences (modest, revealing, elegant, casual, etc.)
-  - Any other contextual information that would affect product selection
+  **OVERRIDE LOGIC:**
+  - Explicit mentions take priority over inferred constraints
+  - If user says "red dress", extract "red" as color - don't override with inferred colors
+  - When constraints aren't explicitly mentioned, infer them intelligently from context
+
+  **CONTEXTUAL THINKING - Be Open-Ended:**
+  
+  Consider ANY contextual information that would help a stylist understand what the user wants:
+  - Geography/Locations: What does "Bahamas", "Miami", "Utah", "beach", "mountain" tell you about style, occasion, season, colors?
+  - Cultural/Religious: What do "Indian wedding", "Muslim wedding", "conservative" imply about modesty, colors, styles?
+  - Weather/Climate: How does "sunny", "hot", "humid", "cold" affect material, color, and style choices?
+  - Events/Occasions: What's the vibe of "wedding", "date night", "beach party", "office meeting"?
+  - Time/Season: What does "summer", "evening", "winter" tell you about appropriate choices?
+  - Demographics: How do "curvy", "petite", "wheatish skin", "for my daughter" influence style and color recommendations?
+  - Lifestyle/Activity: What does "travel", "workout", "vacation" imply about functionality and style?
+
+  **KEY PRINCIPLE**: Don't just match keywords - understand the deeper meaning and extract ALL relevant constraints that would help find perfect products. A location name like "Bahamas" should trigger multiple inferences: beach occasion, vacation context, tropical/summer season, bright/light colors, casual styles, etc. Be creative and comprehensive in your inference.
 - **CRITICAL: COLOR vs PATTERN DISAMBIGUATION - MOST IMPORTANT RULE**
   * **ABSOLUTE RULE**: "Cherry" is ALWAYS a COLOR (cherry red), NEVER a pattern - extract as colors: ["Cherry"]
   * **ABSOLUTE RULE**: "Crimson", "Scarlet", "Burgundy", "Maroon", "Rose", "Coral", "Salmon", "Rust", "Terracotta" are COLORS, NEVER patterns
@@ -480,7 +639,7 @@ CONSTRAINT EXTRACTION RULES:
       * "red, maroon, or brown" → colors: ["Red", "Maroon", "Brown"]
       * "cherry also works" (in follow-up) → colors: ["Cherry"] (will be merged with previous colors)
       * "red or similar coloured" → colors: ["Red"] (don't expand)
-- **CRITICAL: INTELLIGENT COLOR INFERENCE** - You MUST infer colors from context even when not explicitly mentioned. Use your understanding of color semantics, lighting, locations, occasions, skin tones, and cultural contexts:
+- **MANDATORY COLOR INFERENCE** - You MUST ALWAYS extract colors from context, even when not explicitly mentioned. Every query has contextual clues (location, occasion, season, time, culture, weather, etc.) that suggest appropriate colors. Color extraction is REQUIRED - use your understanding of color psychology, cultural meanings, and appropriateness to infer colors for EVERY query. If context is vague, infer versatile/appropriate colors. Never return colors as null unless explicitly excluded by the user:
   - **Skin tone/complexion context**:
     - "wheatish", "wheatish skin", "wheatish complexion" → infer warm earth tones and jewel tones: ["Burgundy", "Emerald", "Navy", "Coral", "Peach", "Olive", "Sage", "Rust", "Terracotta", "Gold"]
     - "fair skin", "fair complexion", "pale skin" → infer pastels and soft colors: ["Blush", "Lavender", "Mint", "Peach", "Baby Blue", "Lemon", "Pink", "Sky Blue", "Ivory", "Cream"]
@@ -493,10 +652,10 @@ CONSTRAINT EXTRACTION RULES:
     - "muslim wedding", "islamic wedding" → infer elegant colors: ["Navy", "Burgundy", "Emerald", "Gold", "Plum", "Charcoal", "Ivory"]
     - "jewish wedding" → infer traditional colors: ["White", "Ivory", "Navy", "Gold", "Blush"]
   - **Location/geography context**:
-    - "dresses for miami" → infer tropical/bright colors: ["Coral", "Pink", "Turquoise", "Yellow", "White", "Sky Blue", "Mint"]
-    - "dresses for utah" → infer earth tones/neutral colors: ["Beige", "Brown", "Tan", "Sage", "Olive", "Taupe", "Camel"]
-    - "beach", "tropical" → infer bright/light colors: ["White", "Coral", "Turquoise", "Yellow", "Sky Blue", "Mint", "Pink"]
-    - "mountain", "winter location" → infer earth tones and deeper colors: ["Navy", "Burgundy", "Olive", "Charcoal", "Brown", "Plum"]
+    - Tropical/island destinations (Caribbean, Hawaii, Maldives, beach locations) → infer bright/tropical colors
+    - Mountain/cold destinations → infer earth tones/deeper colors
+    - Desert destinations → infer light/neutral colors
+    - Think about what colors suit the geography
   - **Weather/climate context**:
     - "sunny", "sunny day", "hot weather" → infer bright/light colors: ["White", "Yellow", "Coral", "Sky Blue", "Mint", "Lemon", "Pink"]
     - "rainy", "cloudy" → infer deeper/muted colors: ["Navy", "Charcoal", "Burgundy", "Plum", "Olive"]
@@ -515,41 +674,19 @@ CONSTRAINT EXTRACTION RULES:
     - "neutral colours", "neutrals" → infer neutral colors: ["White", "Beige", "Taupe", "Gray", "Nude", "Cream", "Black"]
     - "warm colours", "warm tones" → infer warm colors: ["Red", "Orange", "Yellow", "Coral", "Peach", "Gold", "Burgundy", "Rust", "Terracotta"]
     - "cool colours", "cool tones" → infer cool colors: ["Blue", "Green", "Purple", "Teal", "Mint", "Navy", "Lavender", "Sky Blue"]
-  - **IMPORTANT**: Infer colors based on semantic understanding, not hardcoded rules. Consider ALL context: location, time of day, season, occasion, skin tone, cultural background, religious context, weather. Map inferred colors to the closest ontology terms. You can infer multiple colors when appropriate (e.g., "light colours" → array of light colors). If the query explicitly mentions a color, use that instead of inferring. When multiple contexts are present, combine inferences appropriately (e.g., "wheatish skin + casual evening date" → infer colors that work for wheatish skin AND are appropriate for casual evening).
-- **CRITICAL: INTELLIGENT OCCASION INFERENCE** - You MUST infer occasions from context even when not explicitly mentioned:
-  - "for wedding" or "wedding dress" → occasions: ["Wedding", "Formal"]
-  - "for beach" or "beach outfit" → occasions: ["Beach", "Casual", "Vacation"]
-  - "for office" or "office wear" → occasions: ["Office", "Professional", "Daytime"]
-  - "for party" or "party dress" → occasions: ["Party", "Cocktail", "Evening"]
-  - "for gym" or "gym wear" → occasions: ["Athletic", "Activewear"]
-  - "for home" or "loungewear" → occasions: ["Casual", "Loungewear"]
-  - "for date" or "date night" or "romantic date" or "evening date" → occasions: ["Date Night"] (NOT "Evening Event" - "Date Night" is a distinct romantic occasion type)
-  - "evening event" or "evening party" → occasions: ["Evening Event", "Evening", "Party"] (NOT "Date Night" - this is a general evening event, not specifically a romantic date)
-  - **CRITICAL**: Distinguish between "date" (romantic occasion → "Date Night") and "evening event" (general evening occasion → "Evening Event")
-  - "for formal event" → occasions: ["Formal", "Evening"]
-  - "for casual" → occasions: ["Casual", "Daytime"]
-  - **IMPORTANT**: Infer occasions based on semantic understanding. Consider context: event type, time of day, location. Map inferred occasions to the closest ontology terms.
-- **CRITICAL: INTELLIGENT MATERIAL INFERENCE** - You MUST infer materials from context and product descriptions:
-  - "silk dress" or "silk" → materials: ["Silk"]
-  - "cotton shirt" or "cotton" → materials: ["Cotton"]
-  - "linen" → materials: ["Linen"]
-  - "wool" or "woolen" → materials: ["Wool"]
-  - "breathable" → materials: ["Cotton", "Linen", "Modal"]
-  - "warm" or "warm fabric" → materials: ["Wool", "Cashmere", "Fleece"]
-  - "soft" → materials: ["Cotton", "Modal", "Cashmere", "Silk"]
-  - "stretchy" or "stretch" → materials: ["Spandex", "Elastane", "Modal"]
-  - "lightweight" → materials: ["Linen", "Cotton", "Modal"]
-  - **IMPORTANT**: Infer materials based on product descriptions and user language. Map inferred materials to the closest ontology terms.
-- **CRITICAL: INTELLIGENT SEASON INFERENCE** - You MUST infer seasons from context:
-  - "summer dress" or "for summer" → seasons: ["Summer"]
-  - "winter coat" or "for winter" → seasons: ["Winter"]
-  - "spring collection" or "for spring" → seasons: ["Spring"]
-  - "fall outfit" or "for fall" or "autumn" → seasons: ["Fall"]
-  - "for miami" or "tropical" → seasons: ["Summer"]
-  - "for utah" or "mountain" → seasons: ["Winter", "Fall"]
-  - "beach" → seasons: ["Summer"]
-  - "snow" → seasons: ["Winter"]
-  - **IMPORTANT**: Infer seasons based on context: location, weather, product type. Map inferred seasons to the closest ontology terms.
+  **CRITICAL - MANDATORY COLOR EXTRACTION**: You MUST extract colors for EVERY query based on context. Even vague queries have clues - use them. Consider EVERYTHING: location (tropical → bright colors, mountain → earth tones), weather (sunny → light colors, cold → deeper colors), occasion (wedding → traditional colors, beach → tropical colors), season (summer → bright/light, winter → deep/warm), time of day (day → light, evening → elegant), culture (Indian wedding → red/gold, Western wedding → white/pastels), and any other contextual signal. When context is unclear or mixed, infer versatile/appropriate colors that make sense. NEVER return colors as null unless the user explicitly says "no color" or "any color". Extract at least 3-8 appropriate colors from the dictionary based on the context.
+- **INTELLIGENT OCCASION INFERENCE** - Infer occasions from context by understanding what the user is doing and where they're going. A location like "Bahamas" implies beach/vacation. "Wedding" suggests formal/wedding occasions. "Date night" suggests romantic evening. Think about what occasions would apply - often multiple occasions are relevant (e.g., "Bahamas vacation" → both "Beach" and "Vacation" occasions). Use your understanding of events, locations, and activities to extract all relevant occasions from the dictionary.
+- **INTELLIGENT MATERIAL INFERENCE** - Infer materials from explicit mentions or functional descriptions. "Silk" → Silk. "Breathable" suggests Cotton/Linen/Modal. "Warm" suggests Wool/Cashmere. "Soft" suggests Cotton/Modal/Cashmere/Silk. Think about what materials match the described properties and extract from dictionary.
+- **INTELLIGENT SEASON INFERENCE** - Infer seasons from location, weather mentions, time of year, or activities. "Bahamas" suggests summer. "Winter coat" suggests winter. "Beach" suggests summer. "Mountain" might suggest fall/winter. Think about what season makes sense for the context and extract from the dictionary.
+- **CRITICAL: COLORUNDERTONE INFERENCE** - Extract when user mentions color temperature:
+  - "warm colors", "warm tones" → colorUndertone: ["Warm"] (from colorUndertone dictionary)
+  - "cool colors", "cool tones" → colorUndertone: ["Cool"] (from colorUndertone dictionary)
+  - "neutral colors", "neutral tones" → colorUndertone: ["Neutral"] (from colorUndertone dictionary)
+- **CRITICAL: SEASONALPALETTE INFERENCE** - Extract seasonal color palettes:
+  - "spring colors", "spring palette" → seasonalPalette: ["Spring"] (from seasonalPalette dictionary)
+  - "summer colors", "summer palette" → seasonalPalette: ["Summer"] (from seasonalPalette dictionary)
+  - "fall colors", "autumn colors" → seasonalPalette: ["Fall"] (from seasonalPalette dictionary)
+  - "winter colors", "winter palette" → seasonalPalette: ["Winter"] (from seasonalPalette dictionary)
 - **CRITICAL: INTELLIGENT FIT INFERENCE** - You MUST infer fit from user language:
   - "relaxed fit" or "relaxed" → fits: ["Relaxed"]
   - "fitted" or "fitted dress" → fits: ["Fitted"]
@@ -584,34 +721,22 @@ CONSTRAINT EXTRACTION RULES:
   - **Preferred** (flexible): "silk preferred", "silk if possible", "preferably silk", "silk would be nice" → materials: ["Silk"] (treat as preferred, not strict)
   - **Avoid** (negative): "not silk", "avoid silk", "no silk", "anything but silk" → materials: null (remove silk constraint, or mark as avoid)
   - **IMPORTANT**: Use semantic understanding to determine if a requirement is strict or flexible. When in doubt, treat as preferred (flexible) rather than strict.
-- **CRITICAL: INTELLIGENT STYLES INFERENCE** - You MUST infer styles from context even when not explicitly mentioned:
-  - **Occasion type**:
-    - "formal", "formal event", "black tie", "white tie" → infer styles: ["Elegant", "Classic", "Formal", "Romantic"]
-    - "casual", "everyday", "weekend" → infer styles: ["Casual", "Bohemian", "Romantic", "Feminine"]
-    - "wedding", "bridal" → infer styles: ["Romantic", "Feminine", "Elegant", "Bridal"]
-    - "beach", "resort", "vacation" → infer styles: ["Beach", "Resort", "Vacation", "Bohemian"]
-  - **Cultural context**:
-    - "modest", "conservative", "muslim wedding", "islamic wedding" → infer styles: ["A-Line", "Empire Waist", "Wrap", "Romantic", "Feminine"], avoid: ["Bodycon", "Fit and Flare"] (if too revealing)
-    - "revealing", "form-fitting" → infer styles: ["Bodycon", "Fit and Flare", "Sheath"]
-  - **Body type preferences**:
-    - "petite" → infer styles: ["A-Line", "Empire Waist", "Fit and Flare"]
-    - "plus size" → infer styles: ["A-Line", "Wrap", "Fit and Flare", "Empire Waist"]
-    - "tall" → infer styles: ["Maxi", "A-Line", "Fit and Flare"]
-  - **Style preferences**:
-    - "romantic", "feminine" → infer styles: ["Romantic", "Feminine", "Ruffled", "Tiered"]
-    - "modern", "minimalist" → infer styles: ["Modern", "Minimalist", "Shift", "Sheath"]
-    - "vintage", "classic" → infer styles: ["Vintage", "Classic", "Romantic"]
-  - **IMPORTANT**: Infer styles based on occasion, cultural context, body type, and style preferences. Map inferred styles to the closest ontology terms. Explicit mentions override inferred styles.
-- **CRITICAL: INTELLIGENT NECKLINES INFERENCE** - You MUST infer necklines from context even when not explicitly mentioned:
-  - **Modesty requirements**:
-    - "modest", "conservative", "muslim wedding", "islamic wedding" → prefer necklines: ["High Neck", "Round Neck", "Mock Neck", "Turtleneck"], avoid necklines: ["V-Neck", "Plunge", "Off-Shoulder", "Strapless", "Cold Shoulder", "One-Shoulder"]
-    - "revealing", "low cut" → prefer necklines: ["V-Neck", "Sweetheart", "Off-Shoulder", "Strapless"]
-  - **Occasion formality**:
-    - "formal", "formal event", "black tie" → prefer necklines: ["Sweetheart", "V-Neck", "Round Neck", "High Neck"], avoid necklines: ["Off-Shoulder", "Cold Shoulder", "Strapless"]
-    - "casual", "everyday" → can be any neckline
-  - **Cultural/religious context**:
-    - "muslim", "islamic", "conservative", "traditional" → prefer necklines: ["High Neck", "Round Neck", "Mock Neck", "Turtleneck", "Boat Neck"], avoid revealing necklines
-  - **IMPORTANT**: Infer necklines based on modesty requirements, occasion formality, and cultural/religious context. Map inferred necklines to the closest ontology terms. Explicit mentions override inferred necklines.
+- **INTELLIGENT STYLES INFERENCE** - Infer styles based on occasion, body type, cultural context, and user preferences. "Beach" might suggest Bohemian/Casual. "Wedding" suggests Romantic/Elegant. "Curvy" suggests A-Line/Wrap. Think about what styles work for the context, then match to dictionary values. The styles dictionary includes silhouette cuts (A-Line, Wrap, Bodycon, etc.) and aesthetic descriptors (Romantic, Casual, Elegant, etc.) - use both types of style information.
+- **CRITICAL: INTELLIGENT NECKLINES INFERENCE** - You MUST infer necklines from context and match to dictionary values:
+  - **Modesty requirements** (map to necklines dictionary):
+    - "modest", "conservative", "muslim wedding", "islamic wedding" → prefer necklines: ["High Neck", "High", "Round", "Boat"] (from necklines dictionary), avoid necklines: ["V-Neck", "Plunging", "Off-Shoulder", "Strapless"]
+    - "revealing", "low cut" → prefer necklines: ["V-Neck", "Plunging", "Off-Shoulder", "Strapless"] (from necklines dictionary)
+  - **Occasion formality** (map to necklines dictionary):
+    - "formal", "formal event", "black tie" → prefer necklines: ["V-Neck", "Round", "High Neck", "High"] (from necklines dictionary), avoid necklines: ["Off-Shoulder", "Strapless"]
+    - "casual", "everyday" → can be any neckline from dictionary
+  - **Cultural/religious context** (map to necklines dictionary):
+    - "muslim", "islamic", "conservative", "traditional" → prefer necklines: ["High Neck", "High", "Round", "Boat", "Collar"] (from necklines dictionary), avoid revealing necklines
+  - **IMPORTANT**: 
+    - All inferred necklines MUST exist in the necklines dictionary shown above
+    - Dictionary has: ["Asymmetric", "Boat", "Collar", "Halter", "High", "High Neck", "Low", "Moderate", "Off-Shoulder", "Plunging", "Round", "Scoop", "Square", "Strapless", "V-Neck"]
+    - Note: "Sweetheart" is NOT in dictionary - do NOT use it
+    - "Round Neck" should be "Round" (from dictionary)
+    - Explicit mentions override inferred necklines
 - **CRITICAL: INTELLIGENT SLEEVE LENGTHS INFERENCE** - You MUST infer sleeve lengths from context even when not explicitly mentioned:
   - **Modesty requirements**:
     - "modest", "conservative", "muslim wedding", "islamic wedding" → prefer sleeveLengths: ["Long Sleeve", "Three-Quarter Sleeve"], avoid sleeveLengths: ["Sleeveless", "Cap Sleeve"]
@@ -622,18 +747,7 @@ CONSTRAINT EXTRACTION RULES:
     - "cold", "winter", "fall" → prefer sleeveLengths: ["Long Sleeve", "Three-Quarter Sleeve"]
     - "hot", "summer", "beach" → prefer sleeveLengths: ["Sleeveless", "Short Sleeve", "Cap Sleeve"]
   - **IMPORTANT**: Infer sleeve lengths based on modesty, occasion formality, and weather/season. Map inferred sleeve lengths to the closest ontology terms. Explicit mentions override inferred sleeve lengths.
-- **CRITICAL: INTELLIGENT PATTERNS INFERENCE** - You MUST infer patterns from context even when not explicitly mentioned:
-  - **Occasion type**:
-    - "wedding", "bridal", "formal" → prefer patterns: ["Floral", "Botanical", "Romantic", "Solid"]
-    - "casual", "everyday" → can be any pattern
-    - "beach", "resort" → prefer patterns: ["Tropical", "Floral", "Botanical", "Nautical"]
-  - **Cultural context**:
-    - "indian wedding", "hindu wedding", "south asian wedding" → prefer patterns: ["Embroidered", "Sequined", "Beaded", "Floral"]
-    - "western wedding", "christian wedding" → prefer patterns: ["Floral", "Botanical", "Solid", "Romantic"]
-  - **Season**:
-    - "spring", "summer" → prefer patterns: ["Floral", "Botanical", "Tropical", "Polka Dot"]
-    - "fall", "winter" → prefer patterns: ["Plaid", "Tweed", "Geometric", "Striped"]
-  - **IMPORTANT**: Infer patterns based on occasion type, cultural context, and season. Map inferred patterns to the closest ontology terms. Explicit mentions override inferred patterns.
+- **INTELLIGENT PATTERNS INFERENCE** - Infer patterns from context when it makes sense. "Beach/vacation" might suggest Floral/Tropical patterns. "Wedding" might suggest Floral/Romantic. "Summer" might suggest Floral/Bright patterns. Think about what patterns would be appropriate for the context and extract from dictionary.
 - **CRITICAL: INTELLIGENT EMBELLISHMENTS INFERENCE** - You MUST infer embellishments from context even when not explicitly mentioned:
   - **Occasion formality**:
     - "formal", "formal event", "black tie", "wedding" → prefer embellishments: ["Lace", "Embroidery", "Beading", "Sequins", "Pearls"]
@@ -1651,6 +1765,212 @@ OUTPUT JSON:
 // ============================================================================
 
 /**
+ * Extract category-specific dictionary values from category dictionaries
+ * 
+ * Merges dictionaries for all matching categories/subcategories and extracts
+ * available values for constraint types that exist in category dictionaries.
+ * 
+ * @param categoryDictionaries - Map of category/subcategory to dictionaries
+ * @param categories - Categories to match against
+ * @returns Map of constraint type to available values (normalized to title case)
+ */
+export function extractCategorySpecificDictionaryValues(
+  categoryDictionaries: CategoryDictionaryMap | undefined,
+  categories: string[] | undefined
+): Map<string, string[]> {
+  const result = new Map<string, string[]>();
+  
+  if (!categoryDictionaries || !categories || categories.length === 0) {
+    return result;
+  }
+  
+  // Collect all matching dictionaries
+  const matchingDictionaries: Array<{ category: string; subcategory: string | null; dict: any }> = [];
+  
+  for (const category of categories) {
+    // Try exact match first
+    const exactKey = `${category}|`;
+    if (categoryDictionaries.has(exactKey)) {
+      const dict = categoryDictionaries.get(exactKey)!;
+      matchingDictionaries.push({ category, subcategory: null, dict });
+    }
+    
+    // Try with subcategories (iterate through all keys)
+    for (const [key, dict] of categoryDictionaries.entries()) {
+      const [dictCategory, dictSubcategory] = key.split('|');
+      if (dictCategory === category) {
+        matchingDictionaries.push({ 
+          category, 
+          subcategory: dictSubcategory || null, 
+          dict 
+        });
+      }
+    }
+  }
+  
+  if (matchingDictionaries.length === 0) {
+    return result;
+  }
+  
+  // Merge values from all matching dictionaries
+  const mergedColors = new Set<string>();
+  const mergedLengths = new Set<string>();
+  const mergedSleeves = new Set<string>();
+  const mergedNecklines = new Set<string>();
+  const mergedFormalityLevels = new Set<string>();
+  const mergedColorShades = new Set<string>();
+  const mergedColorUndertones = new Set<string>();
+  const mergedFits = new Set<string>();
+  const mergedMaterials = new Set<string>();
+  const mergedOccasions = new Set<string>();
+  const mergedSeasons = new Set<string>();
+  const mergedStyles = new Set<string>();
+  const mergedPatterns = new Set<string>();
+  const mergedSizes = new Set<string>();
+  const mergedRises = new Set<string>();
+  const mergedCollections = new Set<string>();
+  const mergedEmbellishments = new Set<string>();
+  
+  for (const { dict } of matchingDictionaries) {
+    // Colors (normalize to title case)
+    dict.availableColors.forEach((color: string) => {
+      mergedColors.add(color.charAt(0).toUpperCase() + color.slice(1).toLowerCase());
+    });
+    
+    // Lengths (normalize to title case)
+    dict.availableLengths.forEach((length: string) => {
+      mergedLengths.add(length.charAt(0).toUpperCase() + length.slice(1).toLowerCase());
+    });
+    
+    // Sleeves (normalize to title case)
+    dict.availableSleeves.forEach((sleeve: string) => {
+      mergedSleeves.add(sleeve.charAt(0).toUpperCase() + sleeve.slice(1).toLowerCase());
+    });
+    
+    // Necklines (normalize to title case)
+    dict.availableNecklines.forEach((neckline: string) => {
+      mergedNecklines.add(neckline.charAt(0).toUpperCase() + neckline.slice(1).toLowerCase());
+    });
+    
+    // Formality levels (normalize to title case)
+    dict.availableFormalityLevels.forEach((formality: string) => {
+      mergedFormalityLevels.add(formality.charAt(0).toUpperCase() + formality.slice(1).toLowerCase());
+    });
+    
+    // Color shades (normalize to title case)
+    dict.availableColorShades.forEach((shade: string) => {
+      mergedColorShades.add(shade.charAt(0).toUpperCase() + shade.slice(1).toLowerCase());
+    });
+    
+    // Fits (normalize to title case)
+    dict.availableFits.forEach((fit: string) => {
+      mergedFits.add(fit.charAt(0).toUpperCase() + fit.slice(1).toLowerCase());
+    });
+    
+    // Materials (normalize to title case)
+    dict.availableMaterials.forEach((material: string) => {
+      mergedMaterials.add(material.charAt(0).toUpperCase() + material.slice(1).toLowerCase());
+    });
+    
+    // Occasions (normalize to title case)
+    dict.availableOccasions.forEach((occasion: string) => {
+      mergedOccasions.add(occasion.charAt(0).toUpperCase() + occasion.slice(1).toLowerCase());
+    });
+    
+    // Seasons (normalize to title case)
+    dict.availableSeasons.forEach((season: string) => {
+      mergedSeasons.add(season.charAt(0).toUpperCase() + season.slice(1).toLowerCase());
+    });
+    
+    // Styles (normalize to title case)
+    dict.availableStyles.forEach((style: string) => {
+      mergedStyles.add(style.charAt(0).toUpperCase() + style.slice(1).toLowerCase());
+    });
+    
+    // Patterns (normalize to title case)
+    dict.availablePatterns.forEach((pattern: string) => {
+      mergedPatterns.add(pattern.charAt(0).toUpperCase() + pattern.slice(1).toLowerCase());
+    });
+    
+    // Sizes (normalize to title case)
+    dict.availableSizes.forEach((size: string) => {
+      mergedSizes.add(size.charAt(0).toUpperCase() + size.slice(1).toLowerCase());
+    });
+    
+    // Rises (normalize to title case)
+    dict.availableRises.forEach((rise: string) => {
+      mergedRises.add(rise.charAt(0).toUpperCase() + rise.slice(1).toLowerCase());
+    });
+    
+    // Collections (from attributes if available in dict)
+    if ((dict as any).availableCollections) {
+      (dict as any).availableCollections.forEach((collection: string) => {
+        mergedCollections.add(collection.charAt(0).toUpperCase() + collection.slice(1).toLowerCase());
+      });
+    }
+    
+    // Embellishments (from attributes if available in dict)
+    if ((dict as any).availableEmbellishments) {
+      (dict as any).availableEmbellishments.forEach((embellishment: string) => {
+        mergedEmbellishments.add(embellishment.charAt(0).toUpperCase() + embellishment.slice(1).toLowerCase());
+      });
+    }
+  }
+  
+  // Set results (only if we have values)
+  if (mergedColors.size > 0) {
+    result.set('colors', Array.from(mergedColors).sort());
+  }
+  if (mergedLengths.size > 0) {
+    result.set('lengths', Array.from(mergedLengths).sort());
+  }
+  if (mergedSleeves.size > 0) {
+    result.set('sleeves', Array.from(mergedSleeves).sort());
+  }
+  if (mergedNecklines.size > 0) {
+    result.set('necklines', Array.from(mergedNecklines).sort());
+  }
+  if (mergedFormalityLevels.size > 0) {
+    result.set('formalityLevel', Array.from(mergedFormalityLevels).sort());
+  }
+  if (mergedColorShades.size > 0) {
+    result.set('colorShades', Array.from(mergedColorShades).sort());
+  }
+  if (mergedFits.size > 0) {
+    result.set('fits', Array.from(mergedFits).sort());
+  }
+  if (mergedMaterials.size > 0) {
+    result.set('materials', Array.from(mergedMaterials).sort());
+  }
+  if (mergedOccasions.size > 0) {
+    result.set('occasions', Array.from(mergedOccasions).sort());
+  }
+  if (mergedSeasons.size > 0) {
+    result.set('seasons', Array.from(mergedSeasons).sort());
+  }
+  if (mergedStyles.size > 0) {
+    result.set('styles', Array.from(mergedStyles).sort());
+  }
+  if (mergedPatterns.size > 0) {
+    result.set('patterns', Array.from(mergedPatterns).sort());
+  }
+  if (mergedSizes.size > 0) {
+    result.set('sizes', Array.from(mergedSizes).sort());
+  }
+  if (mergedRises.size > 0) {
+    result.set('rises', Array.from(mergedRises).sort());
+  }
+  if (mergedCollections.size > 0) {
+    result.set('collections', Array.from(mergedCollections).sort());
+  }
+  if (mergedEmbellishments.size > 0) {
+    result.set('embellishments', Array.from(mergedEmbellishments).sort());
+  }
+  
+  return result;
+}
+
+/**
  * Build constraint refinement prompt for ranking
  * 
  * This prompt maps user intent onto static constraint dictionaries for soft ranking.
@@ -1663,22 +1983,50 @@ OUTPUT JSON:
  */
 export function buildConstraintRefinementPrompt(params: {
   query: string;
+  classificationConstraints?: Partial<import('./classifier').FashionConstraints> | null;
   gender?: string | null;
   categories?: string[];
   ageGroup?: string | null;
   candidateCount?: number;
   conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  categoryDictionaries?: CategoryDictionaryMap;
 }): string {
   const dictionaries = loadConstraintDictionaries();
   
+  // Extract category-specific dictionary values if available
+  const categorySpecificValues = extractCategorySpecificDictionaryValues(
+    params.categoryDictionaries,
+    params.categories
+  );
+  
+  // Log which constraint types have category-specific dictionaries
+  if (categorySpecificValues.size > 0) {
+    const constraintTypes = Array.from(categorySpecificValues.keys());
+    const constraintCounts = Array.from(categorySpecificValues.entries()).map(([key, values]) => ({
+      type: key,
+      count: values.length
+    }));
+    logger.debug('buildConstraintRefinementPrompt: category_specific_dictionaries', {
+      query: params.query.substring(0, 100),
+      categories: params.categories,
+      constraintTypesWithCategorySpecific: constraintTypes,
+      constraintCounts,
+      totalConstraintTypes: categorySpecificValues.size,
+    });
+  }
+  
   // Build context summary
+  // Note: ageGroup is EXCLUDED from refinement - it's already resolved and passed as context only
   const contextParts: string[] = [];
   if (params.gender) contextParts.push(`Gender: ${params.gender}`);
   if (params.categories && params.categories.length > 0) {
     contextParts.push(`Categories: ${params.categories.join(', ')}`);
   }
-  if (params.ageGroup) contextParts.push(`Age Group: ${params.ageGroup}`);
+  // ageGroup excluded from context summary - it's already resolved and not refined
   if (params.candidateCount) contextParts.push(`${params.candidateCount} candidate products`);
+  if (categorySpecificValues.size > 0) {
+    contextParts.push(`Using category-specific dictionaries (${categorySpecificValues.size} constraint types)`);
+  }
   
   const contextSummary = contextParts.length > 0 
     ? contextParts.join(' | ')
@@ -1694,31 +2042,87 @@ export function buildConstraintRefinementPrompt(params: {
     }
   }
   
-  // Format dictionaries with reasonable limits
-  const colorsDict = formatDictionaryForPrompt('colors', 80);
-  const materialsDict = formatDictionaryForPrompt('materials', 40);
-  const occasionsDict = formatDictionaryForPrompt('occasions', 30);
-  const stylesDict = formatDictionaryForPrompt('styles', 30);
-  const patternsDict = formatDictionaryForPrompt('patterns', 30);
-  const sizesDict = formatDictionaryForPrompt('sizes', 50);
-  const lengthsDict = formatDictionaryForPrompt('lengths', 20);
-  const fitsDict = formatDictionaryForPrompt('fits', 25);
-  const risesDict = formatDictionaryForPrompt('rises', 15);
-  const formalityDict = formatDictionaryForPrompt('formalityLevel', 10);
+  // Format dictionaries: use category-specific when available, fall back to global
+  // Helper to format category-specific values or fall back to global
+  const formatDict = (constraintType: string, maxItems: number, categorySpecificKey?: string): string => {
+    if (categorySpecificKey && categorySpecificValues.has(categorySpecificKey)) {
+      const values = categorySpecificValues.get(categorySpecificKey)!;
+      const displayValues = values.slice(0, maxItems);
+      const remaining = values.length - displayValues.length;
+      let output = `${constraintType.toUpperCase()} (${values.length} total, category-specific):\n`;
+      output += displayValues.join(', ');
+      if (remaining > 0) {
+        output += `\n... and ${remaining} more`;
+      }
+      return output;
+    } else {
+      return formatDictionaryForPrompt(constraintType as any, maxItems);
+    }
+  };
   
-  return `You are a fashion ranking assistant. Your task is to analyze a user's shopping query and select the most relevant constraint values from predefined dictionaries.
+  const colorsDict = formatDict('colors', 80, 'colors');
+  const lengthsDict = formatDict('lengths', 20, 'lengths');
+  const formalityDict = formatDict('formalityLevel', 10, 'formalityLevel');
+  const fitsDict = formatDict('fits', 25, 'fits');
+  const materialsDict = formatDict('materials', 40, 'materials');
+  const occasionsDict = formatDict('occasions', 30, 'occasions');
+  const stylesDict = formatDict('styles', 30, 'styles');
+  const patternsDict = formatDict('patterns', 30, 'patterns');
+  const sizesDict = formatDict('sizes', 50, 'sizes');
+  const risesDict = formatDict('rises', 15, 'rises');
+  const necklinesDict = formatDict('necklines', 20, 'necklines');
+  const sleeveLengthsDict = formatDict('sleeveLengths', 15, 'sleeves');
+  const collectionsDict = formatDict('collections', 20, 'collections');
+  const seasonsDict = formatDict('seasons', 10, 'seasons');
+  const colorShadesDict = formatDict('colorShade', 10, 'colorShades');
+  const embellishmentsDict = formatDict('embellishments', 20, 'embellishments');
+  
+  // Format classification constraints for prompt (if provided)
+  let classificationConstraintsText = '';
+  if (params.classificationConstraints) {
+    const { extractConstraintValues } = require('./constraint-utils');
+    const constraints = params.classificationConstraints;
+    const formattedConstraints: string[] = [];
+    
+    // Extract and format each constraint type
+    const constraintTypes = [
+      'colors', 'materials', 'occasions', 'styles', 'patterns', 'sizes',
+      'lengths', 'fits', 'rises', 'formalityLevel', 'necklines', 'sleeveLengths',
+      'collections', 'seasons', 'colorShade', 'embellishments'
+    ] as const;
+    
+    for (const type of constraintTypes) {
+      const value = constraints[type];
+      if (value !== null && value !== undefined) {
+        const values = extractConstraintValues(value) || (Array.isArray(value) ? value : []);
+        if (values.length > 0) {
+          formattedConstraints.push(`${type}: [${values.map((v: string) => `"${v}"`).join(', ')}]`);
+        }
+      }
+    }
+    
+    if (formattedConstraints.length > 0) {
+      classificationConstraintsText = `\n\nCLASSIFICATION CONSTRAINTS (extracted from query - validate and normalize these):\n${formattedConstraints.join('\n')}`;
+    }
+  }
+  
+  return `You are a fashion ranking assistant. Your task is to validate and normalize constraint values extracted from a user's shopping query against predefined dictionaries.
 
 IMPORTANT RULES:
 - You MUST ONLY select values that appear in the dictionaries below
-- Do NOT invent new terms or values
+- Validate ALL provided classification constraints against dictionaries
+- Map similar/related values to dictionary equivalents (e.g., "curvy" → ["Fitted", "Relaxed", "Loose"])
+- Normalize constraint values to match dictionary format exactly
+- If a constraint value is not in the dictionary, find the closest match or drop it
+- Do NOT invent new terms or values not in dictionaries
 - If nothing is relevant for a constraint type, return an empty array for that key
 - Output PURE JSON with no comments or extra text
 
-USER QUERY: "${params.query}"${historyText}
+USER QUERY: "${params.query}"${historyText}${classificationConstraintsText}
 
 CONTEXT: ${contextSummary}
 
-CONSTRAINT DICTIONARIES (select only from these):
+CONSTRAINT DICTIONARIES (validate against these - only use values that appear here):
 
 ${colorsDict}
 
@@ -1740,8 +2144,24 @@ ${risesDict}
 
 ${formalityDict}
 
+${necklinesDict}
+
+${sleeveLengthsDict}
+
+${collectionsDict}
+
+${seasonsDict}
+
+${colorShadesDict}
+
+${embellishmentsDict}
+
 TASK:
-Analyze the user's query and context. For each constraint type, select the most relevant values from the dictionaries above that match the user's intent.
+${params.classificationConstraints ? 
+  'Validate and normalize the provided CLASSIFICATION CONSTRAINTS against the dictionaries above. For each constraint value provided, either:' :
+  'Analyze the user\'s query and context. For each constraint type, select the most relevant values from the dictionaries above that match the user\'s intent.'}
+${params.classificationConstraints ? 
+  '1. Map it to the exact dictionary equivalent if it exists\n2. Find the closest dictionary match if similar values exist\n3. Drop it if no reasonable dictionary match exists' : ''}
 
 For importance levels:
 - "required": User explicitly requires this (e.g., "only black", "must be formal")
@@ -1750,20 +2170,29 @@ For importance levels:
 
 EXAMPLES:
 
+${params.classificationConstraints ? 
+`Example 1: Validating provided constraints
+Classification constraints: { styles: ["A-Line", "Wrap"], lengths: ["Maxi", "Midi"], fits: ["Curvy"] }
+→ Validate "Curvy" → map to dictionary: fits: ["Fitted", "Relaxed", "Loose", "Regular"] (strong)
+→ Validate "A-Line", "Wrap" → both in dictionary: styles: ["A-Line", "Wrap"] (strong)
+→ Validate "Maxi", "Midi" → both in dictionary: lengths: ["Maxi", "Midi"] (strong)
+
+Example 2: Normalizing similar values
+Classification constraints: { necklines: ["V-Neck", "Round Neck", "Sweetheart"], styles: ["Fit and Flare"] }
+→ "V-Neck", "Round Neck", "Sweetheart" all in dictionary: necklines: ["V-Neck", "Round Neck", "Sweetheart"] (strong)
+→ "Fit and Flare" maps to "Fit and Flare" style: styles: ["Fit and Flare"] (strong)` :
+`Example 1: Extracting from query only
 Query: "curvy jeans for women"
 → fits: ["Relaxed", "Wide Leg", "Straight"] (strong)
 → sizes: ["L", "XL", "2XL", "14", "16"] (strong)
 → rises: ["Mid Rise", "High Rise"] (preferred)
 
+Example 2: Extracting from query only
 Query: "black formal dress for a wedding"
 → colors: ["Black"] (required)
 → occasions: ["Wedding", "Formal"] (strong)
 → formalityLevel: ["Formal"] (strong)
-→ styles: ["Elegant", "Sophisticated"] (preferred)
-
-Query: "comfortable cotton tops"
-→ materials: ["Cotton"] (strong)
-→ fits: ["Relaxed", "Regular", "Loose"] (preferred)
+→ styles: ["Elegant", "Sophisticated"] (preferred)`}
 
 OUTPUT JSON (strict schema):
 {
@@ -1777,6 +2206,12 @@ OUTPUT JSON (strict schema):
   "fits": [],
   "rises": [],
   "formalityLevel": [],
+  "necklines": [],
+  "sleeveLengths": [],
+  "collections": [],
+  "seasons": [],
+  "colorShade": [],
+  "embellishments": [],
   "importance": {
     "colors": "required" | "strong" | "preferred",
     "materials": "required" | "strong" | "preferred",
@@ -1787,7 +2222,13 @@ OUTPUT JSON (strict schema):
     "lengths": "required" | "strong" | "preferred",
     "fits": "required" | "strong" | "preferred",
     "rises": "required" | "strong" | "preferred",
-    "formalityLevel": "required" | "strong" | "preferred"
+    "formalityLevel": "required" | "strong" | "preferred",
+    "necklines": "required" | "strong" | "preferred",
+    "sleeveLengths": "required" | "strong" | "preferred",
+    "collections": "required" | "strong" | "preferred",
+    "seasons": "required" | "strong" | "preferred",
+    "colorShade": "required" | "strong" | "preferred",
+    "embellishments": "required" | "strong" | "preferred"
   }
 }`;
 }
@@ -1797,7 +2238,7 @@ export const CONSTRAINT_REFINEMENT_SCHEMA = {
   schema: {
     type: 'object',
     additionalProperties: false,
-    required: ['colors', 'materials', 'occasions', 'styles', 'patterns', 'sizes', 'lengths', 'fits', 'rises', 'formalityLevel', 'importance'],
+    required: ['colors', 'materials', 'occasions', 'styles', 'patterns', 'sizes', 'lengths', 'fits', 'rises', 'formalityLevel', 'necklines', 'sleeveLengths', 'collections', 'seasons', 'colorShade', 'embellishments', 'importance'],
     properties: {
       colors: { type: 'array', items: { type: 'string' } },
       materials: { type: 'array', items: { type: 'string' } },
@@ -1809,6 +2250,12 @@ export const CONSTRAINT_REFINEMENT_SCHEMA = {
       fits: { type: 'array', items: { type: 'string' } },
       rises: { type: 'array', items: { type: 'string' } },
       formalityLevel: { type: 'array', items: { type: 'string' } },
+      necklines: { type: 'array', items: { type: 'string' } },
+      sleeveLengths: { type: 'array', items: { type: 'string' } },
+      collections: { type: 'array', items: { type: 'string' } },
+      seasons: { type: 'array', items: { type: 'string' } },
+      colorShade: { type: 'array', items: { type: 'string' } },
+      embellishments: { type: 'array', items: { type: 'string' } },
       importance: {
         type: 'object',
         additionalProperties: false,
@@ -1823,6 +2270,12 @@ export const CONSTRAINT_REFINEMENT_SCHEMA = {
           fits: { type: 'string', enum: ['required', 'strong', 'preferred'] },
           rises: { type: 'string', enum: ['required', 'strong', 'preferred'] },
           formalityLevel: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          necklines: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          sleeveLengths: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          collections: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          seasons: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          colorShade: { type: 'string', enum: ['required', 'strong', 'preferred'] },
+          embellishments: { type: 'string', enum: ['required', 'strong', 'preferred'] },
         },
       },
     },

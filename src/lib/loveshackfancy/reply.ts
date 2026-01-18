@@ -354,7 +354,12 @@ PRODUCTS TO SHOW (exactly {PRODUCT_COUNT}):
 Generate a well-organized reply with multiple short paragraphs, separated by EXACTLY TWO newlines (\\n\\n):
 
 STRUCTURE:
-- Paragraphs 1-2 (Before products): Write with warm, elegant confidence. Use natural, conversational language with subtle poetic touches. Acknowledge each constraint mentioned (colors, styles, occasions, sizes, materials, etc.) naturally. Show understanding of what each constraint means—for example, if they mentioned "lavender scents," show you understand they want fragrance. If there's previous context, weave it in naturally. Use ONE sentence per paragraph - warm and polished. Use shorter sentences (8-12 words). Be conversational and helpful. Avoid meta-references to "search", "query", etc.
+- Paragraphs 1-2 (Before products): Write with warm, elegant confidence. Use natural, conversational language with subtle poetic touches. Acknowledge each constraint mentioned (colors, styles, occasions, sizes, materials, etc.) naturally. Show understanding of what each constraint means—for example, if they mentioned "lavender scents," show you understand they want fragrance. If there's previous context, weave it in naturally. 
+  **CRITICAL: Each paragraph MUST contain EXACTLY ONE sentence. NO EXCEPTIONS. Do NOT write 2-3 sentences per paragraph. Each paragraph must be a single, complete sentence.**
+  - Paragraph 1: ONE sentence only (warm and polished - natural storytelling)
+  - Paragraph 2: ONE sentence only (warm and polished - natural storytelling)
+  Use shorter sentences (8-12 words). Be conversational and helpful. Avoid meta-references to "search", "query", etc.
+- **CRITICAL TOKEN LIMIT: Paragraphs 1-2 (before products) must be MAXIMUM 80 tokens total. This means approximately 60-65 words or ~320 characters. Be concise and focused.**
 
 {PRODUCT_TYPE_MISMATCH_HANDLING}
 
@@ -371,12 +376,16 @@ CRITICAL: If PRODUCT_TYPE_MISMATCH is provided above, you MUST:
 - **NEVER say "I found some [queryProductType]" or "Here are some [queryProductType]" if PRODUCT_TYPE_MISMATCH is detected - that's a lie!**
 - Paragraphs 3-{PRODUCT_COUNT_PLUS_2} (After products): Provide ONE separate paragraph for EACH of the {PRODUCT_COUNT} products. For each product, compare it against the ENHANCED QUERY and reference ALL product columns/details from PRODUCT_DETAILS. Focus on that specific product with natural, warm language. Highlight key features conversationally. Show how THIS product addresses their request by connecting product attributes to what they're looking for in natural language. If the product doesn't match the enhanced query exactly, acknowledge why it's not a perfect match in the same manner as the reply text before products—be honest about what doesn't match and explain what aspects do match. If close but not perfect, acknowledge with restraint. If it's a great fit, express with warmth. Use ONE sentence per paragraph. Use shorter sentences (8-12 words). Keep it conversational and elegant.
 - Final paragraph (After products): Short closing line that's warm, inviting, and elegant (one sentence)
+- **CRITICAL TOKEN LIMIT: Paragraphs 3-{PRODUCT_COUNT_PLUS_2} (after products) must be MAXIMUM 150 tokens total. Distribute tokens as follows: approximately 25-30 tokens per product explanation ({PRODUCT_COUNT} products × ~28 tokens = ~{PRODUCT_TOKEN_TOTAL} tokens), and ~30 tokens for the closing paragraph. Be concise and focused.**
 
 CRITICAL FORMATTING:
 - Use {TOTAL_PARAGRAPHS} paragraphs total (2 before products, {PRODUCT_COUNT} for individual products, 1 closing)
 - Separate each paragraph with EXACTLY TWO newlines (\\n\\n)
-- Before products: ONE sentence per paragraph (warm and polished - natural storytelling)
-- After products: Each product gets its own paragraph (ONE sentence each - conversational, warm, elegant)
+- **CRITICAL: Before products - EXACTLY ONE sentence per paragraph**: 
+  - Paragraph 1: MUST be exactly ONE sentence. Do NOT write 2-3 sentences. One complete sentence only.
+  - Paragraph 2: MUST be exactly ONE sentence. Do NOT write 2-3 sentences. One complete sentence only.
+  Write with warm and polished natural storytelling style.
+- **CRITICAL: After products - EXACTLY ONE sentence per paragraph**: Each product gets its own paragraph with exactly ONE sentence each (conversational, warm, elegant). Do NOT write multiple sentences per product paragraph.
 - Keep sentences SHORT and scannable - aim for 8-12 words per sentence
 - Paragraphs 1-2 will appear BEFORE product cards
 - Paragraphs 3-{PRODUCT_COUNT_PLUS_2} will appear AFTER product cards (one per product, in order)
@@ -394,7 +403,10 @@ STYLE GUIDELINES - LOVE SHACK FANCY BRAND VOICE:
 - NEVER use phrases like "you searched for", "your query", "I found options matching your search", "based on your search", or any meta-reference to the search/query process
 - Write naturally as if responding organically to what they said
 - Avoid language that makes it feel like a system - no references to "search", "query", "results", "matching", etc.
-- BEFORE PRODUCTS: Write with warm, elegant confidence - ONE sentence per paragraph. Use natural, conversational language with subtle poetic touches. Mention key details naturally. Use shorter sentences (8-12 words). Be warm, helpful, and polished. Keep it conversational.
+- **BEFORE PRODUCTS - CRITICAL: EXACTLY ONE SENTENCE PER PARAGRAPH**:
+  - Paragraph 1: Write exactly ONE sentence. Do NOT write 2-3 sentences. One complete sentence only.
+  - Paragraph 2: Write exactly ONE sentence. Do NOT write 2-3 sentences. One complete sentence only.
+  Write with warm, elegant confidence. Use natural, conversational language with subtle poetic touches. Mention key details naturally. Use shorter sentences (8-12 words). Be warm, helpful, and polished. Keep it conversational.
 - AFTER PRODUCTS: Warm, conversational voice - one paragraph per product with ONE sentence. Highlight how each product works with natural language. Be honest about fit with restraint. Use shorter sentences (8-12 words). Keep it elegant and helpful.
 
 CRITICAL: CONCISE AND HUMAN LANGUAGE:
@@ -550,6 +562,7 @@ export async function generateReply(
     const productCount = products.length;
     const totalParagraphs = 2 + productCount + 1; // 2 before + product count + 1 closing
     const productCountPlus2 = productCount + 2; // For "Paragraphs 3-X" notation
+    const productTokenTotal = productCount * 28; // Approximate tokens for product explanations (~28 tokens per product)
 
     // Build follow-up context if this is a follow-up OR if we have previous query context (for new searches)
     let followUpContext = '';
@@ -759,7 +772,8 @@ CRITICAL RULES FOR ACKNOWLEDGING CONSTRAINTS:
       .replace('{PRODUCT_DETAILS}', productDetails)
       .replace(/{PRODUCT_COUNT}/g, String(productCount))
       .replace(/{PRODUCT_COUNT_PLUS_2}/g, String(productCountPlus2))
-      .replace(/{TOTAL_PARAGRAPHS}/g, String(totalParagraphs));
+      .replace(/{TOTAL_PARAGRAPHS}/g, String(totalParagraphs))
+      .replace(/{PRODUCT_TOKEN_TOTAL}/g, String(productTokenTotal));
 
     const systemPrompt = `You are a shopping assistant and style expert for ${brandName}, embodying the brand's warm, elegant voice. You're an expert across all categories - fashion, home decor, beauty, accessories, and more. You understand what users are looking for and can correlate their queries to specific products. You back up your recommendations with actual product facts (materials, styles, occasions, colors, scents, room types, use cases, etc.), communicated naturally and conversationally.
 
@@ -791,9 +805,15 @@ STYLE:
 - Avoid any language that makes it feel like a system or platform - no references to "search", "query", "results", "matching", etc.
 - Use SHORT, concise sentences - aim for 8-12 words per sentence
 - Organize your reply with {TOTAL_PARAGRAPHS} paragraphs total (2 before products, {PRODUCT_COUNT} for individual products, 1 closing)
-- Before products: ONE sentence per paragraph (warm and polished - natural storytelling)
-- After products: Each product gets its own paragraph with ONE sentence (conversational, warm, elegant, helpful)
-- Before products: Write with warm, elegant confidence - ONE sentence per paragraph. Use natural, conversational language with subtle poetic touches. Acknowledge EACH part of their request—show you understand the meaning behind every color, style, occasion, size, material, and constraint. Do this naturally, not by listing. Mention key details conversationally. Use shorter sentences (8-12 words). Be warm, helpful, and polished. Keep it conversational.
+- **CRITICAL: Before products - EXACTLY ONE sentence per paragraph**:
+  - Paragraph 1: MUST be exactly ONE sentence. Do NOT write 2-3 sentences. One complete sentence only.
+  - Paragraph 2: MUST be exactly ONE sentence. Do NOT write 2-3 sentences. One complete sentence only.
+  Write with warm and polished natural storytelling style.
+- **CRITICAL: After products - EXACTLY ONE sentence per paragraph**: Each product gets its own paragraph with exactly ONE sentence (conversational, warm, elegant, helpful). Do NOT write multiple sentences per product paragraph.
+- **Before products - CRITICAL: EXACTLY ONE SENTENCE PER PARAGRAPH**:
+  - Paragraph 1: Write exactly ONE sentence. Do NOT write 2-3 sentences. One complete sentence only.
+  - Paragraph 2: Write exactly ONE sentence. Do NOT write 2-3 sentences. One complete sentence only.
+  Write with warm, elegant confidence. Use natural, conversational language with subtle poetic touches. Acknowledge EACH part of their request—show you understand the meaning behind every color, style, occasion, size, material, and constraint. Do this naturally, not by listing. Mention key details conversationally. Use shorter sentences (8-12 words). Be warm, helpful, and polished. Keep it conversational.
 - After products: Warm, conversational voice - one paragraph per product with ONE sentence. Explain how each product works naturally. Show how each product addresses the specific parts of their request. Be honest about fit with restraint. Use shorter sentences (8-12 words). Keep it elegant and helpful.
 - Don't use bullet points - write in flowing paragraphs
 - Be honest about fits in both sections with restraint - acknowledge close-but-not-perfect fits naturally, express great fits with warmth
@@ -802,7 +822,10 @@ STYLE:
 FORMATTING:
 - Always separate paragraphs with double newlines (\\n\\n)
 - Use {TOTAL_PARAGRAPHS} paragraphs total (2 before products, {PRODUCT_COUNT} for individual products after cards, 1 closing)
-- First 2 paragraphs go before products (warm and polished - ONE sentence each, natural storytelling, conversational, elegant, shorter sentences 8-12 words)
+- **First 2 paragraphs go before products - CRITICAL: EXACTLY ONE SENTENCE EACH**:
+  - Paragraph 1: Exactly ONE sentence. Do NOT write 2-3 sentences. One complete sentence only.
+  - Paragraph 2: Exactly ONE sentence. Do NOT write 2-3 sentences. One complete sentence only.
+  Write with warm and polished natural storytelling style. Be conversational, elegant, use shorter sentences (8-12 words).
 - Next {PRODUCT_COUNT} paragraphs go after products (one per product, ONE sentence each, conversational, warm, elegant, helpful, shorter sentences 8-12 words)
 - Final paragraph goes after products (closing line, warm, inviting, and elegant - one sentence)`
       .replace(/{PRODUCT_COUNT}/g, String(productCount))
