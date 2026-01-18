@@ -483,11 +483,29 @@ You MUST extract constraints by matching user queries to the dictionary values s
 - **EXCLUDED intent** ("not", "avoid", "no", "without", "don't want") → **Exclude**: Filter out products matching these dictionary values
 
 **CRITICAL INTENT ASSIGNMENT RULE:**
-- **If a constraint value is EXPLICITLY mentioned in the user query (e.g., "floral", "blue", "maxi", "cotton"), use "required" intent by default**
-- Only use "strong" or "preferred" if the user explicitly uses softening language (e.g., "something floral", "floral or similar", "maybe floral")
+- **EXPLICITLY MENTIONED constraints** → Use "required" intent when the user EXPLICITLY mentions a constraint value in their query
+  - Examples: "floral dress", "blue shirt", "maxi dress", "cotton top", "wedding dress" (if "wedding" is explicitly mentioned) → REQUIRED ✅
+  - Explicit keywords: "only wants", "must be", "only", "just", "exactly", "specifically" → REQUIRED ✅
+  - Only use "strong" or "preferred" for explicitly mentioned constraints if the user explicitly uses softening language (e.g., "something floral", "floral or similar", "maybe floral")
+
+- **INFERRED constraints** → Use "strong" or "preferred" intent when constraints are INFERRED from context, NOT explicitly mentioned
+  - **CRITICAL**: Inferred constraints (e.g., colors/styles/lengths inferred from "black tie wedding") should NOT be marked as "required" unless you are 95%+ confident the user absolutely needs them
+  - **Rule of thumb**: If the user didn't explicitly say it, use "strong" (preferable) or "preferred" (acceptable alternatives), NOT "required" (hard filter)
+  - **Examples of inferred constraints:**
+    - "black tie wedding" → colors: Black, Ivory, Gold (INFERRED from "black tie" context) → intent: "strong" ❌ NOT "required"
+    - "black tie wedding" → styles: Elegant, Formal (INFERRED from "black tie" context) → intent: "strong" ❌ NOT "required"
+    - "black tie wedding" → sleeves: Long Sleeve (INFERRED from formal context) → intent: "strong" ❌ NOT "required"
+    - "beach vacation" → occasions: Beach (EXPLICITLY mentioned) → intent: "required" ✅
+    - "beach vacation" → colors: Light, Bright (INFERRED from "beach" context) → intent: "strong" ❌ NOT "required"
+  - **Exception**: Only use "required" for inferred constraints if you are 95%+ confident (e.g., "black tie" ALWAYS requires formal dress code, but even then, colors/styles are still preferences, not requirements)
+
 - **Examples:**
   - "floral dress" → patterns: { values: ["Floral"], intent: "required" } ✅ (explicit mention)
   - "something for the beach, floral" → patterns: { values: ["Floral"], intent: "required" } ✅ (explicit mention)
+  - "attending a black tie wedding, suggest me a dress" → occasions: { values: ["Wedding"], intent: "required" } ✅ (explicitly mentioned "wedding")
+  - "attending a black tie wedding, suggest me a dress" → colors: { values: ["Black", "Ivory", "Gold"], intent: "strong" } ✅ (inferred from "black tie" context, NOT "required")
+  - "attending a black tie wedding, suggest me a dress" → styles: { values: ["Elegant", "Formal"], intent: "strong" } ✅ (inferred from "black tie" context, NOT "required")
+  - "attending a black tie wedding, suggest me a dress" → sleeveLengths: { values: ["Long Sleeve"], intent: "strong" } ✅ (inferred from formal context, NOT "required")
   - "floral or similar" → patterns: { values: ["Floral", "Polka Dot"], intent: "strong" } ✅ (softening language)
   - "something with pattern" → patterns: { values: ["Floral", "Polka Dot", ...], intent: "preferred" } ✅ (vague)
 
@@ -517,9 +535,23 @@ Materials:
 
 Occasions:
 - "only beach" (REQUIRED) → occasions: { values: ["Beach"], intent: "required" } (exact match only)
+- "attending a black tie wedding" (REQUIRED) → occasions: { values: ["Wedding"], intent: "required" } ✅ (explicitly mentioned "wedding")
 - "beach or similar" (STRONG) → occasions: { values: ["Beach", "Vacation"], intent: "strong" } (exact + 1-2 similar)
 - "something for vacation" (PREFERRED) → occasions: { values: ["Beach", "Vacation", "Resort"], intent: "preferred" } (exact + all similar)
 - "not formal" (EXCLUDED) → occasions: { values: ["Formal"], intent: "excluded" }
+
+**CRITICAL: INFERRED CONSTRAINTS FROM OCCASIONS/CONTEXT:**
+- "attending a black tie wedding, suggest me a dress" → 
+  - occasions: { values: ["Wedding"], intent: "required" } ✅ (explicitly mentioned "wedding")
+  - colors: { values: ["Black", "Ivory", "Gold"], intent: "strong" } ❌ NOT "required" (inferred from "black tie" context)
+  - styles: { values: ["Elegant", "Formal"], intent: "strong" } ❌ NOT "required" (inferred from "black tie" context)
+  - sleeveLengths: { values: ["Long Sleeve"], intent: "strong" } ❌ NOT "required" (inferred from formal context)
+  - embellishments: { values: ["Lace", "Sequins"], intent: "strong" } ❌ NOT "required" (inferred from formal context)
+  - necklines: { values: ["V-Neck", "Round"], intent: "strong" } ❌ NOT "required" (inferred from formal context)
+- "beach vacation" → 
+  - occasions: { values: ["Beach", "Vacation"], intent: "required" } ✅ (explicitly mentioned)
+  - colors: { values: ["Light", "Bright"], intent: "strong" } ❌ NOT "required" (inferred from "beach" context)
+  - materials: { values: ["Cotton", "Linen"], intent: "strong" } ❌ NOT "required" (inferred from "beach" context)
 
 Sizes:
 - "only size 4" (REQUIRED) → sizes: { values: ["4"], intent: "required" } (exact match only)
