@@ -1,0 +1,20 @@
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+Error: Transform failed with 1 error:
+/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/src/lib/loveshackfancy/prompts.ts:503:35: ERROR: Expected ";" but found "{"
+    at failureErrorWithLog (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/esbuild/lib/main.js:1467:15)
+    at /Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/esbuild/lib/main.js:736:50
+    at responseCallbacks.<computed> (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/esbuild/lib/main.js:603:9)
+    at handleIncomingPacket (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/esbuild/lib/main.js:658:12)
+    at Socket.readFromStdout (/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/node_modules/esbuild/lib/main.js:581:7)
+    at Socket.emit (node:events:524:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:191:23) {
+  name: 'TransformError'
+}
+
+Node.js v20.19.0

@@ -27,6 +27,7 @@ interface CategoryConstraintDictionary {
     embellishments: string[];
     collections: string[];
     seasonalPalette: string[];
+    setVsSingle?: string[]; // Optional - "Set" or "Single"
     inclusivitySizing?: string[]; // Optional - may not exist in all category dictionaries yet
   };
 }
@@ -65,6 +66,7 @@ export function mergeCategoryConstraintDictionaries(
   embellishments: string[];
   collections: string[];
   seasonalPalette: string[];
+  setVsSingle: string[];
   inclusivitySizing: string[];
 } {
   const dict = loadCategoryConstraintDictionaries();
@@ -88,6 +90,7 @@ export function mergeCategoryConstraintDictionaries(
     embellishments: new Set<string>(),
     collections: new Set<string>(),
     seasonalPalette: new Set<string>(),
+    setVsSingle: new Set<string>(),
     inclusivitySizing: new Set<string>(),
   };
 
@@ -115,6 +118,9 @@ export function mergeCategoryConstraintDictionaries(
     categoryDict.embellishments.forEach(e => constraintSets.embellishments.add(e));
     categoryDict.collections.forEach(c => constraintSets.collections.add(c));
     categoryDict.seasonalPalette.forEach(s => constraintSets.seasonalPalette.add(s));
+    if (categoryDict.setVsSingle) {
+      categoryDict.setVsSingle.forEach(s => constraintSets.setVsSingle.add(s));
+    }
     if (categoryDict.inclusivitySizing) {
       categoryDict.inclusivitySizing.forEach(i => constraintSets.inclusivitySizing.add(i));
     }
@@ -139,6 +145,7 @@ export function mergeCategoryConstraintDictionaries(
     embellishments: Array.from(constraintSets.embellishments).sort(),
     collections: Array.from(constraintSets.collections).sort(),
     seasonalPalette: Array.from(constraintSets.seasonalPalette).sort(),
+    setVsSingle: Array.from(constraintSets.setVsSingle).sort(),
     inclusivitySizing: Array.from(constraintSets.inclusivitySizing).sort(),
   };
 }
@@ -150,7 +157,7 @@ export function formatCategoryConstraintForPrompt(
   constraintType: 'colors' | 'materials' | 'sizes' | 'occasions' | 'seasons' | 'styles' | 
                    'patterns' | 'lengths' | 'formalityLevel' | 'fits' | 'rises' | 'necklines' | 
                    'sleeveLengths' | 'colorShade' | 'colorUndertone' | 'embellishments' | 
-                   'collections' | 'seasonalPalette' | 'inclusivitySizing',
+                   'collections' | 'seasonalPalette' | 'setVsSingle' | 'inclusivitySizing',
   categories: string[]
 ): string {
   if (categories.length === 0) {

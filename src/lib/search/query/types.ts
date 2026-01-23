@@ -37,6 +37,8 @@ export type BroadWhereFilters = {
   multicolor?: boolean;
   // Inclusivity sizing filter: hard filter at DB level
   inclusivitySizing?: string[]; // Plus Size, Petite, Tall, Extended Sizes, Standard Sizing
+  // Set vs Single filter: hard filter at DB level (default: ["Single"] to exclude pack products)
+  setVsSingle?: string[]; // "Set" for pack products, "Single" for individual items
 };
 
 /**

@@ -1,0 +1,33 @@
+{
+  "query": "I am going to Bahamas for vacation, suggest me a dress.",
+  "sessionId": "test-session-2-1768831094305",
+  "timestamp": "2026-01-19T13:58:35.031Z",
+  "duration": 20726,
+  "results": {
+    "productCount": 4,
+    "hasReply": true,
+    "replyPreview": "A sun-kissed dress for your Bahamas getaway should feel light, breezy, and effortlessly beautiful. Soft hues and delicate details capture the island’s warmth and your vacation’s playful spirit.\n\nThese dresses blend casual ease with subtle elegance, perfect for days by the sea or sunset strolls. Each piece invites you to embrace summer’s glow in comfort and style.",
+    "products": [
+      {
+        "id": "8105308324025",
+        "title": "Lamont Crochet Shell Mini Dress for Women in Ecru",
+        "priceCents": 69500
+      },
+      {
+        "id": "100041627",
+        "title": "Light Blue Ditsy Floral Midi Dress",
+        "priceCents": 3699
+      },
+      {
+        "id": "shopify_US_8271021146297",
+        "title": "Ciris Shell Bead Mini Dress SHELL / 4",
+        "priceCents": 59500
+      },
+      {
+        "id": "8051727302841",
+        "title": "Spirea Floral Chiffon Mini Dress for Women in Sunset Shore",
+        "priceCents": 44500
+      }
+    ]
+  }
+}

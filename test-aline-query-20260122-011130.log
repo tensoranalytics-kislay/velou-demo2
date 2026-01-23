@@ -1,0 +1,1269 @@
+Testing query: do you have any aline dresses?
+================================================================================
+[2026-01-21T19:41:31.005Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: starting',
+  query: 'do you have any aline dresses?',
+  sessionId: 'test-aline-1769024491004',
+  isFollowUp: false,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[2026-01-21T19:41:31.007Z] [Velou:DEBUG] {
+  message: 'do you have any aline dresses?',
+  sessionId: 'test-aline-1769024491004',
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  productContextId: undefined
+}
+[ORCHESTRATOR] START - input.conversationState: {
+  hasConversationState: false,
+  hasMemory: false,
+  hasPendingFollowups: false,
+  memoryKeys: []
+}
+[ORCHESTRATOR] Checking for pendingFollowups: {
+  hasInputConversationState: false,
+  hasMemory: true,
+  hasPendingFollowups: false,
+  pendingFollowupsData: null,
+  message: 'do you have any aline dresses?',
+  fullMemory: '{}'
+}
+[2026-01-21T19:41:31.008Z] [Velou:DEBUG] {
+  message: 'not_checking_followup',
+  currentMessage: 'do you have any aline dresses?',
+  hasQueryToMergeWith: false,
+  hasPreviousConstraints: false,
+  isShortMessage: true,
+  matchesFollowUpPattern: true,
+  messageLength: 6
+}
+[2026-01-21T19:41:31.042Z] [Velou:INFO] {
+  message: 'gender_and_agegroup_extracted_early',
+  query: 'do you have any aline dresses?',
+  resolvedGender: 'female',
+  resolvedAgeGroup: 'Adult',
+  genderSource: 'none',
+  ageGroupSource: 'default'
+}
+[2026-01-21T19:41:31.042Z] [Velou:DEBUG] {
+  message: 'query_categorizer: starting',
+  query: 'do you have any aline dresses?',
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[2026-01-21T19:41:32.155Z] [Velou:DEBUG] {
+  message: 'query_categorizer: complete',
+  query: 'do you have any aline dresses?',
+  category: 'direct_search',
+  confidence: 0.95,
+  duration: 1112
+}
+[2026-01-21T19:41:32.155Z] [Velou:INFO] {
+  message: 'query_categorization_result',
+  query: 'do you have any aline dresses?',
+  category: 'direct_search',
+  confidence: 0.95,
+  note: 'Query categorizer classification result'
+}
+[2026-01-21T19:41:32.156Z] [Velou:INFO] {
+  message: 'sequential_classification_category_first_then_constraints',
+  query: 'do you have any aline dresses?',
+  categorizationCategory: 'direct_search',
+  isFollowUp: false,
+  hasCategorySignals: true
+}
+[2026-01-21T19:41:32.173Z] [Velou:DEBUG] {
+  message: 'buildAllowedCategoriesForClassifier: gender_interpretable',
+  genderContext: 'female',
+  totalCategories: 121,
+  allowedCategories: 101,
+  sampleAllowed: [
+    'Pajama Set',
+    'Textiles',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Home Decor',
+    'Sleepwear & Loungewear',
+    'Phone Cases',
+    'Kitchen & Dining',
+    'gift card'
+  ]
+}
+[2026-01-21T19:41:32.174Z] [Velou:INFO] {
+  message: 'categories_filtered_before_classification',
+  query: 'do you have any aline dresses?',
+  resolvedGender: 'female',
+  totalCategories: 101,
+  sampleCategories: [
+    'Pajama Set',
+    'Textiles',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Home Decor',
+    'Sleepwear & Loungewear',
+    'Phone Cases',
+    'Kitchen & Dining',
+    'gift card'
+  ]
+}
+[ORCHESTRATOR] Calling category classification (sequential - step 1) {
+  query: 'do you have any aline dresses?',
+  originalMessage: 'do you have any aline dresses?',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  categorizationCategory: 'direct_search'
+}
+[2026-01-21T19:41:32.174Z] [Velou:INFO] {
+  message: 'category_classification_calling_function_sequential',
+  query: 'do you have any aline dresses?',
+  originalMessage: 'do you have any aline dresses?',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  categorizationCategory: 'direct_search'
+}
+[2026-01-21T19:41:32.175Z] [Velou:INFO] {
+  message: 'category_classifier: using_pre_filtered_categories',
+  query: 'do you have any aline dresses?',
+  preFilteredCategoryCount: 101,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  note: 'Using pre-filtered categories from orchestrator (gender already extracted)'
+}
+[2026-01-21T19:41:32.175Z] [Velou:INFO] {
+  message: 'category_classifier: starting classification with confidence',
+  query: 'do you have any aline dresses?',
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  allowedCategoryCount: 101,
+  usingPreFiltered: true
+}
+[2026-01-21T19:41:33.762Z] [Velou:INFO] {
+  message: 'category_classifier: classification with confidence complete',
+  query: 'do you have any aline dresses?',
+  categories: [ "Women's Dresses" ],
+  categoryCount: 1,
+  confidence: 0.9,
+  elapsedMs: 1587,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[ORCHESTRATOR] Category classification result (with confidence) {
+  query: 'do you have any aline dresses?',
+  originalMessage: 'do you have any aline dresses?',
+  isFollowUp: false,
+  categories: [ "Women's Dresses" ],
+  count: 1,
+  confidence: 0.9,
+  categorizationCategory: 'direct_search'
+}
+[2026-01-21T19:41:33.763Z] [Velou:INFO] {
+  message: 'category_classification_complete_with_confidence_sequential',
+  query: 'do you have any aline dresses?',
+  originalMessage: 'do you have any aline dresses?',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  categorizationCategory: 'direct_search',
+  categories: [ "Women's Dresses" ],
+  categoryCount: 1,
+  confidence: 0.9
+}
+[2026-01-21T19:41:33.763Z] [Velou:INFO] {
+  message: 'category_filter_will_be_applied',
+  query: 'do you have any aline dresses?',
+  categories: [ "Women's Dresses" ],
+  filterType: 'hard_sql_level',
+  appliesTo: 'multi_view_retrieval'
+}
+[2026-01-21T19:41:33.763Z] [Velou:INFO] {
+  message: 'constraint_classification_calling_sequential_after_categories',
+  query: 'do you have any aline dresses?',
+  classifiedCategories: [ "Women's Dresses" ],
+  categoryCount: 1,
+  willUseCategorySpecificDictionaries: true
+}
+[2026-01-21T19:41:33.767Z] [Velou:INFO] {
+  message: 'classifyQuery: starting',
+  query: 'do you have any aline dresses?',
+  hasLastConstraints: false,
+  hasEnhancedQuery: true
+}
+[2026-01-21T19:41:33.768Z] [Velou:INFO] {
+  message: 'classifyQuery: gender_context_computed',
+  query: 'do you have any aline dresses?',
+  genderContext: null,
+  lastConstraintsGender: undefined,
+  note: 'Gender context computed before building classifier prompt'
+}
+[2026-01-21T19:41:33.769Z] [Velou:DEBUG] {
+  message: 'buildAllowedCategoriesForClassifier: gender_ambiguous_strict_majority',
+  genderContext: null,
+  totalCategories: 121,
+  strictMajorityCategories: 69,
+  sampleAllowed: [
+    'Pajama Set',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Sleepwear & Loungewear',
+    'long sleeve',
+    'mom jeans',
+    'joggers',
+    'underwear',
+    'Mens-tees'
+  ],
+  note: 'Using only strict gender majority categories (≥95% male or female) for ambiguous queries'
+}
+[2026-01-21T19:41:33.770Z] [Velou:INFO] {
+  message: 'classifyQuery: allowed_categories_computed',
+  query: 'do you have any aline dresses?',
+  genderContext: null,
+  usedStrictMajorityMode: true,
+  allowedCategoryCount: 69,
+  sampleCategories: [
+    'Pajama Set',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Sleepwear & Loungewear',
+    'long sleeve',
+    'mom jeans',
+    'joggers',
+    'underwear',
+    'Mens-tees',
+    'straight leg jeans',
+    'top',
+    'cropped jeans',
+    'Maxi Dress',
+    'Girls Dresses'
+  ],
+  note: 'Category list filtered based on gender context before building classifier prompt'
+}
+[2026-01-21T19:41:41.880Z] [Velou:INFO] {
+  message: 'classifyQuery: llm_raw_response',
+  query: 'do you have any aline dresses?',
+  rawTextLength: 1069,
+  parsedType: 'direct_product_search',
+  parsedConstraints: {
+    colors: null,
+    sizes: null,
+    occasions: null,
+    styles: null,
+    patterns: null,
+    seasons: null,
+    materials: null,
+    fits: null,
+    collections: null,
+    embellishments: null,
+    necklines: null,
+    sleeveLengths: null,
+    ageGroups: null,
+    inclusivitySizing: null,
+    setVsSingle: null,
+    lengths: null,
+    formalityLevel: null,
+    occasionContext: null,
+    problemSolutions: null,
+    functionFeatures: null,
+    colorShade: null,
+    colorUndertone: null,
+    seasonalPalette: null,
+    modestyCues: null,
+    careRequirements: null,
+    travelFeatures: null,
+    ecoMaterials: null,
+    priceMinCents: null,
+    priceMaxCents: null,
+    rainWind: null,
+    pockets: null,
+    liningType: null,
+    braSolution: null,
+    certifications: null,
+    origin: null,
+    adaptiveFeatures: null,
+    sensoryFriendly: null,
+    finish: null,
+    layeringIntent: null,
+    pairingIntent: null,
+    temperatureIntent: null,
+    humidityFriendly: null,
+    multicolor: null,
+    scents: null,
+    rooms: null,
+    useCases: null,
+    benefits: null,
+    claims: null,
+    sensoryProfile: null,
+    compatibility: null,
+    gender: null,
+    rises: null
+  },
+  parsedColors: null,
+  parsedLengths: null,
+  parsedSleeveLengths: null,
+  parsedAgeGroups: null,
+  note: 'Raw LLM response for constraint extraction debugging'
+}
+[2026-01-21T19:41:41.881Z] [Velou:INFO] {
+  message: 'classifyQuery: constraint_extraction_results',
+  query: 'do you have any aline dresses?',
+  extractedColors: null,
+  extractedLengths: null,
+  extractedSleeveLengths: null,
+  extractedAgeGroups: null,
+  colorsFormat: 'null',
+  lengthsFormat: 'null',
+  sleeveLengthsFormat: 'null',
+  ageGroupsFormat: 'null',
+  note: 'Extracted constraints after normalization - verify all explicit constraints were extracted'
+}
+[2026-01-21T19:41:41.883Z] [Velou:INFO] {
+  message: 'classifier_constraints_extracted',
+  query: 'do you have any aline dresses?',
+  type: 'direct_product_search',
+  productTerms: 'aline dress',
+  confidence: 0.95,
+  constraintsCount: 2,
+  colors: undefined,
+  lengths: undefined,
+  sleeveLengths: undefined,
+  ageGroups: undefined,
+  missingConstraints: undefined,
+  allConstraints: { priceMinCents: null, priceMaxCents: null },
+  hasLastConstraints: false,
+  lastConstraintsKeys: []
+}
+[2026-01-21T19:41:41.883Z] [Velou:DEBUG] {
+  message: 'fashion_query_classified',
+  query: 'do you have any aline dresses?',
+  type: 'direct_product_search',
+  productTerms: 'aline dress',
+  constraintsCount: 17
+}
+[2026-01-21T19:41:41.883Z] [Velou:INFO] {
+  message: 'classifyQuery: complete',
+  query: 'do you have any aline dresses?',
+  type: 'direct_product_search',
+  totalDurationMs: 8116,
+  totalDurationSeconds: '8.12',
+  llmDurationMs: 8102,
+  llmDurationSeconds: '8.10',
+  constraintsCount: 17,
+  genderContext: null,
+  usedStrictMajorityMode: true
+}
+[2026-01-21T19:41:41.883Z] [Velou:INFO] {
+  message: 'classification_metadata_extracted',
+  query: 'do you have any aline dresses?',
+  usedStrictMajorityMode: true,
+  genderContext: null,
+  classificationConfidence: 0.95,
+  classifiedGender: undefined
+}
+[2026-01-21T19:41:41.883Z] [Velou:INFO] {
+  message: 'category_categories_set_from_sequential_classification',
+  query: 'do you have any aline dresses?',
+  categories: [ "Women's Dresses" ],
+  confidence: 0.9
+}
+[2026-01-21T19:41:41.890Z] [Velou:INFO] {
+  message: 'categories_filtered_by_gender_after_classification',
+  query: 'do you have any aline dresses?',
+  resolvedGender: 'female',
+  originalCategories: [ "Women's Dresses" ],
+  filteredCategories: [ "Women's Dresses" ],
+  removedCount: 0
+}
+[2026-01-21T19:41:41.890Z] [Velou:INFO] {
+  message: 'gender_added_to_classification_constraints',
+  gender: 'female',
+  isFollowUp: false,
+  note: 'Gender extracted early and added to classification constraints'
+}
+[2026-01-21T19:41:41.890Z] [Velou:DEBUG] {
+  message: 'clarification_triggers_evaluation',
+  query: 'do you have any aline dresses?',
+  topCategoriesCount: 1,
+  classificationType: 'direct_product_search',
+  hasProductTerms: true,
+  productTerms: 'aline dress',
+  classificationConfidence: 0.95,
+  needsClarification: false
+}
+[2026-01-21T19:41:41.890Z] [Velou:INFO] {
+  message: 'category_filter_applied_to_retrieval',
+  query: 'do you have any aline dresses?',
+  categories: [ "Women's Dresses" ],
+  filterType: 'hard_sql_level',
+  note: 'Catalog will be filtered to these categories before multi-view retrieval'
+}
+[2026-01-21T19:41:41.890Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: starting_retrieval',
+  query: 'do you have any aline dresses?',
+  productTerms: 'aline dress',
+  classificationType: 'direct_product_search',
+  categoryCount: 1
+}
+[2026-01-21T19:41:41.893Z] [Velou:DEBUG] {
+  message: 'category_expansion_parent_with_subcategories',
+  originalCategory: "Women's Dresses",
+  subcategoryCount: 5,
+  reason: 'parent_category_naturally_covers_subcategories_via_sql'
+}
+[2026-01-21T19:41:41.894Z] [Velou:DEBUG] {
+  message: 'category_expansion_complete',
+  inputCategories: [ "Women's Dresses" ],
+  expandedCategories: [ "Women's Dresses" ],
+  expansionCount: 0
+}
+[2026-01-21T19:41:41.894Z] [Velou:DEBUG] {
+  message: 'classificationToSearchConstraints_inclusivitySizing_extraction',
+  rawInclusivitySizing: undefined,
+  inclusivitySizingValues: undefined,
+  inclusivitySizingIntent: null,
+  inclusivitySizingValuesLength: 0,
+  willUseDefault: true,
+  defaultValue: 'Standard Sizing',
+  note: 'Check inclusivitySizing extraction - defaults to Standard Sizing if not extracted'
+}
+[2026-01-21T19:41:41.895Z] [Velou:INFO] {
+  message: 'classificationToSearchConstraints_inclusivitySizing_final',
+  extractedValues: undefined,
+  finalValue: [ 'Standard Sizing' ],
+  isDefault: true,
+  intent: null,
+  note: 'inclusivitySizing filter - always hard SQL filter, defaults to Standard Sizing if not extracted'
+}
+[2026-01-21T19:41:41.895Z] [Velou:INFO] {
+  message: 'classificationToSearchConstraints_setVsSingle_final',
+  extractedValue: null,
+  finalValue: [ 'Single' ],
+  isDefault: true,
+  intent: null,
+  note: 'setVsSingle filter - always hard SQL filter, defaults to "Single" to exclude pack products unless "Set" is explicitly requested'
+}
+[2026-01-21T19:41:41.895Z] [Velou:DEBUG] {
+  message: 'classificationToSearchConstraints_result',
+  query: 'do you have any aline dresses?',
+  inclusivitySizing: [ 'Standard Sizing' ],
+  inclusivitySizingLength: 1,
+  note: 'After classificationToSearchConstraints - check if inclusivitySizing is preserved'
+}
+[2026-01-21T19:41:41.895Z] [Velou:INFO] {
+  message: 'gender_hard_filter_applied_to_retrieval',
+  query: 'do you have any aline dresses?',
+  resolvedGender: 'female',
+  note: 'Gender applied as HARD SQL filter - will never be relaxed'
+}
+[2026-01-21T19:41:41.895Z] [Velou:INFO] {
+  message: 'agegroup_hard_filter_applied_to_retrieval',
+  query: 'do you have any aline dresses?',
+  resolvedAgeGroup: 'Adult',
+  note: 'AgeGroup applied as HARD SQL filter - will never be relaxed'
+}
+[2026-01-21T19:41:41.896Z] [Velou:INFO] {
+  message: 'category_filter_passed_to_search_constraints',
+  query: 'do you have any aline dresses?',
+  categories: [ "Women's Dresses" ],
+  willFilterLexical: false,
+  willFilterSemantic: true
+}
+[2026-01-21T19:41:41.896Z] [Velou:DEBUG] {
+  message: 'fashion_semantic_search: query for embedding',
+  original: 'do you have any aline dresses?',
+  productTerms: 'aline dress',
+  usingForEmbedding: 'aline dress',
+  constraintsAdded: 'no'
+}
+[2026-01-21T19:41:42.673Z] [Velou:DEBUG] {
+  message: 'constraint_context: age_groups_preserved_in_sql_filters',
+  categories: [ "Women's Dresses" ],
+  ageGroups: [ 'Adult' ],
+  originalFormat: 'array',
+  note: 'Age groups preserved as hard SQL filters'
+}
+[2026-01-21T19:41:42.674Z] [Velou:DEBUG] {
+  message: 'constraint_context: applied_category_metadata',
+  categories: [ "Women's Dresses" ],
+  originalConstraints: {
+    colors: 0,
+    materials: 0,
+    fabrics: 0,
+    sizes: 0,
+    occasions: 0,
+    seasons: 0,
+    lengths: 0,
+    sleeves: 0,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  sqlFilters: {
+    colors: 0,
+    materials: 0,
+    fabrics: 0,
+    sizes: 0,
+    occasions: 0,
+    seasons: 0,
+    lengths: 0,
+    sleeves: 0,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  excludedFilters: {
+    colors: 0,
+    materials: 0,
+    fabrics: 0,
+    sizes: 0,
+    occasions: 0,
+    seasons: 0,
+    styleTags: 0,
+    pattern: 0,
+    fit: 0,
+    lengths: 0,
+    sleeves: 0,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  keywordTerms: 0,
+  categoryKeywordsExtracted: 0,
+  categoryKeywordsSample: [],
+  applicableConstraints: [
+    'colors',    'sizes',
+    'fabrics',   'materials',
+    'occasions', 'seasons',
+    'fit',       'price'
+  ],
+  textOnlyConstraints: []
+}
+[2026-01-21T19:41:42.674Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: intent_extraction_for_post_sql_filtering',
+  query: 'do you have any aline dresses?',
+  constraintIntents: {
+    colors: null,
+    lengths: null,
+    sleeveLengths: null,
+    necklines: null,
+    formalityLevel: null,
+    colorShade: null
+  },
+  contextAwareIntents: {
+    colors: null,
+    lengths: null,
+    sleeves: null,
+    necklines: null,
+    formalityLevels: null,
+    colorShades: null
+  },
+  note: 'Intent information extracted and mapped for post-SQL filtering'
+}
+[2026-01-21T19:41:42.674Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: context_aware_constraints_applied',
+  query: 'do you have any aline dresses?',
+  categories: [ "Women's Dresses" ],
+  originalColors: undefined,
+  originalAgeGroups: [ 'Adult' ],
+  sqlFiltersColors: undefined,
+  sqlFiltersAgeGroups: [ 'Adult' ],
+  keywordTerms: [],
+  keywordTermsSample: [],
+  textOnlyConstraints: [],
+  allowKeywordMatching: false
+}
+[2026-01-21T19:41:42.674Z] [Velou:DEBUG] {
+  message: 'fashion_semantic_search: post_sql_filtering_flag',
+  query: 'do you have any aline dresses?',
+  usePostSQLFiltering: true,
+  flagValue: 'true'
+}
+[2026-01-21T19:41:42.674Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: tier1_strict_filtering',
+  query: 'do you have any aline dresses?',
+  originalCategories: [ "Women's Dresses" ],
+  expandedCategories: [ "Women's Dresses" ],
+  usePostSQLFiltering: true,
+  sqlFilters: {
+    colors: 0,
+    materials: 0,
+    fabrics: 0,
+    lengths: 0,
+    sleeves: 0,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  keywordTerms: 0
+}
+[2026-01-21T19:41:42.674Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: tier1_before_post_sql_check',
+  query: 'do you have any aline dresses?',
+  USE_POST_SQL_FILTERING: true,
+  envValue: 'true',
+  expandedCategories: [ "Women's Dresses" ],
+  ageGroups: [ 'Adult' ],
+  note: 'Checking which mode to use (post-SQL filtering vs existing mode)'
+}
+[2026-01-21T19:41:42.674Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: post_sql_filtering_mode_enabled',
+  query: 'do you have any aline dresses?',
+  expandedCategories: [ "Women's Dresses" ],
+  ageGroups: [ 'Adult' ],
+  note: 'Post-SQL filtering mode enabled - Stage 1: Category-only SQL filter starting'
+}
+[2026-01-21T19:41:42.674Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: deduplicateProductsByCategoryForPostFiltering_input',
+  query: 'do you have any aline dresses?',
+  inclusivitySizing: [ 'Standard Sizing' ],
+  inclusivitySizingLength: 1,
+  note: 'Checking inclusivitySizing filter before SQL query'
+}
+[2026-01-21T19:41:42.675Z] [Velou:INFO] {
+  message: 'deduplicateProductsByCategoryForPostFiltering: executing query',
+  filters: {
+    genders: [ 'female' ],
+    categories: [ "Women's Dresses" ],
+    ageGroups: [ 'Adult' ],
+    inclusivitySizing: [ 'Standard Sizing' ],
+    setVsSingle: [ 'Single' ],
+    priceMinCents: undefined,
+    priceMaxCents: undefined,
+    merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+    inStockOnly: true
+  },
+  limit: 1500,
+  categoryCount: 1,
+  categories: [ "Women's Dresses" ],
+  hasPriceFilter: false,
+  priceMinCents: undefined,
+  priceMaxCents: undefined,
+  hasAgeGroupFilter: true,
+  ageGroups: [ 'Adult' ],
+  ageGroupCount: 1,
+  paramCount: 6,
+  whereClausePreview: `p."isActive" = true AND p."merchantId" = $1 AND p."stockStatus" = 'in_stock' AND ((p."gender" = 'female' OR p."gender" = 'unisex')) AND ((\n` +
+    '            LOWER(p."category") = LOWER($2) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($3)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($2) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($3)\n` +
+    '          )) AND ((((\n' +
+    `          LOWER(COALESCE(p."ageGroup", '')) = LOWER($4) \n` +
+    `          OR LOWER(COALESCE(p."ageGroup", '')) LIKE LOWER($5)\n` +
+    '          OR\n' +
+    "          LOWER(COALESCE(p.attributes->>'ageGroup', '')) = LOWER($4) \n" +
+    "          OR LOWER(COALESCE(p.attributes->>'ageGroup', '')) LIKE LOWER($5)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'age_group', '')) = LOWER($4)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'age_group', '')) LIKE LOWER($5)\n" +
+    "          OR (p.attributes->'extensible' IS NOT NULL AND (\n" +
+    "            LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) = LOWER($4) \n" +
+    "            OR LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) LIKE LOWER($5)\n" +
+    '          ))\n' +
+    `        ) OR (LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%'))) AND NOT ((LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%'))) AND p."inclusivitySizing" = ANY(ARRAY['Standard Sizing']::text[]) AND p.attributes->>'set_vs_single' = ANY(ARRAY['Single']::text[])`,
+  note: 'Post-filterable attributes (colors, lengths, sleeves, necklines, formalityLevels, colorShades) intentionally omitted from SQL filters'
+}
+[2026-01-21T19:41:47.712Z] [Velou:INFO] {
+  message: 'deduplicateProductsByCategoryForPostFiltering: results found',
+  count: 331,
+  requestedLimit: 1500,
+  categoryCount: 1
+}
+[2026-01-21T19:41:47.713Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: post_sql_filtering_stage1_complete',
+  query: 'do you have any aline dresses?',
+  categoryFilteredCount: 331,
+  note: 'Stage 1: Category-only SQL filter completed'
+}
+[2026-01-21T19:41:47.713Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: calling_post_sql_filtering_with_intents',
+  query: 'do you have any aline dresses?',
+  contextAwareIntents: {
+    colors: null,
+    lengths: null,
+    sleeves: null,
+    necklines: null,
+    formalityLevels: null,
+    colorShades: null
+  },
+  hasColorsIntent: false,
+  hasLengthsIntent: false,
+  hasSleevesIntent: false,
+  hasNecklinesIntent: false,
+  hasFormalityIntent: false,
+  note: 'About to build dictionaries and filter products in single pass'
+}
+[2026-01-21T19:41:47.719Z] [Velou:INFO] {
+  message: 'loadPreBuiltDictionaries: loaded from cache',
+  dictionaryCount: 529,
+  buildDate: '2026-01-19T14:38:43.768Z',
+  totalCategories: 529,
+  totalProducts: 5490
+}
+[2026-01-21T19:41:47.720Z] [Velou:INFO] {
+  message: 'buildCategorySpecificDictionaries: loaded from cache',
+  categoriesCount: 1,
+  categories: [ "Women's Dresses" ],
+  dictionariesLoaded: 17,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  sampleKeys: [
+    "Women's Dresses|",
+    "Women's Dresses|Midi Dresses",
+    "Women's Dresses|Midaxi Dresses",
+    "Women's Dresses|Curve Dresses",
+    "Women's Dresses|Mini Dresses"
+  ]
+}
+[2026-01-21T19:41:47.721Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: post_sql_filtering_stage2_complete',
+  query: 'do you have any aline dresses?',
+  originalCount: 331,
+  postFilteredCount: 331,
+  reductionPercentage: '0.00%',
+  dictionaryCount: 17,
+  filtersApplied: {
+    colors: 0,
+    colorValues: undefined,
+    lengths: 0,
+    lengthValues: undefined,
+    sleeves: 0,
+    sleeveValues: undefined,
+    necklines: 0,
+    necklineValues: undefined,
+    formalityLevels: 0,
+    formalityLevelValues: undefined,
+    colorShades: 0,
+    colorShadeValues: undefined
+  },
+  note: 'Stage 2: Dictionaries built and products filtered in single pass'
+}
+[2026-01-21T19:41:47.722Z] [Velou:INFO] {
+  message: 'searchVectorIndexWithDeduplication: using pre-deduplicated product IDs',
+  productIdsCount: 331,
+  limit: 150,
+  filters: {
+    inStockOnly: true,
+    merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+  }
+}
+[2026-01-21T19:41:47.722Z] [Velou:DEBUG] {
+  message: 'searchVectorIndexWithDeduplication: executing query',
+  limit: 150,
+  preDedupLimit: undefined,
+  filters: {
+    inStockOnly: true,
+    merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+    categories: undefined,
+    genders: [ 'female' ],
+    ageGroups: [ 'Adult' ],
+    priceMinCents: undefined,
+    priceMaxCents: undefined,
+    colors: undefined,
+    excludedColors: undefined,
+    lengths: undefined,
+    patterns: undefined,
+    materials: undefined,
+    occasions: undefined,
+    sleeves: undefined,
+    necklines: undefined,
+    sizes: undefined,
+    fits: undefined,
+    styles: undefined,
+    collections: undefined,
+    seasons: undefined,
+    rises: undefined,
+    embellishments: undefined,
+    formalityLevel: undefined,
+    colorShade: undefined,
+    colorUndertone: undefined,
+    seasonalPalette: undefined
+  },
+  hasPriceFilter: false,
+  priceMinCents: undefined,
+  priceMaxCents: undefined,
+  paramCount: 5,
+  hasPreDeduplicatedIds: true,
+  productIdsCount: 331,
+  categoryFilter: undefined,
+  categoryCount: 0,
+  hasCategoryFilter: false,
+  whereClause: `p.embedding IS NOT NULL AND p."isActive" = true AND p."merchantId" = $2 AND p."stockStatus" = 'in_stock' AND ((((\n` +
+    '          -- Check database column (primary source)\n' +
+    `          LOWER(COALESCE(p."ageGroup", '')) = LOWER($3) \n` +
+    `          OR LOWER(COALESCE(p."ageGroup", '')) LIKE LOWER($4)\n` +
+    '          OR\n' +
+    '          -- Check JSONB attributes (fallback for legacy data)\n' +
+    "          LOWER(COALESCE(p.attributes->>'ageGroup', '')) = LOWER($3) \n" +
+    "          OR LOWER(COALESCE(p.attributes->>'ageGroup', '')) LIKE LOWER($4)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'age_group', '')) = LOWER($3)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'age_group', '')) LIKE LOWER($4)\n" +
+    "          OR (p.attributes->'extensible' IS NOT NULL AND (\n" +
+    "            LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) = LOWER($3) \n" +
+    "            OR LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) LIKE LOWER($4)\n" +
+    '          ))\n' +
+    `        ) OR (LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%'))) AND NOT ((LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%'))) AND p.id = ANY(ARRAY['100042166', '202928054', '8271017345209', '204326025', '7913654878393', '8179603275961', '203205551', '8120573493433', '204066000', '203519100', '8084018725049', '203596025', '204186000', '100042611', '8037569659065', '8043996119225', '202196551', '200946354', '202392054', '8179604553913', '201867000', '204270155', '204231054', '8084019151033', '204352460', '8217313083577', '8061023584441', '8038485262521', '100042854', '8166174228665', '202837551', '200832000', '201614000', '203411000', '8203036524729', '204263055', '8179603341497', '202869000', '200658055', '8084019478713', '203229054', '8217306366137', '203952351', '8271014920377', '8217312854201', '8271016951993', '202312100', '8179603570873', '200896152', '201208150', 'shopify_US_8084018921657', '8221222600889', '7950165573817', '203206460', '202163161', '203409055', '202797054', '202394054', '8203037769913', '8179604619449', '100041218', '8244342554809', '8271017574585', '204034501', '8244347928761', '203768054', '8179608682681', '8084019282105', '204472355', '8084019118265', '8179608715449', '8193122402489', '204220152', '8084016267449', '8179603177657', '200486000', '100042649', '204243156', '8270955708601', '202551054', '100042209', '203557554', '8193111326905', '201629161', '8106591977657', '8213039874233', '200538000', '8244348158137', '201203156', '204407552', '4369834999831', '100042474', '8166174523577', '200083000', '8271017672889', '201162550', '204136552', '200788000', '100042580', '203772100', '204614054', '203581055', '8203051204793', '203213551', '8106592010425', '200769000', '204335554', '8183660150969', '202417054', '7261626892473', '8047658172601', '8244342816953', '202552156', '202878025', '204030000', 'shopify_US_8271020884153', '8217312821433', '204065000', '204180054', '8217312624825', '8270956855481', '203937000', '8179603800249', '201358054', '204167054', '201773053', '203595100', '204807057', '8271017279673', '204617054', '8244347306169', '8084019740857', '8193111195833', '8271017509049', '8105247113401', '8271020851385', '8095325454521', '200986055', '8217313214649', '8157678895289', '204518100', '7988752253113', '8217312723129', '7814030885049', '203403054', '204413054', '8217313771705', '202551000', '8061010575545', '8084019642553', '8193111294137', '8244342423737', '200957156', '8079128920249', '8102006849721', 'shopify_US_8244348289209', '8221222502585', '647484211223', '8221222437049', '8203051008185', '204413552', '202951156', '203496552', '202089161', '204230000', '8106592207033', '202080156', '202196054', '200544355', '202358054', '7597048463545', '8193111228601', '200982000', '203808054', '202548156', '8111107440825', '8084019806393', '204902152', '8193121747129', '8271017607353', '8084016332985', '204563054', '8179604455609', '204192054', '8179603407033', '8037569593529', '8027253801145', '8061023518905', '204216101', '8179604881593', '201191000', '8038484869305', '100041503', '203628100', '8162618310841', '204091152', '203491057', '203992551', '202633460', '8047639494841', '201124000', '204153550', '8036095361209', '201357450', '8120573329593', '204220550', '203535551', '4369834901527', '202741602', '202163352', '203045025', '202179025', '204383550', '8183660380345', '8120573591737', '8095325487289', '204194100', '8179609075897', '203802054', '8080215572665', '202312054', '202785551', '203222152', '8244345307321', '202551057', '203837000', '8169459351737', '7525796348089', '200310158', '8061023453369', '200008450', '8084019183801', '204099054', '202649054', '100041500', '8105247178937', '203551000', '201185156', '8097708048569', '100042570', '8271020720313', '200697000', '203926551', '8178057937081', '201406000', '8179603308729', '204494150', '201203054', '8106592174265', '100042503', '203297160', '204521054', '8270956495033', '202312000', '8221221978297', '8271025504441', 'shopify_US_8203037900985', '203318000', '203222057', '7913665069241', '8179608584377', '204027156', '203971550', '204395100', '8193122107577', '8105308324025', '204090160', '8105297903801', '200872551', '100042855', '203532156', '8217313738937', '200430025', '204054100', '8095325585593', '204034460', '8244347109561', '202329054', '201993450', '8221222305977', '204275053', '8203037049017', '201853355', '202489025', '204064552', '8095325716665', '204033156', '204062351', '8178058035385', '7692161908921', '8084016234681', '204202000', '8166174261433', '7929323913401', '8244348321977', '8179603898553', '204271054', '8179608846521', '7608446451897', '204185000', '201274000', '204183000', '203490552', '204201000', '4369835098135', '8106592043193', '8080215638201', '200544100', '8051727302841', '203565000', '8084018888889', '202866161', '8095325651129', '204187054', '8084016398521', '8244346912953', '204405152', '202872152', '201014000', '8120573722809', '8105247277241', '202552054', '201739156', '7516518187193', '202838054', '8084018692281', '8084019216569', '8080218030265', '8084018757817', '203849054', '204171160']::text[])`
+}
+[2026-01-21T19:41:48.829Z] [Velou:INFO] {
+  message: 'searchVectorIndexWithDeduplication: results found',
+  count: 150,
+  requestedLimit: 150,
+  preDedupLimit: undefined,
+  hasPreDeduplicatedIds: true,
+  deduplicationRate: 'N/A'
+}
+[2026-01-21T19:41:48.830Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: tier1_success',
+  query: 'do you have any aline dresses?',
+  resultCount: 150,
+  usePostSQLFiltering: true,
+  productIdsToSearchCount: 331
+}
+[2026-01-21T19:41:48.831Z] [Velou:INFO] {
+  message: 'fashion_semantic_search',
+  query: 'do you have any aline dresses?',
+  resultCount: 150,
+  topSimilarity: 0.6217582596396374,
+  avgSimilarity: 0.48979889999886705,
+  fallbackTier: 'strict',
+  keywordTermsUsed: 0
+}
+[2026-01-21T19:41:48.831Z] [Velou:INFO] {
+  message: 'fashion_multiview_retrieval',
+  query: 'do you have any aline dresses?',
+  totalCandidates: 150,
+  lexicalCount: 0,
+  semanticCount: 150,
+  conceptCount: 0
+}
+[2026-01-21T19:41:49.704Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: retrieval_complete',
+  query: 'do you have any aline dresses?',
+  candidateCount: 150,
+  retrievalDurationMs: 7814,
+  retrievalDurationSeconds: '7.81'
+}
+[2026-01-21T19:41:49.705Z] [Velou:INFO] {
+  message: 'loadFashionProducts: starting',
+  productCount: 35,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[2026-01-21T19:41:50.824Z] [Velou:INFO] {
+  message: 'loadFashionProducts: database_query_complete',
+  productCount: 35,
+  requestedCount: 35,
+  batchCount: 1,
+  dbDurationMs: 1119
+}
+[2026-01-21T19:41:50.824Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: product_loading_complete',
+  query: 'do you have any aline dresses?',
+  loadedCount: 35,
+  requestedCount: 35,
+  productLoadingDurationMs: 1120,
+  productLoadingDurationSeconds: '1.12'
+}
+[2026-01-21T19:41:50.825Z] [Velou:INFO] {
+  message: 'fashion_ranking_complete',
+  query: 'do you have any aline dresses?',
+  productCount: 35,
+  topScore: 0.6217582596396374,
+  avgScore: 0.515592497949034,
+  scoreRange: '0.497 - 0.622'
+}
+[2026-01-21T19:41:50.825Z] [Velou:DEBUG] {
+  message: 'dynamic_threshold_calculation',
+  query: 'do you have any aline dresses?',
+  isFollowUp: false,
+  categoryConfidence: 0.9,
+  calculatedThreshold: 0.25,
+  note: 'Dynamic relevance threshold calculated based on query type and category confidence'
+}
+[2026-01-21T19:41:50.825Z] [Velou:DEBUG] {
+  message: 'dynamic_threshold_recalculated_after_product_type_check',
+  query: 'do you have any aline dresses?',
+  isFollowUp: false,
+  categoryConfidence: 0.9,
+  productTypeMatches: true,
+  recalculatedThreshold: 0.25,
+  note: 'Dynamic relevance threshold recalculated after product type matching check'
+}
+[2026-01-21T19:41:50.826Z] [Velou:INFO] {
+  message: 'category_validation_all_products',
+  query: 'do you have any aline dresses?',
+  totalProducts: 4,
+  validatedProducts: 4,
+  filteredCount: 0,
+  categories: [ "Women's Dresses" ],
+  categoryConfidence: 0.9,
+  note: 'All products validated by category to prevent cross-category contamination'
+}
+[2026-01-21T19:41:50.826Z] [Velou:DEBUG] {
+  message: 'confidence_threshold_calculation',
+  query: 'do you have any aline dresses?',
+  topScore: 0.6217582596396374,
+  productTypeMatches: true,
+  topProductRelevant: true,
+  effectiveConfidenceThreshold: 0.2,
+  hasHighConfidence: true,
+  isFollowUp: false,
+  minTopScore: 0.25,
+  thresholdApplied: false
+}
+[2026-01-21T19:41:50.827Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: starting_reply_generation',
+  query: 'do you have any aline dresses?',
+  productCount: 4
+}
+[2026-01-21T19:41:50.828Z] [Velou:INFO] {
+  message: 'generateReply: starting',
+  query: 'do you have any aline dresses?',
+  productCount: 4,
+  hasContext: false,
+  isFollowUp: false
+}
+[2026-01-21T19:41:50.851Z] [Velou:INFO] {
+  message: 'emotional_keywords_generation_start',
+  productCount: 4,
+  enhancedQuery: 'do you have any aline dresses?'
+}
+[2026-01-21T19:41:50.852Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_generation_start',
+  productCount: 4,
+  enhancedQuery: 'do you have any aline dresses?',
+  brandName: 'LoveShackFancy'
+}
+[2026-01-21T19:41:53.650Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_llm_response',
+  rawText: '\n' +
+    '  {\n' +
+    '    "result": [\n' +
+    '      [\n' +
+    '        "sunlit charm",\n' +
+    '        "playful silhouette",\n' +
+    '        "cotton breeze"\n' +
+    '      ],\n' +
+    '      [\n' +
+    '        "bohemian grace",\n' +
+    '        "airy romance",\n' +
+    '        "cape elegance"\n' +
+    '      ],\n' +
+    '      [\n' +
+    '        "festive lace",\n' +
+    '        "delicate glamour",\n' +
+    '        "timeless allure"\n' +
+    '      ],\n' +
+    '      [\n' +
+    '        "Victorian softness",\n' +
+    '        "lace contrast",\n' +
+    '        "whispered nostalgia"\n' +
+    '      ]\n' +
+    '    ]\n' +
+    '  }',
+  rawTextLength: 412
+}
+[2026-01-21T19:41:53.650Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_extracted_from_result_key',
+  key: 'result'
+}
+[2026-01-21T19:41:53.651Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_parsed',
+  arrayLength: 4,
+  expectedLength: 4,
+  firstFewKeywords: [
+    [ 'sunlit charm', 'playful silhouette', 'cotton breeze' ],
+    [ 'bohemian grace', 'airy romance', 'cape elegance' ],
+    [ 'festive lace', 'delicate glamour', 'timeless allure' ]
+  ]
+}
+[2026-01-21T19:41:53.651Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_product_validation',
+  productIndex: 0,
+  productTitle: 'Aline Gingham Eyelet Mini Dress for Women in Angel',
+  rawKeywords: [ 'sunlit charm', 'playful silhouette', 'cotton breeze' ],
+  validKeywords: [ 'sunlit charm', 'playful silhouette', 'cotton breeze' ],
+  validCount: 3
+}
+[2026-01-21T19:41:53.651Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_product_validation',
+  productIndex: 1,
+  productTitle: 'Avaline Floral Chiffon Mini Dress for Women in Whi',
+  rawKeywords: [ 'bohemian grace', 'airy romance', 'cape elegance' ],
+  validKeywords: [ 'bohemian grace', 'airy romance', 'cape elegance' ],
+  validCount: 3
+}
+[2026-01-21T19:41:53.651Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_product_validation',
+  productIndex: 2,
+  productTitle: 'Alouetta Embellished Lace Mini Dress for Women in ',
+  rawKeywords: [ 'festive lace', 'delicate glamour', 'timeless allure' ],
+  validKeywords: [ 'festive lace', 'delicate glamour', 'timeless allure' ],
+  validCount: 3
+}
+[2026-01-21T19:41:53.651Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_product_validation',
+  productIndex: 3,
+  productTitle: 'Alonna Cotton Lace-Trimmed Mini Dress for Women in',
+  rawKeywords: [ 'Victorian softness', 'lace contrast', 'whispered nostalgia' ],
+  validKeywords: [ 'Victorian softness', 'lace contrast', 'whispered nostalgia' ],
+  validCount: 3
+}
+[2026-01-21T19:41:53.651Z] [Velou:INFO] {
+  message: 'emotional_keywords_batch_generation_complete',
+  productCount: 4,
+  validatedCount: 4,
+  sampleKeywords: [
+    [ 'sunlit charm', 'playful silhouette', 'cotton breeze' ],
+    [ 'bohemian grace', 'airy romance', 'cape elegance' ]
+  ]
+}
+[2026-01-21T19:41:53.651Z] [Velou:INFO] {
+  message: 'emotional_keywords_received',
+  keywordsArrayLength: 4,
+  expectedLength: 4,
+  sampleKeywords: [
+    [ 'sunlit charm', 'playful silhouette', 'cotton breeze' ],
+    [ 'bohemian grace', 'airy romance', 'cape elegance' ]
+  ],
+  allKeywords: [
+    {
+      productIndex: 0,
+      productTitle: 'Aline Gingham Eyelet Mini Dress for Women in Angel',
+      keywords: [Array]
+    },
+    {
+      productIndex: 1,
+      productTitle: 'Avaline Floral Chiffon Mini Dress for Women in Whi',
+      keywords: [Array]
+    },
+    {
+      productIndex: 2,
+      productTitle: 'Alouetta Embellished Lace Mini Dress for Women in ',
+      keywords: [Array]
+    },
+    {
+      productIndex: 3,
+      productTitle: 'Alonna Cotton Lace-Trimmed Mini Dress for Women in',
+      keywords: [Array]
+    }
+  ]
+}
+[2026-01-21T19:41:53.652Z] [Velou:INFO] {
+  message: 'emotional_keywords_product_card',
+  productIndex: 0,
+  productTitle: 'Aline Gingham Eyelet Mini Dress for Women in Angel',
+  keywords: [ 'sunlit charm', 'playful silhouette', 'cotton breeze' ],
+  keywordsCount: 3
+}
+[2026-01-21T19:41:53.652Z] [Velou:INFO] {
+  message: 'emotional_keywords_product_card',
+  productIndex: 1,
+  productTitle: 'Avaline Floral Chiffon Mini Dress for Women in Whi',
+  keywords: [ 'bohemian grace', 'airy romance', 'cape elegance' ],
+  keywordsCount: 3
+}
+[2026-01-21T19:41:53.653Z] [Velou:INFO] {
+  message: 'emotional_keywords_product_card',
+  productIndex: 2,
+  productTitle: 'Alouetta Embellished Lace Mini Dress for Women in ',
+  keywords: [ 'festive lace', 'delicate glamour', 'timeless allure' ],
+  keywordsCount: 3
+}
+[2026-01-21T19:41:53.653Z] [Velou:INFO] {
+  message: 'emotional_keywords_product_card',
+  productIndex: 3,
+  productTitle: 'Alonna Cotton Lace-Trimmed Mini Dress for Women in',
+  keywords: [ 'Victorian softness', 'lace contrast', 'whispered nostalgia' ],
+  keywordsCount: 3
+}
+[2026-01-21T19:41:55.158Z] [Velou:DEBUG] {
+  message: 'reply_split_result',
+  totalParagraphs: 3,
+  productCount: 4,
+  expectedParagraphs: 7,
+  replyTextBeforeLength: 835,
+  replyTextAfterLength: 113,
+  hasReplyTextAfter: true,
+  isFollowUp: undefined
+}
+[2026-01-21T19:41:55.158Z] [Velou:INFO] {
+  message: 'generateReply: complete',
+  query: 'do you have any aline dresses?',
+  productCount: 4,
+  totalDurationMs: 4331,
+  totalDurationSeconds: '4.33',
+  llmDurationMs: 4328,
+  llmDurationSeconds: '4.33',
+  replyTextLength: 835,
+  replyTextAfterLength: 113
+}
+[2026-01-21T19:41:55.158Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: reply_generation_complete',
+  query: 'do you have any aline dresses?',
+  replyDurationMs: 4331,
+  replyDurationSeconds: '4.33',
+  replyTextLength: 835,
+  hasReplyTextAfter: true
+}
+[2026-01-21T19:41:55.158Z] [Velou:INFO] {
+  message: 'show_more_action_added',
+  query: 'do you have any aline dresses?',
+  currentProductCount: 4,
+  totalAvailableProducts: 35,
+  route: 'DISCOVERY'
+}
+[2026-01-21T19:41:55.158Z] [Velou:INFO] {
+  message: 'orchestrator_final_constraints',
+  query: 'do you have any aline dresses?',
+  isFollowUp: false,
+  hasMergedConstraints: false,
+  finalConstraintsSource: 'classification',
+  finalConstraintsCount: 0,
+  allFinalConstraints: {},
+  productTerms: 'aline dress',
+  hasProductTerms: true
+}
+[2026-01-21T19:41:55.158Z] [Velou:INFO] {
+  message: 'orchestrator_resolved_constraints',
+  query: 'do you have any aline dresses?',
+  resolvedConstraints: {
+    colors: undefined,
+    sizes: undefined,
+    materials: undefined,
+    occasions: undefined,
+    seasons: undefined,
+    priceMinCents: undefined,
+    priceMaxCents: undefined,
+    ageGroups: undefined,
+    styleTags: undefined
+  },
+  constraintsPassedToRanking: {
+    colors: undefined,
+    patterns: undefined,
+    occasions: undefined,
+    materials: undefined,
+    sizes: undefined,
+    ageGroups: undefined,
+    priceMinCents: null,
+    priceMaxCents: null,
+    seasons: undefined,
+    styles: undefined,
+    fits: undefined,
+    lengths: undefined,
+    necklines: undefined,
+    sleeveLengths: undefined,
+    collections: undefined,
+    embellishments: undefined
+  }
+}
+[2026-01-21T19:41:55.158Z] [Velou:INFO] {
+  message: 'orchestrator_pipeline_summary',
+  query: 'do you have any aline dresses?',
+  isFollowUp: false,
+  enhancedQueryText: 'do you have any aline dresses?',
+  productTerms: 'aline dress',
+  classificationType: 'direct_product_search',
+  topCategories: [ "Women's Dresses" ],
+  candidateProductCount: 35,
+  finalProductCount: 4,
+  constraintsFlow: {
+    classificationConstraints: {
+      colors: undefined,
+      patterns: undefined,
+      occasions: undefined,
+      priceMinCents: null,
+      priceMaxCents: null
+    },
+    parsedConstraints: null,
+    mergedConstraints: null,
+    finalConstraints: {
+      colors: undefined,
+      patterns: undefined,
+      occasions: undefined,
+      priceMinCents: null,
+      priceMaxCents: null
+    },
+    constraintsPassedToRanking: {
+      colors: undefined,
+      patterns: undefined,
+      occasions: undefined,
+      priceMinCents: null,
+      priceMaxCents: null,
+      seasons: undefined,
+      styles: undefined,
+      materials: undefined,
+      fits: undefined,
+      lengths: undefined,
+      ageGroups: undefined
+    }
+  },
+  topProducts: [
+    {
+      rank: 1,
+      productId: '8084018757817',
+      productTitle: 'Aline Gingham Eyelet Mini Dress for Women in Angel Pink'
+    },
+    {
+      rank: 2,
+      productId: '8084019642553',
+      productTitle: 'Avaline Floral Chiffon Mini Dress for Women in White Peach'
+    },
+    {
+      rank: 3,
+      productId: '8271020720313',
+      productTitle: 'Alouetta Embellished Lace Mini Dress for Women in Ivory'
+    },
+    {
+      rank: 4,
+      productId: '8043996119225',
+      productTitle: 'Alonna Cotton Lace-Trimmed Mini Dress for Women in White'
+    }
+  ]
+}
+[2026-01-21T19:41:55.750Z] [Velou:DEBUG] {
+  message: 'stored_ranked_products_for_show_more',
+  query: 'do you have any aline dresses?',
+  rankedProductCount: 35,
+  sessionId: 'test-aline-1769024491004'
+}
+[2026-01-21T19:41:55.751Z] [Velou:INFO] {
+  message: 'do you have any aline dresses?',
+  sessionId: 'test-aline-1769024491004',
+  enhancedQuery: 'do you have any aline dresses?',
+  isFollowUp: false,
+  productCount: 4,
+  route: 'DISCOVERY'
+}
+
+📊 RESULTS:
+================================================================================
+Products returned: 4
+
+📋 Extracted Constraints:
+resolvedConstraints: {}
+
+constraintsPassedToRanking: {}
+
+📦 Top Products:
+1. Aline Gingham Eyelet Mini Dress for Women in Angel Pink
+   Style: N/A
+   Silhouette: N/A
+2. Avaline Floral Chiffon Mini Dress for Women in White Peach
+   Style: N/A
+   Silhouette: N/A
+3. Alouetta Embellished Lace Mini Dress for Women in Ivory
+   Style: N/A
+   Silhouette: N/A
+4. Alonna Cotton Lace-Trimmed Mini Dress for Women in White
+   Style: N/A
+   Silhouette: N/A
+
+🔍 Verifying Product Styles:
+❌ Alonna Cotton Lace-Trimmed Mini Dress for Women in White
+   SilhouetteCut: Empire
+   Style attributes: ["Classic","Romantic"]
+✅ Aline Gingham Eyelet Mini Dress for Women in Angel Pink
+   SilhouetteCut: A-Line
+   Style attributes: ["Casual"]
+✅ Avaline Floral Chiffon Mini Dress for Women in White Peach
+   SilhouetteCut: A-Line
+   Style attributes: ["Bohemian","Casual"]
+❌ Alouetta Embellished Lace Mini Dress for Women in Ivory
+   SilhouetteCut: Fit and Flare
+   Style attributes: ["Elegant","Romantic"]

@@ -1,0 +1,289 @@
+================================================================================
+Testing: "I am joining office next month, suggest me something to wear"
+================================================================================
+
+[2026-01-20T15:00:13.909Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: starting',
+  query: 'I am joining office next month, suggest me something to wear',
+  sessionId: 'test-session-office-wear',
+  isFollowUp: false,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[2026-01-20T15:00:13.911Z] [Velou:DEBUG] {
+  message: 'I am joining office next month, suggest me something to wear',
+  sessionId: 'test-session-office-wear',
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  productContextId: undefined
+}
+[ORCHESTRATOR] START - input.conversationState: {
+  hasConversationState: false,
+  hasMemory: false,
+  hasPendingFollowups: false,
+  memoryKeys: []
+}
+[ORCHESTRATOR] Checking for pendingFollowups: {
+  hasInputConversationState: false,
+  hasMemory: true,
+  hasPendingFollowups: false,
+  pendingFollowupsData: null,
+  message: 'I am joining office next month, suggest me somethi',
+  fullMemory: '{}'
+}
+[2026-01-20T15:00:13.913Z] [Velou:DEBUG] {
+  message: 'not_checking_followup',
+  currentMessage: 'I am joining office next month, suggest me something to wear',
+  hasQueryToMergeWith: false,
+  hasPreviousConstraints: false,
+  isShortMessage: true,
+  matchesFollowUpPattern: false,
+  messageLength: 11
+}
+[2026-01-20T15:00:13.939Z] [Velou:INFO] {
+  message: 'gender_and_agegroup_extracted_early',
+  query: 'I am joining office next month, suggest me something to wear',
+  resolvedGender: null,
+  resolvedAgeGroup: 'Adult',
+  genderSource: 'none',
+  ageGroupSource: 'default'
+}
+[2026-01-20T15:00:13.939Z] [Velou:DEBUG] {
+  message: 'query_categorizer: starting',
+  query: 'I am joining office next month, suggest me something to wear',
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[2026-01-20T15:00:15.888Z] [Velou:DEBUG] {
+  message: 'query_categorizer: complete',
+  query: 'I am joining office next month, suggest me something to wear',
+  category: 'indirect_search',
+  confidence: 0.95,
+  duration: 1949
+}
+[2026-01-20T15:00:15.888Z] [Velou:INFO] {
+  message: 'query_categorization_result',
+  query: 'I am joining office next month, suggest me something to wear',
+  category: 'indirect_search',
+  confidence: 0.95,
+  note: 'Query categorizer classification result'
+}
+[2026-01-20T15:00:15.890Z] [Velou:INFO] {
+  message: 'classifyQuery: starting',
+  query: 'I am joining office next month, suggest me something to wear',
+  hasLastConstraints: false,
+  hasEnhancedQuery: true
+}
+[2026-01-20T15:00:15.891Z] [Velou:INFO] {
+  message: 'classifyQuery: gender_context_computed',
+  query: 'I am joining office next month, suggest me something to wear',
+  genderContext: null,
+  lastConstraintsGender: undefined,
+  note: 'Gender context computed before building classifier prompt'
+}
+[2026-01-20T15:00:15.891Z] [Velou:DEBUG] {
+  message: 'buildAllowedCategoriesForClassifier: gender_ambiguous_strict_majority',
+  genderContext: null,
+  totalCategories: 121,
+  strictMajorityCategories: 69,
+  sampleAllowed: [
+    'Pajama Set',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Sleepwear & Loungewear',
+    'long sleeve',
+    'mom jeans',
+    'joggers',
+    'underwear',
+    'Mens-tees'
+  ],
+  note: 'Using only strict gender majority categories (≥95% male or female) for ambiguous queries'
+}
+[2026-01-20T15:00:15.891Z] [Velou:INFO] {
+  message: 'classifyQuery: allowed_categories_computed',
+  query: 'I am joining office next month, suggest me something to wear',
+  genderContext: null,
+  usedStrictMajorityMode: true,
+  allowedCategoryCount: 69,
+  sampleCategories: [
+    'Pajama Set',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Sleepwear & Loungewear',
+    'long sleeve',
+    'mom jeans',
+    'joggers',
+    'underwear',
+    'Mens-tees',
+    'straight leg jeans',
+    'top',
+    'cropped jeans',
+    'Maxi Dress',
+    'Girls Dresses'
+  ],
+  note: 'Category list filtered based on gender context before building classifier prompt'
+}
+[2026-01-20T15:00:20.396Z] [Velou:INFO] {
+  message: 'classifyQuery: llm_raw_response',
+  query: 'I am joining office next month, suggest me something to wear',
+  rawTextLength: 613,
+  parsedType: 'gift_or_vague',
+  parsedConstraints: {
+    styles: null,
+    lengths: null,
+    occasions: [ 'Work' ],
+    seasons: null,
+    materials: null,
+    patterns: null,
+    colors: [ 'White', 'Navy', 'Gray', 'Beige', 'Black', 'Blush' ],
+    sizes: null,
+    fits: [ 'Relaxed', 'Regular', 'Fitted' ],
+    collections: null,
+    priceMinCents: null,
+    priceMaxCents: null,
+    embellishments: null,
+    necklines: [ 'Round', 'V-Neck', 'Collar' ],
+    sleeveLengths: [ 'Long Sleeve', 'Three-Quarter Sleeve', 'Short Sleeve' ],
+    ageGroups: [ 'Adult' ],
+    scents: null,
+    rooms: null,
+    useCases: null,
+    benefits: null,
+    claims: null,
+    sensoryProfile: null,
+    compatibility: null
+  },
+  parsedColors: [ 'White', 'Navy', 'Gray', 'Beige', 'Black', 'Blush' ],
+  parsedLengths: null,
+  parsedSleeveLengths: [ 'Long Sleeve', 'Three-Quarter Sleeve', 'Short Sleeve' ],
+  parsedAgeGroups: [ 'Adult' ],
+  note: 'Raw LLM response for constraint extraction debugging'
+}
+[2026-01-20T15:00:20.397Z] [Velou:INFO] {
+  message: 'classifyQuery: constraint_extraction_results',
+  query: 'I am joining office next month, suggest me something to wear',
+  extractedColors: [ 'White', 'Navy', 'Gray', 'Beige', 'Black', 'Blush' ],
+  extractedLengths: null,
+  extractedSleeveLengths: [ 'Long Sleeve', 'Three-Quarter Sleeve', 'Short Sleeve' ],
+  extractedAgeGroups: [ 'Adult' ],
+  colorsFormat: 'array',
+  lengthsFormat: 'null',
+  sleeveLengthsFormat: 'array',
+  ageGroupsFormat: 'array',
+  note: 'Extracted constraints after normalization - verify all explicit constraints were extracted'
+}
+[2026-01-20T15:00:20.398Z] [Velou:INFO] {
+  message: 'classifier_constraints_extracted',
+  query: 'I am joining office next month, suggest me something to wear',
+  type: 'gift_or_vague',
+  productTerms: 'i am joining office next month, suggest me something to wear',
+  confidence: 0.85,
+  constraintsCount: 8,
+  colors: {
+    values: [ 'White', 'Navy', 'Gray', 'Beige', 'Black', 'Blush' ],
+    intent: 'strong'
+  },
+  lengths: undefined,
+  sleeveLengths: [ 'Long Sleeve', 'Three-Quarter Sleeve', 'Short Sleeve' ],
+  ageGroups: { values: [ 'Adult' ], intent: 'strong' },
+  missingConstraints: undefined,
+  allConstraints: {
+    colors: { values: [Array], intent: 'strong' },
+    occasions: { values: [Array], intent: 'strong' },
+    fits: [ 'Relaxed', 'Regular', 'Fitted' ],
+    necklines: [ 'Round', 'V-Neck', 'Collar' ],
+    sleeveLengths: [ 'Long Sleeve', 'Three-Quarter Sleeve', 'Short Sleeve' ],
+    ageGroups: { values: [Array], intent: 'strong' },
+    priceMinCents: null,
+    priceMaxCents: null
+  },
+  hasLastConstraints: false,
+  lastConstraintsKeys: []
+}
+[2026-01-20T15:00:20.399Z] [Velou:DEBUG] {
+  message: 'fashion_query_classified',
+  query: 'I am joining office next month, suggest me something to wear',
+  type: 'gift_or_vague',
+  productTerms: 'i am joining office next month, suggest me something to wear',
+  constraintsCount: 9
+}
+[2026-01-20T15:00:20.399Z] [Velou:INFO] {
+  message: 'classifyQuery: complete',
+  query: 'I am joining office next month, suggest me something to wear',
+  type: 'gift_or_vague',
+  totalDurationMs: 4509,
+  totalDurationSeconds: '4.51',
+  llmDurationMs: 4503,
+  llmDurationSeconds: '4.50',
+  constraintsCount: 9,
+  genderContext: null,
+  usedStrictMajorityMode: true
+}
+[2026-01-20T15:00:20.399Z] [Velou:INFO] {
+  message: 'classification_metadata_extracted_else_branch',
+  query: 'I am joining office next month, suggest me something to wear',
+  usedStrictMajorityMode: true,
+  genderContext: null,
+  classificationConfidence: 0.85,
+  classifiedGender: undefined
+}
+[2026-01-20T15:00:20.399Z] [Velou:DEBUG] {
+  message: 'category_classification_skipped',
+  query: 'I am joining office next month, suggest me something to wear',
+  categorizationCategory: 'indirect_search',
+  isFollowUp: false,
+  reason: 'indirect_search_without_followup_or_category_signals'
+}
+[2026-01-20T15:00:20.399Z] [Velou:DEBUG] {
+  message: 'clarification_triggers_evaluation',
+  query: 'I am joining office next month, suggest me something to wear',
+  topCategoriesCount: 0,
+  classificationType: 'gift_or_vague',
+  hasProductTerms: true,
+  productTerms: 'i am joining office next month, suggest me something to wear',
+  classificationConfidence: 0.85,
+  needsClarification: true
+}
+[2026-01-20T15:00:20.399Z] [Velou:INFO] {
+  message: 'clarification_triggered',
+  query: 'I am joining office next month, suggest me something to wear',
+  reasons: [ 'no_categories' ],
+  topCategoriesCount: 0,
+  classificationType: 'gift_or_vague',
+  hasProductTerms: true,
+  classificationConfidence: 0.85,
+  note: 'Constraints are unclear - requesting clarification before retrieval'
+}
+[FOLLOWUP-GEN] Starting generateFollowUpQuestions for query: I am joining office next month, suggest me something to wear
+[FOLLOWUP-GEN] FINAL contextSummary: Ooh, starting a new office job! How exciting to refresh your wardrobe for this fresh chapter. I understand you want something polished and comfortable for your first days at work. Let’s find pieces that make you feel confident and radiant in your new role.
+[FOLLOWUP-GEN] Original from LLM: Ooh, starting a new office job! How exciting to refresh your wardrobe for this fresh chapter. I understand you want something polished and comfortable for your first days at work. Let’s find pieces that make you feel confident and radiant in your new role.
+[FOLLOWUP-GEN] Was modified? false
+[2026-01-20T15:00:22.700Z] [Velou:INFO] {
+  message: 'clarification_followup_questions_received',
+  query: 'I am joining office next month, suggest me something to wear',
+  contextSummary: 'Ooh, starting a new office job! How exciting to refresh your wardrobe for this fresh chapter. I understand you want something polished and comfortable',
+  questionCount: 1,
+  reasons: [ 'no_categories' ]
+}
+[2026-01-20T15:00:22.701Z] [Velou:INFO] {
+  message: 'clarification_reply_constructed',
+  query: 'I am joining office next month, suggest me something to wear',
+  contextSummaryLength: 256,
+  questionsCount: 1,
+  replyTextPreview: 'Ooh, starting a new office job! How exciting to refresh your wardrobe for this fresh chapter. I understand you want something polished and comfortable for your first days at work. Let’s find pieces th',
+  reasons: [ 'no_categories' ]
+}
+✅ Query completed successfully
+
+⏱️  Total time: 8.79s
+
+📊 Results Summary:
+  Products returned: 0
+  Has reply: true
+  No exact match: true
+
+❌ No products returned
+💬 Reply Preview:
+Ooh, starting a new office job! How exciting to refresh your wardrobe for this fresh chapter. I understand you want something polished and comfortable for your first days at work. Let’s find pieces that make you feel confident and radiant in your new role.
+
+Are you looking for dresses, tops, or some
+

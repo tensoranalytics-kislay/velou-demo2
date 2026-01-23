@@ -404,6 +404,13 @@ export async function dbRankedSearch(
     whereParts.push(Prisma.raw(`"inclusivitySizing" = ANY(ARRAY[${values}]::text[])`));
   }
 
+  // Set vs Single: hard filter at DB level (filter by attributes->>'set_vs_single')
+  // Default to "Single" to exclude pack products unless "Set" is explicitly requested
+  if (whereFilters.setVsSingle && whereFilters.setVsSingle.length > 0) {
+    const values = whereFilters.setVsSingle.map((v) => `'${v.replace(/'/g, "''")}'`).join(', ');
+    whereParts.push(Prisma.raw(`attributes->>'set_vs_single' = ANY(ARRAY[${values}]::text[])`));
+  }
+
   const whereClause =
     whereParts.length > 0
       ? (() => {

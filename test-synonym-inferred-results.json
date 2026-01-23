@@ -1,0 +1,109 @@
+[
+  {
+    "query": "I want a cap sleeve dress for summer",
+    "type": "synonym",
+    "duration": 21964,
+    "productCount": 0,
+    "constraints": {},
+    "topProducts": [],
+    "issues": [
+      "❌ Expected constraint \"sleeveLengths\" not extracted",
+      "⚠️  No products returned"
+    ]
+  },
+  {
+    "query": "show me empire waist dresses",
+    "type": "synonym",
+    "duration": 12457,
+    "productCount": 0,
+    "constraints": {},
+    "topProducts": [],
+    "issues": [
+      "❌ Expected constraint \"styles\" not extracted",
+      "⚠️  No products returned"
+    ]
+  },
+  {
+    "query": "I need a scoop neck blouse",
+    "type": "synonym",
+    "duration": 19415,
+    "productCount": 0,
+    "constraints": {},
+    "topProducts": [],
+    "issues": [
+      "❌ Expected constraint \"necklines\" not extracted",
+      "⚠️  No products returned"
+    ]
+  },
+  {
+    "query": "looking for fit and flare style dresses",
+    "type": "synonym",
+    "duration": 20723,
+    "productCount": 0,
+    "constraints": {},
+    "topProducts": [],
+    "issues": [
+      "❌ Expected constraint \"styles\" not extracted",
+      "⚠️  No products returned"
+    ]
+  },
+  {
+    "query": "I need something cozy and warm for cold weather",
+    "type": "inferred",
+    "duration": 9595,
+    "productCount": 0,
+    "constraints": {},
+    "topProducts": [],
+    "issues": [
+      "⚠️  Expected constraint \"materials\" not extracted",
+      "⚠️  Expected constraint \"sleeveLengths\" not extracted",
+      "⚠️  Expected constraint \"colors\" not extracted",
+      "❌ None of the expected constraints were extracted",
+      "⚠️  No products returned"
+    ]
+  },
+  {
+    "query": "what would work for a first date?",
+    "type": "inferred",
+    "duration": 10761,
+    "productCount": 0,
+    "constraints": {},
+    "topProducts": [],
+    "issues": [
+      "⚠️  Expected constraint \"occasions\" not extracted",
+      "⚠️  Expected constraint \"styles\" not extracted",
+      "⚠️  Expected constraint \"formalityLevel\" not extracted",
+      "❌ None of the expected constraints were extracted",
+      "⚠️  No products returned"
+    ]
+  },
+  {
+    "query": "I'm going to a business meeting, need something professional",
+    "type": "inferred",
+    "duration": 6448,
+    "productCount": 0,
+    "constraints": {},
+    "topProducts": [],
+    "issues": [
+      "⚠️  Expected constraint \"formalityLevel\" not extracted",
+      "⚠️  Expected constraint \"styles\" not extracted",
+      "⚠️  Expected constraint \"occasions\" not extracted",
+      "❌ None of the expected constraints were extracted",
+      "⚠️  No products returned"
+    ]
+  },
+  {
+    "query": "something that won't wrinkle when I travel",
+    "type": "inferred",
+    "duration": 8350,
+    "productCount": 0,
+    "constraints": {},
+    "topProducts": [],
+    "issues": [
+      "⚠️  Expected constraint \"materials\" not extracted",
+      "⚠️  Expected constraint \"travelFeatures\" not extracted",
+      "❌ None of the expected constraints were extracted",
+      "⚠️  No products returned"
+    ]
+  }
+]

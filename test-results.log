@@ -1,0 +1,311 @@
+====================================================================================================
+COMPREHENSIVE PIPELINE TEST
+Testing 8 queries: 4 vague + 4 direct (all with categories)
+====================================================================================================
+
+
+====================================================================================================
+TEST 1/8: Vague 1: Soft summer dress
+Type: VAGUE
+Query: "I need something soft and flowy for a summer garden party. Show me dresses."
+====================================================================================================
+prisma:error 
+Invalid `prisma.merchant.findUnique()` invocation in
+/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/src/lib/services/AssistantService.ts:77:44
+
+  74 ): Promise<AssistantQueryResult> {
+  75   try {
+  76     // Verify merchant exists and load needed fields
+→ 77     const merchant = await prisma.merchant.findUnique({
+           where: {
+             id: {
+               message: "I need something soft and flowy for a summer garden party. Show me dresses.",
+               sessionId: "test-session-1769087967010-0",
+               merchantId: "default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b"
+             }
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+           },
+           select: {
+             id: true,
+             brandName: true,
+             voiceInstructions: true,
+             datasetContext: true,
+             uiCopy: true,
+             faq: true
+           }
+         })
+
+Argument `id`: Invalid value provided. Expected String, provided Object.
+
+❌ ERROR: Cannot read properties of undefined (reading 'sessionId')
+
+====================================================================================================
+TEST 2/8: Vague 2: Elegant evening wear
+Type: VAGUE
+Query: "Looking for something elegant and sophisticated for a formal event. I prefer dresses."
+====================================================================================================
+prisma:error 
+Invalid `prisma.merchant.findUnique()` invocation in
+/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/src/lib/services/AssistantService.ts:77:44
+
+  74 ): Promise<AssistantQueryResult> {
+  75   try {
+  76     // Verify merchant exists and load needed fields
+→ 77     const merchant = await prisma.merchant.findUnique({
+           where: {
+             id: {
+               message: "Looking for something elegant and sophisticated for a formal event. I prefer dresses.",
+               sessionId: "test-session-1769087969125-1",
+               merchantId: "default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b"
+             }
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+           },
+           select: {
+             id: true,
+             brandName: true,
+             voiceInstructions: true,
+             datasetContext: true,
+             uiCopy: true,
+             faq: true
+           }
+         })
+
+Argument `id`: Invalid value provided. Expected String, provided Object.
+
+❌ ERROR: Cannot read properties of undefined (reading 'sessionId')
+
+====================================================================================================
+TEST 3/8: Vague 3: Comfortable casual outfit
+Type: VAGUE
+Query: "I want something comfortable and casual for everyday wear. Show me dresses that are easy to move in."
+====================================================================================================
+prisma:error 
+Invalid `prisma.merchant.findUnique()` invocation in
+/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/src/lib/services/AssistantService.ts:77:44
+
+  74 ): Promise<AssistantQueryResult> {
+  75   try {
+  76     // Verify merchant exists and load needed fields
+→ 77     const merchant = await prisma.merchant.findUnique({
+           where: {
+             id: {
+               message: "I want something comfortable and casual for everyday wear. Show me dresses that are easy to move in.",
+               sessionId: "test-session-1769087969131-2",
+               merchantId: "default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b"
+             }
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+           },
+           select: {
+             id: true,
+             brandName: true,
+             voiceInstructions: true,
+             datasetContext: true,
+             uiCopy: true,
+             faq: true
+           }
+         })
+
+Argument `id`: Invalid value provided. Expected String, provided Object.
+
+❌ ERROR: Cannot read properties of undefined (reading 'sessionId')
+
+====================================================================================================
+TEST 4/8: Vague 4: Romantic date night look
+Type: VAGUE
+Query: "Help me find a romantic dress for a special date night. Something feminine and flattering."
+====================================================================================================
+prisma:error 
+Invalid `prisma.merchant.findUnique()` invocation in
+/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/src/lib/services/AssistantService.ts:77:44
+
+  74 ): Promise<AssistantQueryResult> {
+  75   try {
+  76     // Verify merchant exists and load needed fields
+→ 77     const merchant = await prisma.merchant.findUnique({
+           where: {
+             id: {
+               message: "Help me find a romantic dress for a special date night. Something feminine and flattering.",
+               sessionId: "test-session-1769087969133-3",
+               merchantId: "default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b"
+             }
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+           },
+           select: {
+             id: true,
+             brandName: true,
+             voiceInstructions: true,
+             datasetContext: true,
+             uiCopy: true,
+             faq: true
+           }
+         })
+
+Argument `id`: Invalid value provided. Expected String, provided Object.
+
+❌ ERROR: Cannot read properties of undefined (reading 'sessionId')
+
+====================================================================================================
+TEST 5/8: Direct 1: Blue maxi dress
+Type: DIRECT
+Query: "Do you have any blue maxi dresses?"
+====================================================================================================
+prisma:error 
+Invalid `prisma.merchant.findUnique()` invocation in
+/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/src/lib/services/AssistantService.ts:77:44
+
+  74 ): Promise<AssistantQueryResult> {
+  75   try {
+  76     // Verify merchant exists and load needed fields
+→ 77     const merchant = await prisma.merchant.findUnique({
+           where: {
+             id: {
+               message: "Do you have any blue maxi dresses?",
+               sessionId: "test-session-1769087969139-4",
+               merchantId: "default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b"
+             }
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+           },
+           select: {
+             id: true,
+             brandName: true,
+             voiceInstructions: true,
+             datasetContext: true,
+             uiCopy: true,
+             faq: true
+           }
+         })
+
+Argument `id`: Invalid value provided. Expected String, provided Object.
+
+❌ ERROR: Cannot read properties of undefined (reading 'sessionId')
+
+====================================================================================================
+TEST 6/8: Direct 2: White A-line wedding dress
+Type: DIRECT
+Query: "I need a white A-line wedding dress for my ceremony."
+====================================================================================================
+prisma:error 
+Invalid `prisma.merchant.findUnique()` invocation in
+/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/src/lib/services/AssistantService.ts:77:44
+
+  74 ): Promise<AssistantQueryResult> {
+  75   try {
+  76     // Verify merchant exists and load needed fields
+→ 77     const merchant = await prisma.merchant.findUnique({
+           where: {
+             id: {
+               message: "I need a white A-line wedding dress for my ceremony.",
+               sessionId: "test-session-1769087969148-5",
+               merchantId: "default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b"
+             }
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+           },
+           select: {
+             id: true,
+             brandName: true,
+             voiceInstructions: true,
+             datasetContext: true,
+             uiCopy: true,
+             faq: true
+           }
+         })
+
+Argument `id`: Invalid value provided. Expected String, provided Object.
+
+❌ ERROR: Cannot read properties of undefined (reading 'sessionId')
+
+====================================================================================================
+TEST 7/8: Direct 3: Pink floral midi dress
+Type: DIRECT
+Query: "Show me pink floral midi dresses."
+====================================================================================================
+prisma:error 
+Invalid `prisma.merchant.findUnique()` invocation in
+/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/src/lib/services/AssistantService.ts:77:44
+
+  74 ): Promise<AssistantQueryResult> {
+  75   try {
+  76     // Verify merchant exists and load needed fields
+→ 77     const merchant = await prisma.merchant.findUnique({
+           where: {
+             id: {
+               message: "Show me pink floral midi dresses.",
+               sessionId: "test-session-1769087969158-6",
+               merchantId: "default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b"
+             }
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+           },
+           select: {
+             id: true,
+             brandName: true,
+             voiceInstructions: true,
+             datasetContext: true,
+             uiCopy: true,
+             faq: true
+           }
+         })
+
+Argument `id`: Invalid value provided. Expected String, provided Object.
+
+❌ ERROR: Cannot read properties of undefined (reading 'sessionId')
+
+====================================================================================================
+TEST 8/8: Direct 4: Black cocktail dress
+Type: DIRECT
+Query: "I need a black cocktail dress for a party. Size medium."
+====================================================================================================
+prisma:error 
+Invalid `prisma.merchant.findUnique()` invocation in
+/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/src/lib/services/AssistantService.ts:77:44
+
+  74 ): Promise<AssistantQueryResult> {
+  75   try {
+  76     // Verify merchant exists and load needed fields
+→ 77     const merchant = await prisma.merchant.findUnique({
+           where: {
+             id: {
+               message: "I need a black cocktail dress for a party. Size medium.",
+               sessionId: "test-session-1769087969165-7",
+               merchantId: "default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b"
+             }
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+           },
+           select: {
+             id: true,
+             brandName: true,
+             voiceInstructions: true,
+             datasetContext: true,
+             uiCopy: true,
+             faq: true
+           }
+         })
+
+Argument `id`: Invalid value provided. Expected String, provided Object.
+
+❌ ERROR: Cannot read properties of undefined (reading 'sessionId')
+
+
+====================================================================================================
+FINAL SUMMARY
+====================================================================================================
+
+📊 Overall Results:
+   Total Tests: 8
+   Passed: 0 (0.0%)
+   Failed: 8 (100.0%)
+   Total Products Returned: 0
+   Average Products per Query: 0.0
+
+📋 Test Breakdown:
+   ❌ 1. Vague 1: Soft summer dress: 0 products - Cannot read properties of undefined (reading 'sessionId')
+   ❌ 2. Vague 2: Elegant evening wear: 0 products - Cannot read properties of undefined (reading 'sessionId')
+   ❌ 3. Vague 3: Comfortable casual outfit: 0 products - Cannot read properties of undefined (reading 'sessionId')
+   ❌ 4. Vague 4: Romantic date night look: 0 products - Cannot read properties of undefined (reading 'sessionId')
+   ❌ 5. Direct 1: Blue maxi dress: 0 products - Cannot read properties of undefined (reading 'sessionId')
+   ❌ 6. Direct 2: White A-line wedding dress: 0 products - Cannot read properties of undefined (reading 'sessionId')
+   ❌ 7. Direct 3: Pink floral midi dress: 0 products - Cannot read properties of undefined (reading 'sessionId')
+   ❌ 8. Direct 4: Black cocktail dress: 0 products - Cannot read properties of undefined (reading 'sessionId')
+
+====================================================================================================
+✅ Comprehensive test complete!
+====================================================================================================

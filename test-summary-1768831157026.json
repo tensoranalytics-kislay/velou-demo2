@@ -1,0 +1,36 @@
+{
+  "totalQueries": 4,
+  "successful": 4,
+  "failed": 0,
+  "totalProducts": 16,
+  "results": [
+    {
+      "query": "I am a curvy mom/woman, suggest me a dress to wear.",
+      "success": true,
+      "productCount": 4,
+      "duration": 26610,
+      "logFile": "test-query-1-1768831065692.log"
+    },
+    {
+      "query": "I am going to Bahamas for vacation, suggest me a dress.",
+      "success": true,
+      "productCount": 4,
+      "duration": 20726,
+      "logFile": "test-query-2-1768831094305.log"
+    },
+    {
+      "query": "attending a black tie wedding, suggest me a dress",
+      "success": true,
+      "productCount": 4,
+      "duration": 18599,
+      "logFile": "test-query-3-1768831117035.log"
+    },
+    {
+      "query": "I have dr.martens high top chelsea shoes, suggest me a dress that goes well with it",
+      "success": true,
+      "productCount": 4,
+      "duration": 19387,
+      "logFile": "test-query-4-1768831137637.log"
+    }
+  ]
+}

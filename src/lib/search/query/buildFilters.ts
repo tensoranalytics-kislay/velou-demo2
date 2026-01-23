@@ -99,9 +99,19 @@ export async function buildBroadWhereFilters(
     temperatureIntent: constraints.temperatureIntent,
     humidityFriendly:
       constraints.humidityFriendly === undefined ? undefined : constraints.humidityFriendly,
-    occasionContext: constraints.occasionContext?.length
-      ? { hasSome: constraints.occasionContext }
-      : undefined,
+    // Occasions: map from occasions to occasionContext if occasions is provided but occasionContext is not
+    // This handles cases where occasions are extracted but not yet mapped to occasionContext
+    occasionContext: (() => {
+      // Prefer occasionContext if available
+      if (constraints.occasionContext?.length) {
+        return { hasSome: constraints.occasionContext };
+      }
+      // Fallback: map occasions to occasionContext (for hard SQL filter)
+      if (constraints.occasions?.length) {
+        return { hasSome: constraints.occasions };
+      }
+      return undefined;
+    })(),
     problemSolutions: constraints.problemSolutions?.length
       ? { hasSome: constraints.problemSolutions }
       : undefined,
@@ -114,6 +124,8 @@ export async function buildBroadWhereFilters(
       constraints.multicolor === undefined ? undefined : constraints.multicolor === true ? true : false,
     // Inclusivity sizing: hard filter at DB level
     inclusivitySizing: constraints.inclusivitySizing?.length ? constraints.inclusivitySizing : undefined,
+    // Set vs Single: hard filter at DB level (default to "Single" to exclude pack products)
+    setVsSingle: constraints.setVsSingle?.length ? constraints.setVsSingle : ['Single'], // Default to "Single" if not specified
   };
 
   const ontology = await getCatalogOntology();

@@ -623,8 +623,30 @@ export default function ChatPanel() {
 
   const handleProductFindSimilar = async (productId: string, productTitle: string, productImageUrl: string) => {
     try {
+      // Collect all product IDs that have been shown in the conversation
+      const shownProductIds = new Set<string>();
+      messages.forEach(msg => {
+        if (msg.productCards && msg.productCards.length > 0) {
+          msg.productCards.forEach(card => {
+            if (card.id) {
+              shownProductIds.add(card.id);
+            }
+          });
+        }
+      });
+      // Also include from conversation context
+      if (conversationContext.lastShownProductIds) {
+        conversationContext.lastShownProductIds.forEach(id => shownProductIds.add(id));
+      }
+      // Remove the current product ID (we're finding similar to it)
+      shownProductIds.delete(productId);
+      
+      // Build query string with excludeProductIds
+      const excludeProductIdsParam = Array.from(shownProductIds).join(',');
+      const url = `/api/products/${productId}/similar${excludeProductIdsParam ? `?excludeProductIds=${encodeURIComponent(excludeProductIdsParam)}` : ''}`;
+      
       // Call API to get similar products
-      const response = await fetch(`/api/products/${productId}/similar`, {
+      const response = await fetch(url, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });

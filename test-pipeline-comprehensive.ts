@@ -1,264 +1,391 @@
-#!/usr/bin/env tsx
+import { handleAssistantQuery } from './src/lib/services/AssistantService';
+import { prisma } from './src/lib/db';
 
-/**
- * Comprehensive Pipeline Test
- * Tests 5 varied prompts with direct/indirect gender specification
- */
-
-interface TestCase {
-  id: string;
+interface TestQuery {
+  name: string;
   query: string;
-  description: string;
-  type: 'direct-gender' | 'indirect-gender' | 'occasion-based' | 'context-based';
-  expectedGender?: 'male' | 'female';
-  expectedProductType?: string;
+  type: 'vague' | 'direct';
+  expectedConstraints?: {
+    category?: string[];
+    colors?: string[];
+    styles?: string[];
+    occasions?: string[];
+    materials?: string[];
+    [key: string]: any;
+  };
 }
 
-const TEST_CASES: TestCase[] = [
+const testQueries: TestQuery[] = [
+  // VAGUE QUERIES (with categories)
   {
-    id: 'test-1',
-    query: "Show me jeans for women",
-    description: "Direct gender specification with product type",
-    type: 'direct-gender',
-    expectedGender: 'female',
-    expectedProductType: 'jeans',
+    name: 'Vague 1: Soft summer dress',
+    query: 'I need something soft and flowy for a summer garden party. Show me dresses.',
+    type: 'vague',
+    expectedConstraints: {
+      category: ['dress'],
+      occasions: ['garden party', 'summer'],
+      materials: ['soft', 'flowy'],
+    },
   },
   {
-    id: 'test-2',
-    query: "I need a dress shirt for a business meeting",
-    description: "Occasion-based query (business meeting implies formal men's wear)",
-    type: 'occasion-based',
-    expectedGender: 'male',
-    expectedProductType: 'shirt',
+    name: 'Vague 2: Elegant evening wear',
+    query: 'Looking for something elegant and sophisticated for a formal event. I prefer dresses.',
+    type: 'vague',
+    expectedConstraints: {
+      category: ['dress'],
+      occasions: ['formal', 'evening'],
+      formalityLevel: ['formal', 'elegant'],
+    },
   },
   {
-    id: 'test-3',
-    query: "What should I wear to a beach wedding?",
-    description: "Occasion-based query (beach wedding - typically dress, implies female)",
-    type: 'occasion-based',
-    expectedGender: 'female',
-    expectedProductType: 'dress',
+    name: 'Vague 3: Comfortable casual outfit',
+    query: 'I want something comfortable and casual for everyday wear. Show me dresses that are easy to move in.',
+    type: 'vague',
+    expectedConstraints: {
+      category: ['dress'],
+      occasions: ['casual', 'everyday'],
+      fits: ['comfortable', 'easy to move'],
+    },
   },
   {
-    id: 'test-4',
-    query: "I want high-rise skinny jeans in dark colors",
-    description: "Indirect gender via style indicators (high-rise skinny = female)",
-    type: 'indirect-gender',
-    expectedGender: 'female',
-    expectedProductType: 'jeans',
+    name: 'Vague 4: Romantic date night look',
+    query: 'Help me find a romantic dress for a special date night. Something feminine and flattering.',
+    type: 'vague',
+    expectedConstraints: {
+      category: ['dress'],
+      occasions: ['date night', 'romantic'],
+      styles: ['feminine', 'flattering'],
+    },
+  },
+  
+  // DIRECT QUERIES (with categories)
+  {
+    name: 'Direct 1: Blue maxi dress',
+    query: 'Do you have any blue maxi dresses?',
+    type: 'direct',
+    expectedConstraints: {
+      category: ['dress'],
+      colors: ['blue'],
+      lengths: ['maxi'],
+    },
   },
   {
-    id: 'test-5',
-    query: "Looking for comfortable loungewear for working from home",
-    description: "Context-based query (gender-neutral but should infer from context or default)",
-    type: 'context-based',
-    expectedGender: undefined, // May infer from context or default
-    expectedProductType: 'loungewear',
+    name: 'Direct 2: White A-line wedding dress',
+    query: 'I need a white A-line wedding dress for my ceremony.',
+    type: 'direct',
+    expectedConstraints: {
+      category: ['dress'],
+      colors: ['white'],
+      styles: ['A-Line', 'A-line'],
+      occasions: ['wedding', 'ceremony'],
+    },
+  },
+  {
+    name: 'Direct 3: Pink floral midi dress',
+    query: 'Show me pink floral midi dresses.',
+    type: 'direct',
+    expectedConstraints: {
+      category: ['dress'],
+      colors: ['pink'],
+      patterns: ['floral'],
+      lengths: ['midi'],
+    },
+  },
+  {
+    name: 'Direct 4: Black cocktail dress',
+    query: 'I need a black cocktail dress for a party. Size medium.',
+    type: 'direct',
+    expectedConstraints: {
+      category: ['dress'],
+      colors: ['black'],
+      occasions: ['cocktail', 'party'],
+      sizes: ['medium'],
+    },
   },
 ];
 
-async function testQuery(testCase: TestCase): Promise<any> {
-  try {
-    const response = await fetch('http://localhost:3000/api/assistant', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: testCase.id,
-        message: testCase.query,
-      }),
-    });
+async function runComprehensiveTests() {
+  console.log('='.repeat(100));
+  console.log('COMPREHENSIVE PIPELINE TEST');
+  console.log('Testing 8 queries: 4 vague + 4 direct (all with categories)');
+  console.log('='.repeat(100));
+  console.log('');
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${await response.text()}`);
-    }
+  const results: Array<{
+    test: TestQuery;
+    passed: boolean;
+    issues: string[];
+    productCount: number;
+    extractedConstraints: any;
+    products: any[];
+  }> = [];
 
-    return await response.json();
-  } catch (error) {
-    console.error(`Error testing "${testCase.query}":`, error);
-    throw error;
-  }
-}
+  for (let i = 0; i < testQueries.length; i++) {
+    const test = testQueries[i];
+    console.log(`\n${'='.repeat(100)}`);
+    console.log(`TEST ${i + 1}/${testQueries.length}: ${test.name}`);
+    console.log(`Type: ${test.type.toUpperCase()}`);
+    console.log(`Query: "${test.query}"`);
+    console.log('='.repeat(100));
 
-async function checkLogs(testCase: TestCase): Promise<any> {
-  // Read logs to check pipeline stages
-  const { execSync } = require('child_process');
-  try {
-    const logs = execSync(
-      `tail -2000 app.log 2>/dev/null | grep -E "${testCase.id}.*${testCase.query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}" | head -100`,
-      { encoding: 'utf-8', maxBuffer: 10 * 1024 * 1024 }
-    );
-    return logs;
-  } catch (error) {
-    return '';
-  }
-}
-
-function analyzePipelineStages(logs: string, testCase: TestCase): any {
-  const stages = {
-    genderExtraction: logs.includes('gender_and_agegroup_extracted_early'),
-    categoryFiltering: logs.includes('categories_filtered_before_classification'),
-    categoryClassification: logs.includes('category_classification_complete'),
-    genderFilterApplied: logs.includes('gender_hard_filter_applied_to_retrieval'),
-    retrievalStarted: logs.includes('starting_retrieval'),
-    rankingStarted: logs.includes('orchestrator_constraint_ranking_start'),
-    replyGenerated: logs.includes('assistant_query_complete'),
-  };
-
-  // Extract gender from logs
-  const genderMatch = logs.match(/resolvedGender["\s:]+"?(female|male)"?/);
-  const extractedGender = genderMatch ? genderMatch[1] : null;
-
-  // Extract categories from logs
-  const categoryMatch = logs.match(/categories["\s:]+\["([^"]+)"/);
-  const extractedCategories = categoryMatch ? [categoryMatch[1]] : [];
-
-  return {
-    stages,
-    extractedGender,
-    extractedCategories,
-  };
-}
-
-async function analyzeResults(results: any, testCase: TestCase, pipelineInfo: any): Promise<void> {
-  const products = results.productCards || [];
-  const productTitles = products.map((p: any) => p.title || '').join(', ');
-  
-  console.log(`\n${'='.repeat(80)}`);
-  console.log(`📋 Test: ${testCase.id} - ${testCase.description}`);
-  console.log(`   Query: "${testCase.query}"`);
-  console.log(`   Type: ${testCase.type}`);
-  console.log(`${'='.repeat(80)}`);
-  
-  // Pipeline Stages
-  console.log(`\n🔍 Pipeline Stages:`);
-  console.log(`   ✅ Gender Extraction: ${pipelineInfo.stages.genderExtraction ? '✓' : '✗'}`);
-  console.log(`   ✅ Category Filtering: ${pipelineInfo.stages.categoryFiltering ? '✓' : '✗'}`);
-  console.log(`   ✅ Category Classification: ${pipelineInfo.stages.categoryClassification ? '✓' : '✗'}`);
-  console.log(`   ✅ Gender Filter Applied: ${pipelineInfo.stages.genderFilterApplied ? '✓' : '✗'}`);
-  console.log(`   ✅ Retrieval Started: ${pipelineInfo.stages.retrievalStarted ? '✓' : '✗'}`);
-  console.log(`   ✅ Ranking Started: ${pipelineInfo.stages.rankingStarted ? '✓' : '✗'}`);
-  console.log(`   ✅ Reply Generated: ${pipelineInfo.stages.replyGenerated ? '✓' : '✗'}`);
-  
-  // Extracted Values
-  console.log(`\n📊 Extracted Values:`);
-  console.log(`   Gender Extracted: ${pipelineInfo.extractedGender || 'null'}`);
-  if (testCase.expectedGender) {
-    const genderMatch = pipelineInfo.extractedGender === testCase.expectedGender;
-    console.log(`   Expected Gender: ${testCase.expectedGender} ${genderMatch ? '✅' : '❌'}`);
-  }
-  console.log(`   Categories Extracted: ${pipelineInfo.extractedCategories.join(', ') || 'none'}`);
-  
-  // Results
-  console.log(`\n📦 Results:`);
-  console.log(`   Products Returned: ${products.length}`);
-  
-  if (products.length > 0) {
-    console.log(`   Sample Products:`);
-    products.slice(0, 5).forEach((p: any, i: number) => {
-      console.log(`     ${i + 1}. ${p.title || 'N/A'}`);
-    });
-    
-    // Check for wrong gender products
-    if (testCase.expectedGender || pipelineInfo.extractedGender) {
-      const expectedGender = testCase.expectedGender || pipelineInfo.extractedGender;
-      const wrongGenderProducts = products.filter((p: any) => {
-        const title = (p.title || '').toLowerCase();
-        if (expectedGender === 'female') {
-          return title.includes("men's") || title.includes("mens-") || title.includes(" mens ");
-        } else if (expectedGender === 'male') {
-          return title.includes("women's") || title.includes("womens-") || title.includes(" womens ");
-        }
-        return false;
-      });
-      
-      if (wrongGenderProducts.length > 0) {
-        console.log(`\n   ❌ WRONG GENDER DETECTED: ${wrongGenderProducts.length} products with wrong gender`);
-        wrongGenderProducts.forEach((p: any) => {
-          console.log(`      - ${p.title}`);
-        });
-      } else {
-        console.log(`\n   ✅ Gender Filter: Working correctly (no wrong-gender products)`);
-      }
-    }
-  } else {
-    if (testCase.expectedProductType) {
-      console.log(`   ⚠️  WARNING: Expected results but got 0 products`);
-    } else {
-      console.log(`   ℹ️  No products returned`);
-    }
-  }
-  
-  console.log(`${'='.repeat(80)}\n`);
-}
-
-async function main() {
-  console.log('🚀 Comprehensive Pipeline Test Suite');
-  console.log(`Testing ${TEST_CASES.length} varied prompts\n`);
-  
-  const results: any[] = [];
-  
-  for (const testCase of TEST_CASES) {
     try {
-      console.log(`\n⏳ Testing: "${testCase.query}"...`);
-      
-      // Run query
-      const apiResults = await testQuery(testCase);
-      
-      // Wait a bit for logs to be written
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Check logs
-      const logs = await checkLogs(testCase);
-      const pipelineInfo = analyzePipelineStages(logs, testCase);
-      
-      // Analyze
-      await analyzeResults(apiResults, testCase, pipelineInfo);
-      
+      const startTime = Date.now();
+      const result = await handleAssistantQuery(
+        'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+        {
+          message: test.query,
+          sessionId: `test-session-${Date.now()}-${i}`,
+        }
+      );
+      const duration = Date.now() - startTime;
+
+      console.log(`\n⏱️  Response Time: ${duration}ms`);
+      console.log(`\n📝 Reply Text: ${result.replyText?.substring(0, 200)}...`);
+      console.log(`\n📦 Product Count: ${result.productCards?.length || 0}`);
+      console.log(`\n🎯 Route: ${result.route}`);
+
+      // Extract constraints from resolved constraints
+      const extractedConstraints = result.resolvedConstraints || {};
+      console.log(`\n🔍 Extracted Constraints:`);
+      console.log(`   Category: ${extractedConstraints.category || 'N/A'}`);
+      console.log(`   Colors: ${extractedConstraints.colors?.join(', ') || 'N/A'}`);
+      console.log(`   Styles: ${extractedConstraints.styleTags?.join(', ') || 'N/A'}`);
+      console.log(`   Occasions: ${extractedConstraints.occasions?.join(', ') || 'N/A'}`);
+      console.log(`   Materials: ${extractedConstraints.materials?.join(', ') || 'N/A'}`);
+      console.log(`   Lengths: ${extractedConstraints.lengths?.join(', ') || 'N/A'}`);
+      console.log(`   Sizes: ${extractedConstraints.sizes?.join(', ') || 'N/A'}`);
+
+      // Validate constraint extraction
+      const issues: string[] = [];
+      let passed = true;
+
+      if (test.expectedConstraints) {
+        console.log(`\n✅ Constraint Validation:`);
+        
+        // Check category
+        if (test.expectedConstraints.category) {
+          const hasCategory = extractedConstraints.category?.some((c: string) =>
+            test.expectedConstraints!.category!.some(exp => 
+              c.toLowerCase().includes(exp.toLowerCase())
+            )
+          );
+          if (!hasCategory) {
+            issues.push(`Missing expected category: ${test.expectedConstraints.category.join(', ')}`);
+            passed = false;
+          } else {
+            console.log(`   ✓ Category matches`);
+          }
+        }
+
+        // Check colors
+        if (test.expectedConstraints.colors) {
+          const hasColor = extractedConstraints.colors?.some((c: string) =>
+            test.expectedConstraints!.colors!.some(exp => 
+              c.toLowerCase().includes(exp.toLowerCase())
+            )
+          );
+          if (!hasColor && test.type === 'direct') {
+            issues.push(`Missing expected color: ${test.expectedConstraints.colors.join(', ')}`);
+            passed = false;
+          } else if (hasColor) {
+            console.log(`   ✓ Color matches`);
+          }
+        }
+
+        // Check styles
+        if (test.expectedConstraints.styles) {
+          const hasStyle = extractedConstraints.styleTags?.some((s: string) =>
+            test.expectedConstraints!.styles!.some(exp => 
+              s.toLowerCase().includes(exp.toLowerCase())
+            )
+          );
+          if (!hasStyle && test.type === 'direct') {
+            issues.push(`Missing expected style: ${test.expectedConstraints.styles.join(', ')}`);
+            passed = false;
+          } else if (hasStyle) {
+            console.log(`   ✓ Style matches`);
+          }
+        }
+
+        // Check occasions
+        if (test.expectedConstraints.occasions) {
+          const hasOccasion = extractedConstraints.occasions?.some((o: string) =>
+            test.expectedConstraints!.occasions!.some(exp => 
+              o.toLowerCase().includes(exp.toLowerCase())
+            )
+          );
+          if (!hasOccasion && test.type === 'direct') {
+            issues.push(`Missing expected occasion: ${test.expectedConstraints.occasions.join(', ')}`);
+            passed = false;
+          } else if (hasOccasion) {
+            console.log(`   ✓ Occasion matches`);
+          }
+        }
+
+        // Check materials
+        if (test.expectedConstraints.materials) {
+          const hasMaterial = extractedConstraints.materials?.some((m: string) =>
+            test.expectedConstraints!.materials!.some(exp => 
+              m.toLowerCase().includes(exp.toLowerCase())
+            )
+          );
+          if (hasMaterial) {
+            console.log(`   ✓ Material matches`);
+          }
+        }
+
+        // Check lengths
+        if (test.expectedConstraints.lengths) {
+          const hasLength = extractedConstraints.lengths?.some((l: string) =>
+            test.expectedConstraints!.lengths!.some(exp => 
+              l.toLowerCase().includes(exp.toLowerCase())
+            )
+          );
+          if (!hasLength && test.type === 'direct') {
+            issues.push(`Missing expected length: ${test.expectedConstraints.lengths.join(', ')}`);
+            passed = false;
+          } else if (hasLength) {
+            console.log(`   ✓ Length matches`);
+          }
+        }
+
+        // Check sizes
+        if (test.expectedConstraints.sizes) {
+          const hasSize = extractedConstraints.sizes?.some((s: string) =>
+            test.expectedConstraints!.sizes!.some(exp => 
+              s.toLowerCase().includes(exp.toLowerCase())
+            )
+          );
+          if (!hasSize && test.type === 'direct') {
+            issues.push(`Missing expected size: ${test.expectedConstraints.sizes.join(', ')}`);
+            passed = false;
+          } else if (hasSize) {
+            console.log(`   ✓ Size matches`);
+          }
+        }
+      }
+
+      // Validate products match constraints
+      if (result.productCards && result.productCards.length > 0) {
+        console.log(`\n📋 Products Returned:`);
+        const productIds = result.productCards.map(p => p.id);
+        const dbProducts = await prisma.product.findMany({
+          where: { id: { in: productIds } },
+          select: {
+            id: true,
+            title: true,
+            category: true,
+            color: true,
+            enrichedColor: true,
+            silhouetteCut: true,
+            length: true,
+            occasion: true,
+            attributes: true,
+          },
+        });
+
+        for (let j = 0; j < Math.min(4, result.productCards.length); j++) {
+          const card = result.productCards[j];
+          const dbProduct = dbProducts.find(p => p.id === card.id);
+          if (dbProduct) {
+            console.log(`\n   ${j + 1}. ${card.title}`);
+            console.log(`      ID: ${card.id}`);
+            console.log(`      Category: ${dbProduct.category || 'N/A'}`);
+            console.log(`      Color: ${dbProduct.enrichedColor || dbProduct.color || 'N/A'}`);
+            console.log(`      Style: ${dbProduct.silhouetteCut || 'N/A'}`);
+            console.log(`      Length: ${dbProduct.length || 'N/A'}`);
+            console.log(`      Occasion: ${dbProduct.occasion || 'N/A'}`);
+            
+            // Check if product matches expected constraints
+            const productIssues: string[] = [];
+            if (test.expectedConstraints?.colors && dbProduct.enrichedColor) {
+              const productColor = dbProduct.enrichedColor.toLowerCase();
+              const matchesColor = test.expectedConstraints.colors.some(exp =>
+                productColor.includes(exp.toLowerCase())
+              );
+              if (!matchesColor && test.type === 'direct') {
+                productIssues.push(`Color mismatch: expected ${test.expectedConstraints.colors.join(', ')}, got ${dbProduct.enrichedColor}`);
+              }
+            }
+            if (test.expectedConstraints?.styles && dbProduct.silhouetteCut) {
+              const productStyle = dbProduct.silhouetteCut.toLowerCase();
+              const matchesStyle = test.expectedConstraints.styles.some(exp =>
+                productStyle.includes(exp.toLowerCase())
+              );
+              if (!matchesStyle && test.type === 'direct') {
+                productIssues.push(`Style mismatch: expected ${test.expectedConstraints.styles.join(', ')}, got ${dbProduct.silhouetteCut}`);
+              }
+            }
+            if (productIssues.length > 0) {
+              console.log(`      ⚠️  Issues: ${productIssues.join('; ')}`);
+              issues.push(...productIssues);
+              passed = false;
+            }
+          }
+        }
+      } else {
+        issues.push('No products returned');
+        passed = false;
+      }
+
       results.push({
-        testCase,
-        apiResults,
-        pipelineInfo,
+        test,
+        passed,
+        issues,
+        productCount: result.productCards?.length || 0,
+        extractedConstraints,
+        products: result.productCards || [],
       });
-      
-      // Delay between tests
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    } catch (error) {
-      console.error(`❌ Failed to test "${testCase.query}":`, error);
+
+      if (passed) {
+        console.log(`\n✅ TEST PASSED`);
+      } else {
+        console.log(`\n❌ TEST FAILED`);
+        console.log(`   Issues: ${issues.join('; ')}`);
+      }
+
+    } catch (error: any) {
+      console.error(`\n❌ ERROR: ${error.message}`);
+      console.error(`Stack: ${error.stack}`);
+      results.push({
+        test,
+        passed: false,
+        issues: [error.message || String(error)],
+        productCount: 0,
+        extractedConstraints: {},
+        products: [],
+      });
     }
   }
+
+  // Final Summary
+  console.log(`\n\n${'='.repeat(100)}`);
+  console.log('FINAL SUMMARY');
+  console.log('='.repeat(100));
   
-  // Summary
-  console.log(`\n${'='.repeat(80)}`);
-  console.log('📊 TEST SUMMARY');
-  console.log(`${'='.repeat(80)}\n`);
-  
+  const passedCount = results.filter(r => r.passed).length;
+  const failedCount = results.filter(r => !r.passed).length;
+  const totalProducts = results.reduce((sum, r) => sum + r.productCount, 0);
+  const avgProducts = totalProducts / results.length;
+
+  console.log(`\n📊 Overall Results:`);
+  console.log(`   Total Tests: ${results.length}`);
+  console.log(`   Passed: ${passedCount} (${((passedCount / results.length) * 100).toFixed(1)}%)`);
+  console.log(`   Failed: ${failedCount} (${((failedCount / results.length) * 100).toFixed(1)}%)`);
+  console.log(`   Total Products Returned: ${totalProducts}`);
+  console.log(`   Average Products per Query: ${avgProducts.toFixed(1)}`);
+
+  console.log(`\n📋 Test Breakdown:`);
   results.forEach((result, i) => {
-    const { testCase, pipelineInfo } = result;
-    const products = result.apiResults.productCards || [];
-    const wrongGender = testCase.expectedGender && pipelineInfo.extractedGender === testCase.expectedGender
-      ? products.filter((p: any) => {
-          const title = (p.title || '').toLowerCase();
-          if (testCase.expectedGender === 'female') {
-            return title.includes("men's") || title.includes("mens-");
-          } else if (testCase.expectedGender === 'male') {
-            return title.includes("women's") || title.includes("womens-");
-          }
-          return false;
-        }).length
-      : 0;
-    
-    const status = products.length > 0 && wrongGender === 0 ? '✅ PASS' : 
-                   products.length === 0 ? '⚠️  NO RESULTS' : '❌ FAIL';
-    
-    console.log(`${i + 1}. "${testCase.query}"`);
-    console.log(`   Type: ${testCase.type}`);
-    console.log(`   Gender Extracted: ${pipelineInfo.extractedGender || 'null'}`);
-    console.log(`   Products: ${products.length} | Wrong Gender: ${wrongGender}`);
-    console.log(`   Status: ${status}`);
-    console.log('');
+    const status = result.passed ? '✅' : '❌';
+    console.log(`   ${status} ${i + 1}. ${result.test.name}: ${result.productCount} products${result.issues.length > 0 ? ` - ${result.issues[0]}` : ''}`);
   });
-  
-  console.log(`${'='.repeat(80)}\n`);
+
+  console.log(`\n${'='.repeat(100)}`);
+  console.log('✅ Comprehensive test complete!');
+  console.log('='.repeat(100));
+
+  await prisma.$disconnect();
 }
 
-main().catch(console.error);
+runComprehensiveTests().catch(console.error);

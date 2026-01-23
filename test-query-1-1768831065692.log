@@ -1,0 +1,33 @@
+{
+  "query": "I am a curvy mom/woman, suggest me a dress to wear.",
+  "sessionId": "test-session-1-1768831065692",
+  "timestamp": "2026-01-19T13:58:12.302Z",
+  "duration": 26610,
+  "results": {
+    "productCount": 4,
+    "hasReply": true,
+    "replyPreview": "I understand you desire a dress that embraces your curves with gentle elegance and comfortable grace. These selections offer soft hues and flattering silhouettes to celebrate your unique beauty with ease.\n\nEach dress carries a light, romantic spirit perfect for moments both casual and special, wrapped in breathable fabrics that move with you. They blend delicate colors and thoughtful details, inviting you to feel radiant and at home in your skin.",
+    "products": [
+      {
+        "id": "202510054",
+        "title": "Curve Navy Floral Print Skater Dress",
+        "priceCents": 5499
+      },
+      {
+        "id": "203834552",
+        "title": "Curve Dark Red Floral Tiered Midaxi Dress",
+        "priceCents": 6499
+      },
+      {
+        "id": "100041651",
+        "title": "Curve Pink Chiffon Midaxi Dress",
+        "priceCents": 4499
+      },
+      {
+        "id": "201988025",
+        "title": "White Knitted Floral Midaxi Dress",
+        "priceCents": 4999
+      }
+    ]
+  }
+}

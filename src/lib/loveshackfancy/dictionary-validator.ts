@@ -55,38 +55,18 @@ export function validateAgeGroups(ageGroups: string[] | null | undefined): strin
 
 /**
  * Validate colors against dataset dictionary
- * Returns only values that exist in the ontology
+ * Returns only values that exist in the constraint dictionary (not ontology)
+ * Uses flexible matching like validateConstraintValues
  */
 export function validateColors(colors: string[] | null | undefined): string[] {
   if (!colors || colors.length === 0) return [];
   
-  const validColors: string[] = [];
-  const ontologyColorsLower = LOVESHACKFANCY_ONTOLOGY.colors.map(c => c.toLowerCase());
+  // Use validateConstraintValues for colors to get exact dictionary values
+  // This ensures we use the actual constraint dictionary, not the ontology
+  const { validateConstraintValues } = require('./dictionary-matcher');
+  const validated = validateConstraintValues('colors', colors);
   
-  for (const color of colors) {
-    const colorLower = color.toLowerCase().trim();
-    // Find exact match in ontology (case-insensitive)
-    const match = LOVESHACKFANCY_ONTOLOGY.colors.find(
-      c => c.toLowerCase() === colorLower
-    );
-    if (match) {
-      validColors.push(match); // Use canonical value from ontology
-    } else {
-      // Check for partial match (e.g., "cherry red" should match "Red" if "red" is in ontology)
-      const colorWords = colorLower.split(/\s+/);
-      for (const word of colorWords) {
-        const partialMatch = LOVESHACKFANCY_ONTOLOGY.colors.find(
-          c => c.toLowerCase().includes(word) || word.includes(c.toLowerCase())
-        );
-        if (partialMatch && !validColors.includes(partialMatch)) {
-          validColors.push(partialMatch);
-          break; // Only add one match per color input
-        }
-      }
-    }
-  }
-  
-  return Array.from(new Set(validColors)); // Remove duplicates
+  return validated || [];
 }
 
 /**

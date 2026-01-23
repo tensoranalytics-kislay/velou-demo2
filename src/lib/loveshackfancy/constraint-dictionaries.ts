@@ -26,6 +26,7 @@ export type ConstraintDictionary = {
   colorUndertone: string[];
   embellishments: string[];
   seasonalPalette: string[];
+  setVsSingle: string[];
   inclusivitySizing: string[];
   extractedAt: string;
   totalProducts: number;
@@ -38,7 +39,7 @@ let dictionaries: ConstraintDictionary | null = null;
  */
 export function loadConstraintDictionaries(): ConstraintDictionary {
   if (!dictionaries) {
-    dictionaries = constraintDictionariesJson as ConstraintDictionary;
+    dictionaries = constraintDictionariesJson as unknown as ConstraintDictionary;
   }
   return dictionaries;
 }
@@ -50,7 +51,7 @@ export function getDictionaryForConstraintType(
   constraintType: 'colors' | 'materials' | 'occasions' | 'styles' | 
                    'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises' |
                    'necklines' | 'sleeveLengths' | 'collections' | 'seasons' | 'colorShade' | 'colorUndertone' | 
-                   'embellishments' | 'seasonalPalette' | 'inclusivitySizing'
+                   'embellishments' | 'seasonalPalette' | 'setVsSingle' | 'inclusivitySizing'
 ): string[] {
   const dict = loadConstraintDictionaries();
   // Map constraint type to dictionary key (handle aliases)
@@ -94,7 +95,7 @@ export function valueExistsInDictionary(
   constraintType: 'colors' | 'materials' | 'occasions' | 'styles' | 
                    'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises' |
                    'necklines' | 'sleeveLengths' | 'collections' | 'seasons' | 'colorShade' | 'colorUndertone' | 
-                   'embellishments' | 'seasonalPalette' | 'inclusivitySizing',
+                   'embellishments' | 'seasonalPalette' | 'setVsSingle' | 'inclusivitySizing',
   value: string
 ): boolean {
   const dictionary = getDictionaryForConstraintType(constraintType);
@@ -108,7 +109,7 @@ export function valueExistsInDictionary(
 export function findExactDictionaryValue(
   constraintType: 'colors' | 'materials' | 'occasions' | 'styles' | 
                    'patterns' | 'sizes' | 'lengths' | 'formalityLevel' | 'fits' | 'rises' |
-                   'necklines' | 'sleeveLengths' | 'collections' | 'seasons' | 'colorShade' | 'embellishments' | 'inclusivitySizing',
+                   'necklines' | 'sleeveLengths' | 'collections' | 'seasons' | 'colorShade' | 'embellishments' | 'setVsSingle' | 'inclusivitySizing',
   value: string
 ): string | null {
   const dictionary = getDictionaryForConstraintType(constraintType);

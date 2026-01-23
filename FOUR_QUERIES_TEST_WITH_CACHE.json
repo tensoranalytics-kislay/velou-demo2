@@ -1,0 +1,59 @@
+{
+  "timestamp": "2026-01-19T15:35:57.975Z",
+  "results": [
+    {
+      "query": "I am a curvy mom/woman, suggest me a dress to wear.",
+      "duration": 22348,
+      "productCount": 4,
+      "productIds": [
+        "203834552",
+        "203830152",
+        "203832057",
+        "202608453"
+      ],
+      "replyTextLength": 466
+    },
+    {
+      "query": "I am going to Bahamas for vacation, suggest me a dress.",
+      "duration": 21370,
+      "productCount": 4,
+      "productIds": [
+        "8105308324025",
+        "8061023584441",
+        "8105247178937",
+        "8105247211705"
+      ],
+      "replyTextLength": 805
+    },
+    {
+      "query": "attending a black tie wedding, suggest me a dress.",
+      "duration": 19420,
+      "productCount": 4,
+      "productIds": [
+        "200832000",
+        "200486000",
+        "204272000",
+        "202569351"
+      ],
+      "replyTextLength": 451
+    },
+    {
+      "query": "have dr.martens high top chelsea shoes, suggest me a dress that goes well with it",
+      "duration": 18447,
+      "productCount": 4,
+      "productIds": [
+        "200833355",
+        "200540000",
+        "202358054",
+        "203546355"
+      ],
+      "replyTextLength": 373
+    }
+  ],
+  "summary": {
+    "totalQueries": 4,
+    "totalTime": 81585,
+    "averageTime": 20396.25,
+    "totalProducts": 16
+  }
+}

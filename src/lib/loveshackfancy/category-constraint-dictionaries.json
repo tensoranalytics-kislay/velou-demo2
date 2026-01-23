@@ -417,6 +417,11 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Extended Sizes",
+      "Plus Size",
+      "Standard Sizing"
     ]
   },
   "Tops": {
@@ -880,6 +885,12 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Extended Sizes",
+      "Petite",
+      "Plus Size",
+      "Standard Sizing"
     ]
   },
   "Girls Dresses": {
@@ -1195,6 +1206,10 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Plus Size",
+      "Standard Sizing"
     ]
   },
   "Womens-tees": {
@@ -1457,6 +1472,11 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Extended Sizes",
+      "Plus Size",
+      "Standard Sizing"
     ]
   },
   "Accessories": {
@@ -1767,6 +1787,9 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Shoes": {
@@ -1988,6 +2011,9 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Mens-jeans": {
@@ -2177,6 +2203,9 @@
       "Fall",
       "Spring",
       "Summer"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Girls Tops": {
@@ -2504,6 +2533,10 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Petite",
+      "Standard Sizing"
     ]
   },
   "Mens-tees": {
@@ -2677,6 +2710,10 @@
       "Fall",
       "Spring",
       "Summer"
+    ],
+    "inclusivitySizing": [
+      "Extended Sizes",
+      "Standard Sizing"
     ]
   },
   "Jewelry": {
@@ -2902,6 +2939,9 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Womens-sweaters": {
@@ -3107,6 +3147,9 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Girls Bottoms": {
@@ -3366,6 +3409,9 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Womens-pants": {
@@ -3638,6 +3684,10 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Plus Size",
+      "Standard Sizing"
     ]
   },
   "Skirts": {
@@ -3911,6 +3961,10 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Plus Size",
+      "Standard Sizing"
     ]
   },
   "Womens-jeans": {
@@ -4078,6 +4132,9 @@
       "Fall",
       "Spring",
       "Summer"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Womens-lounge": {
@@ -4285,6 +4342,10 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Extended Sizes",
+      "Standard Sizing"
     ]
   },
   "Mens-pants": {
@@ -4423,6 +4484,9 @@
     "seasonalPalette": [
       "All Season",
       "Summer"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Mens-underwear": {
@@ -4496,6 +4560,9 @@
     "collections": [],
     "seasonalPalette": [
       "All Season"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Bedding": {
@@ -4603,6 +4670,9 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Mens-shorts": {
@@ -4711,6 +4781,9 @@
     "collections": [],
     "seasonalPalette": [
       "Summer"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Bottoms": {
@@ -4877,6 +4950,10 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Plus Size",
+      "Standard Sizing"
     ]
   },
   "Swimsuits": {
@@ -5031,6 +5108,9 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Womens-pajamas": {
@@ -5179,6 +5259,9 @@
       "All Season",
       "Spring",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Tabletop": {
@@ -5282,6 +5365,9 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Perfumes": {
@@ -5371,6 +5457,9 @@
       "All Season",
       "Spring",
       "Summer"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Interiors": {
@@ -5442,6 +5531,9 @@
     "collections": [],
     "seasonalPalette": [
       "Spring"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Mens-pajamas": {
@@ -5517,6 +5609,9 @@
     "collections": [],
     "seasonalPalette": [
       "All Season"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Mens-swims": {
@@ -5589,6 +5684,9 @@
     "collections": [],
     "seasonalPalette": [
       "Summer"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Girls Swimwear": {
@@ -5689,6 +5787,9 @@
     "collections": [],
     "seasonalPalette": [
       "Summer"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Mens-jackets": {
@@ -5768,6 +5869,9 @@
     "seasonalPalette": [
       "Fall",
       "Spring"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Mens-sweaters": {
@@ -5844,6 +5948,9 @@
       "All Season",
       "Fall",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Baby & Toddler Bottoms": {
@@ -5977,6 +6084,9 @@
       "Spring",
       "Summer",
       "Winter"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Activewear": {
@@ -6080,6 +6190,9 @@
       "All Season",
       "Spring",
       "Summer"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Gift Wrapping": {
@@ -6138,7 +6251,8 @@
     "collections": [],
     "seasonalPalette": [
       "Spring"
-    ]
+    ],
+    "inclusivitySizing": []
   },
   "Stationary": {
     "colors": [
@@ -6206,6 +6320,9 @@
     "collections": [],
     "seasonalPalette": [
       "Spring"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Home Decor": {
@@ -6276,6 +6393,9 @@
     "collections": [],
     "seasonalPalette": [
       "Spring"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Swim Cover-ups": {
@@ -6361,6 +6481,9 @@
     "collections": [],
     "seasonalPalette": [
       "Summer"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   },
   "Towels": {
@@ -6426,6 +6549,9 @@
     "seasonalPalette": [
       "Spring",
       "Summer"
+    ],
+    "inclusivitySizing": [
+      "Standard Sizing"
     ]
   }
 }

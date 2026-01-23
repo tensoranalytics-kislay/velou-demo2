@@ -309,16 +309,20 @@ export async function deduplicateProductsByCategory(
         // Try exact match first, then partial match
         const exactParam = paramIndex;
         const partialParam = paramIndex + 1;
-        // Check enriched_color string (PRIMARY SOURCE)
-        // Check legacy color fields (fallback)
+        // Check enrichedColor database column (PRIMARY SOURCE)
+        // Check enriched_color in attributes and legacy color fields (fallback)
         // NOTE: variant_colors is intentionally excluded from filtering
         colorOrConditions.push(
           `(
-            -- Check enriched_color string (PRIMARY SOURCE - comma-separated terms)
+            -- Check enrichedColor database column (PRIMARY SOURCE - comma-separated terms)
+            (LOWER(COALESCE(p."enrichedColor", '')) LIKE LOWER($${partialParam}))
+            OR
+            -- Check enriched_color in attributes (fallback for legacy data)
             (LOWER(COALESCE(p.attributes->>'enriched_color', '')) LIKE LOWER($${partialParam}))
             OR
             -- Check legacy color fields (fallback)
-            (LOWER(COALESCE(p.attributes->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->>'color', '')) LIKE LOWER($${partialParam}))
+            (LOWER(COALESCE(p."color", '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p."color", '')) LIKE LOWER($${partialParam}))
+            OR (LOWER(COALESCE(p.attributes->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->>'color', '')) LIKE LOWER($${partialParam}))
             OR
             (p.attributes->'extensible' IS NOT NULL AND 
              (LOWER(COALESCE(p.attributes->'extensible'->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->'extensible'->>'color', '')) LIKE LOWER($${partialParam})))
@@ -341,17 +345,21 @@ export async function deduplicateProductsByCategory(
         // Try exact match first, then partial match
         const exactParam = paramIndex;
         const partialParam = paramIndex + 1;
-        // Check enriched_color string (PRIMARY SOURCE)
-        // Check legacy color fields (fallback)
+        // Check enrichedColor database column (PRIMARY SOURCE)
+        // Check enriched_color in attributes and legacy color fields (fallback)
         // NOTE: variant_colors is intentionally excluded from filtering
         // Use NOT to exclude products matching these colors
         excludedColorAndConditions.push(
           `NOT (
-            -- Check enriched_color string (PRIMARY SOURCE)
+            -- Check enrichedColor database column (PRIMARY SOURCE)
+            (LOWER(COALESCE(p."enrichedColor", '')) LIKE LOWER($${partialParam}))
+            OR
+            -- Check enriched_color in attributes (fallback for legacy data)
             (LOWER(COALESCE(p.attributes->>'enriched_color', '')) LIKE LOWER($${partialParam}))
             OR
             -- Check legacy color fields (fallback)
-            (LOWER(COALESCE(p.attributes->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->>'color', '')) LIKE LOWER($${partialParam}))
+            (LOWER(COALESCE(p."color", '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p."color", '')) LIKE LOWER($${partialParam}))
+            OR (LOWER(COALESCE(p.attributes->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->>'color', '')) LIKE LOWER($${partialParam}))
             OR
             (p.attributes->'extensible' IS NOT NULL AND 
              (LOWER(COALESCE(p.attributes->'extensible'->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->'extensible'->>'color', '')) LIKE LOWER($${partialParam})))
@@ -717,11 +725,14 @@ export async function deduplicateProductsByCategory(
 /**
  * Deduplicate products by category filter (for post-SQL filtering mode)
  * 
- * This function only applies category/subcategory, ageGroups, and price filters in SQL.
- * Colors, lengths, sleeves, necklines, formalityLevels, and colorShades are INTENTIONALLY OMITTED
- * and will be applied via post-SQL filtering using category-specific dictionaries.
+ * This function applies category/subcategory, ageGroups, price filters, AND ALL REQUIRED CONSTRAINT FILTERS in SQL.
+ * Required constraints (intent="required") and occasions with "strong" intent are applied as hard SQL filters.
  * 
- * @param filters - Optional filters (categories, ageGroups, priceMinCents, priceMaxCents, merchantId, inStockOnly)
+ * Post-filterable attributes (colors, lengths, sleeves, necklines, formalityLevels, colorShades) are ONLY omitted
+ * when they don't have "required" intent. When they have "required" intent, they are applied here to ensure
+ * products matching all constraints are included in pre-deduplication.
+ * 
+ * @param filters - Optional filters (categories, ageGroups, price, AND all required constraint filters)
  * @param limit - Optional limit on how many deduplicated products to return (default: 1500)
  * @returns Array of deduplicated product IDs
  */
@@ -731,17 +742,40 @@ export async function deduplicateProductsByCategoryForPostFiltering(
     categories?: string[];
     ageGroups?: string[];
     inclusivitySizing?: string[]; // Hard SQL filter for body type (Plus Size, Petite, Tall, etc.)
+    setVsSingle?: string[]; // Hard SQL filter for pack vs single products (default: ["Single"])
     priceMinCents?: number;
     priceMaxCents?: number;
     merchantId?: string;
     inStockOnly?: boolean;
+    // ALL REQUIRED CONSTRAINT FILTERS (intent="required" or occasions with "strong" intent):
+    colors?: string[];
+    patterns?: string[];
+    materials?: string[];
+    occasions?: string[];
+    sleeves?: string[];
+    necklines?: string[];
+    sizes?: string[];
+    fits?: string[];
+    styles?: string[];
+    collections?: string[];
+    seasons?: string[];
+    rises?: string[];
+    embellishments?: string[];
+    formalityLevel?: string[];
+    colorShade?: string[];
+    colorUndertone?: string[];
+    seasonalPalette?: string[];
+    lengths?: string[];
   },
   limit: number = 1500
 ): Promise<string[]> {
   try {
     // Build WHERE clause for filters
-    // CRITICAL: Only apply gender, category, ageGroups, and price filters - skip post-filterable attributes
-    const whereConditions: string[] = ['p."isActive" = true'];
+    // CRITICAL: Apply gender, category, ageGroups, price filters (AND filters)
+    // Constraint filters (colors, materials, occasions, formalityLevel, etc.) are OR'd together
+    // Hard filters (category, gender, ageGroup, etc.) are AND'd with constraint filters
+    const whereConditions: string[] = ['p."isActive" = true']; // Hard filters (AND'd)
+    const constraintConditions: string[] = []; // Constraint filters (OR'd together)
     const params: unknown[] = [];
     let paramIndex = 1;
     
@@ -921,6 +955,13 @@ export async function deduplicateProductsByCategoryForPostFiltering(
       whereConditions.push(`p."inclusivitySizing" = ANY(ARRAY[${values}]::text[])`);
     }
     
+    // STEP 2.6: Set vs Single filter (hard SQL filter - filter by attributes->>'set_vs_single')
+    // Default to "Single" to exclude pack products unless "Set" is explicitly requested
+    if (filters?.setVsSingle && filters.setVsSingle.length > 0) {
+      const values = filters.setVsSingle.map((v) => `'${v.replace(/'/g, "''")}'`).join(', ');
+      whereConditions.push(`p.attributes->>'set_vs_single' = ANY(ARRAY[${values}]::text[])`);
+    }
+    
     // STEP 3: Price filtering (if specified)
     if (filters?.priceMinCents !== undefined && filters.priceMinCents !== null && typeof filters.priceMinCents === 'number') {
       whereConditions.push(`p."priceCents" >= $${paramIndex}`);
@@ -934,8 +975,502 @@ export async function deduplicateProductsByCategoryForPostFiltering(
       paramIndex++;
     }
     
-    // NOTE: Colors, lengths, sleeves, necklines, formalityLevels, and colorShades are INTENTIONALLY OMITTED
-    // These will be applied via post-SQL filtering using category-specific dictionaries
+    // STEP 5: Apply ALL required constraint filters (colors, materials, seasons, etc.)
+    // These are constraints with "required" intent (and occasions with "strong" intent)
+    // CRITICAL: Apply these filters in pre-deduplication to ensure products matching all constraints are included
+    
+    // Colors filter (OR logic for multiple colors)
+    if (filters?.colors && filters.colors.length > 0) {
+      const colorOrConditions: string[] = [];
+      filters.colors.forEach((color) => {
+        const exactParam = paramIndex;
+        const partialParam = paramIndex + 1;
+        colorOrConditions.push(
+          `(
+            -- Check enrichedColor database column (PRIMARY SOURCE - comma-separated terms)
+            (LOWER(COALESCE(p."enrichedColor", '')) LIKE LOWER($${partialParam}))
+            OR
+            -- Check enriched_color in attributes (fallback for legacy data)
+            (LOWER(COALESCE(p.attributes->>'enriched_color', '')) LIKE LOWER($${partialParam}))
+            OR
+            -- Check legacy color fields (fallback)
+            (LOWER(COALESCE(p."color", '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p."color", '')) LIKE LOWER($${partialParam}))
+            OR (LOWER(COALESCE(p.attributes->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->>'color', '')) LIKE LOWER($${partialParam}))
+            OR
+            (p.attributes->'extensible' IS NOT NULL AND 
+             (LOWER(COALESCE(p.attributes->'extensible'->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->'extensible'->>'color', '')) LIKE LOWER($${partialParam})))
+          )`
+        );
+        params.push(color); // Exact match
+        params.push(`%${color}%`); // Partial match
+        paramIndex += 2;
+      });
+      if (colorOrConditions.length > 0) {
+        constraintConditions.push(`(${colorOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // Materials filter (OR logic for multiple materials)
+    if (filters?.materials && filters.materials.length > 0) {
+      const materialOrConditions: string[] = [];
+      filters.materials.forEach((material) => {
+        const exactParam = paramIndex;
+        materialOrConditions.push(
+          `(
+            -- Check database columns (primary source)
+            LOWER(COALESCE(p."material", '')) LIKE LOWER($${exactParam})
+            OR LOWER(COALESCE(p."fabric", '')) LIKE LOWER($${exactParam})
+            OR
+            -- Check JSONB attributes (fallback for legacy data)
+            LOWER(COALESCE(p.attributes->>'material', '')) LIKE LOWER($${exactParam})
+            OR LOWER(COALESCE(p.attributes->>'fabric', '')) LIKE LOWER($${exactParam})
+            OR LOWER(COALESCE(p.attributes->>'materials', '')) LIKE LOWER($${exactParam})
+            OR (p.attributes->'extensible' IS NOT NULL AND (
+                LOWER(COALESCE(p.attributes->'extensible'->>'material', '')) LIKE LOWER($${exactParam})
+                OR LOWER(COALESCE(p.attributes->'extensible'->>'fabric', '')) LIKE LOWER($${exactParam})
+              ))
+          )`
+        );
+        params.push(`%${material}%`); // Use LIKE for partial matching (materials can be "100% Cotton")
+        paramIndex += 1;
+      });
+      if (materialOrConditions.length > 0) {
+        constraintConditions.push(`(${materialOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // Seasons filter
+    if (filters?.seasons && filters.seasons.length > 0) {
+      const seasonOrConditions: string[] = [];
+      filters.seasons.forEach((season) => {
+        const exactParam = paramIndex;
+        seasonOrConditions.push(
+          `(
+            -- Check database column (primary source)
+            LOWER(COALESCE(p."season", '')) LIKE LOWER($${exactParam})
+            OR
+            -- Check JSONB attributes (fallback for legacy data)
+            LOWER(COALESCE(p.attributes->>'season', '')) LIKE LOWER($${exactParam})
+            OR LOWER(COALESCE(p.attributes->>'seasonalCues', '')) LIKE LOWER($${exactParam})
+            OR (p.attributes->'extensible' IS NOT NULL AND (
+                LOWER(COALESCE(p.attributes->'extensible'->>'season', '')) LIKE LOWER($${exactParam})
+                OR LOWER(COALESCE(p.attributes->'extensible'->>'seasonalCues', '')) LIKE LOWER($${exactParam})
+              ))
+          )`
+        );
+        params.push(`%${season}%`);
+        paramIndex += 1;
+      });
+      if (seasonOrConditions.length > 0) {
+        constraintConditions.push(`(${seasonOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // Occasions filter (array overlap for occasionContext, string match for occasion column)
+    if (filters?.occasions && filters.occasions.length > 0) {
+      const occasionValues = filters.occasions.map((occ) => `'${occ.replace(/'/g, "''")}'`).join(', ');
+      const occasionCondition = `(
+        -- Check enriched occasionContext column (array type) - PRIMARY SOURCE
+        (p."occasionContext" IS NOT NULL AND 
+         p."occasionContext" && ARRAY[${occasionValues}]::text[])
+        OR
+        -- Check occasion database column (if it exists)
+        (LOWER(COALESCE(p."occasion", '')) = ANY(ARRAY[${filters.occasions.map((occ) => `'${occ.toLowerCase().replace(/'/g, "''")}'`).join(', ')}]::text[]))
+        OR
+        -- Check Occasion as JSON array (capital O - used by concept search)
+        (p.attributes->'Occasion' IS NOT NULL AND
+         jsonb_typeof(p.attributes->'Occasion') = 'array' AND
+         EXISTS (
+           SELECT 1 FROM jsonb_array_elements_text(p.attributes->'Occasion') AS occasion_val
+           WHERE LOWER(occasion_val) = ANY(ARRAY[${filters.occasions.map((occ) => `'${occ.toLowerCase().replace(/'/g, "''")}'`).join(', ')}]::text[])
+         ))
+        OR
+        -- Check occasion as string (lowercase - various formats) - fallback
+        (LOWER(COALESCE(p.attributes->>'occasion', '')) = ANY(ARRAY[${filters.occasions.map((occ) => `'${occ.toLowerCase().replace(/'/g, "''")}'`).join(', ')}]::text[]))
+        OR
+        -- Check extensible occasions
+        (p.attributes->'extensible' IS NOT NULL AND (
+          (p.attributes->'extensible'->'Occasion' IS NOT NULL AND
+           jsonb_typeof(p.attributes->'extensible'->'Occasion') = 'array' AND
+           EXISTS (
+             SELECT 1 FROM jsonb_array_elements_text(p.attributes->'extensible'->'Occasion') AS occasion_val
+             WHERE LOWER(occasion_val) = ANY(ARRAY[${filters.occasions.map((occ) => `'${occ.toLowerCase().replace(/'/g, "''")}'`).join(', ')}]::text[])
+           ))
+          OR (LOWER(COALESCE(p.attributes->'extensible'->>'occasion', '')) = ANY(ARRAY[${filters.occasions.map((occ) => `'${occ.toLowerCase().replace(/'/g, "''")}'`).join(', ')}]::text[]))
+        ))
+      )`;
+      constraintConditions.push(occasionCondition);
+    }
+    
+    // Fits filter
+    if (filters?.fits && filters.fits.length > 0) {
+      const fitOrConditions: string[] = [];
+      filters.fits.forEach((fit) => {
+        const exactParam = paramIndex;
+        fitOrConditions.push(
+          `(
+            -- Check database column (primary source)
+            LOWER(COALESCE(p."fit", '')) = LOWER($${exactParam})
+            OR
+            -- Check JSONB attributes (fallback for legacy data)
+            LOWER(COALESCE(p.attributes->>'fit', '')) = LOWER($${exactParam})
+            OR (p.attributes->'extensible' IS NOT NULL AND 
+                LOWER(COALESCE(p.attributes->'extensible'->>'fit', '')) = LOWER($${exactParam}))
+          )`
+        );
+        params.push(fit);
+        paramIndex += 1;
+      });
+      if (fitOrConditions.length > 0) {
+        constraintConditions.push(`(${fitOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // Styles filter (silhouetteCut column)
+    if (filters?.styles && filters.styles.length > 0) {
+      const styleOrConditions: string[] = [];
+      filters.styles.forEach((style) => {
+        const exactParam = paramIndex;
+        styleOrConditions.push(
+          `(
+            -- Check silhouetteCut column (PRIMARY SOURCE - matches dictionary extraction)
+            LOWER(COALESCE(p."silhouetteCut", '')) LIKE LOWER($${exactParam})
+            OR
+            -- Check Style as JSON array (capital S - used by concept search)
+            (p.attributes->'Style' IS NOT NULL AND
+             jsonb_typeof(p.attributes->'Style') = 'array' AND
+             EXISTS (
+               SELECT 1 FROM jsonb_array_elements_text(p.attributes->'Style') AS style_val
+               WHERE LOWER(style_val) = LOWER($${exactParam})
+             ))
+            OR
+            -- Check style as string (lowercase - various formats)
+            LOWER(COALESCE(p.attributes->>'style', '')) LIKE LOWER($${exactParam})
+            OR LOWER(COALESCE(p.attributes->>'style_labels', '')) LIKE LOWER($${exactParam})
+            OR
+            -- Check Style text representation (fallback for string-stored arrays)
+            (p.attributes->>'Style' IS NOT NULL AND
+             LOWER(p.attributes->>'Style') LIKE LOWER($${exactParam}))
+            OR
+            -- Check extensible styles
+            (p.attributes->'extensible' IS NOT NULL AND (
+              (p.attributes->'extensible'->'Style' IS NOT NULL AND
+               jsonb_typeof(p.attributes->'extensible'->'Style') = 'array' AND
+               EXISTS (
+                 SELECT 1 FROM jsonb_array_elements_text(p.attributes->'extensible'->'Style') AS style_val
+                 WHERE LOWER(style_val) = LOWER($${exactParam})
+               ))
+              OR LOWER(COALESCE(p.attributes->'extensible'->>'style', '')) LIKE LOWER($${exactParam})
+              OR LOWER(COALESCE(p.attributes->'extensible'->>'style_labels', '')) LIKE LOWER($${exactParam})
+            ))
+          )`
+        );
+        params.push(`%${style}%`);
+        paramIndex += 1;
+      });
+      if (styleOrConditions.length > 0) {
+        constraintConditions.push(`(${styleOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // Sleeves filter
+    if (filters?.sleeves && filters.sleeves.length > 0) {
+      const sleeveOrConditions: string[] = [];
+      filters.sleeves.forEach((sleeve) => {
+        const exactParam = paramIndex;
+        sleeveOrConditions.push(
+          `(
+            -- Check database column (primary source)
+            LOWER(COALESCE(p."sleeve", '')) = LOWER($${exactParam})
+            OR
+            -- Check JSONB attributes (fallback for legacy data)
+            LOWER(COALESCE(p.attributes->>'sleeve', '')) = LOWER($${exactParam})
+            OR LOWER(COALESCE(p.attributes->>'sleeveLength', '')) = LOWER($${exactParam})
+            OR (p.attributes->'extensible' IS NOT NULL AND (
+                LOWER(COALESCE(p.attributes->'extensible'->>'sleeve', '')) = LOWER($${exactParam})
+                OR LOWER(COALESCE(p.attributes->'extensible'->>'sleeveLength', '')) = LOWER($${exactParam})
+              ))
+          )`
+        );
+        params.push(sleeve);
+        paramIndex += 1;
+      });
+      if (sleeveOrConditions.length > 0) {
+        constraintConditions.push(`(${sleeveOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // Necklines filter
+    if (filters?.necklines && filters.necklines.length > 0) {
+      const necklineOrConditions: string[] = [];
+      filters.necklines.forEach((neckline) => {
+        const exactParam = paramIndex;
+        necklineOrConditions.push(
+          `(
+            -- Check database column (primary source)
+            LOWER(COALESCE(p."neckline", '')) = LOWER($${exactParam})
+            OR
+            -- Check JSONB attributes (fallback for legacy data)
+            LOWER(COALESCE(p.attributes->>'neckline', '')) = LOWER($${exactParam})
+            OR (p.attributes->'extensible' IS NOT NULL AND 
+                LOWER(COALESCE(p.attributes->'extensible'->>'neckline', '')) = LOWER($${exactParam}))
+          )`
+        );
+        params.push(neckline);
+        paramIndex += 1;
+      });
+      if (necklineOrConditions.length > 0) {
+        constraintConditions.push(`(${necklineOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // Lengths filter
+    if (filters?.lengths && filters.lengths.length > 0) {
+      const lengthOrConditions: string[] = [];
+      filters.lengths.forEach((length) => {
+        const exactParam = paramIndex;
+        lengthOrConditions.push(
+          `(
+            -- Check database column (primary source)
+            LOWER(COALESCE(p."length", '')) = LOWER($${exactParam})
+            OR
+            -- Check JSONB attributes (fallback for legacy data)
+            LOWER(COALESCE(p.attributes->>'length', '')) = LOWER($${exactParam})
+            OR LOWER(COALESCE(p.attributes->>'Length', '')) = LOWER($${exactParam})
+            OR (p.attributes->'extensible' IS NOT NULL AND 
+                LOWER(COALESCE(p.attributes->'extensible'->>'length', '')) = LOWER($${exactParam}))
+          )`
+        );
+        params.push(length);
+        paramIndex += 1;
+      });
+      if (lengthOrConditions.length > 0) {
+        constraintConditions.push(`(${lengthOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // Rises filter
+    if (filters?.rises && filters.rises.length > 0) {
+      const riseOrConditions: string[] = [];
+      filters.rises.forEach((rise) => {
+        const exactParam = paramIndex;
+        riseOrConditions.push(
+          `(
+            -- Check database column (primary source)
+            LOWER(COALESCE(p."riseWaist", '')) = LOWER($${exactParam})
+            OR
+            -- Check JSONB attributes (fallback for legacy data)
+            LOWER(COALESCE(p.attributes->>'riseWaist', '')) = LOWER($${exactParam})
+            OR LOWER(COALESCE(p.attributes->>'rise', '')) = LOWER($${exactParam})
+            OR (p.attributes->'extensible' IS NOT NULL AND (
+                LOWER(COALESCE(p.attributes->'extensible'->>'riseWaist', '')) = LOWER($${exactParam})
+                OR LOWER(COALESCE(p.attributes->'extensible'->>'rise', '')) = LOWER($${exactParam})
+              ))
+          )`
+        );
+        params.push(rise);
+        paramIndex += 1;
+      });
+      if (riseOrConditions.length > 0) {
+        constraintConditions.push(`(${riseOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // Patterns filter
+    if (filters?.patterns && filters.patterns.length > 0) {
+      const patternOrConditions: string[] = [];
+      filters.patterns.forEach((pattern) => {
+        const exactParam = paramIndex;
+        patternOrConditions.push(
+          `(
+            -- Check Pattern attribute as JSON array (case-insensitive)
+            (p.attributes->'Pattern' IS NOT NULL AND
+             jsonb_typeof(p.attributes->'Pattern') = 'array' AND
+             EXISTS (
+               SELECT 1 FROM jsonb_array_elements_text(p.attributes->'Pattern') AS pattern_val
+               WHERE LOWER(pattern_val) = LOWER($${exactParam})
+             ))
+            OR
+            -- Check Pattern text representation (fallback for string-stored arrays)
+            (p.attributes->>'Pattern' IS NOT NULL AND
+             LOWER(p.attributes->>'Pattern') LIKE LOWER('%' || $${exactParam} || '%'))
+            OR
+            -- Check pattern_print as string (fallback - used by some products)
+            (LOWER(COALESCE(p.attributes->>'pattern_print', '')) = LOWER($${exactParam})
+             OR LOWER(COALESCE(p.attributes->>'pattern_print', '')) LIKE LOWER('%' || $${exactParam} || '%'))
+            OR
+            -- Check extensible Pattern attribute as JSON array
+            (p.attributes->'extensible' IS NOT NULL AND
+             p.attributes->'extensible'->'Pattern' IS NOT NULL AND
+             jsonb_typeof(p.attributes->'extensible'->'Pattern') = 'array' AND
+             EXISTS (
+               SELECT 1 FROM jsonb_array_elements_text(p.attributes->'extensible'->'Pattern') AS pattern_val
+               WHERE LOWER(pattern_val) = LOWER($${exactParam})
+             ))
+          )`
+        );
+        params.push(pattern);
+        paramIndex += 1;
+      });
+      if (patternOrConditions.length > 0) {
+        constraintConditions.push(`(${patternOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // FormalityLevel filter
+    if (filters?.formalityLevel && filters.formalityLevel.length > 0) {
+      const formalityOrConditions: string[] = [];
+      filters.formalityLevel.forEach((formality) => {
+        const exactParam = paramIndex;
+        formalityOrConditions.push(
+          `(
+            LOWER(COALESCE(p."formalityLevel", '')) = LOWER($${exactParam})
+            OR LOWER(COALESCE(p.attributes->>'formalityLevel', '')) = LOWER($${exactParam})
+          )`
+        );
+        params.push(formality);
+        paramIndex += 1;
+      });
+      if (formalityOrConditions.length > 0) {
+        constraintConditions.push(`(${formalityOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // ColorShade filter
+    if (filters?.colorShade && filters.colorShade.length > 0) {
+      const colorShadeOrConditions: string[] = [];
+      filters.colorShade.forEach((colorShade) => {
+        const exactParam = paramIndex;
+        colorShadeOrConditions.push(
+          `(
+            LOWER(COALESCE(p."colorShade", '')) = LOWER($${exactParam})
+            OR LOWER(COALESCE(p.attributes->>'colorShade', '')) = LOWER($${exactParam})
+          )`
+        );
+        params.push(colorShade);
+        paramIndex += 1;
+      });
+      if (colorShadeOrConditions.length > 0) {
+        constraintConditions.push(`(${colorShadeOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // Sizes filter (if needed - usually handled in post-filtering, but add for completeness)
+    if (filters?.sizes && filters.sizes.length > 0) {
+      const sizeOrConditions: string[] = [];
+      filters.sizes.forEach((size) => {
+        const exactParam = paramIndex;
+        sizeOrConditions.push(
+          `(
+            EXISTS (
+              SELECT 1 FROM jsonb_array_elements_text(
+                COALESCE(p.attributes->'sizes', p.attributes->'size', '[]'::jsonb)
+              ) AS size_val
+              WHERE LOWER(size_val) = LOWER($${exactParam})
+            )
+          )`
+        );
+        params.push(size);
+        paramIndex += 1;
+      });
+      if (sizeOrConditions.length > 0) {
+        constraintConditions.push(`(${sizeOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // Collections filter
+    if (filters?.collections && filters.collections.length > 0) {
+      const collectionOrConditions: string[] = [];
+      filters.collections.forEach((collection) => {
+        const exactParam = paramIndex;
+        collectionOrConditions.push(
+          `(
+            LOWER(COALESCE(p.attributes->>'collection', '')) LIKE LOWER($${exactParam})
+            OR (p.attributes->'extensible' IS NOT NULL AND 
+                LOWER(COALESCE(p.attributes->'extensible'->>'collection', '')) LIKE LOWER($${exactParam}))
+          )`
+        );
+        params.push(`%${collection}%`);
+        paramIndex += 1;
+      });
+      if (collectionOrConditions.length > 0) {
+        constraintConditions.push(`(${collectionOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // Embellishments filter
+    if (filters?.embellishments && filters.embellishments.length > 0) {
+      const embellishmentOrConditions: string[] = [];
+      filters.embellishments.forEach((embellishment) => {
+        const exactParam = paramIndex;
+        embellishmentOrConditions.push(
+          `(
+            LOWER(COALESCE(p.attributes->>'embellishments', '')) LIKE LOWER($${exactParam})
+            OR (p.attributes->'extensible' IS NOT NULL AND 
+                LOWER(COALESCE(p.attributes->'extensible'->>'embellishments', '')) LIKE LOWER($${exactParam}))
+          )`
+        );
+        params.push(`%${embellishment}%`);
+        paramIndex += 1;
+      });
+      if (embellishmentOrConditions.length > 0) {
+        constraintConditions.push(`(${embellishmentOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // ColorUndertone filter
+    if (filters?.colorUndertone && filters.colorUndertone.length > 0) {
+      const colorUndertoneOrConditions: string[] = [];
+      filters.colorUndertone.forEach((colorUndertone) => {
+        const exactParam = paramIndex;
+        colorUndertoneOrConditions.push(
+          `(
+            LOWER(COALESCE(p."colorUndertone", '')) = LOWER($${exactParam})
+            OR LOWER(COALESCE(p.attributes->>'colorUndertone', '')) = LOWER($${exactParam})
+          )`
+        );
+        params.push(colorUndertone);
+        paramIndex += 1;
+      });
+      if (colorUndertoneOrConditions.length > 0) {
+        constraintConditions.push(`(${colorUndertoneOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // SeasonalPalette filter
+    if (filters?.seasonalPalette && filters.seasonalPalette.length > 0) {
+      const seasonalPaletteOrConditions: string[] = [];
+      filters.seasonalPalette.forEach((seasonalPalette) => {
+        const exactParam = paramIndex;
+        seasonalPaletteOrConditions.push(
+          `(
+            LOWER(COALESCE(p.attributes->>'seasonalPalette', '')) LIKE LOWER($${exactParam})
+            OR (p.attributes->'extensible' IS NOT NULL AND 
+                LOWER(COALESCE(p.attributes->'extensible'->>'seasonalPalette', '')) LIKE LOWER($${exactParam}))
+          )`
+        );
+        params.push(`%${seasonalPalette}%`);
+        paramIndex += 1;
+      });
+      if (seasonalPaletteOrConditions.length > 0) {
+        constraintConditions.push(`(${seasonalPaletteOrConditions.join(' OR ')})`);
+      }
+    }
+    
+    // NOTE: Colors, lengths, sleeves, necklines, formalityLevels, and colorShades are ONLY omitted
+    // when they don't have "required" intent. When they have "required" intent, they are applied above
+    // to ensure products matching all constraints are included in pre-deduplication.
+    
+    // Combine constraint filters with OR (products match if they satisfy ANY constraint type)
+    // Then combine with hard filters using AND (products must match hard filters AND at least one constraint)
+    if (constraintConditions.length > 0) {
+      // OR all constraint types together - products match if they satisfy ANY constraint
+      whereConditions.push(`(${constraintConditions.join(' OR ')})`);
+      logger.debug('deduplicateProductsByCategoryForPostFiltering: constraint_filters_combined_with_or', {
+        constraintCount: constraintConditions.length,
+        note: 'Constraint filters (colors, materials, occasions, formalityLevel, etc.) are OR\'d together. Products match if they satisfy ANY constraint type. Products matching more constraints will rank higher.',
+      });
+    }
     
     // Build deduplication key expression (same as deduplicateProductsByCategory)
     const dedupKeyExpr = `
@@ -999,9 +1534,30 @@ export async function deduplicateProductsByCategoryForPostFiltering(
       hasAgeGroupFilter: filters?.ageGroups !== undefined && filters.ageGroups.length > 0,
       ageGroups: filters?.ageGroups,
       ageGroupCount: filters?.ageGroups?.length || 0,
+      hasRequiredConstraints: !!(filters?.colors || filters?.materials || filters?.seasons || filters?.occasions || filters?.fits || filters?.styles || filters?.sleeves || filters?.necklines || filters?.lengths || filters?.rises || filters?.patterns || filters?.formalityLevel || filters?.colorShade || filters?.sizes || filters?.collections || filters?.embellishments || filters?.colorUndertone || filters?.seasonalPalette),
+      requiredConstraints: {
+        colors: filters?.colors?.length || 0,
+        materials: filters?.materials?.length || 0,
+        seasons: filters?.seasons?.length || 0,
+        occasions: filters?.occasions?.length || 0,
+        fits: filters?.fits?.length || 0,
+        styles: filters?.styles?.length || 0,
+        sleeves: filters?.sleeves?.length || 0,
+        necklines: filters?.necklines?.length || 0,
+        lengths: filters?.lengths?.length || 0,
+        rises: filters?.rises?.length || 0,
+        patterns: filters?.patterns?.length || 0,
+        formalityLevel: filters?.formalityLevel?.length || 0,
+        colorShade: filters?.colorShade?.length || 0,
+        sizes: filters?.sizes?.length || 0,
+        collections: filters?.collections?.length || 0,
+        embellishments: filters?.embellishments?.length || 0,
+        colorUndertone: filters?.colorUndertone?.length || 0,
+        seasonalPalette: filters?.seasonalPalette?.length || 0,
+      },
       paramCount: params.length,
-      whereClausePreview: whereConditions.join(' AND '),
-      note: 'Post-filterable attributes (colors, lengths, sleeves, necklines, formalityLevels, colorShades) intentionally omitted from SQL filters',
+      whereClausePreview: whereConditions.join(' AND ').substring(0, 500),
+      note: 'Required constraint filters (intent="required" or occasions with "strong" intent) applied in pre-deduplication to ensure matching products are included',
     });
     
     const results = await prisma.$queryRawUnsafe<Array<{ productId: string }>>(
@@ -1413,23 +1969,29 @@ export async function searchVectorIndexWithDeduplication(
     // Match case-insensitively for exact and partial matches
     // Apply color filters even when productIds are provided (they were filtered in deduplication, but we need to ensure consistency)
     
-    // Handle included colors (must match)
+    // Handle included colors (must match ANY color - OR filter)
+    // CRITICAL: Colors are OR'd with other constraints (patterns, occasions, etc.), not AND'd
+    // Only Category, Gender, and AgeGroup are AND filters
     if (filters?.colors && Array.isArray(filters.colors) && filters.colors.length > 0) {
       const colorOrConditions: string[] = [];
       filters.colors.forEach((color) => {
         // Try exact match first, then partial match
         const exactParam = paramIndex;
         const partialParam = paramIndex + 1;
-        // Check enriched_color string (PRIMARY SOURCE)
-        // Check legacy color fields (fallback)
+        // Check enrichedColor database column (PRIMARY SOURCE)
+        // Check enriched_color in attributes and legacy color fields (fallback)
         // NOTE: variant_colors is intentionally excluded from filtering
         colorOrConditions.push(
           `(
-            -- Check enriched_color string (PRIMARY SOURCE - comma-separated terms)
+            -- Check enrichedColor database column (PRIMARY SOURCE - comma-separated terms)
+            (LOWER(COALESCE(p."enrichedColor", '')) LIKE LOWER($${partialParam}))
+            OR
+            -- Check enriched_color in attributes (fallback for legacy data)
             (LOWER(COALESCE(p.attributes->>'enriched_color', '')) LIKE LOWER($${partialParam}))
             OR
             -- Check legacy color fields (fallback)
-            (LOWER(COALESCE(p.attributes->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->>'color', '')) LIKE LOWER($${partialParam}))
+            (LOWER(COALESCE(p."color", '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p."color", '')) LIKE LOWER($${partialParam}))
+            OR (LOWER(COALESCE(p.attributes->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->>'color', '')) LIKE LOWER($${partialParam}))
             OR
             (p.attributes->'extensible' IS NOT NULL AND 
              (LOWER(COALESCE(p.attributes->'extensible'->>'color', '')) = LOWER($${exactParam}) OR LOWER(COALESCE(p.attributes->'extensible'->>'color', '')) LIKE LOWER($${partialParam})))
@@ -1439,9 +2001,14 @@ export async function searchVectorIndexWithDeduplication(
         params.push(`%${color}%`); // Partial match
         paramIndex += 2;
       });
-      // Wrap all color conditions in parentheses with OR
+      // Add colors to constraintConditions (will be OR'd with other constraints)
       if (colorOrConditions.length > 0) {
-        whereConditions.push(`(${colorOrConditions.join(' OR ')})`);
+        constraintConditions.push(`(${colorOrConditions.join(' OR ')})`);
+        logger.debug('searchVectorIndexWithDeduplication: color_filter_applied', {
+          colors: filters.colors,
+          colorCount: filters.colors.length,
+          note: 'Color filter added to constraintConditions (OR\'d with other constraints)',
+        });
       }
     }
     
@@ -1704,7 +2271,9 @@ export async function searchVectorIndexWithDeduplication(
            LOWER(p.attributes->>'Pattern') LIKE LOWER('%' || $${exactParam} || '%'))
           OR
           -- Check pattern_print as string (fallback - used by some products)
-          LOWER(COALESCE(p.attributes->>'pattern_print', '')) = LOWER($${exactParam})
+          -- pattern_print can be stored as JSON string like "[\"Floral\"]" or plain string "Floral"
+          (LOWER(COALESCE(p.attributes->>'pattern_print', '')) = LOWER($${exactParam})
+           OR LOWER(COALESCE(p.attributes->>'pattern_print', '')) LIKE LOWER('%' || $${exactParam} || '%'))
           OR
           -- Check extensible Pattern attribute as JSON array
           (p.attributes->'extensible' IS NOT NULL AND
@@ -1731,13 +2300,19 @@ export async function searchVectorIndexWithDeduplication(
     }
     
     // Add material filtering if provided (hard SQL-level filter for "required" intent)
-    // Materials are stored in attributes->>'material', attributes->>'fabric', or attributes->>'materials'
+    // Materials are stored in:
+    // 1. p."material" and p."fabric" database columns (primary source) - e.g., "Cotton", "Polyester", "Silk"
+    // 2. attributes->>'material', attributes->>'fabric', or attributes->>'materials' (fallback for legacy data)
     if (filters?.materials && filters.materials.length > 0) {
       const materialOrConditions: string[] = [];
       filters.materials.forEach((material) => {
         const exactParam = paramIndex;
         const materialCondition = `(
-          -- Check material/fabric attributes (case-insensitive)
+          -- Check database columns (primary source)
+          LOWER(COALESCE(p."material", '')) LIKE LOWER($${exactParam})
+          OR LOWER(COALESCE(p."fabric", '')) LIKE LOWER($${exactParam})
+          OR
+          -- Check JSONB attributes (fallback for legacy data)
           LOWER(COALESCE(p.attributes->>'material', '')) LIKE LOWER($${exactParam})
           OR LOWER(COALESCE(p.attributes->>'fabric', '')) LIKE LOWER($${exactParam})
           OR LOWER(COALESCE(p.attributes->>'materials', '')) LIKE LOWER($${exactParam})
@@ -1763,65 +2338,59 @@ export async function searchVectorIndexWithDeduplication(
     // Add occasion filtering if provided (hard SQL-level filter for "required" intent)
     // Occasions can be stored as JSON arrays (attributes->'Occasion') or strings (attributes->>'occasion', occasionContext column, etc.)
     if (filters?.occasions && filters.occasions.length > 0) {
-      const occasionOrConditions: string[] = [];
-      filters.occasions.forEach((occasion) => {
-        const exactParam = paramIndex;
-        const occasionCondition = `(
-          -- Check Occasion as JSON array (capital O - used by concept search)
-          (p.attributes->'Occasion' IS NOT NULL AND
-           jsonb_typeof(p.attributes->'Occasion') = 'array' AND
+      // Use array overlap (&&) for occasionContext column (array type) - more efficient and correct
+      const occasionValues = filters.occasions.map((occ) => `'${occ.replace(/'/g, "''")}'`).join(', ');
+      const occasionCondition = `(
+        -- Check enriched occasionContext column (array type) - PRIMARY SOURCE
+        (p."occasionContext" IS NOT NULL AND 
+         p."occasionContext" && ARRAY[${occasionValues}]::text[])
+        OR
+        -- Check occasion database column (if it exists)
+        (LOWER(COALESCE(p."occasion", '')) = ANY(ARRAY[${filters.occasions.map((occ) => `'${occ.toLowerCase().replace(/'/g, "''")}'`).join(', ')}]::text[]))
+        OR
+        -- Check Occasion as JSON array (capital O - used by concept search)
+        (p.attributes->'Occasion' IS NOT NULL AND
+         jsonb_typeof(p.attributes->'Occasion') = 'array' AND
+         EXISTS (
+           SELECT 1 FROM jsonb_array_elements_text(p.attributes->'Occasion') AS occasion_val
+           WHERE LOWER(occasion_val) = ANY(ARRAY[${filters.occasions.map((occ) => `'${occ.toLowerCase().replace(/'/g, "''")}'`).join(', ')}]::text[])
+         ))
+        OR
+        -- Check occasion as string (lowercase - various formats) - fallback
+        (LOWER(COALESCE(p.attributes->>'occasion', '')) = ANY(ARRAY[${filters.occasions.map((occ) => `'${occ.toLowerCase().replace(/'/g, "''")}'`).join(', ')}]::text[]))
+        OR
+        -- Check extensible occasions
+        (p.attributes->'extensible' IS NOT NULL AND (
+          (p.attributes->'extensible'->'Occasion' IS NOT NULL AND
+           jsonb_typeof(p.attributes->'extensible'->'Occasion') = 'array' AND
            EXISTS (
-             SELECT 1 FROM jsonb_array_elements_text(p.attributes->'Occasion') AS occasion_val
-             WHERE LOWER(occasion_val) LIKE LOWER($${exactParam})
+             SELECT 1 FROM jsonb_array_elements_text(p.attributes->'extensible'->'Occasion') AS occasion_val
+             WHERE LOWER(occasion_val) = ANY(ARRAY[${filters.occasions.map((occ) => `'${occ.toLowerCase().replace(/'/g, "''")}'`).join(', ')}]::text[])
            ))
-          OR
-          -- Check occasion as string (lowercase - various formats)
-          LOWER(COALESCE(p.attributes->>'occasion', '')) LIKE LOWER($${exactParam})
-          OR LOWER(COALESCE(p.attributes->>'occasionContext', '')) LIKE LOWER($${exactParam})
-          OR
-          -- Check Occasion text representation (fallback for string-stored arrays)
-          (p.attributes->>'Occasion' IS NOT NULL AND
-           LOWER(p.attributes->>'Occasion') LIKE LOWER($${exactParam}))
-          OR
-          -- Check enriched occasionContext column
-          (p."occasionContext" IS NOT NULL AND 
-           LOWER(p."occasionContext"::text) LIKE LOWER($${exactParam}))
-          OR
-          -- Check extensible occasions
-          (p.attributes->'extensible' IS NOT NULL AND (
-            (p.attributes->'extensible'->'Occasion' IS NOT NULL AND
-             jsonb_typeof(p.attributes->'extensible'->'Occasion') = 'array' AND
-             EXISTS (
-               SELECT 1 FROM jsonb_array_elements_text(p.attributes->'extensible'->'Occasion') AS occasion_val
-               WHERE LOWER(occasion_val) LIKE LOWER($${exactParam})
-             ))
-            OR LOWER(COALESCE(p.attributes->'extensible'->>'occasion', '')) LIKE LOWER($${exactParam})
-            OR LOWER(COALESCE(p.attributes->'extensible'->>'occasionContext', '')) LIKE LOWER($${exactParam})
-          ))
-        )`;
-        occasionOrConditions.push(occasionCondition);
-        params.push(`%${occasion}%`);
-        paramIndex += 1;
+          OR (LOWER(COALESCE(p.attributes->'extensible'->>'occasion', '')) = ANY(ARRAY[${filters.occasions.map((occ) => `'${occ.toLowerCase().replace(/'/g, "''")}'`).join(', ')}]::text[]))
+        ))
+      )`;
+      constraintConditions.push(occasionCondition);
+      logger.debug('searchVectorIndexWithDeduplication: occasion_filter_applied', {
+        occasions: filters.occasions,
+        occasionCount: filters.occasions.length,
+        note: 'Occasion filter applied using array overlap (&&) for occasionContext column',
       });
-      if (occasionOrConditions.length > 0) {
-        // Collect occasion filters in constraintConditions (will be OR'd with other constraints)
-        constraintConditions.push(`(${occasionOrConditions.join(' OR ')})`);
-        logger.debug('searchVectorIndexWithDeduplication: occasion_filter_applied', {
-          occasions: filters.occasions,
-          occasionCount: filters.occasions.length,
-          note: 'Occasion filter collected for OR grouping with other constraints',
-        });
-      }
     }
     
     // Add sleeve filtering if provided (hard SQL-level filter for "required" intent)
-    // Sleeves are stored in attributes->>'sleeve' or attributes->>'sleeveLength'
+    // Sleeves are stored in:
+    // 1. p."sleeve" database column (primary source) - e.g., "Long", "Short", "Sleeveless"
+    // 2. attributes->>'sleeve' or attributes->>'sleeveLength' (fallback for legacy data)
     if (filters?.sleeves && filters.sleeves.length > 0) {
       const sleeveOrConditions: string[] = [];
       filters.sleeves.forEach((sleeve) => {
         const exactParam = paramIndex;
         const sleeveCondition = `(
-          -- Check sleeve attributes (case-insensitive)
+          -- Check database column (primary source)
+          LOWER(COALESCE(p."sleeve", '')) = LOWER($${exactParam})
+          OR
+          -- Check JSONB attributes (fallback for legacy data)
           LOWER(COALESCE(p.attributes->>'sleeve', '')) = LOWER($${exactParam})
           OR LOWER(COALESCE(p.attributes->>'sleeveLength', '')) = LOWER($${exactParam})
           OR (p.attributes->'extensible' IS NOT NULL AND (
@@ -1844,13 +2413,18 @@ export async function searchVectorIndexWithDeduplication(
     }
     
     // Add neckline filtering if provided (hard SQL-level filter for "required" intent)
-    // Necklines are stored in attributes->>'neckline'
+    // Necklines are stored in:
+    // 1. p."neckline" database column (primary source) - e.g., "V-Neck", "Crew Neck", "Round Neck"
+    // 2. attributes->>'neckline' (fallback for legacy data)
     if (filters?.necklines && filters.necklines.length > 0) {
       const necklineOrConditions: string[] = [];
       filters.necklines.forEach((neckline) => {
         const exactParam = paramIndex;
         const necklineCondition = `(
-          -- Check neckline attribute (case-insensitive)
+          -- Check database column (primary source)
+          LOWER(COALESCE(p."neckline", '')) = LOWER($${exactParam})
+          OR
+          -- Check JSONB attributes (fallback for legacy data)
           LOWER(COALESCE(p.attributes->>'neckline', '')) = LOWER($${exactParam})
           OR (p.attributes->'extensible' IS NOT NULL AND 
               LOWER(COALESCE(p.attributes->'extensible'->>'neckline', '')) = LOWER($${exactParam}))
@@ -1898,11 +2472,18 @@ export async function searchVectorIndexWithDeduplication(
     }
     
     // Add fit filtering if provided (hard SQL-level filter for "required" intent)
+    // Fits are stored in:
+    // 1. p."fit" database column (primary source) - e.g., "Slim", "Regular", "Relaxed"
+    // 2. attributes->>'fit' (fallback for legacy data)
     if (filters?.fits && filters.fits.length > 0) {
       const fitOrConditions: string[] = [];
       filters.fits.forEach((fit) => {
         const exactParam = paramIndex;
         const fitCondition = `(
+          -- Check database column (primary source)
+          LOWER(COALESCE(p."fit", '')) = LOWER($${exactParam})
+          OR
+          -- Check JSONB attributes (fallback for legacy data)
           LOWER(COALESCE(p.attributes->>'fit', '')) = LOWER($${exactParam})
           OR (p.attributes->'extensible' IS NOT NULL AND 
               LOWER(COALESCE(p.attributes->'extensible'->>'fit', '')) = LOWER($${exactParam}))
@@ -1922,12 +2503,16 @@ export async function searchVectorIndexWithDeduplication(
     }
     
     // Add style filtering if provided (hard SQL-level filter for "required" intent)
-    // Styles can be stored as JSON arrays (attributes->'Style') or strings (attributes->>'style' or attributes->>'style_labels')
+    // Styles can be stored in silhouetteCut column (primary), JSON arrays (attributes->'Style'), or strings (attributes->>'style' or attributes->>'style_labels')
+    // This matches the dictionary extraction logic which extracts from silhouetteCut first
     if (filters?.styles && filters.styles.length > 0) {
       const styleOrConditions: string[] = [];
       filters.styles.forEach((style) => {
         const exactParam = paramIndex;
         const styleCondition = `(
+          -- Check silhouetteCut column (PRIMARY SOURCE - matches dictionary extraction)
+          LOWER(COALESCE(p."silhouetteCut", '')) LIKE LOWER($${exactParam})
+          OR
           -- Check Style as JSON array (capital S - used by concept search)
           (p.attributes->'Style' IS NOT NULL AND
            jsonb_typeof(p.attributes->'Style') = 'array' AND
@@ -1995,11 +2580,18 @@ export async function searchVectorIndexWithDeduplication(
     }
     
     // Add season filtering if provided (hard SQL-level filter for "required" intent)
+    // Seasons are stored in:
+    // 1. p."season" database column (primary source) - e.g., "Spring", "Summer", "Fall", "Winter"
+    // 2. attributes->>'season' or attributes->>'seasonalCues' (fallback for legacy data)
     if (filters?.seasons && filters.seasons.length > 0) {
       const seasonOrConditions: string[] = [];
       filters.seasons.forEach((season) => {
         const exactParam = paramIndex;
         const seasonCondition = `(
+          -- Check database column (primary source)
+          LOWER(COALESCE(p."season", '')) LIKE LOWER($${exactParam})
+          OR
+          -- Check JSONB attributes (fallback for legacy data)
           LOWER(COALESCE(p.attributes->>'season', '')) LIKE LOWER($${exactParam})
           OR LOWER(COALESCE(p.attributes->>'seasonalCues', '')) LIKE LOWER($${exactParam})
           OR (p.attributes->'extensible' IS NOT NULL AND (
@@ -2023,14 +2615,24 @@ export async function searchVectorIndexWithDeduplication(
     }
     
     // Add rise filtering if provided (hard SQL-level filter for "required" intent)
+    // Rises are stored in:
+    // 1. p."riseWaist" database column (primary source) - e.g., "Low Rise", "Mid Rise", "High Rise"
+    // 2. attributes->>'riseWaist' or attributes->>'rise' (fallback for legacy data)
     if (filters?.rises && filters.rises.length > 0) {
       const riseOrConditions: string[] = [];
       filters.rises.forEach((rise) => {
         const exactParam = paramIndex;
         const riseCondition = `(
-          LOWER(COALESCE(p.attributes->>'rise', '')) = LOWER($${exactParam})
-          OR (p.attributes->'extensible' IS NOT NULL AND 
-              LOWER(COALESCE(p.attributes->'extensible'->>'rise', '')) = LOWER($${exactParam}))
+          -- Check database column (primary source)
+          LOWER(COALESCE(p."riseWaist", '')) = LOWER($${exactParam})
+          OR
+          -- Check JSONB attributes (fallback for legacy data)
+          LOWER(COALESCE(p.attributes->>'riseWaist', '')) = LOWER($${exactParam})
+          OR LOWER(COALESCE(p.attributes->>'rise', '')) = LOWER($${exactParam})
+          OR (p.attributes->'extensible' IS NOT NULL AND (
+              LOWER(COALESCE(p.attributes->'extensible'->>'riseWaist', '')) = LOWER($${exactParam})
+              OR LOWER(COALESCE(p.attributes->'extensible'->>'rise', '')) = LOWER($${exactParam})
+            ))
         )`;
         riseOrConditions.push(riseCondition);
         params.push(rise);
@@ -2202,12 +2804,18 @@ export async function searchVectorIndexWithDeduplication(
       }
     }
     
-    // Combine all constraint filters with OR (except Category, Gender, AgeGroup which remain as AND)
+    // Combine all constraint filters
+    // CRITICAL: Constraint filters (colors, materials, occasions, formalityLevel, etc.) are OR'd together
+    // Within each constraint type, values are OR'd (e.g., White OR Beige OR Black)
+    // Between constraint types, they are OR'd (e.g., (White OR Beige) OR (Semi-Formal))
+    // This ensures products match if they satisfy ANY constraint type
+    // Products matching more constraints will rank higher (handled in ranking stage)
     if (constraintConditions.length > 0) {
+      // OR all constraint types together - products match if they satisfy ANY constraint
       whereConditions.push(`(${constraintConditions.join(' OR ')})`);
-      logger.debug('searchVectorIndexWithDeduplication: constraint_filters_combined', {
+      logger.debug('searchVectorIndexWithDeduplication: constraint_filters_combined_with_or', {
         constraintCount: constraintConditions.length,
-        note: 'All constraint filters (Pattern, Occasion, Season, etc.) combined with OR',
+        note: 'Constraint filters (Colors, Patterns, Occasions, Materials, Sleeves, Necklines, Sizes, Fits, Styles, Collections, Seasons, Rises, Embellishments, FormalityLevel, ColorShade, ColorUndertone, SeasonalPalette) are OR\'d together. Products match if they satisfy ANY constraint type. Products matching more constraints will rank higher in the ranking stage.',
       });
     }
     

@@ -1,0 +1,4313 @@
+================================================================================
+Testing: "I want long sleeve tshirts"
+================================================================================
+
+[2026-01-19T19:21:39.286Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: starting',
+  query: 'I want long sleeve tshirts',
+  sessionId: 'test-session-long-sleeve-tshirts',
+  isFollowUp: false,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[2026-01-19T19:21:39.288Z] [Velou:DEBUG] {
+  message: 'I want long sleeve tshirts',
+  sessionId: 'test-session-long-sleeve-tshirts',
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  productContextId: undefined
+}
+[ORCHESTRATOR] START - input.conversationState: {
+  hasConversationState: false,
+  hasMemory: false,
+  hasPendingFollowups: false,
+  memoryKeys: []
+}
+[ORCHESTRATOR] Checking for pendingFollowups: {
+  hasInputConversationState: false,
+  hasMemory: true,
+  hasPendingFollowups: false,
+  pendingFollowupsData: null,
+  message: 'I want long sleeve tshirts',
+  fullMemory: '{}'
+}
+[2026-01-19T19:21:39.290Z] [Velou:DEBUG] {
+  message: 'not_checking_followup',
+  currentMessage: 'I want long sleeve tshirts',
+  hasQueryToMergeWith: false,
+  hasPreviousConstraints: false,
+  isShortMessage: true,
+  matchesFollowUpPattern: false,
+  messageLength: 5
+}
+[2026-01-19T19:21:39.313Z] [Velou:INFO] {
+  message: 'gender_and_agegroup_extracted_early',
+  query: 'I want long sleeve tshirts',
+  resolvedGender: 'male',
+  resolvedAgeGroup: 'Adult',
+  genderSource: 'none',
+  ageGroupSource: 'default'
+}
+[2026-01-19T19:21:39.313Z] [Velou:DEBUG] {
+  message: 'query_categorizer: starting',
+  query: 'I want long sleeve tshirts',
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[2026-01-19T19:21:40.318Z] [Velou:DEBUG] {
+  message: 'query_categorizer: complete',
+  query: 'I want long sleeve tshirts',
+  category: 'direct_search',
+  confidence: 0.95,
+  duration: 1005
+}
+[2026-01-19T19:21:40.318Z] [Velou:INFO] {
+  message: 'query_categorization_result',
+  query: 'I want long sleeve tshirts',
+  category: 'direct_search',
+  confidence: 0.95,
+  note: 'Query categorizer classification result'
+}
+[2026-01-19T19:21:40.319Z] [Velou:INFO] {
+  message: 'sequential_classification_category_first_then_constraints',
+  query: 'I want long sleeve tshirts',
+  categorizationCategory: 'direct_search',
+  isFollowUp: false,
+  hasCategorySignals: false
+}
+[2026-01-19T19:21:40.322Z] [Velou:DEBUG] {
+  message: 'buildAllowedCategoriesForClassifier: gender_interpretable',
+  genderContext: 'male',
+  totalCategories: 121,
+  allowedCategories: 72,
+  sampleAllowed: [
+    'Textiles',
+    'Home Decor',
+    'Phone Cases',
+    'long sleeve',
+    'Kitchen & Dining',
+    'gift card',
+    'Artwork',
+    'Bedding',
+    'unisex pajamas',
+    'Luggage & Bags'
+  ]
+}
+[2026-01-19T19:21:40.322Z] [Velou:INFO] {
+  message: 'categories_filtered_before_classification',
+  query: 'I want long sleeve tshirts',
+  resolvedGender: 'male',
+  totalCategories: 72,
+  sampleCategories: [
+    'Textiles',
+    'Home Decor',
+    'Phone Cases',
+    'long sleeve',
+    'Kitchen & Dining',
+    'gift card',
+    'Artwork',
+    'Bedding',
+    'unisex pajamas',
+    'Luggage & Bags'
+  ]
+}
+[ORCHESTRATOR] Calling category classification (sequential - step 1) {
+  query: 'I want long sleeve tshirts',
+  originalMessage: 'I want long sleeve tshirts',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  categorizationCategory: 'direct_search'
+}
+[2026-01-19T19:21:40.323Z] [Velou:INFO] {
+  message: 'category_classification_calling_function_sequential',
+  query: 'I want long sleeve tshirts',
+  originalMessage: 'I want long sleeve tshirts',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  categorizationCategory: 'direct_search'
+}
+[2026-01-19T19:21:40.323Z] [Velou:INFO] {
+  message: 'category_classifier: using_pre_filtered_categories',
+  query: 'I want long sleeve tshirts',
+  preFilteredCategoryCount: 72,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  note: 'Using pre-filtered categories from orchestrator (gender already extracted)'
+}
+[2026-01-19T19:21:40.323Z] [Velou:INFO] {
+  message: 'category_classifier: starting classification with confidence',
+  query: 'I want long sleeve tshirts',
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  allowedCategoryCount: 72,
+  usingPreFiltered: true
+}
+[2026-01-19T19:21:41.139Z] [Velou:INFO] {
+  message: 'category_classifier: classification with confidence complete',
+  query: 'I want long sleeve tshirts',
+  categories: [ 'Mens-tees' ],
+  categoryCount: 1,
+  confidence: 0.7,
+  elapsedMs: 816,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[ORCHESTRATOR] Category classification result (with confidence) {
+  query: 'I want long sleeve tshirts',
+  originalMessage: 'I want long sleeve tshirts',
+  isFollowUp: false,
+  categories: [ 'Mens-tees' ],
+  count: 1,
+  confidence: 0.7,
+  categorizationCategory: 'direct_search'
+}
+[2026-01-19T19:21:41.139Z] [Velou:INFO] {
+  message: 'category_classification_complete_with_confidence_sequential',
+  query: 'I want long sleeve tshirts',
+  originalMessage: 'I want long sleeve tshirts',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  categorizationCategory: 'direct_search',
+  categories: [ 'Mens-tees' ],
+  categoryCount: 1,
+  confidence: 0.7
+}
+[2026-01-19T19:21:41.139Z] [Velou:INFO] {
+  message: 'category_filter_will_be_applied',
+  query: 'I want long sleeve tshirts',
+  categories: [ 'Mens-tees' ],
+  filterType: 'hard_sql_level',
+  appliesTo: 'multi_view_retrieval'
+}
+[2026-01-19T19:21:41.139Z] [Velou:INFO] {
+  message: 'constraint_classification_calling_sequential_after_categories',
+  query: 'I want long sleeve tshirts',
+  classifiedCategories: [ 'Mens-tees' ],
+  categoryCount: 1,
+  willUseCategorySpecificDictionaries: true
+}
+[2026-01-19T19:21:41.139Z] [Velou:INFO] {
+  message: 'classifyQuery: starting',
+  query: 'I want long sleeve tshirts',
+  hasLastConstraints: false,
+  hasEnhancedQuery: true
+}
+[2026-01-19T19:21:41.140Z] [Velou:INFO] {
+  message: 'classifyQuery: gender_context_computed',
+  query: 'I want long sleeve tshirts',
+  genderContext: null,
+  lastConstraintsGender: undefined,
+  note: 'Gender context computed before building classifier prompt'
+}
+[2026-01-19T19:21:41.140Z] [Velou:DEBUG] {
+  message: 'buildAllowedCategoriesForClassifier: gender_ambiguous_strict_majority',
+  genderContext: null,
+  totalCategories: 121,
+  strictMajorityCategories: 69,
+  sampleAllowed: [
+    'Pajama Set',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Sleepwear & Loungewear',
+    'long sleeve',
+    'mom jeans',
+    'joggers',
+    'underwear',
+    'Mens-tees'
+  ],
+  note: 'Using only strict gender majority categories (≥95% male or female) for ambiguous queries'
+}
+[2026-01-19T19:21:41.140Z] [Velou:INFO] {
+  message: 'classifyQuery: allowed_categories_computed',
+  query: 'I want long sleeve tshirts',
+  genderContext: null,
+  usedStrictMajorityMode: true,
+  allowedCategoryCount: 69,
+  sampleCategories: [
+    'Pajama Set',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Sleepwear & Loungewear',
+    'long sleeve',
+    'mom jeans',
+    'joggers',
+    'underwear',
+    'Mens-tees',
+    'straight leg jeans',
+    'top',
+    'cropped jeans',
+    'Maxi Dress',
+    'Girls Dresses'
+  ],
+  note: 'Category list filtered based on gender context before building classifier prompt'
+}
+[2026-01-19T19:21:44.922Z] [Velou:INFO] {
+  message: 'classifyQuery: llm_raw_response',
+  query: 'I want long sleeve tshirts',
+  rawTextLength: 641,
+  parsedType: 'direct_product_search',
+  parsedConstraints: {
+    sleeveLengths: { values: [Array], intent: 'required' },
+    colors: [ 'White', 'Navy', 'Gray', 'Beige', 'Black', 'Blush' ],
+    patterns: [ 'Solid' ],
+    styles: [ 'Casual', 'Classic', 'Modern' ],
+    ageGroups: [ 'Adult' ],
+    materials: [ 'Cotton', 'Blend' ],
+    fits: [ 'Regular', 'Fitted', 'Relaxed' ],
+    collections: null,
+    lengths: null,
+    occasions: null,
+    seasons: [ 'All Season' ],
+    sizes: null,
+    priceMinCents: null,
+    priceMaxCents: null,
+    embellishments: null,
+    necklines: null,
+    scents: null,
+    rooms: null,
+    useCases: null,
+    benefits: null,
+    claims: null,
+    sensoryProfile: null,
+    compatibility: null
+  },
+  parsedColors: [ 'White', 'Navy', 'Gray', 'Beige', 'Black', 'Blush' ],
+  parsedLengths: null,
+  parsedSleeveLengths: { values: [ 'Long' ], intent: 'required' },
+  parsedAgeGroups: [ 'Adult' ],
+  note: 'Raw LLM response for constraint extraction debugging'
+}
+[2026-01-19T19:21:44.923Z] [Velou:INFO] {
+  message: 'classifyQuery: constraint_extraction_results',
+  query: 'I want long sleeve tshirts',
+  extractedColors: [ 'White', 'Navy', 'Gray', 'Beige', 'Black', 'Blush' ],
+  extractedLengths: null,
+  extractedSleeveLengths: { values: [ 'Long' ], intent: 'required' },
+  extractedAgeGroups: [ 'Adult' ],
+  colorsFormat: 'array',
+  lengthsFormat: 'null',
+  sleeveLengthsFormat: 'object',
+  ageGroupsFormat: 'array',
+  note: 'Extracted constraints after normalization - verify all explicit constraints were extracted'
+}
+[2026-01-19T19:21:44.924Z] [Velou:INFO] {
+  message: 'classifier_constraints_extracted',
+  query: 'I want long sleeve tshirts',
+  type: 'direct_product_search',
+  productTerms: 't-shirt',
+  confidence: 0.95,
+  constraintsCount: 10,
+  colors: {
+    values: [ 'White', 'Navy', 'Gray', 'Beige', 'Black', 'Blush' ],
+    intent: 'strong'
+  },
+  lengths: undefined,
+  sleeveLengths: { values: [ 'Long' ], intent: 'required' },
+  ageGroups: { values: [ 'Adult' ], intent: 'strong' },
+  missingConstraints: undefined,
+  allConstraints: {
+    colors: { values: [Array], intent: 'strong' },
+    styles: { values: [Array], intent: 'strong' },
+    patterns: { values: [Array], intent: 'strong' },
+    materials: { values: [Array], intent: 'strong' },
+    seasons: [ 'All Season' ],
+    fits: [ 'Regular', 'Fitted', 'Relaxed' ],
+    sleeveLengths: { values: [Array], intent: 'required' },
+    ageGroups: { values: [Array], intent: 'strong' },
+    priceMinCents: null,
+    priceMaxCents: null
+  },
+  hasLastConstraints: false,
+  lastConstraintsKeys: []
+}
+[2026-01-19T19:21:44.924Z] [Velou:DEBUG] {
+  message: 'fashion_query_classified',
+  query: 'I want long sleeve tshirts',
+  type: 'direct_product_search',
+  productTerms: 't-shirt',
+  constraintsCount: 11
+}
+[2026-01-19T19:21:44.924Z] [Velou:INFO] {
+  message: 'classifyQuery: complete',
+  query: 'I want long sleeve tshirts',
+  type: 'direct_product_search',
+  totalDurationMs: 3785,
+  totalDurationSeconds: '3.79',
+  llmDurationMs: 3780,
+  llmDurationSeconds: '3.78',
+  constraintsCount: 11,
+  genderContext: null,
+  usedStrictMajorityMode: true
+}
+[2026-01-19T19:21:44.924Z] [Velou:INFO] {
+  message: 'classification_metadata_extracted',
+  query: 'I want long sleeve tshirts',
+  usedStrictMajorityMode: true,
+  genderContext: null,
+  classificationConfidence: 0.95,
+  classifiedGender: undefined
+}
+[2026-01-19T19:21:44.924Z] [Velou:INFO] {
+  message: 'category_categories_set_from_sequential_classification',
+  query: 'I want long sleeve tshirts',
+  categories: [ 'Mens-tees' ],
+  confidence: 0.7
+}
+[2026-01-19T19:21:44.926Z] [Velou:INFO] {
+  message: 'categories_filtered_by_gender_after_classification',
+  query: 'I want long sleeve tshirts',
+  resolvedGender: 'male',
+  originalCategories: [ 'Mens-tees' ],
+  filteredCategories: [ 'Mens-tees' ],
+  removedCount: 0
+}
+[2026-01-19T19:21:44.926Z] [Velou:INFO] {
+  message: 'gender_added_to_classification_constraints',
+  gender: 'male',
+  isFollowUp: false,
+  note: 'Gender extracted early and added to classification constraints'
+}
+[2026-01-19T19:21:44.926Z] [Velou:DEBUG] {
+  message: 'clarification_triggers_evaluation',
+  query: 'I want long sleeve tshirts',
+  topCategoriesCount: 1,
+  classificationType: 'direct_product_search',
+  hasProductTerms: true,
+  productTerms: 't-shirt',
+  classificationConfidence: 0.95,
+  needsClarification: false
+}
+[2026-01-19T19:21:44.926Z] [Velou:INFO] {
+  message: 'category_filter_applied_to_retrieval',
+  query: 'I want long sleeve tshirts',
+  categories: [ 'Mens-tees' ],
+  filterType: 'hard_sql_level',
+  note: 'Catalog will be filtered to these categories before multi-view retrieval'
+}
+[2026-01-19T19:21:44.926Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: starting_retrieval',
+  query: 'I want long sleeve tshirts',
+  productTerms: 't-shirt',
+  classificationType: 'direct_product_search',
+  categoryCount: 1
+}
+[2026-01-19T19:21:44.927Z] [Velou:DEBUG] {
+  message: 'category_expansion_synonym_group',
+  originalCategory: 'Mens-tees',
+  expandedCategories: [
+    'Womens-tees',     'Mens-tees',
+    'Tops',            'Girls Tops',
+    't-shirt',         't-shirts',
+    "men's t-shirts",  'basic tees',
+    'crew neck',       'crew neck t-shirts',
+    'fitted t-shirts', 'graphic tee',
+    'polo shirts',     'shirt',
+    'tank top',        'top',
+    'tops'
+  ],
+  reason: 'overlapping_apparel_categories_share_similar_products'
+}
+[2026-01-19T19:21:44.927Z] [Velou:DEBUG] {
+  message: 'category_expansion_parent_with_subcategories',
+  originalCategory: 'Mens-tees',
+  subcategoryCount: 5,
+  reason: 'parent_category_naturally_covers_subcategories_via_sql'
+}
+[2026-01-19T19:21:44.927Z] [Velou:DEBUG] {
+  message: 'category_expansion_complete',
+  inputCategories: [ 'Mens-tees' ],
+  expandedCategories: [
+    'Mens-tees',       'Womens-tees',
+    'Tops',            'Girls Tops',
+    't-shirt',         't-shirts',
+    "men's t-shirts",  'basic tees',
+    'crew neck',       'crew neck t-shirts',
+    'fitted t-shirts', 'graphic tee',
+    'polo shirts',     'shirt',
+    'tank top',        'top',
+    'tops'
+  ],
+  expansionCount: 16
+}
+[2026-01-19T19:21:44.927Z] [Velou:INFO] {
+  message: 'expanded_categories_filtered_by_gender',
+  query: 'I want long sleeve tshirts',
+  resolvedGender: 'male',
+  originalCount: 17,
+  filteredCount: 15,
+  removed: [ 'Womens-tees', 'Girls Tops' ],
+  note: 'Removed opposite-gender categories from expansion to prevent wrong-gender products'
+}
+[2026-01-19T19:21:44.928Z] [Velou:INFO] {
+  message: 'required_intent_filters_extracted_for_hard_sql_filtering',
+  query: 'I want long sleeve tshirts',
+  requiredIntentFilters: { sleeves: [ 'Long' ] },
+  note: 'Constraints with "required" intent will be applied as hard SQL filters BEFORE retrieval'
+}
+[2026-01-19T19:21:44.928Z] [Velou:DEBUG] {
+  message: 'classificationToSearchConstraints_inclusivitySizing_extraction',
+  rawInclusivitySizing: undefined,
+  inclusivitySizingValues: undefined,
+  inclusivitySizingIntent: null,
+  inclusivitySizingValuesLength: 0,
+  note: 'Check inclusivitySizing extraction in classificationToSearchConstraints'
+}
+[2026-01-19T19:21:44.928Z] [Velou:DEBUG] {
+  message: 'classificationToSearchConstraints_result',
+  query: 'I want long sleeve tshirts',
+  inclusivitySizing: undefined,
+  inclusivitySizingLength: 0,
+  note: 'After classificationToSearchConstraints - check if inclusivitySizing is preserved'
+}
+[2026-01-19T19:21:44.928Z] [Velou:INFO] {
+  message: 'gender_hard_filter_applied_to_retrieval',
+  query: 'I want long sleeve tshirts',
+  resolvedGender: 'male',
+  note: 'Gender applied as HARD SQL filter - will never be relaxed'
+}
+[2026-01-19T19:21:44.928Z] [Velou:INFO] {
+  message: 'agegroup_hard_filter_applied_to_retrieval',
+  query: 'I want long sleeve tshirts',
+  resolvedAgeGroup: 'Adult',
+  note: 'AgeGroup applied as HARD SQL filter - will never be relaxed'
+}
+[2026-01-19T19:21:44.928Z] [Velou:DEBUG] {
+  message: 'color_expansion_skipped',
+  query: 'I want long sleeve tshirts',
+  colors: [ 'White', 'Navy', 'Gray', 'Beige', 'Black', 'Blush' ],
+  colorCount: 6,
+  hasNonOntologyColor: false,
+  reason: 'Multiple explicit colors specified, using as-is'
+}
+[2026-01-19T19:21:44.928Z] [Velou:INFO] {
+  message: 'category_filter_passed_to_search_constraints',
+  query: 'I want long sleeve tshirts',
+  categories: [ 'Mens-tees' ],
+  willFilterLexical: false,
+  willFilterSemantic: true
+}
+[2026-01-19T19:21:44.928Z] [Velou:DEBUG] {
+  message: 'fashion_semantic_search: query for embedding',
+  original: 'I want long sleeve tshirts',
+  productTerms: 't-shirt',
+  usingForEmbedding: 't-shirt pattern: Solid, material: Cotton, Blend, season: All Season, style: Casual, Classic, Modern, sleeve: Long, fit: Regular, Fitted, Relaxed',
+  constraintsAdded: 'yes'
+}
+[2026-01-19T19:21:47.198Z] [Velou:DEBUG] {
+  message: 'constraint_context: age_groups_preserved_in_sql_filters',
+  categories: [ 'Mens-tees' ],
+  ageGroups: [ 'Adult' ],
+  originalFormat: 'array',
+  note: 'Age groups preserved as hard SQL filters'
+}
+[2026-01-19T19:21:47.198Z] [Velou:DEBUG] {
+  message: 'constraint_context: sleeves_preserved_in_sql_filters',
+  categories: [ 'Mens-tees' ],
+  sleeves: [ 'Long' ],
+  note: 'Sleeves preserved in sqlFilters for post-SQL filtering (not applied in SQL)'
+}
+[2026-01-19T19:21:47.198Z] [Velou:DEBUG] {
+  message: 'constraint_context: applied_category_metadata',
+  categories: [ 'Mens-tees' ],
+  originalConstraints: {
+    colors: 6,
+    materials: 2,
+    fabrics: 0,
+    sizes: 0,
+    occasions: 0,
+    seasons: 1,
+    lengths: 0,
+    sleeves: 1,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  sqlFilters: {
+    colors: 6,
+    materials: 2,
+    fabrics: 0,
+    sizes: 0,
+    occasions: 0,
+    seasons: 1,
+    lengths: 0,
+    sleeves: 1,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  excludedFilters: {
+    colors: 0,
+    materials: 0,
+    fabrics: 0,
+    sizes: 0,
+    occasions: 0,
+    seasons: 0,
+    styleTags: 0,
+    pattern: 0,
+    fit: 0,
+    lengths: 0,
+    sleeves: 0,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  keywordTerms: 0,
+  categoryKeywordsExtracted: 0,
+  categoryKeywordsSample: [],
+  applicableConstraints: [ 'colors', 'sizes', 'materials', 'occasions', 'seasons', 'price' ],
+  textOnlyConstraints: []
+}
+[2026-01-19T19:21:47.198Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: intent_extraction_for_post_sql_filtering',
+  query: 'I want long sleeve tshirts',
+  constraintIntents: {
+    colors: 'strong',
+    lengths: null,
+    sleeveLengths: 'required',
+    necklines: null,
+    formalityLevel: null,
+    colorShade: null
+  },
+  contextAwareIntents: {
+    colors: 'strong',
+    lengths: null,
+    sleeves: 'required',
+    necklines: null,
+    formalityLevels: null,
+    colorShades: null
+  },
+  note: 'Intent information extracted and mapped for post-SQL filtering'
+}
+[2026-01-19T19:21:47.198Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: context_aware_constraints_applied',
+  query: 'I want long sleeve tshirts',
+  categories: [ 'Mens-tees' ],
+  originalColors: [ 'White', 'Navy', 'Gray', 'Beige', 'Black', 'Blush' ],
+  originalAgeGroups: [ 'Adult' ],
+  sqlFiltersColors: [ 'White', 'Navy', 'Gray', 'Beige', 'Black', 'Blush' ],
+  sqlFiltersAgeGroups: [ 'Adult' ],
+  keywordTerms: [],
+  keywordTermsSample: [],
+  textOnlyConstraints: [],
+  allowKeywordMatching: false
+}
+[2026-01-19T19:21:47.198Z] [Velou:DEBUG] {
+  message: 'fashion_semantic_search: post_sql_filtering_flag',
+  query: 'I want long sleeve tshirts',
+  usePostSQLFiltering: true,
+  flagValue: 'true'
+}
+[2026-01-19T19:21:47.198Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: tier1_strict_filtering',
+  query: 'I want long sleeve tshirts',
+  originalCategories: [ 'Mens-tees' ],
+  expandedCategories: [
+    'Mens-tees',       'Tops',
+    't-shirt',         't-shirts',
+    "men's t-shirts",  'basic tees',
+    'crew neck',       'crew neck t-shirts',
+    'fitted t-shirts', 'graphic tee',
+    'polo shirts',     'shirt',
+    'tank top',        'top',
+    'tops'
+  ],
+  usePostSQLFiltering: true,
+  sqlFilters: {
+    colors: 6,
+    materials: 2,
+    fabrics: 0,
+    lengths: 0,
+    sleeves: 1,
+    necklines: 0,
+    formalityLevel: 0,
+    colorShade: 0
+  },
+  keywordTerms: 0
+}
+[2026-01-19T19:21:47.198Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: tier1_before_post_sql_check',
+  query: 'I want long sleeve tshirts',
+  USE_POST_SQL_FILTERING: true,
+  envValue: 'true',
+  expandedCategories: [
+    'Mens-tees',       'Tops',
+    't-shirt',         't-shirts',
+    "men's t-shirts",  'basic tees',
+    'crew neck',       'crew neck t-shirts',
+    'fitted t-shirts', 'graphic tee',
+    'polo shirts',     'shirt',
+    'tank top',        'top',
+    'tops'
+  ],
+  ageGroups: [ 'Adult' ],
+  note: 'Checking which mode to use (post-SQL filtering vs existing mode)'
+}
+[2026-01-19T19:21:47.198Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: post_sql_filtering_mode_enabled',
+  query: 'I want long sleeve tshirts',
+  expandedCategories: [
+    'Mens-tees',       'Tops',
+    't-shirt',         't-shirts',
+    "men's t-shirts",  'basic tees',
+    'crew neck',       'crew neck t-shirts',
+    'fitted t-shirts', 'graphic tee',
+    'polo shirts',     'shirt',
+    'tank top',        'top',
+    'tops'
+  ],
+  ageGroups: [ 'Adult' ],
+  note: 'Post-SQL filtering mode enabled - Stage 1: Category-only SQL filter starting'
+}
+[2026-01-19T19:21:47.198Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: deduplicateProductsByCategoryForPostFiltering_input',
+  query: 'I want long sleeve tshirts',
+  inclusivitySizing: undefined,
+  inclusivitySizingLength: 0,
+  note: 'Checking inclusivitySizing filter before SQL query'
+}
+[2026-01-19T19:21:47.198Z] [Velou:INFO] {
+  message: 'deduplicateProductsByCategoryForPostFiltering: executing query',
+  filters: {
+    genders: [ 'male' ],
+    categories: [
+      'Mens-tees',       'Tops',
+      't-shirt',         't-shirts',
+      "men's t-shirts",  'basic tees',
+      'crew neck',       'crew neck t-shirts',
+      'fitted t-shirts', 'graphic tee',
+      'polo shirts',     'shirt',
+      'tank top',        'top',
+      'tops'
+    ],
+    ageGroups: [ 'Adult' ],
+    inclusivitySizing: undefined,
+    priceMinCents: undefined,
+    priceMaxCents: undefined,
+    merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+    inStockOnly: true
+  },
+  limit: 1500,
+  categoryCount: 15,
+  categories: [
+    'Mens-tees',       'Tops',
+    't-shirt',         't-shirts',
+    "men's t-shirts",  'basic tees',
+    'crew neck',       'crew neck t-shirts',
+    'fitted t-shirts', 'graphic tee',
+    'polo shirts',     'shirt',
+    'tank top',        'top',
+    'tops'
+  ],
+  hasPriceFilter: false,
+  priceMinCents: undefined,
+  priceMaxCents: undefined,
+  hasAgeGroupFilter: true,
+  ageGroups: [ 'Adult' ],
+  ageGroupCount: 1,
+  paramCount: 34,
+  whereClausePreview: `p."isActive" = true AND p."merchantId" = $1 AND p."stockStatus" = 'in_stock' AND ((p."gender" = 'male' OR p."gender" = 'unisex')) AND ((\n` +
+    '            LOWER(p."category") = LOWER($2) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($3)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($2) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($3)\n` +
+    '          ) OR (\n' +
+    '            LOWER(p."category") = LOWER($4) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($5)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($4) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($5)\n` +
+    '          ) OR (\n' +
+    '            LOWER(p."category") = LOWER($6) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($7)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($6) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($7)\n` +
+    '          ) OR (\n' +
+    '            LOWER(p."category") = LOWER($8) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($9)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($8) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($9)\n` +
+    '          ) OR (\n' +
+    '            LOWER(p."category") = LOWER($10) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($11)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($10) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($11)\n` +
+    '          ) OR (\n' +
+    '            LOWER(p."category") = LOWER($12) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($13)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($12) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($13)\n` +
+    '          ) OR (\n' +
+    '            LOWER(p."category") = LOWER($14) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($15)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($14) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($15)\n` +
+    '          ) OR (\n' +
+    '            LOWER(p."category") = LOWER($16) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($17)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($16) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($17)\n` +
+    '          ) OR (\n' +
+    '            LOWER(p."category") = LOWER($18) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($19)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($18) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($19)\n` +
+    '          ) OR (\n' +
+    '            LOWER(p."category") = LOWER($20) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($21)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($20) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($21)\n` +
+    '          ) OR (\n' +
+    '            LOWER(p."category") = LOWER($22) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($23)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($22) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($23)\n` +
+    '          ) OR (\n' +
+    '            LOWER(p."category") = LOWER($24) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($25)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($24) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($25)\n` +
+    '          ) OR (\n' +
+    '            LOWER(p."category") = LOWER($26) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($27)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($26) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($27)\n` +
+    '          ) OR (\n' +
+    '            LOWER(p."category") = LOWER($28) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($29)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($28) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($29)\n` +
+    '          ) OR (\n' +
+    '            LOWER(p."category") = LOWER($30) \n' +
+    '            OR LOWER(p."category") LIKE LOWER($31)\n' +
+    `            OR LOWER(COALESCE(p."subcategory", '')) = LOWER($30) \n` +
+    `            OR LOWER(COALESCE(p."subcategory", '')) LIKE LOWER($31)\n` +
+    '          )) AND ((((\n' +
+    `          LOWER(COALESCE(p."ageGroup", '')) = LOWER($32) \n` +
+    `          OR LOWER(COALESCE(p."ageGroup", '')) LIKE LOWER($33)\n` +
+    '          OR\n' +
+    "          LOWER(COALESCE(p.attributes->>'ageGroup', '')) = LOWER($32) \n" +
+    "          OR LOWER(COALESCE(p.attributes->>'ageGroup', '')) LIKE LOWER($33)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'age_group', '')) = LOWER($32)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'age_group', '')) LIKE LOWER($33)\n" +
+    "          OR (p.attributes->'extensible' IS NOT NULL AND (\n" +
+    "            LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) = LOWER($32) \n" +
+    "            OR LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) LIKE LOWER($33)\n" +
+    '          ))\n' +
+    `        ) OR (LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%'))) AND NOT ((LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%')))`,
+  note: 'Post-filterable attributes (colors, lengths, sleeves, necklines, formalityLevels, colorShades) intentionally omitted from SQL filters'
+}
+[2026-01-19T19:21:49.428Z] [Velou:INFO] {
+  message: 'deduplicateProductsByCategoryForPostFiltering: results found',
+  count: 139,
+  requestedLimit: 1500,
+  categoryCount: 15
+}
+[2026-01-19T19:21:49.428Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: post_sql_filtering_stage1_complete',
+  query: 'I want long sleeve tshirts',
+  categoryFilteredCount: 139,
+  note: 'Stage 1: Category-only SQL filter completed'
+}
+[2026-01-19T19:21:49.428Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: calling_post_sql_filtering_with_intents',
+  query: 'I want long sleeve tshirts',
+  contextAwareIntents: {
+    colors: 'strong',
+    lengths: null,
+    sleeves: 'required',
+    necklines: null,
+    formalityLevels: null,
+    colorShades: null
+  },
+  hasColorsIntent: true,
+  hasLengthsIntent: false,
+  hasSleevesIntent: true,
+  hasNecklinesIntent: false,
+  hasFormalityIntent: false,
+  note: 'About to build dictionaries and filter products in single pass'
+}
+[2026-01-19T19:21:49.433Z] [Velou:INFO] {
+  message: 'loadPreBuiltDictionaries: loaded from cache',
+  dictionaryCount: 529,
+  buildDate: '2026-01-19T14:38:43.768Z',
+  totalCategories: 529,
+  totalProducts: 5490
+}
+[2026-01-19T19:21:49.433Z] [Velou:INFO] {
+  message: 'buildCategorySpecificDictionaries: loaded from cache',
+  categoriesCount: 15,
+  categories: [
+    'Mens-tees',       'Tops',
+    't-shirt',         't-shirts',
+    "men's t-shirts",  'basic tees',
+    'crew neck',       'crew neck t-shirts',
+    'fitted t-shirts', 'graphic tee',
+    'polo shirts',     'shirt',
+    'tank top',        'top',
+    'tops'
+  ],
+  dictionariesLoaded: 15,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  sampleKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear'
+  ]
+}
+[2026-01-19T19:21:50.959Z] [Velou:INFO] {
+  message: 'applyPostSQLFilters: processing products',
+  productIdsCount: 139,
+  productsLoaded: 139,
+  filtersProvided: {
+    colors: 6,
+    colorValues: [ 'White', 'Navy', 'Gray', 'Beige', 'Black', 'Blush' ],
+    lengths: 0,
+    lengthValues: undefined,
+    sleeves: 1,
+    sleeveValues: [ 'long' ],
+    necklines: 0,
+    necklineValues: undefined,
+    formalityLevels: 0,
+    formalityLevelValues: undefined,
+    colorShades: 0,
+    colorShadeValues: undefined
+  },
+  dictionaryCount: 15,
+  dictionaryKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear',
+    'Tops|Capes & Ponchos',
+    'Tops|Crop',
+    'Tops|Faux Fur Jackets',
+    'Tops|Bardot Tops',
+    'Tops|Knitted Tops',
+    'Tops|Culotte Jumpsuits',
+    'Tops|Peplum Tops',
+    'Tops|Maxi Tops',
+    'crew neck|short sleeve',
+    'crew neck|classic'
+  ]
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_matched_all_filters',
+  productId: 'cwch-mari-dmos',
+  productTitle: "Men's Cotton Waffle Curved Hem Henley - Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  filterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: true,
+      productValue: 'Long',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:WARN] {
+  message: 'applyPostSQLFilters: no dictionary for category',
+  productId: 'the-v-neck-marcy-essentials-4-pack',
+  categoryKey: 'Womens-tees|',
+  productCategory: 'Womens-tees',
+  productSubcategory: null,
+  availableDictionaryKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear',
+    'Tops|Capes & Ponchos',
+    'Tops|Crop',
+    'Tops|Faux Fur Jackets',
+    'Tops|Bardot Tops',
+    'Tops|Knitted Tops',
+    'Tops|Culotte Jumpsuits',
+    'Tops|Peplum Tops',
+    'Tops|Maxi Tops',
+    'crew neck|short sleeve',
+    'crew neck|classic'
+  ],
+  note: 'Product skipped due to missing category dictionary (strict filtering)'
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'copt-vern-vdag',
+  productTitle: 'Cotton Jersey One Pocket Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'jersey-sueded-polo-dummy-post-purchase',
+  productTitle: 'Jersey Sueded Polo',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'luxe-stretch-tee-postpurchase',
+  productTitle: "Men's Luxe Stretch T-Shirt | Size XL by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'bcrt-lind-darg',
+  productTitle: 'Linen Blend Crew Tee | Size XL by Mott & Bow',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'polo-pima-cblu',
+  productTitle: 'Jersey Sueded Polo',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-darg',
+  productTitle: "Men's Classic Crew Neck Gray T-Shirt | Size XL Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:WARN] {
+  message: 'applyPostSQLFilters: no dictionary for category',
+  productId: 'cwcc-mari-darg',
+  categoryKey: 'Womens-tees|',
+  productCategory: 'Womens-tees',
+  productSubcategory: null,
+  availableDictionaryKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear',
+    'Tops|Capes & Ponchos',
+    'Tops|Crop',
+    'Tops|Faux Fur Jackets',
+    'Tops|Bardot Tops',
+    'Tops|Knitted Tops',
+    'Tops|Culotte Jumpsuits',
+    'Tops|Peplum Tops',
+    'Tops|Maxi Tops',
+    'crew neck|short sleeve',
+    'crew neck|classic'
+  ],
+  note: 'Product skipped due to missing category dictionary (strict filtering)'
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-pine',
+  productTitle: "Men's Classic Crew Neck Green T-Shirt | Size S Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Green',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scht-drig-navy',
+  productTitle: "Men's Classic Crew Neck Blue T-Shirt | Size XL Pocket Tee | Midweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-heag',
+  productTitle: "Men's Classic Crew Neck Gray T-Shirt | Size XL Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_matched_all_filters',
+  productId: 'sclt-drig-heag',
+  productTitle: 'Long Sleeve Crew Tee Driggs',
+  categoryKey: 'Mens-tees|',
+  filterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: true,
+      productValue: 'Long',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'classic-v-neck-driggs-tee-new-colors',
+  productTitle: 'New Classic V-Neck Driggs Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'cwcc-mari-whit',
+  productTitle: 'Cotton Waffle Curved Hem Crew',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'polo-pima-darg',
+  productTitle: 'Jersey Sueded Polo',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'polo-pima-whit',
+  productTitle: 'Jersey Sueded Polo',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-iblu-vn',
+  productTitle: "Men's Classic Crew Neck Black T-Shirt | Size XL Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'svnt-drig-heag',
+  productTitle: "Men's V-Neck Gray T-Shirt | Size S Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'set-every-occasion-pack',
+  productTitle: 'Set: Every Occasion Pack | Size by Mott & Bow',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [ { filter: 'sleeves', queryValues: [Array], productValue: null } ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.960Z] [Velou:WARN] {
+  message: 'applyPostSQLFilters: no dictionary for category',
+  productId: 'svnt-drig-balt',
+  categoryKey: 'Womens-tees|',
+  productCategory: 'Womens-tees',
+  productSubcategory: null,
+  availableDictionaryKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear',
+    'Tops|Capes & Ponchos',
+    'Tops|Crop',
+    'Tops|Faux Fur Jackets',
+    'Tops|Bardot Tops',
+    'Tops|Knitted Tops',
+    'Tops|Culotte Jumpsuits',
+    'Tops|Peplum Tops',
+    'Tops|Maxi Tops',
+    'crew neck|short sleeve',
+    'crew neck|classic'
+  ],
+  note: 'Product skipped due to missing category dictionary (strict filtering)'
+}
+[2026-01-19T19:21:50.961Z] [Velou:WARN] {
+  message: 'applyPostSQLFilters: no dictionary for category',
+  productId: 'slub',
+  categoryKey: 'Womens-tees|',
+  productCategory: 'Womens-tees',
+  productSubcategory: null,
+  availableDictionaryKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear',
+    'Tops|Capes & Ponchos',
+    'Tops|Crop',
+    'Tops|Faux Fur Jackets',
+    'Tops|Bardot Tops',
+    'Tops|Knitted Tops',
+    'Tops|Culotte Jumpsuits',
+    'Tops|Peplum Tops',
+    'Tops|Maxi Tops',
+    'crew neck|short sleeve',
+    'crew neck|classic'
+  ],
+  note: 'Product skipped due to missing category dictionary (strict filtering)'
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'lstt-tabo-chah',
+  productTitle: 'Luxe Stretch Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-balt',
+  productTitle: "Men's Classic Crew Neck Blue T-Shirt | Size L Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'set-1-pair-of-travel-jeans-2-tees',
+  productTitle: "Men's Set: 1 Pair of Travel Pants + 2 tees - Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'classic-crew-slub-6-pack-dummy',
+  productTitle: "Women's Classic Crew Slub 6-Pack - Mott & Bow",
+  categoryKey: 'crew neck|short sleeve',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'set-1-pair-of-tech-pants-2-tees',
+  productTitle: 'Set: 1 Pair of Tech Pants + 2 tees | Size by Mott & Bow',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'cwcc-mari-blac',
+  productTitle: 'Cotton Waffle Curved Hem Crew',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-navy',
+  productTitle: "Men's Classic Crew Neck Blue T-Shirt | Size L Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'copt-vern-vinp',
+  productTitle: 'Cotton Jersey One Pocket Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'copt-vern-vinb',
+  productTitle: 'Cotton Jersey One Pocket Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'jersey-sueded-polo-2-pack-d-9',
+  productTitle: 'Jersey Sueded Polo 2-Pack Pine/White',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'svnt-drig-navy',
+  productTitle: "Men's V-Neck Blue T-Shirt | Size L Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'polo-pima-balt',
+  productTitle: 'Jersey Sueded Polo',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'stet-gera-bluh',
+  productTitle: "Men's Crew Neck Blue T-Shirt | Size M by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'set-01-the-his-hers-4-pack',
+  productTitle: "Women's Set 01: The His & Hers 4-Pack - Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [ { filter: 'sleeves', queryValues: [Array], productValue: null } ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'polo-pima-blac',
+  productTitle: 'Jersey Sueded Polo',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'luxe-stretch-tee-3-pack-d',
+  productTitle: 'Luxe Stretch Tee 3-Pack White',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'hcpt-carl-whit',
+  productTitle: "Men's Classic Crew Neck White T-Shirt | Size XS Pocket Tee | Heavyweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'covt-nevi-whit',
+  productTitle: 'Cotton Jersey Oversized Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'lstt-tabo-darg',
+  productTitle: "Men's Luxe Stretch T-Shirt | Size M by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'lstt-tabo-grbl',
+  productTitle: "Men's Luxe Stretch T-Shirt | Size S by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'lstt-tabo-heag',
+  productTitle: "Men's Luxe Stretch T-Shirt | Size XL by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'lstt-tabo-cblu',
+  productTitle: "Men's Luxe Stretch T-Shirt | Size M by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'lstt-tabo-pine',
+  productTitle: "Men's Luxe Stretch T-Shirt | Size XL by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Pine',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-blac',
+  productTitle: "Men's Classic Crew Neck Black T-Shirt | Size M Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:WARN] {
+  message: 'applyPostSQLFilters: no dictionary for category',
+  productId: 'stet-gera-ssha',
+  categoryKey: 'Womens-tees|',
+  productCategory: 'Womens-tees',
+  productSubcategory: null,
+  availableDictionaryKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear',
+    'Tops|Capes & Ponchos',
+    'Tops|Crop',
+    'Tops|Faux Fur Jackets',
+    'Tops|Bardot Tops',
+    'Tops|Knitted Tops',
+    'Tops|Culotte Jumpsuits',
+    'Tops|Peplum Tops',
+    'Tops|Maxi Tops',
+    'crew neck|short sleeve',
+    'crew neck|classic'
+  ],
+  note: 'Product skipped due to missing category dictionary (strict filtering)'
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'luxe-stretch-tee-6-pack-d-1',
+  productTitle: 'Luxe Stretch Tee 6-Pack Black',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'covt-nevi-vinb',
+  productTitle: 'Cotton Jersey Oversized Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'copt-vern-whit',
+  productTitle: 'Cotton Jersey One Pocket Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'svnt-drig-blac',
+  productTitle: "Men's V-Neck Black T-Shirt | Size XL Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'mlpt-dewe-darg',
+  productTitle: 'Luxe Performance Polo | Size XXL by Mott & Bow',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'the-his-hers-4-pack',
+  productTitle: 'Set 12: 1 Lounge Top + 1 Lounge Bottom | Size by Mott & Bow',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [ { filter: 'sleeves', queryValues: [Array], productValue: null } ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_matched_all_filters',
+  productId: 'cwch-mari-whit',
+  productTitle: 'Cotton Waffle Curved Hem Henley',
+  categoryKey: 'Mens-tees|',
+  filterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: true,
+      productValue: 'Long',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'covt-nevi-vinp',
+  productTitle: 'Cotton Jersey Oversized Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray, Silver',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'covt-nevi-vgra',
+  productTitle: 'Cotton Jersey Oversized Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:WARN] {
+  message: 'applyPostSQLFilters: no dictionary for category',
+  productId: 'the-crew-driggs-essentials-4-pack',
+  categoryKey: 'Womens-tees|',
+  productCategory: 'Womens-tees',
+  productSubcategory: null,
+  availableDictionaryKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear',
+    'Tops|Capes & Ponchos',
+    'Tops|Crop',
+    'Tops|Faux Fur Jackets',
+    'Tops|Bardot Tops',
+    'Tops|Knitted Tops',
+    'Tops|Culotte Jumpsuits',
+    'Tops|Peplum Tops',
+    'Tops|Maxi Tops',
+    'crew neck|short sleeve',
+    'crew neck|classic'
+  ],
+  note: 'Product skipped due to missing category dictionary (strict filtering)'
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'classic-crew-driggs-6-pack-d-23',
+  productTitle: 'Classic Crew Driggs 6-Pack White/Dark Gray/Baltic Blue/Pine',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White, Gray, Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'active-tee-1',
+  productTitle: "Men's Crew Neck Blue T-Shirt | Size S by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.961Z] [Velou:WARN] {
+  message: 'applyPostSQLFilters: no dictionary for category',
+  productId: 'cotton-relaxed-v-neck-3-pack-d',
+  categoryKey: 'Womens-tees|',
+  productCategory: 'Womens-tees',
+  productSubcategory: null,
+  availableDictionaryKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear',
+    'Tops|Capes & Ponchos',
+    'Tops|Crop',
+    'Tops|Faux Fur Jackets',
+    'Tops|Bardot Tops',
+    'Tops|Knitted Tops',
+    'Tops|Culotte Jumpsuits',
+    'Tops|Peplum Tops',
+    'Tops|Maxi Tops',
+    'crew neck|short sleeve',
+    'crew neck|classic'
+  ],
+  note: 'Product skipped due to missing category dictionary (strict filtering)'
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'copt-vern-vibl',
+  productTitle: 'Cotton Jersey One Pocket Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'cotton-jersey-one-pocket-tee-3-pack-d-1',
+  productTitle: 'Cotton Jersey One Pocket Tee 3-Pack Vintage Black/Vintage Dark Moss/White',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black, White, Green',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'svnt-drig-whit',
+  productTitle: "Men's V-Neck White T-Shirt | Size L Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'covt-nevi-vdam',
+  productTitle: 'Cotton Jersey Oversized Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Green',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_matched_all_filters',
+  productId: 'long-sleeve-crew-tee-driggs-2-pack-d-3',
+  productTitle: 'Long Sleeve Crew Tee Driggs 2-Pack Heather Gray/Dark Gray',
+  categoryKey: 'Mens-tees|',
+  filterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: true,
+      productValue: 'Long',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: '475424152530651146',
+  productTitle: "Men's Bundle 06: 1 Polo + 1 Driggs Tee + 1 pair of Jeans - Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [ { filter: 'sleeves', queryValues: [Array], productValue: null } ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:WARN] {
+  message: 'applyPostSQLFilters: no dictionary for category',
+  productId: 'multibundle-womens-fit10',
+  categoryKey: 'Womens-tees|',
+  productCategory: 'Womens-tees',
+  productSubcategory: null,
+  availableDictionaryKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear',
+    'Tops|Capes & Ponchos',
+    'Tops|Crop',
+    'Tops|Faux Fur Jackets',
+    'Tops|Bardot Tops',
+    'Tops|Knitted Tops',
+    'Tops|Culotte Jumpsuits',
+    'Tops|Peplum Tops',
+    'Tops|Maxi Tops',
+    'crew neck|short sleeve',
+    'crew neck|classic'
+  ],
+  note: 'Product skipped due to missing category dictionary (strict filtering)'
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'jersey-sueded-polo-3-pack-d-7',
+  productTitle: 'Jersey Sueded Polo 3-Pack White/California Blue/Baltic Blue',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White, Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_matched_all_filters',
+  productId: 'cwch-mari-blin',
+  productTitle: 'Cotton Waffle Curved Hem Henley',
+  categoryKey: 'Mens-tees|',
+  filterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: true,
+      productValue: 'Long',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'polo-pima-navy',
+  productTitle: 'Jersey Sueded Polo',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'polo-pima-pine',
+  productTitle: 'Jersey Sueded Polo',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Pine',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'classic-v-neck-driggs-10-pack-d-3',
+  productTitle: "Men's Classic V-Neck Driggs 10-Pack - Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [ { filter: 'sleeves', queryValues: [Array], productValue: null } ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'mlpt-dewe-blac',
+  productTitle: 'Luxe Performance Polo',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scht-drig-balt',
+  productTitle: "Men's Classic Crew Neck Black T-Shirt | Size L Pocket Tee | Midweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scht-drig-blac',
+  productTitle: "Men's Classic Crew Neck Black T-Shirt | Size XL Pocket Tee | Midweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scht-drig-whit',
+  productTitle: "Men's Classic Crew Neck White T-Shirt | Size XL Pocket Tee | Midweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_matched_all_filters',
+  productId: 'sclt-drig-darg',
+  productTitle: "Men's Classic Crew Neck Gray T-Shirt | Size M Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  filterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: true,
+      productValue: 'Long',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_matched_all_filters',
+  productId: 'sclt-drig-navy',
+  productTitle: "Men's Classic Crew Neck Blue T-Shirt | Size XXL Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  filterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: true,
+      productValue: 'Long',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_matched_all_filters',
+  productId: 'sclt-drig-whit',
+  productTitle: "Men's Classic Crew Neck White T-Shirt | Size L Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  filterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: true,
+      productValue: 'Long',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-blsl',
+  productTitle: "Men's Classic Crew Neck Blue T-Shirt | Size L Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-fcha-vn',
+  productTitle: "Men's Classic Crew Neck Gray T-Shirt | Size S Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: '14205713429709669809',
+  productTitle: "Men's Set 22: 1 Luxe Polo Tee + 1 pair of Tech Short - Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-migr-vn',
+  productTitle: "Men's Classic Crew Neck Green T-Shirt | Size XXL Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Green',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.962Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'svnt-drig-cblu',
+  productTitle: "Men's V-Neck Blue T-Shirt | Size XXL Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'jersey-sueded-polo-new-colors',
+  productTitle: 'New Jersey Sueded Polo',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-pist',
+  productTitle: "Men's Classic Crew Neck Black T-Shirt | Size L Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Pistachio',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-oliv',
+  productTitle: "Men's Classic Crew Neck Green T-Shirt | Size S Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Green',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-migr',
+  productTitle: "Men's Classic Crew Neck Green T-Shirt | Size XL Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Green',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'stet-gera-hebl',
+  productTitle: "Men's Crew Neck Gray T-Shirt | Size S by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scht-drig-cblu',
+  productTitle: "Men's Classic Crew Neck Black T-Shirt | Size M Pocket Tee | Midweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'lstt-tabo-maro',
+  productTitle: "Men's Luxe Stretch T-Shirt | Size XL by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'curved-hem-driggs-3-pack-d-6',
+  productTitle: 'Curved Hem Driggs 3-Pack White',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'bcrt-lind-navy',
+  productTitle: 'Linen Blend Crew Tee | Size XXL by Mott & Bow',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Navy',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'stet-gera-sbha',
+  productTitle: "Men's Crew Neck Blue T-Shirt | Size L by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'classic-crew-driggs-tee-gwp',
+  productTitle: "Men's Classic Crew Neck White T-Shirt | Size L Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'classic-v-neck-driggs-3-pack-d-9',
+  productTitle: 'Classic V-Neck Driggs 3-Pack Black/Navy/Dark Gray',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [ { filter: 'sleeves', queryValues: [Array], productValue: null } ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black, Gray, Navy',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'classic-v-neck-driggs-3-pack-dummy',
+  productTitle: 'Classic V-Neck Driggs 3-Pack Black/Navy/White',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black, White, Navy',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'cotton-jersey-one-pocket-tee-2-pack-d-3',
+  productTitle: 'Cotton Jersey One Pocket Tee 2-Pack White/Vintage Dark Moss',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White, Green',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'covt-nevi-visl',
+  productTitle: 'Cotton Jersey Oversized Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'curved-hem-driggs-6-pack-d-6',
+  productTitle: 'Curved Hem Driggs 6-Pack White/Dark Gray',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White, Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'dummy-classic-v-neck-driggs',
+  productTitle: 'Classic V-Neck Driggs Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Navy',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:WARN] {
+  message: 'applyPostSQLFilters: no dictionary for category',
+  productId: 'fitted-crew-marcy-6-pack-d-19',
+  categoryKey: 'Womens-tees|',
+  productCategory: 'Womens-tees',
+  productSubcategory: null,
+  availableDictionaryKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear',
+    'Tops|Capes & Ponchos',
+    'Tops|Crop',
+    'Tops|Faux Fur Jackets',
+    'Tops|Bardot Tops',
+    'Tops|Knitted Tops',
+    'Tops|Culotte Jumpsuits',
+    'Tops|Peplum Tops',
+    'Tops|Maxi Tops',
+    'crew neck|short sleeve',
+    'crew neck|classic'
+  ],
+  note: 'Product skipped due to missing category dictionary (strict filtering)'
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'hcpt-carl-blac',
+  productTitle: "Men's Classic Crew Neck Black T-Shirt | Size XS Pocket Tee | Heavyweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:WARN] {
+  message: 'applyPostSQLFilters: no dictionary for category',
+  productId: '8105332277433',
+  categoryKey: 'Tabletop|',
+  productCategory: 'Tabletop',
+  productSubcategory: null,
+  availableDictionaryKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear',
+    'Tops|Capes & Ponchos',
+    'Tops|Crop',
+    'Tops|Faux Fur Jackets',
+    'Tops|Bardot Tops',
+    'Tops|Knitted Tops',
+    'Tops|Culotte Jumpsuits',
+    'Tops|Peplum Tops',
+    'Tops|Maxi Tops',
+    'crew neck|short sleeve',
+    'crew neck|classic'
+  ],
+  note: 'Product skipped due to missing category dictionary (strict filtering)'
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_matched_all_filters',
+  productId: 'long-sleeve-crew-tee-driggs-3-pack-d-3',
+  productTitle: 'Long Sleeve Crew Tee Driggs 3-Pack Heather Gray/Dark Gray/Black',
+  categoryKey: 'Mens-tees|',
+  filterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black, Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: true,
+      productValue: 'Long',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'lstt-tabo-blac',
+  productTitle: "Men's Luxe Stretch T-Shirt | Size S by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scht-drig-darg',
+  productTitle: "Men's Classic Crew Neck Gray T-Shirt | Size XXXL Pocket Tee | Midweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-brre',
+  productTitle: "Men's Classic Crew Neck Black T-Shirt | Size XL Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'stet-gera-dcha',
+  productTitle: "Men's Crew Neck Gray T-Shirt | Size M by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'stet-gera-hean',
+  productTitle: "Men's Crew Neck Gray T-Shirt | Size S by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: '17002309831715606380',
+  productTitle: "Men's Luxe Stretch Tee 3-Pack - Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: '18147586190841236203',
+  productTitle: "Women's Set 01: The V-neck Marcy Essentials 4-Pack - Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'svnt-drig-darg',
+  productTitle: "Men's V-Neck Gray T-Shirt | Size S Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: '5976501534615662583',
+  productTitle: "Men's Set 01: The His & Hers Tees 4-Pack - Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:WARN] {
+  message: 'applyPostSQLFilters: no dictionary for category',
+  productId: 'fitted-v-neck-marcy-10-pack-d-4',
+  categoryKey: 'Womens-tees|',
+  productCategory: 'Womens-tees',
+  productSubcategory: null,
+  availableDictionaryKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear',
+    'Tops|Capes & Ponchos',
+    'Tops|Crop',
+    'Tops|Faux Fur Jackets',
+    'Tops|Bardot Tops',
+    'Tops|Knitted Tops',
+    'Tops|Culotte Jumpsuits',
+    'Tops|Peplum Tops',
+    'Tops|Maxi Tops',
+    'crew neck|short sleeve',
+    'crew neck|classic'
+  ],
+  note: 'Product skipped due to missing category dictionary (strict filtering)'
+}
+[2026-01-19T19:21:50.963Z] [Velou:WARN] {
+  message: 'applyPostSQLFilters: no dictionary for category',
+  productId: '8105332080825',
+  categoryKey: 'Tabletop|',
+  productCategory: 'Tabletop',
+  productSubcategory: null,
+  availableDictionaryKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear',
+    'Tops|Capes & Ponchos',
+    'Tops|Crop',
+    'Tops|Faux Fur Jackets',
+    'Tops|Bardot Tops',
+    'Tops|Knitted Tops',
+    'Tops|Culotte Jumpsuits',
+    'Tops|Peplum Tops',
+    'Tops|Maxi Tops',
+    'crew neck|short sleeve',
+    'crew neck|classic'
+  ],
+  note: 'Product skipped due to missing category dictionary (strict filtering)'
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'bcrt-lind-blac',
+  productTitle: 'Linen Blend Crew Tee | Size XL by Mott & Bow',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'mlpt-dewe-whit',
+  productTitle: 'Luxe Performance Polo | Size L by Mott & Bow',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'bcrt-lind-whit',
+  productTitle: 'Linen Blend Crew Tee | Size XL by Mott & Bow',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:WARN] {
+  message: 'applyPostSQLFilters: no dictionary for category',
+  productId: 'boxy-semi-crop-noble-2-pack-d-6',
+  categoryKey: 'Womens-tees|',
+  productCategory: 'Womens-tees',
+  productSubcategory: null,
+  availableDictionaryKeys: [
+    'Mens-tees|',
+    'Tops|',
+    'Tops|Crop Tops',
+    'Tops|Peplum',
+    'Tops|Knitwear',
+    'Tops|Capes & Ponchos',
+    'Tops|Crop',
+    'Tops|Faux Fur Jackets',
+    'Tops|Bardot Tops',
+    'Tops|Knitted Tops',
+    'Tops|Culotte Jumpsuits',
+    'Tops|Peplum Tops',
+    'Tops|Maxi Tops',
+    'crew neck|short sleeve',
+    'crew neck|classic'
+  ],
+  note: 'Product skipped due to missing category dictionary (strict filtering)'
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'classic-crew-driggs-10-pack-d-1',
+  productTitle: "Men's Classic Crew Driggs 10-Pack - Mott & Bow",
+  categoryKey: 'crew neck|classic',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: null,
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'classic-crew-driggs-3-pack-d-44',
+  productTitle: 'Classic Crew Driggs 3-Pack Brick Red/Heather Gray/Baltic Blue',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray, Blue, Red',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'classic-v-neck-driggs-6-pack-d-3',
+  productTitle: 'Classic V-Neck Driggs 6-Pack Black/Navy/White',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black, White, Navy',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'classic-v-neck-driggs-9-pack-dummy',
+  productTitle: 'Classic V-Neck Driggs 9-Pack 2 Black/2 Dark Gray/2 Navy/California Blue/2 White',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black, White, Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'copt-vern-vdam',
+  productTitle: 'Cotton Jersey One Pocket Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Green',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'lstt-tabo-doli',
+  productTitle: "Men's Luxe Stretch T-Shirt | Size XXL by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'lstt-tabo-navy',
+  productTitle: "Men's Luxe Stretch T-Shirt | Size XXL by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Blue',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'lstt-tabo-whit',
+  productTitle: "Men's Luxe Stretch T-Shirt | Size S by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.963Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_matched_all_filters',
+  productId: 'sclt-drig-drmo',
+  productTitle: "Men's Classic Crew Neck Black T-Shirt | Size M Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  filterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: true,
+      productValue: 'Long',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.964Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-bone',
+  productTitle: "Men's Classic Crew Neck White T-Shirt | Size XXL Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.964Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-chah',
+  productTitle: 'Classic Crew Driggs Tee',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.964Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-drmo',
+  productTitle: "Men's Classic Crew Neck Black T-Shirt | Size XL Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Green',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.964Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-gray',
+  productTitle: "Men's Classic Crew Neck Gray T-Shirt | Size M Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.964Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-ppin-vn',
+  productTitle: "Men's Classic Crew Neck Black T-Shirt | Size XXL Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Black',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.964Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-vigr-vn',
+  productTitle: 'Camiseta Classic Crew Driggs',
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.964Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-waln',
+  productTitle: "Men's Classic Crew Neck Black T-Shirt | Size S Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Brown',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.964Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'scrt-drig-whit',
+  productTitle: "Men's Classic Crew Neck White T-Shirt | Size S Fitted | Lightweight T-Shirt 100% Combed Cotton by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'White',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.964Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'stet-gera-heag',
+  productTitle: "Men's Crew Neck Gray T-Shirt | Size M by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.964Z] [Velou:DEBUG] {
+  message: 'applyPostSQLFilters: product_failed_filters',
+  productId: 'stet-gera-hetl',
+  productTitle: "Men's Crew Neck Gray T-Shirt | Size L by Mott & Bow",
+  categoryKey: 'Mens-tees|',
+  failedFilters: [
+    { filter: 'sleeves', queryValues: [Array], productValue: 'Short' }
+  ],
+  allFilterResults: {
+    colors: {
+      matched: true,
+      productValue: 'Gray',
+      queryValues: [Array],
+      intent: 'strong'
+    },
+    sleeves: {
+      matched: false,
+      productValue: 'Short',
+      queryValues: [Array],
+      intent: 'required'
+    }
+  }
+}
+[2026-01-19T19:21:50.964Z] [Velou:INFO] {
+  message: 'applyPostSQLFilters: completed',
+  originalCount: 139,
+  filteredCount: 10,
+  reductionPercentage: '92.81%',
+  filtersApplied: {
+    colors: 6,
+    colorValues: [ 'White', 'Navy', 'Gray', 'Beige', 'Black', 'Blush' ],
+    colorIntent: 'strong',
+    lengths: 0,
+    lengthValues: undefined,
+    lengthIntent: null,
+    sleeves: 1,
+    sleeveValues: [ 'long' ],
+    sleeveIntent: 'required',
+    necklines: 0,
+    necklineValues: undefined,
+    necklineIntent: null,
+    formalityLevels: 0,
+    formalityLevelValues: undefined,
+    formalityLevelIntent: null,
+    colorShades: 0,
+    colorShadeValues: undefined,
+    colorShadeIntent: null
+  },
+  intentBasedFiltering: { hardFiltered: [ 'sleeves' ], softRankingOnly: [ 'colors' ] },
+  sampleFilteredIds: [
+    'cwch-mari-dmos',
+    'sclt-drig-heag',
+    'cwch-mari-whit',
+    'long-sleeve-crew-tee-driggs-2-pack-d-3',
+    'cwch-mari-blin',
+    'sclt-drig-darg',
+    'sclt-drig-navy',
+    'sclt-drig-whit',
+    'long-sleeve-crew-tee-driggs-3-pack-d-3',
+    'sclt-drig-drmo'
+  ]
+}
+[2026-01-19T19:21:50.964Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: post_sql_filtering_stage2_complete',
+  query: 'I want long sleeve tshirts',
+  originalCount: 139,
+  postFilteredCount: 10,
+  reductionPercentage: '92.81%',
+  dictionaryCount: 15,
+  filtersApplied: {
+    colors: 6,
+    colorValues: [ 'White', 'Navy', 'Gray', 'Beige', 'Black', 'Blush' ],
+    lengths: 0,
+    lengthValues: undefined,
+    sleeves: 1,
+    sleeveValues: [ 'Long' ],
+    necklines: 0,
+    necklineValues: undefined,
+    formalityLevels: 0,
+    formalityLevelValues: undefined,
+    colorShades: 0,
+    colorShadeValues: undefined
+  },
+  note: 'Stage 2: Dictionaries built and products filtered in single pass'
+}
+[2026-01-19T19:21:50.965Z] [Velou:DEBUG] {
+  message: 'searchVectorIndexWithDeduplication: sleeve_filter_applied',
+  sleeves: [ 'Long' ],
+  sleeveCount: 1,
+  note: 'Sleeve filter is applied as hard SQL filter - products must match specified sleeve length(s)'
+}
+[2026-01-19T19:21:50.965Z] [Velou:DEBUG] {
+  message: 'searchVectorIndexWithDeduplication: constraint_filters_combined',
+  constraintCount: 1,
+  note: 'All constraint filters (Pattern, Occasion, Season, etc.) combined with OR'
+}
+[2026-01-19T19:21:50.965Z] [Velou:INFO] {
+  message: 'searchVectorIndexWithDeduplication: using pre-deduplicated product IDs',
+  productIdsCount: 10,
+  limit: 150,
+  filters: {
+    inStockOnly: true,
+    merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+  }
+}
+[2026-01-19T19:21:50.965Z] [Velou:DEBUG] {
+  message: 'searchVectorIndexWithDeduplication: executing query',
+  limit: 150,
+  preDedupLimit: undefined,
+  filters: {
+    inStockOnly: true,
+    merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+    categories: undefined,
+    genders: [ 'male' ],
+    ageGroups: [ 'Adult' ],
+    priceMinCents: undefined,
+    priceMaxCents: undefined,
+    colors: undefined,
+    excludedColors: undefined,
+    lengths: undefined,
+    patterns: undefined,
+    materials: undefined,
+    occasions: undefined,
+    sleeves: [ 'Long' ],
+    necklines: undefined,
+    sizes: undefined,
+    fits: undefined,
+    styles: undefined,
+    collections: undefined,
+    seasons: undefined,
+    rises: undefined,
+    embellishments: undefined,
+    formalityLevel: undefined,
+    colorShade: undefined,
+    colorUndertone: undefined,
+    seasonalPalette: undefined
+  },
+  hasPriceFilter: false,
+  priceMinCents: undefined,
+  priceMaxCents: undefined,
+  paramCount: 6,
+  hasPreDeduplicatedIds: true,
+  productIdsCount: 10,
+  categoryFilter: undefined,
+  categoryCount: 0,
+  hasCategoryFilter: false,
+  whereClause: `p.embedding IS NOT NULL AND p."isActive" = true AND p."merchantId" = $2 AND p."stockStatus" = 'in_stock' AND ((((\n` +
+    '          -- Check database column (primary source)\n' +
+    `          LOWER(COALESCE(p."ageGroup", '')) = LOWER($3) \n` +
+    `          OR LOWER(COALESCE(p."ageGroup", '')) LIKE LOWER($4)\n` +
+    '          OR\n' +
+    '          -- Check JSONB attributes (fallback for legacy data)\n' +
+    "          LOWER(COALESCE(p.attributes->>'ageGroup', '')) = LOWER($3) \n" +
+    "          OR LOWER(COALESCE(p.attributes->>'ageGroup', '')) LIKE LOWER($4)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'age_group', '')) = LOWER($3)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'age_group', '')) LIKE LOWER($4)\n" +
+    "          OR (p.attributes->'extensible' IS NOT NULL AND (\n" +
+    "            LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) = LOWER($3) \n" +
+    "            OR LOWER(COALESCE(p.attributes->'extensible'->>'ageGroup', '')) LIKE LOWER($4)\n" +
+    '          ))\n' +
+    `        ) OR (LOWER(p."category") LIKE '%women%' OR LOWER(p."category") LIKE '%men%' OR LOWER(p."category") LIKE '%adult%' OR LOWER(p."category") LIKE '%ladies%' OR LOWER(p."category") LIKE '%gentlemen%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%women%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%men%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%adult%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%ladies%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%gentlemen%'))) AND NOT ((LOWER(COALESCE(p.attributes->>'ageGroup', '')) IN ('kids', 'children', 'child', 'kid', 'toddler', 'toddlers', 'baby', 'babies', 'infant', 'infants') OR LOWER(p."category") LIKE '%kids%' OR LOWER(p."category") LIKE '%children%' OR LOWER(p."category") LIKE '%child%' OR LOWER(p."category") LIKE '%toddler%' OR LOWER(p."category") LIKE '%baby%' OR LOWER(p."category") LIKE '%infant%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%kids%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%children%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%child%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%toddler%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%baby%' OR LOWER(COALESCE(p."subcategory", '')) LIKE '%infant%'))) AND p.id = ANY(ARRAY['cwch-mari-dmos', 'sclt-drig-heag', 'cwch-mari-whit', 'long-sleeve-crew-tee-driggs-2-pack-d-3', 'cwch-mari-blin', 'sclt-drig-darg', 'sclt-drig-navy', 'sclt-drig-whit', 'long-sleeve-crew-tee-driggs-3-pack-d-3', 'sclt-drig-drmo']::text[]) AND (((\n` +
+    '          -- Check sleeve attributes (case-insensitive)\n' +
+    "          LOWER(COALESCE(p.attributes->>'sleeve', '')) = LOWER($5)\n" +
+    "          OR LOWER(COALESCE(p.attributes->>'sleeveLength', '')) = LOWER($5)\n" +
+    "          OR (p.attributes->'extensible' IS NOT NULL AND (\n" +
+    "              LOWER(COALESCE(p.attributes->'extensible'->>'sleeve', '')) = LOWER($5)\n" +
+    "              OR LOWER(COALESCE(p.attributes->'extensible'->>'sleeveLength', '')) = LOWER($5)\n" +
+    '            ))\n' +
+    '        )))'
+}
+[2026-01-19T19:21:51.385Z] [Velou:INFO] {
+  message: 'searchVectorIndexWithDeduplication: results found',
+  count: 0,
+  requestedLimit: 150,
+  preDedupLimit: undefined,
+  hasPreDeduplicatedIds: true,
+  deduplicationRate: 'N/A'
+}
+[2026-01-19T19:21:51.385Z] [Velou:WARN] {
+  message: 'fashion_semantic_search: tier1_no_results',
+  query: 'I want long sleeve tshirts',
+  categories: [ 'Mens-tees' ],
+  usePostSQLFiltering: true,
+  productIdsToSearchCount: 10
+}
+[2026-01-19T19:21:51.385Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: tier2_skipped_due_to_post_sql_filtering',
+  query: 'I want long sleeve tshirts',
+  categories: [ 'Mens-tees' ],
+  note: 'Tier 2 skipped because post-SQL filtering is enabled and Tier 1 correctly filtered out non-matching products (e.g., sleeveless vs long sleeves). Returning 0 results to respect user constraints.'
+}
+[2026-01-19T19:21:51.385Z] [Velou:INFO] {
+  message: 'fashion_semantic_search: tier4_skipped_due_to_post_sql_filtering',
+  query: 'I want long sleeve tshirts',
+  categories: [ 'Mens-tees' ],
+  note: 'Tier 4 skipped because post-SQL filtering is enabled and Tier 1 correctly filtered out non-matching products. Returning 0 results to respect user constraints.'
+}
+[2026-01-19T19:21:51.385Z] [Velou:INFO] {
+  message: 'fashion_semantic_search',
+  query: 'I want long sleeve tshirts',
+  resultCount: 0,
+  topSimilarity: undefined,
+  avgSimilarity: 0,
+  fallbackTier: 'strict',
+  keywordTermsUsed: 0
+}
+[2026-01-19T19:21:51.385Z] [Velou:INFO] {
+  message: 'fashion_multiview_retrieval',
+  query: 'I want long sleeve tshirts',
+  totalCandidates: 0,
+  lexicalCount: 0,
+  semanticCount: 0,
+  conceptCount: 0
+}
+[2026-01-19T19:21:51.802Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: retrieval_complete',
+  query: 'I want long sleeve tshirts',
+  candidateCount: 0,
+  retrievalDurationMs: 6876,
+  retrievalDurationSeconds: '6.88'
+}
+[2026-01-19T19:21:51.802Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: product_loading_complete',
+  query: 'I want long sleeve tshirts',
+  loadedCount: 0,
+  requestedCount: 0,
+  productLoadingDurationMs: 0,
+  productLoadingDurationSeconds: '0.00'
+}
+[2026-01-19T19:21:53.288Z] [Velou:INFO] {
+  message: 'regretful_reply_llm_response',
+  query: 'I want long sleeve tshirts',
+  fullReplyLength: 288,
+  fullReplyPreview: 'Long sleeve t-shirts are such a lovely, cozy choice for any day.  \n' +
+    '\n' +
+    'While we don’t have exactly that style right now, you might enjoy our romantic blouses with delicate details instead.  \n' +
+    '\n' +
+    'Would you l'
+}
+[2026-01-19T19:21:53.288Z] [Velou:INFO] {
+  message: 'regretful_reply_final',
+  query: 'I want long sleeve tshirts',
+  replyLength: 185,
+  paragraphCount: 3,
+  replyPreview: 'Long sleeve t-shirts are such a lovely, cozy choice for any day.  \n' +
+    '\n' +
+    'While we don’t have exactly that style right now, you might enjoy our romantic blo'
+}
+✅ Query completed successfully
+
+⏱️  Total time: 14.00s
+
+📊 Results Summary:
+  Products returned: 0
+  Has reply: true
+  No exact match: true
+
+❌ No products returned
+💬 Reply Preview:
+Long sleeve t-shirts are such a lovely, cozy choice for any day.  
+
+While we don’t have exactly that style right now, you might enjoy our romantic blouses with delicate details instead.
+

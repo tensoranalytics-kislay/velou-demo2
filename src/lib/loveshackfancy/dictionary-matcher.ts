@@ -105,8 +105,17 @@ export function findClosestMatches(
 }
 
 /**
+ * Normalize a string for flexible matching (remove hyphens, spaces, punctuation, lowercase)
+ * This matches the normalization logic we instruct the LLM to use
+ */
+function normalizeForMatching(str: string): string {
+  return str.toLowerCase().trim().replace(/[-\s]/g, '');
+}
+
+/**
  * Validate and normalize constraint values against dictionary
  * Maps user-provided values to exact dictionary values (preserves case)
+ * Uses FLEXIBLE matching: case-insensitive, ignores hyphens/spaces/punctuation
  * 
  * @param constraintType - Type of constraint to validate
  * @param values - Values to validate
@@ -128,12 +137,30 @@ export function validateConstraintValues(
     ? categorySpecificValues
     : getDictionaryForConstraintType(lookupType as any);
   
-  // Filter to only values that exist in dictionary (case-insensitive)
+  // Filter to only values that exist in dictionary (FLEXIBLE matching: case-insensitive, ignore hyphens/spaces)
   const validValues: string[] = [];
   
   for (const value of values) {
-    const valueLower = value.toLowerCase().trim();
-    const dictValue = dictionary.find(d => d.toLowerCase().trim() === valueLower);
+    const normalizedValue = normalizeForMatching(value);
+    
+    // Try exact match first (case-insensitive, with hyphens/spaces)
+    let dictValue = dictionary.find(d => d.toLowerCase().trim() === value.toLowerCase().trim());
+    
+    // If no exact match, try flexible matching (normalize both by removing hyphens/spaces)
+    if (!dictValue) {
+      dictValue = dictionary.find(d => normalizeForMatching(d) === normalizedValue);
+    }
+    
+    // If still no match, try fuzzy matching (contains key words)
+    if (!dictValue && normalizedValue.length >= 3) {
+      // Check if normalized value contains key words from dictionary values
+      dictValue = dictionary.find(d => {
+        const normalizedDict = normalizeForMatching(d);
+        // Check if value contains dict words or dict contains value words
+        return normalizedDict.includes(normalizedValue) || normalizedValue.includes(normalizedDict);
+      });
+    }
+    
     if (dictValue) {
       validValues.push(dictValue); // Use exact dictionary value (preserve case)
     }

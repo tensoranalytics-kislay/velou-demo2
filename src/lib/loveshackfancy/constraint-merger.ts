@@ -297,14 +297,18 @@ CRITICAL: ALWAYS Preserve Product Type from PREVIOUS_QUERY or CONVERSATION HISTO
   * PREVIOUS_QUERY="show me dresses", CURRENT_MESSAGE="in pink" → enhancedQueryText="pink dresses" (PRESERVE "dresses")
   * PREVIOUS_QUERY="tops under $100", CURRENT_MESSAGE="make it cheaper" → enhancedQueryText="tops under $X" (PRESERVE "tops")
   * PREVIOUS_QUERY="swimsuits for beach", CURRENT_MESSAGE="one piece please" → enhancedQueryText="one piece swimsuits for beach" (PRESERVE "swimsuits", add "one piece")
-- **Inferring product type when PREVIOUS_QUERY is incomplete**:
-  * If PREVIOUS_QUERY is incomplete (e.g., "one piece please"), FIRST check CONVERSATION HISTORY to trace back to original product type
+- **Inferring product type when PREVIOUS_QUERY is incomplete** (THE ONLY EXCEPTION TO THE "NO INFERRED CONSTRAINTS" RULE):
+  * **CRITICAL**: This is the ONLY case where PREVIOUS_CONSTRAINTS can be used to add information to enhancedQueryText
+  * **ONLY** use PREVIOUS_CONSTRAINTS for product type inference - NEVER for colors, materials, occasions, patterns, or any other attributes
+  * If PREVIOUS_QUERY is incomplete (e.g., "one piece please", "size 6", "in black"), FIRST check CONVERSATION HISTORY to trace back to original product type
   * If history doesn't help, look at PREVIOUS_CONSTRAINTS to infer the full product type
   * If PREVIOUS_CONSTRAINTS has styles like ["One-Piece", "Swimsuit"], the previous query was about "one piece swimsuit"
   * If PREVIOUS_CONSTRAINTS has categories or styles, use them to construct the complete product type
   * If PREVIOUS_CONSTRAINTS is null, parse PREVIOUS_QUERY to extract product type (e.g., "Girls Swimwear Bikinis" → product type is "bikini" or "swimwear", ageGroups: ["kids"])
-- **The enhanced query MUST include the complete product type** (e.g., "one piece swimsuit under $150", NOT just "one piece under $150")
-- **NEVER drop the product type** unless CURRENT_MESSAGE explicitly changes it (e.g., "show me tops instead" after "dresses")
+  * **The enhanced query MUST include the complete product type** (e.g., "one piece swimsuit under $150", NOT just "one piece under $150")
+  * **NEVER drop the product type** unless CURRENT_MESSAGE explicitly changes it (e.g., "show me tops instead" after "dresses")
+  * **IMPORTANT**: Even when inferring product type from PREVIOUS_CONSTRAINTS, DO NOT add any other attributes (colors, materials, occasions, etc.) from PREVIOUS_CONSTRAINTS unless they were explicitly in PREVIOUS_QUERY
+  * Example: PREVIOUS_QUERY="one piece please", PREVIOUS_CONSTRAINTS has styles=["One-Piece", "Swimsuit"] and colors=["Navy"] (extracted) → enhancedQueryText="one piece swimsuit" (NOT "navy one piece swimsuit" - colors were inferred, not mentioned)
 
 Your task:
 1. **CRITICAL FIRST STEP**: Use human judgment and logical reasoning to determine if this is truly a follow-up or a NEW SEARCH
@@ -561,8 +565,9 @@ When merging constraints, determine and preserve/update intent levels:
 MERGE (add/update constraints while keeping others):
 - "make it black" → add/update colors: ["Black"] with intent: "strong", keep all other constraints (price, occasion, pattern, etc.)
   * Enhanced query: "[previous product type] black" (e.g., "tops black" if previous was "tops")
-  * If PREVIOUS_QUERY is incomplete, infer from PREVIOUS_CONSTRAINTS (e.g., if constraints show styles=["Top"], use "tops")
+  * If PREVIOUS_QUERY is incomplete (e.g., "in black"), infer product type from PREVIOUS_CONSTRAINTS (e.g., if constraints show styles=["Top"], use "tops")
   * **CRITICAL**: Always preserve product type from PREVIOUS_QUERY (e.g., if PREVIOUS_QUERY="dresses", enhancedQueryText="black dresses", NOT just "black")
+  * **CRITICAL**: When inferring product type from PREVIOUS_CONSTRAINTS, ONLY infer the product type - DO NOT add any other attributes (colors, materials, occasions, etc.) from PREVIOUS_CONSTRAINTS unless they were explicitly in PREVIOUS_QUERY
 - **CRITICAL: PRESERVE NON-ONTOLOGY COLORS**
   * **MOST IMPORTANT**: When user mentions colors like "Cherry", "Crimson", "Scarlet", "Burgundy", "Maroon", etc., extract them EXACTLY as the user said (capitalized), even if they're not in the standard ontology
   * **DO NOT** convert "Cherry" to "Red" or "Crimson" to "Red" - preserve the exact color term the user used
@@ -624,13 +629,15 @@ MERGE (add/update constraints while keeping others):
   * PREVIOUS="hoodies", CURRENT="cotton in navy" → "navy cotton hoodies" ✓
 - "also in size 6" → add/update sizes: ["6"], keep all other constraints
   * Enhanced query: "[previous product type] size 6" (e.g., "one piece swimsuit size 6" if previous was "one piece swimsuit")
-  * If PREVIOUS_QUERY was "one piece please" but PREVIOUS_CONSTRAINTS shows styles=["One-Piece", "Swimsuit"], use "one piece swimsuit size 6"
+  * If PREVIOUS_QUERY was "one piece please" but PREVIOUS_CONSTRAINTS shows styles=["One-Piece", "Swimsuit"], use "one piece swimsuit size 6" (ONLY product type inference allowed)
+  * **CRITICAL**: DO NOT add any other attributes from PREVIOUS_CONSTRAINTS (e.g., if PREVIOUS_CONSTRAINTS has colors=["Navy"] but user never said "navy", DO NOT add it)
 - "under $300" → update priceMaxCents: 30000, keep priceMinCents if it exists, keep all other constraints
   * Enhanced query: "[previous product type] under $300" (e.g., "one piece swimsuit under $300" if previous was "one piece swimsuit")
   * CRITICAL: If PREVIOUS_QUERY was "one piece please" but PREVIOUS_CONSTRAINTS shows it's about swimsuits, use "one piece swimsuit under $300" (NOT "one piece under $300")
+  * **CRITICAL**: When inferring product type, ONLY infer the product type - DO NOT add colors, materials, occasions, or any other attributes from PREVIOUS_CONSTRAINTS unless they were explicitly in PREVIOUS_QUERY
 - "over $50" → update priceMinCents: 5000, keep priceMaxCents if it exists, keep all other constraints
   * Enhanced query: "[previous product type] over $50" (e.g., "tops over $50" if previous was "tops")
-  * Infer product type from PREVIOUS_CONSTRAINTS if PREVIOUS_QUERY is incomplete
+  * Infer product type from PREVIOUS_CONSTRAINTS if PREVIOUS_QUERY is incomplete (ONLY product type inference allowed - no other attributes)
 - "more casual" → update occasions: ["Casual", "Daytime"], remove formal occasions, keep other constraints
   * Enhanced query: "[previous product type] casual" (preserve product type from previous query or constraints)
 - "cheaper" → reduce priceMaxCents by 20% or set lower, keep priceMinCents if it exists, keep all other constraints
@@ -687,6 +694,12 @@ MERGE (add/update constraints while keeping others):
       → reason: "user repeated the same query, treating as new search"
 
 REPLACE (override specific constraints, keep others):
+- **GENERAL REPLACEMENT PATTERNS** (apply to ALL constraint types):
+  * "change to [value]" → REPLACE that constraint type with new value(s)
+  * "[value] instead" → REPLACE that constraint type with new value(s)
+  * "switch to [value]" → REPLACE that constraint type with new value(s)
+  * "prefer [value] instead" → REPLACE that constraint type with new value(s)
+  * "actually, [value]" → REPLACE that constraint type with new value(s)
 - **COLOR REPLACEMENT** (all categories):
   * PREVIOUS="red dresses", CURRENT="change to navy" → "navy dresses" ✓ (NOT "red dresses navy" or "red dresses change to navy")
   * PREVIOUS="gold jewelry", CURRENT="in silver" → "silver jewelry" ✓
@@ -701,6 +714,26 @@ REPLACE (override specific constraints, keep others):
   * PREVIOUS="silk dress", CURRENT="cotton instead" → "cotton dress" ✓
 - **LENGTH REPLACEMENT** (apparel):
   * PREVIOUS="maxi dress", CURRENT="mini instead" → "mini dress" ✓
+- **RISE REPLACEMENT** (apparel):
+  * PREVIOUS="low rise jeans", CURRENT="high rise instead" → "high rise jeans" ✓
+- **FIT REPLACEMENT** (apparel):
+  * PREVIOUS="slim fit", CURRENT="relaxed fit instead" → "relaxed fit" ✓
+- **SLEEVE LENGTH REPLACEMENT** (apparel):
+  * PREVIOUS="long sleeves", CURRENT="short sleeves instead" → "short sleeves" ✓
+- **NECKLINE REPLACEMENT** (apparel):
+  * PREVIOUS="v-neck", CURRENT="round neck instead" → "round neck" ✓
+- **SIZE REPLACEMENT** (apparel):
+  * PREVIOUS="size 4", CURRENT="size 6 instead" → "size 6" ✓
+- **STYLE REPLACEMENT** (all categories):
+  * PREVIOUS="romantic style", CURRENT="casual instead" → "casual" ✓
+- **PATTERN REPLACEMENT** (all categories):
+  * PREVIOUS="floral", CURRENT="solid instead" → "solid" ✓
+- **FORMALITY LEVEL REPLACEMENT** (all categories):
+  * PREVIOUS="formal", CURRENT="casual instead" → "casual" ✓
+- **SEASON REPLACEMENT** (all categories):
+  * PREVIOUS="summer", CURRENT="winter instead" → "winter" ✓
+- **INCLUSIVITY SIZING REPLACEMENT** (all categories):
+  * PREVIOUS="plus size", CURRENT="petite instead" → "petite" ✓
 - **PRODUCT TYPE REPLACEMENT** (all categories):
   * PREVIOUS="dresses", CURRENT="show me tops" → "tops" ✓ (product type switch)
   * PREVIOUS="jewelry", CURRENT="show me bags" → "bags" ✓
@@ -801,6 +834,65 @@ COLOR RELAXATION (expand color constraints to include similar colors):
 - "similar shades", "close color matches", "or similar" (when referring to colors) → same as above
 - The enhancedQueryText should read as a natural, complete sentence that flows well
 
+**CRITICAL: UNIVERSAL CONSTRAINT OPERATIONS - APPLIES TO ALL CONSTRAINT TYPES**
+
+The following operations (MERGE, REPLACE, REMOVE, EXCLUDE) apply to **ALL constraint types**, not just the examples shown. This includes:
+- Core constraints: colors, materials, patterns, styles, lengths, sleeveLengths, necklines, fits, rises, occasions, seasons, formalityLevel, sizes, ageGroups, collections, embellishments, priceMinCents, priceMaxCents
+- Enriched attributes: colorShade, colorUndertone, multicolor, seasonalPalette, inclusivitySizing, setVsSingle, careRequirements, rainWind, travelFeatures, pockets, liningType, braSolution, ecoMaterials, certifications, origin, adaptiveFeatures, sensoryFriendly, finish, modestyCues, layeringIntent, pairingIntent, temperatureIntent, humidityFriendly, occasionContext, problemSolutions, functionFeatures
+- Category-specific: scents (perfumes/candles), rooms (home & living), useCases, benefits, claims, sensoryProfile, compatibility
+
+**GENERAL RULES FOR ALL CONSTRAINT TYPES:**
+
+1. **MERGE (Add/Update)** - When user says "make it", "also", "add", "with", "and", "X also works", "X too":
+   - For array constraints (colors, materials, patterns, styles, etc.): ADD new values to existing array
+   - For single-value constraints (priceMinCents, priceMaxCents, etc.): UPDATE the value
+   - For boolean constraints (humidityFriendly, multicolor, etc.): UPDATE the boolean value
+   - Keep all other constraints unchanged
+   - Examples:
+     * "also in blue" → ADD "Blue" to colors array
+     * "also cotton" → ADD "Cotton" to materials array
+     * "also high rise" → ADD "High Rise" to rises array
+     * "also plus size" → ADD "Plus Size" to inclusivitySizing array
+     * "also with pockets" → UPDATE pockets: true
+     * "also organic" → ADD "Organic" to ecoMaterials array
+
+2. **REPLACE (Override)** - When user says "instead", "change to", "switch to", "replace with", "not X, show Y", "prefer X instead", "actually, I prefer X":
+   - For array constraints: REPLACE entire array with new values
+   - For single-value constraints: REPLACE the value
+   - For boolean constraints: REPLACE the boolean value
+   - Keep all other constraints unchanged
+   - Examples:
+     * "change to navy" → REPLACE colors: ["Navy"] (removes previous colors)
+     * "cotton instead" → REPLACE materials: ["Cotton"] (removes previous materials)
+     * "high rise instead" → REPLACE rises: ["High Rise"] (removes previous rises)
+     * "petite instead" → REPLACE inclusivitySizing: ["Petite"] (removes previous sizing)
+     * "without pockets" → REPLACE pockets: false (or null)
+
+3. **REMOVE (Set to null)** - When user says "any", "doesn't matter", "remove", "no preference", "no X", "any X is fine", "X doesn't matter":
+   - Set the constraint to null
+   - Keep all other constraints unchanged
+   - Examples:
+     * "any color is fine" → REMOVE colors: null
+     * "any material" → REMOVE materials: null
+     * "no pattern preference" → REMOVE patterns: null
+     * "any rise is fine" → REMOVE rises: null
+     * "any size" → REMOVE sizes: null
+     * "pockets don't matter" → REMOVE pockets: null
+
+4. **EXCLUDE (Negative intent)** - When user says "not", "avoid", "no", "without", "don't want", "exclude":
+   - Set constraint with intent: "excluded"
+   - For array constraints: Add values with excluded intent
+   - Keep all other constraints unchanged
+   - Examples:
+     * "not blue" → colors: { values: ["Blue"], intent: "excluded" }
+     * "avoid cotton" → materials: { values: ["Cotton"], intent: "excluded" }
+     * "not floral" → patterns: { values: ["Floral"], intent: "excluded" }
+     * "not high rise" → rises: { values: ["High Rise"], intent: "excluded" }
+     * "without pockets" → pockets: false (or null, depending on context)
+     * "not plus size" → inclusivitySizing: { values: ["Plus Size"], intent: "excluded" }
+
+**CRITICAL**: These operations work for **ALL constraint types** listed above. When the user modifies ANY constraint type, apply the appropriate operation (MERGE, REPLACE, REMOVE, or EXCLUDE) based on the language used.
+
 RULES:
 1. **FIRST**: Check logical compatibility between product type and occasion/context
    - If INCOMPATIBLE → mergeAction: "new_search" (reset all constraints, use CURRENT_MESSAGE as-is)
@@ -840,27 +932,144 @@ RULES:
 5. For occasions: "more casual" → replace formal occasions with ["Casual", "Daytime"], keep other constraints
 6. Always preserve constraints NOT mentioned in the follow-up message
 7. For price: preserve priceMinCents if not mentioned, preserve priceMaxCents if not mentioned (independent handling)
-8. For arrays (colors, sizes, patterns): MERGE adds to array, REPLACE replaces entire array, REMOVE sets to null
-9. **CRITICAL: enhancedQueryText should ONLY include what the user explicitly typed, NOT extracted/inferred constraints from PREVIOUS_CONSTRAINTS**
-   - The enhancedQueryText must ONLY include words/phrases that appear in PREVIOUS_QUERY or CURRENT_MESSAGE
-   - DO NOT include constraints that were extracted/inferred by the classifier (e.g., if PREVIOUS_CONSTRAINTS has colors=["White", "Yellow", "Coral"] but the user never said these colors, do NOT include them in enhancedQueryText)
-   - DO NOT include materials, occasions, patterns, etc. from PREVIOUS_CONSTRAINTS unless they were explicitly mentioned by the user in PREVIOUS_QUERY or CURRENT_MESSAGE
-   - Example: If PREVIOUS_QUERY="dresses for vacation" and PREVIOUS_CONSTRAINTS has colors=["White", "Yellow", "Coral"] (extracted), but user never said these colors → enhancedQueryText="dresses for vacation" (NOT "white yellow coral dresses for vacation")
-   - Example: If PREVIOUS_QUERY="floral dresses" (user said "floral"), CURRENT_MESSAGE="for the beach" → enhancedQueryText="floral dresses for the beach" (includes "floral" because user said it)
-   - The enhancedQueryText should read naturally and be searchable, but it must be grounded ONLY in actual user input
+8. **For ALL array constraints** (colors, materials, patterns, styles, lengths, sleeveLengths, necklines, fits, rises, occasions, seasons, formalityLevel, sizes, ageGroups, collections, embellishments, inclusivitySizing, seasonalPalette, careRequirements, travelFeatures, ecoMaterials, modestyCues, occasionContext, problemSolutions, functionFeatures, scents, rooms, useCases, benefits, claims, compatibility): 
+   - MERGE adds to array (e.g., ["Red"] + "also blue" → ["Red", "Blue"])
+   - REPLACE replaces entire array (e.g., ["Red"] + "change to navy" → ["Navy"])
+   - REMOVE sets to null (e.g., ["Red"] + "any color" → null)
+   - EXCLUDE adds with excluded intent (e.g., ["Red"] + "not blue" → { values: ["Red"], excluded: ["Blue"] })
+9. **For ALL single-value constraints** (priceMinCents, priceMaxCents, temperatureIntent, humidityFriendly, multicolor, rainWind, pockets, liningType, braSolution, certifications, origin, adaptiveFeatures, sensoryFriendly, finish, layeringIntent, pairingIntent):
+   - MERGE updates the value (e.g., priceMaxCents: 20000 + "cheaper" → priceMaxCents: 16000)
+   - REPLACE replaces the value (e.g., priceMaxCents: 20000 + "under $100" → priceMaxCents: 10000)
+   - REMOVE sets to null (e.g., priceMaxCents: 20000 + "price doesn't matter" → priceMaxCents: null)
+10. **For ALL boolean constraints** (humidityFriendly, multicolor, pockets, etc.):
+   - MERGE updates the boolean (e.g., pockets: false + "with pockets" → pockets: true)
+   - REPLACE replaces the boolean (e.g., pockets: true + "without pockets" → pockets: false)
+   - REMOVE sets to null (e.g., pockets: true + "pockets don't matter" → pockets: null)
+11. **CRITICAL: enhancedQueryText should ONLY include what the user explicitly typed, NOT extracted/inferred constraints from PREVIOUS_CONSTRAINTS**
+   
+   **MOST IMPORTANT RULE**: The enhancedQueryText must ONLY include words/phrases that appear in PREVIOUS_QUERY or CURRENT_MESSAGE. DO NOT use PREVIOUS_CONSTRAINTS to add any attributes to enhancedQueryText unless they were explicitly mentioned by the user.
+   
+   **THE ONLY EXCEPTION: Product Type Inference (When PREVIOUS_QUERY is Incomplete)**
+   - **ONLY** when PREVIOUS_QUERY is incomplete (e.g., "one piece please", "size 6", "in black") and doesn't mention the product type, you may use PREVIOUS_CONSTRAINTS to infer the product type
+   - **ONLY** use PREVIOUS_CONSTRAINTS for product type inference (e.g., styles=["One-Piece", "Swimsuit"] → "one piece swimsuit")
+   - **NEVER** use PREVIOUS_CONSTRAINTS to add colors, materials, occasions, patterns, lengths, sleeveLengths, necklines, fits, rises, sizes, seasons, formalityLevel, embellishments, collections, or any other attributes to enhancedQueryText
+   - **NEVER** use PREVIOUS_CONSTRAINTS to add attributes that were inferred by the classifier but not explicitly mentioned by the user
+   
+   **EXPLICIT PROHIBITIONS**:
+   - ❌ DO NOT include colors from PREVIOUS_CONSTRAINTS if they weren't in PREVIOUS_QUERY (e.g., PREVIOUS_CONSTRAINTS has colors=["White", "Yellow", "Coral"] but user never said these → DO NOT add them to enhancedQueryText)
+   - ❌ DO NOT include materials from PREVIOUS_CONSTRAINTS if they weren't in PREVIOUS_QUERY (e.g., PREVIOUS_CONSTRAINTS has materials=["Silk"] but user never said "silk" → DO NOT add it to enhancedQueryText)
+   - ❌ DO NOT include occasions from PREVIOUS_CONSTRAINTS if they weren't in PREVIOUS_QUERY (e.g., PREVIOUS_CONSTRAINTS has occasions=["Wedding"] but user never said "wedding" → DO NOT add it to enhancedQueryText)
+   - ❌ DO NOT include patterns from PREVIOUS_CONSTRAINTS if they weren't in PREVIOUS_QUERY (e.g., PREVIOUS_CONSTRAINTS has patterns=["Floral"] but user never said "floral" → DO NOT add it to enhancedQueryText)
+   - ❌ DO NOT include any other attributes from PREVIOUS_CONSTRAINTS unless they were explicitly mentioned in PREVIOUS_QUERY or CURRENT_MESSAGE
+   
+   **CORRECT EXAMPLES**:
+   - ✅ PREVIOUS_QUERY="dresses for vacation", PREVIOUS_CONSTRAINTS has colors=["White", "Yellow", "Coral"] (extracted), but user never said these colors → enhancedQueryText="dresses for vacation" (NOT "white yellow coral dresses for vacation")
+   - ✅ PREVIOUS_QUERY="floral dresses" (user said "floral"), CURRENT_MESSAGE="for the beach" → enhancedQueryText="floral dresses for the beach" (includes "floral" because user said it)
+   - ✅ PREVIOUS_QUERY="one piece please" (incomplete), PREVIOUS_CONSTRAINTS has styles=["One-Piece", "Swimsuit"] → enhancedQueryText="one piece swimsuit" (ONLY product type inference allowed)
+   - ✅ PREVIOUS_QUERY="one piece please", PREVIOUS_CONSTRAINTS has colors=["Navy"] (extracted), but user never said "navy" → enhancedQueryText="one piece swimsuit" (NOT "navy one piece swimsuit" - colors not allowed even if product type was inferred)
+   
+   **WRONG EXAMPLES** (DO NOT DO THIS):
+   - ❌ PREVIOUS_QUERY="dresses for vacation", PREVIOUS_CONSTRAINTS has colors=["White", "Yellow", "Coral"] (extracted) → WRONG: "white yellow coral dresses for vacation" (colors were inferred, not mentioned)
+   - ❌ PREVIOUS_QUERY="show me dresses", PREVIOUS_CONSTRAINTS has materials=["Silk"] (extracted) → WRONG: "silk dresses" (material was inferred, not mentioned)
+   - ❌ PREVIOUS_QUERY="dresses", PREVIOUS_CONSTRAINTS has occasions=["Wedding"] (extracted) → WRONG: "dresses for wedding" (occasion was inferred, not mentioned)
+   - ❌ PREVIOUS_QUERY="one piece please", PREVIOUS_CONSTRAINTS has colors=["Navy"], materials=["Polyester"] (extracted) → WRONG: "navy polyester one piece swimsuit" (colors and materials were inferred, only product type inference is allowed)
+   
+   **THE RULE**: Parse PREVIOUS_QUERY into components (product type, colors, materials, audience, locations, etc.) - but ONLY use what's actually in the text. Extract new constraints from CURRENT_MESSAGE - only what the user actually said. The enhancedQueryText should read naturally and be searchable, but it must be grounded ONLY in actual user input.
 10. "Actually, I prefer X" or "I prefer X instead" → REPLACE the constraint for X, keep all other constraints from previous query
-11. CRITICAL: When creating enhancedQueryText, ALWAYS preserve the COMPLETE product type/category from PREVIOUS_QUERY
-    - **MOST IMPORTANT**: If PREVIOUS_QUERY mentions a product type (dresses, tops, swimsuits, etc.), it MUST appear in enhancedQueryText, even if CURRENT_MESSAGE doesn't mention it
-    - **Examples of preserving product type**:
-      * PREVIOUS_QUERY="dresses in light colours", CURRENT_MESSAGE="only in light colours" → enhancedQueryText="light coloured dresses" (PRESERVE "dresses")
-      * PREVIOUS_QUERY="dresses in light colours", CURRENT_MESSAGE="find floral ones" → enhancedQueryText="light coloured floral dresses" (PRESERVE "dresses", merge "floral")
-      * PREVIOUS_QUERY="show me dresses", CURRENT_MESSAGE="in pink" → enhancedQueryText="pink dresses" (PRESERVE "dresses")
-    - INFER the complete product type from PREVIOUS_CONSTRAINTS if PREVIOUS_QUERY is incomplete
-    - If PREVIOUS_QUERY was "one piece please" but PREVIOUS_CONSTRAINTS shows styles=["One-Piece", "Swimsuit"], infer the product type is "one piece swimsuit"
-    - If PREVIOUS_QUERY was "one piece swimsuit" and current message is "under $150", enhancedQueryText should be "one piece swimsuit under $150" (NOT just "one piece under $150")
-    - If PREVIOUS_QUERY was "red silk maxi dress..." and current message is "price can be higher", enhancedQueryText should be "red silk maxi dress [other constraints]" (preserve all constraints except price max)
-    - **NEVER drop the product type** unless CURRENT_MESSAGE explicitly changes it (e.g., "show me tops instead" after "dresses")
-12. CRITICAL: ALWAYS preserve ALL context types from PREVIOUS_QUERY that the LLM constraint extractor can use
+11. **CRITICAL: PRESERVE ALL PREVIOUSLY MERGED ATTRIBUTES IN enhancedQueryText**
+    
+    **MOST IMPORTANT RULE**: When generating enhancedQueryText, you MUST preserve ALL attributes that were present in PREVIOUS_QUERY, UNLESS:
+    - The attribute is explicitly REPLACED by CURRENT_MESSAGE (e.g., "change to navy" replaces previous colors)
+    - The attribute is explicitly REMOVED by CURRENT_MESSAGE (e.g., "any color is fine" removes colors)
+    - The attribute is explicitly EXCLUDED by CURRENT_MESSAGE (e.g., "not blue" excludes blue)
+    
+    **CHECKLIST - Before generating enhancedQueryText, verify ALL of these are included (if they were in PREVIOUS_QUERY):**
+    - ✅ Product type/category (dresses, tops, etc.) - ALWAYS preserve unless explicitly changed
+    - ✅ Colors (if present in PREVIOUS_QUERY) - preserve unless replaced/removed/excluded
+    - ✅ Materials (if present in PREVIOUS_QUERY) - preserve unless replaced/removed/excluded
+    - ✅ Patterns (if present in PREVIOUS_QUERY) - preserve unless replaced/removed/excluded
+    - ✅ Styles (if present in PREVIOUS_QUERY) - preserve unless replaced/removed/excluded
+    - ✅ Lengths (if present in PREVIOUS_QUERY) - preserve unless replaced/removed/excluded
+    - ✅ Sleeve lengths (if present in PREVIOUS_QUERY) - preserve unless replaced/removed/excluded
+    - ✅ Necklines (if present in PREVIOUS_QUERY) - preserve unless replaced/removed/excluded
+    - ✅ Fits (if present in PREVIOUS_QUERY) - preserve unless replaced/removed/excluded
+    - ✅ Rises (if present in PREVIOUS_QUERY) - preserve unless replaced/removed/excluded
+    - ✅ Sizes (if present in PREVIOUS_QUERY) - preserve unless replaced/removed/excluded
+    - ✅ Occasions (if present in PREVIOUS_QUERY) - preserve unless replaced/removed/excluded
+    - ✅ Seasons (if present in PREVIOUS_QUERY) - preserve unless replaced/removed/excluded
+    - ✅ Price constraints (if present in PREVIOUS_QUERY) - preserve unless replaced/removed/excluded
+    - ✅ Age groups (if present in PREVIOUS_QUERY) - preserve unless replaced/removed/excluded
+    - ✅ All other attributes (formalityLevel, embellishments, collections, etc.) - preserve unless replaced/removed/excluded
+    
+    **CRITICAL EXAMPLES - These show what happens when you DON'T preserve all attributes:**
+    
+    ❌ WRONG (lost "mini" and "cotton"):
+    - PREVIOUS_QUERY="navy cotton mini dresses", CURRENT_MESSAGE="size 6 instead"
+    - WRONG enhancedQueryText: "navy dresses size 6" (lost "cotton" and "mini")
+    - ✅ CORRECT enhancedQueryText: "navy cotton mini dresses size 6" (preserved "cotton" and "mini")
+    
+    ❌ WRONG (lost "wedding", "floral", "maxi", "long sleeves"):
+    - PREVIOUS_QUERY="light coloured floral maxi dresses with long sleeves for wedding", CURRENT_MESSAGE="v-neck"
+    - WRONG enhancedQueryText: "light coloured v-neck dresses" (lost "wedding", "floral", "maxi", "long sleeves")
+    - ✅ CORRECT enhancedQueryText: "light coloured floral maxi dresses with long sleeves v-neck for wedding" (preserved ALL previous attributes)
+    
+    ❌ WRONG (lost "wedding"):
+    - PREVIOUS_QUERY="dresses for wedding in light colours", CURRENT_MESSAGE="floral ones"
+    - WRONG enhancedQueryText: "light coloured floral dresses" (lost "wedding")
+    - ✅ CORRECT enhancedQueryText: "light coloured floral dresses for wedding" (preserved "wedding")
+    
+    **REPLACE OPERATION - Only replace the SPECIFIC constraint mentioned, preserve ALL others:**
+    - PREVIOUS_QUERY="navy cotton mini dresses", CURRENT_MESSAGE="size 6 instead"
+    - REPLACE: sizes=["6"] (replaces previous sizes)
+    - PRESERVE: colors=["Navy"], materials=["Cotton"], lengths=["Mini"]
+    - ✅ CORRECT enhancedQueryText: "navy cotton mini dresses size 6" (preserved "navy", "cotton", "mini")
+    
+    **MERGE OPERATION - Add new constraint, preserve ALL previous attributes:**
+    - PREVIOUS_QUERY="light coloured floral dresses for wedding", CURRENT_MESSAGE="maxi length"
+    - MERGE: lengths=["Maxi"] (adds "Maxi")
+    - PRESERVE: colors (light coloured), patterns=["Floral"], occasions=["Wedding"]
+    - ✅ CORRECT enhancedQueryText: "light coloured floral maxi dresses for wedding" (preserved "light coloured", "floral", "wedding")
+    
+    - PREVIOUS_QUERY="light coloured maxi dresses with long sleeves", CURRENT_MESSAGE="v-neck"
+    - MERGE: necklines=["V-Neck"] (adds "V-Neck")
+    - PRESERVE: colors (light coloured), lengths=["Maxi"], sleeveLengths=["Long"]
+    - ✅ CORRECT enhancedQueryText: "light coloured maxi dresses with long sleeves v-neck" (preserved "light coloured", "maxi", "long sleeves")
+    
+    **STEP-BY-STEP PROCESS:**
+    1. Decompose PREVIOUS_QUERY into ALL its components (product type, colors, materials, patterns, styles, lengths, sleeveLengths, necklines, fits, rises, sizes, occasions, seasons, price, age groups, etc.)
+    2. Extract new/modified constraints from CURRENT_MESSAGE
+    3. Determine merge action (MERGE, REPLACE, REMOVE, EXCLUDE) for each constraint type
+    4. For REPLACE: Replace ONLY the specific constraint mentioned, keep ALL others
+    5. For MERGE: Add the new constraint, keep ALL previous constraints
+    6. For REMOVE: Remove the specific constraint, keep ALL others
+    7. For EXCLUDE: Add excluded constraint, keep ALL others
+    8. Recompose enhancedQueryText including ALL preserved attributes + new/modified attributes
+    9. Verify checklist: Does enhancedQueryText include ALL attributes from PREVIOUS_QUERY (except those explicitly replaced/removed/excluded)?
+    
+    **NEVER drop attributes** unless they are explicitly replaced, removed, or excluded by CURRENT_MESSAGE.
+12. **CRITICAL: VERIFICATION STEP - Before finalizing enhancedQueryText**
+    
+    After generating enhancedQueryText, verify it includes ALL of the following from PREVIOUS_QUERY (unless explicitly replaced/removed/excluded):
+    - Product type (dresses, tops, etc.)
+    - Colors mentioned
+    - Materials mentioned
+    - Patterns mentioned
+    - Styles mentioned
+    - Lengths mentioned
+    - Sleeve lengths mentioned
+    - Necklines mentioned
+    - Fits mentioned
+    - Rises mentioned
+    - Sizes mentioned
+    - Occasions mentioned
+    - Seasons mentioned
+    - Price constraints mentioned
+    - Age groups mentioned
+    - All other attributes mentioned
+    
+    If ANY attribute from PREVIOUS_QUERY is missing from enhancedQueryText (and it wasn't explicitly replaced/removed/excluded), you MUST add it back.
+
+13. CRITICAL: ALWAYS preserve ALL context types from PREVIOUS_QUERY that the LLM constraint extractor can use
     - **MOST IMPORTANT**: The LLM extractor uses many context types to understand user intent. ALL of the following context types from PREVIOUS_QUERY MUST be preserved in enhancedQueryText unless CURRENT_MESSAGE explicitly replaces or removes them:
     
     **Context types to preserve (15-20+ types the LLM extractor uses):**
@@ -908,7 +1117,7 @@ RULES:
       * If CURRENT_MESSAGE changes a constraint (e.g., "more casual" replaces "formal"), update that specific constraint but keep other context
     
     - **NEVER drop context** unless explicitly replaced or removed by CURRENT_MESSAGE
-13. CRITICAL: enhancedQueryText must be NATURAL and COHERENT
+14. CRITICAL: enhancedQueryText must be NATURAL and COHERENT
     - **DECOMPOSE THEN RECOMPOSE**: Always parse PREVIOUS_QUERY into components first, then merge CURRENT_MESSAGE's constraints into natural positions
     - Write the query as a natural, searchable phrase that flows well
     - Use natural attribute ordering: color → material → product type → style attributes → size → occasion → age group → price
@@ -1012,6 +1221,8 @@ CRITICAL: When mergeAction is "new_search":
 CRITICAL REMINDERS FOR enhancedQueryText:
 - **MOST IMPORTANT: ONLY USE USER INPUT, NOT EXTRACTED CONSTRAINTS**
   * The enhancedQueryText must ONLY include words/phrases that appear in PREVIOUS_QUERY or CURRENT_MESSAGE
+  * **THE ONLY EXCEPTION**: Product type inference from PREVIOUS_CONSTRAINTS when PREVIOUS_QUERY is incomplete (e.g., "one piece please" → infer "swimsuit" from PREVIOUS_CONSTRAINTS)
+  * **NEVER** use PREVIOUS_CONSTRAINTS to add colors, materials, occasions, patterns, lengths, sleeveLengths, necklines, fits, rises, sizes, seasons, formalityLevel, embellishments, collections, or any other attributes unless they were explicitly mentioned in PREVIOUS_QUERY or CURRENT_MESSAGE
   * DO NOT include constraints from PREVIOUS_CONSTRAINTS that were extracted/inferred but not explicitly mentioned by the user
   * Parse PREVIOUS_QUERY into components (product type, colors, materials, audience, locations, etc.) - but only use what's actually in the text
   * Extract new constraints from CURRENT_MESSAGE - only what the user actually said
@@ -1019,6 +1230,7 @@ CRITICAL REMINDERS FOR enhancedQueryText:
   * Remove redundant phrases
   * DO NOT append strings together
   * DO NOT add extracted colors, materials, occasions, etc. that the user never mentioned
+  * **REMEMBER**: Even when inferring product type from PREVIOUS_CONSTRAINTS, DO NOT add any other attributes from PREVIOUS_CONSTRAINTS to enhancedQueryText
 - **PRESERVE ALL CONTEXT TYPES FROM PREVIOUS_QUERY**: ALWAYS preserve ALL context types that the LLM constraint extractor can use
   * **Occasions**: "wedding", "beach", "formal event", "vacation", "party", etc. → PRESERVE unless replaced/removed
   * **Seasons**: "summer", "winter", "tropical", etc. → PRESERVE unless replaced/removed

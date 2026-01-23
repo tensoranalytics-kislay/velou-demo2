@@ -213,6 +213,7 @@ export function deriveAttributeConstraintMeta(
  * - ageGroup → ageGroups
  */
 export type EnrichedColumnValues = {
+  brand?: string | null; // Brand name for brand-based boosting
   // Core indexed columns (Phase 2)
   color?: string | null; // Most common color (indexed)
   fabric?: string | null; // Fabric type (indexed)

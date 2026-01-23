@@ -41,6 +41,7 @@ export type SearchConstraints = {
   conditions?: string[];
   ageGroups?: string[];
   inclusivitySizing?: string[]; // Plus Size, Petite, Tall, Extended Sizes, Standard Sizing
+  setVsSingle?: string[]; // "Set" for pack products, "Single" for individual items (default: ["Single"])
   inStockOnly?: boolean;
   excludeProductIds?: string[];
   limit?: number;
@@ -113,6 +114,7 @@ export type ProductAttributes = {
 };
 
 export type SearchResultItem = {
+  brand?: string | null; // Brand name for brand-based boosting
   id: string;
   title: string;
   description: string;

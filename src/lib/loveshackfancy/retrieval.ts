@@ -196,6 +196,7 @@ export async function multiViewRetrieval(
   // Extract constraints with "required" intent for hard SQL filtering BEFORE retrieval
   // These will be applied as SQL WHERE clauses to filter the database before vector search
   const requiredIntentFilters: {
+    colors?: string[]; // CRITICAL: Colors with "required" intent should be filtered at SQL level
     patterns?: string[];
     materials?: string[];
     occasions?: string[];
@@ -212,6 +213,7 @@ export async function multiViewRetrieval(
     colorShade?: string[];
     colorUndertone?: string[];
     seasonalPalette?: string[];
+    lengths?: string[]; // Lengths can have "required" intent (e.g., "maxi dress")
   } = {};
   
   // Helper function to extract and set required intent filters
@@ -228,10 +230,40 @@ export async function multiViewRetrieval(
     }
   };
   
+  // Extract occasions with "strong" intent as SQL filter (user requirement: occasions with "strong" should be SQL filtered)
+  const extractStrongOccasionsFilter = (
+    intent: 'required' | 'strong' | 'preferred' | 'excluded' | null | undefined,
+    constraint: any
+  ) => {
+    if (intent === 'strong' || intent === 'required') {
+      const values = extractConstraintValues(constraint);
+      if (values && values.length > 0) {
+        requiredIntentFilters.occasions = values;
+      }
+    }
+  };
+  
+  // Extract formalityLevel with "strong" intent as SQL filter (user requirement: formalityLevel with "strong" should be SQL filtered)
+  const extractStrongFormalityLevelFilter = (
+    intent: 'required' | 'strong' | 'preferred' | 'excluded' | null | undefined,
+    constraint: any
+  ) => {
+    if (intent === 'strong' || intent === 'required') {
+      const values = extractConstraintValues(constraint);
+      if (values && values.length > 0) {
+        requiredIntentFilters.formalityLevel = values;
+      }
+    }
+  };
+  
   // Extract all constraints with "required" intent
+  extractRequiredFilter(constraintIntents.colors, classification.constraints.colors, 'colors'); // CRITICAL: Colors with "required" intent should be filtered at SQL level
   extractRequiredFilter(constraintIntents.patterns, classification.constraints.patterns, 'patterns');
   extractRequiredFilter(constraintIntents.materials, classification.constraints.materials, 'materials');
-  extractRequiredFilter(constraintIntents.occasions, classification.constraints.occasions, 'occasions');
+  // CRITICAL: Occasions with "strong" OR "required" intent should be filtered at SQL level
+  extractStrongOccasionsFilter(constraintIntents.occasions, classification.constraints.occasions);
+  // CRITICAL: FormalityLevel with "strong" OR "required" intent should be filtered at SQL level
+  extractStrongFormalityLevelFilter(constraintIntents.formalityLevel, classification.constraints.formalityLevel);
   extractRequiredFilter(constraintIntents.sleeveLengths, classification.constraints.sleeveLengths, 'sleeves');
   extractRequiredFilter(constraintIntents.necklines, classification.constraints.necklines, 'necklines');
   extractRequiredFilter(constraintIntents.sizes, classification.constraints.sizes, 'sizes');
@@ -241,17 +273,17 @@ export async function multiViewRetrieval(
   extractRequiredFilter(constraintIntents.seasons, classification.constraints.seasons, 'seasons');
   extractRequiredFilter(constraintIntents.rises, classification.constraints.rises, 'rises');
   extractRequiredFilter(constraintIntents.embellishments, classification.constraints.embellishments, 'embellishments');
-  extractRequiredFilter(constraintIntents.formalityLevel, classification.constraints.formalityLevel, 'formalityLevel');
   extractRequiredFilter(constraintIntents.colorShade, classification.constraints.colorShade, 'colorShade');
   extractRequiredFilter(constraintIntents.colorUndertone, classification.constraints.colorUndertone, 'colorUndertone');
   extractRequiredFilter(constraintIntents.seasonalPalette, classification.constraints.seasonalPalette, 'seasonalPalette');
+  extractRequiredFilter(constraintIntents.lengths, classification.constraints.lengths, 'lengths'); // Lengths can have "required" intent (e.g., "maxi dress")
   
   // Log required intent filters being applied
   if (Object.keys(requiredIntentFilters).length > 0) {
     logger.info('required_intent_filters_extracted_for_hard_sql_filtering', {
       query: query.substring(0, 100),
       requiredIntentFilters,
-      note: 'Constraints with "required" intent will be applied as hard SQL filters BEFORE retrieval',
+      note: 'Constraints with "required" intent (and occasions/formalityLevel with "strong" intent) will be applied as hard SQL filters BEFORE retrieval',
     });
   }
 
@@ -549,10 +581,30 @@ export async function multiViewRetrieval(
                   categories: expandedCategories,
                   ageGroups: contextAware.sqlFilters.ageGroups,
                   inclusivitySizing: contextAware.sqlFilters.inclusivitySizing, // Hard SQL filter for body type
+                  setVsSingle: contextAware.sqlFilters.setVsSingle, // Hard SQL filter for pack vs single (default: ["Single"])
                   priceMinCents: contextAware.sqlFilters.priceMinCents,
                   priceMaxCents: contextAware.sqlFilters.priceMaxCents,
                   merchantId: merchantId || 'default',
                   inStockOnly: true,
+                  // ALL REQUIRED CONSTRAINT FILTERS (intent="required" or occasions with "strong" intent):
+                  colors: requiredIntentFilters.colors,
+                  patterns: requiredIntentFilters.patterns,
+                  materials: requiredIntentFilters.materials,
+                  occasions: requiredIntentFilters.occasions, // Includes "strong" intent occasions
+                  formalityLevel: requiredIntentFilters.formalityLevel, // Includes "strong" intent formalityLevel
+                  sleeves: requiredIntentFilters.sleeves,
+                  necklines: requiredIntentFilters.necklines,
+                  sizes: requiredIntentFilters.sizes,
+                  fits: requiredIntentFilters.fits,
+                  styles: requiredIntentFilters.styles,
+                  collections: requiredIntentFilters.collections,
+                  seasons: requiredIntentFilters.seasons,
+                  rises: requiredIntentFilters.rises,
+                  embellishments: requiredIntentFilters.embellishments,
+                  colorShade: requiredIntentFilters.colorShade,
+                  colorUndertone: requiredIntentFilters.colorUndertone,
+                  seasonalPalette: requiredIntentFilters.seasonalPalette,
+                  lengths: requiredIntentFilters.lengths,
                 },
                 1500
               );
@@ -588,17 +640,23 @@ export async function multiViewRetrieval(
                   note: 'About to build dictionaries and filter products in single pass',
                 });
                 
-                // Stage 2a: Build category-specific dictionaries
+                // Stage 2a: Build category-specific dictionaries (now uses pre-built cache)
                 const categoryDictionaries = await buildCategorySpecificDictionaries(
-                  categoryFilteredIds,
+                  expandedCategories, // Pass categories directly instead of productIds
                   merchantId || 'default'
                 );
                 
                 // Stage 2b: Apply post-SQL filters
+                // CRITICAL: If colors are in requiredIntentFilters, they're already filtered at SQL level
+                // Skip post-SQL color filtering to avoid double-filtering with stricter matching
+                const colorsForPostFilter = requiredIntentFilters.colors 
+                  ? undefined // Skip - already filtered at SQL level
+                  : nullToUndefined(extractConstraintValues(contextAware.sqlFilters.colors));
+                
                 const postFilteredIds = await applyPostSQLFilters(
                   categoryFilteredIds,
                   {
-                    colors: nullToUndefined(extractConstraintValues(contextAware.sqlFilters.colors)),
+                    colors: colorsForPostFilter,
                     lengths: nullToUndefined(contextAware.sqlFilters.lengths),
                     sleeves: contextAware.sqlFilters.sleeves ? extractSleeveFromSleeveLengths(contextAware.sqlFilters.sleeves) : undefined,
                     necklines: nullToUndefined(contextAware.sqlFilters.necklines),
@@ -676,28 +734,30 @@ export async function multiViewRetrieval(
                   ageGroups: contextAware.sqlFilters.ageGroups, // Always apply age group filter
                   priceMinCents: contextAware.sqlFilters.priceMinCents,
                   priceMaxCents: contextAware.sqlFilters.priceMaxCents,
-                  // NOTE: If post-SQL filtering is enabled, colors, lengths, sleeves, necklines, formalityLevels, colorShades
-                  // are already filtered, so we don't need to apply them again in SQL
-                  colors: USE_POST_SQL_FILTERING ? undefined : contextAware.sqlFilters.colors,
+                  // NOTE: If post-SQL filtering is enabled, ALL required constraints are already filtered
+                  // in pre-deduplication (deduplicateProductsByCategoryForPostFiltering), so we don't need
+                  // to apply them again in SQL. Only apply them in EXISTING mode.
+                  colors: requiredIntentFilters.colors || (USE_POST_SQL_FILTERING ? undefined : contextAware.sqlFilters.colors),
                   excludedColors: USE_POST_SQL_FILTERING ? undefined : (contextAware.sqlFilters as any).excludedColors,
-                  lengths: USE_POST_SQL_FILTERING ? undefined : contextAware.sqlFilters.lengths,
-                  // CRITICAL: Apply hard SQL filters for constraints with "required" intent
-                  patterns: requiredIntentFilters.patterns,
-                  materials: requiredIntentFilters.materials,
-                  occasions: requiredIntentFilters.occasions,
-                  sleeves: requiredIntentFilters.sleeves,
-                  necklines: requiredIntentFilters.necklines,
-                  sizes: requiredIntentFilters.sizes,
-                  fits: requiredIntentFilters.fits,
-                  styles: requiredIntentFilters.styles,
-                  collections: requiredIntentFilters.collections,
-                  seasons: requiredIntentFilters.seasons,
-                  rises: requiredIntentFilters.rises,
-                  embellishments: requiredIntentFilters.embellishments,
-                  formalityLevel: requiredIntentFilters.formalityLevel,
-                  colorShade: requiredIntentFilters.colorShade,
-                  colorUndertone: requiredIntentFilters.colorUndertone,
-                  seasonalPalette: requiredIntentFilters.seasonalPalette,
+                  lengths: USE_POST_SQL_FILTERING ? undefined : (requiredIntentFilters.lengths || contextAware.sqlFilters.lengths),
+                  // Only apply required constraint filters if NOT using post-SQL filtering mode
+                  // (they're already filtered in pre-deduplication when USE_POST_SQL_FILTERING is true)
+                  patterns: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.patterns,
+                  materials: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.materials,
+                  occasions: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.occasions,
+                  sleeves: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.sleeves,
+                  necklines: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.necklines,
+                  sizes: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.sizes,
+                  fits: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.fits,
+                  styles: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.styles,
+                  collections: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.collections,
+                  seasons: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.seasons,
+                  rises: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.rises,
+                  embellishments: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.embellishments,
+                  formalityLevel: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.formalityLevel,
+                  colorShade: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.colorShade,
+                  colorUndertone: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.colorUndertone,
+                  seasonalPalette: USE_POST_SQL_FILTERING ? undefined : requiredIntentFilters.seasonalPalette,
                 },
                 undefined,
                 productIdsToSearch
@@ -1392,12 +1452,27 @@ export function classificationToSearchConstraints(
   const inclusivitySizingValues = extractConstraintValues(constraints.inclusivitySizing);
   const inclusivitySizingIntent = extractConstraintIntent(constraints.inclusivitySizing);
   
+  // Extract setVsSingle (string or ConstraintWithIntent)
+  const setVsSingleValue = (() => {
+    if (!constraints.setVsSingle) return null;
+    if (typeof constraints.setVsSingle === 'string') {
+      return constraints.setVsSingle;
+    }
+    if (typeof constraints.setVsSingle === 'object' && 'values' in constraints.setVsSingle) {
+      return constraints.setVsSingle.values?.[0] || null;
+    }
+    return null;
+  })();
+  const setVsSingleIntent = extractConstraintIntent(constraints.setVsSingle);
+  
   logger.debug('classificationToSearchConstraints_inclusivitySizing_extraction', {
     rawInclusivitySizing: constraints.inclusivitySizing,
     inclusivitySizingValues,
     inclusivitySizingIntent,
     inclusivitySizingValuesLength: inclusivitySizingValues?.length || 0,
-    note: 'Check inclusivitySizing extraction in classificationToSearchConstraints',
+    willUseDefault: !inclusivitySizingValues || inclusivitySizingValues.length === 0,
+    defaultValue: 'Standard Sizing',
+    note: 'Check inclusivitySizing extraction - defaults to Standard Sizing if not extracted',
   });
   
   // Extract values for additional constraints
@@ -1431,13 +1506,68 @@ export function classificationToSearchConstraints(
     sizes: sizeIntent === 'excluded' ? undefined : nullToUndefined(sizeValues),
     materials: materialIntent === 'excluded' ? undefined : nullToUndefined(materialValues),
     occasions: occasionIntent === 'excluded' ? undefined : nullToUndefined(occasionValues),
+    // Occasions: if intent is "strong" or "required", map to occasionContext for hard SQL filter (OR filter)
+    occasionContext: (() => {
+      if (occasionIntent === 'excluded') {
+        return undefined;
+      }
+      // Map occasions to occasionContext when intent is "strong" or "required" (hard SQL filter)
+      if ((occasionIntent === 'strong' || occasionIntent === 'required') && occasionValues && occasionValues.length > 0) {
+        logger.info('classificationToSearchConstraints_occasions_to_occasionContext', {
+          occasions: occasionValues,
+          intent: occasionIntent,
+          note: 'Mapping occasions to occasionContext for hard SQL filter (OR filter)',
+        });
+        return occasionValues;
+      }
+      return undefined;
+    })(),
     seasons: seasonIntent === 'excluded' ? undefined : nullToUndefined(seasonValues),
     lengths: lengthIntent === 'excluded' ? undefined : nullToUndefined(lengthValues),
     priceMinCents: constraints.priceMinCents === null ? undefined : constraints.priceMinCents,
     priceMaxCents: constraints.priceMaxCents === null ? undefined : constraints.priceMaxCents,
     ageGroups: ageGroupIntent === 'excluded' ? undefined : nullToUndefined(ageGroupValues),
     // Inclusivity sizing: hard SQL filter (Plus Size, Petite, Tall, etc.)
-    inclusivitySizing: inclusivitySizingIntent === 'excluded' ? undefined : nullToUndefined(inclusivitySizingValues),
+    // Default to "Standard Sizing" unless LLM extracts a different value
+    inclusivitySizing: (() => {
+      if (inclusivitySizingIntent === 'excluded') {
+        return undefined;
+      }
+      // Use LLM-extracted value if present, otherwise default to Standard Sizing
+      const finalValue = (inclusivitySizingValues && inclusivitySizingValues.length > 0)
+        ? inclusivitySizingValues
+        : ['Standard Sizing'];
+      
+      logger.info('classificationToSearchConstraints_inclusivitySizing_final', {
+        extractedValues: inclusivitySizingValues,
+        finalValue,
+        isDefault: !inclusivitySizingValues || inclusivitySizingValues.length === 0,
+        intent: inclusivitySizingIntent,
+        note: 'inclusivitySizing filter - always hard SQL filter, defaults to Standard Sizing if not extracted',
+      });
+      
+      return finalValue;
+    })(),
+    // Set vs Single: hard SQL filter (default to "Single" to exclude pack products unless explicitly requested)
+    setVsSingle: (() => {
+      if (setVsSingleIntent === 'excluded') {
+        return undefined;
+      }
+      // If LLM extracted "Set", use it; otherwise default to "Single" to exclude pack products
+      const finalValue = setVsSingleValue === 'Set' 
+        ? ['Set'] 
+        : ['Single']; // Default to "Single" to exclude pack products
+      
+      logger.info('classificationToSearchConstraints_setVsSingle_final', {
+        extractedValue: setVsSingleValue,
+        finalValue,
+        isDefault: setVsSingleValue !== 'Set',
+        intent: setVsSingleIntent,
+        note: 'setVsSingle filter - always hard SQL filter, defaults to "Single" to exclude pack products unless "Set" is explicitly requested',
+      });
+      
+      return finalValue;
+    })(),
     // Map fashion-specific fields to generic SearchConstraints fields
     // styles + patterns -> styleTags (both are style descriptors)
     // If either has excluded intent, handle separately

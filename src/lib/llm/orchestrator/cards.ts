@@ -23,6 +23,7 @@ export type ProductCard = {
   productUrl: string;
   stockStatus?: string;
   queryChips?: QueryChip[];
+  brand?: string | null; // Brand name for display and filtering
 };
 
 /**
@@ -207,6 +208,7 @@ export function buildProductCard(
     productUrl: item.productUrl ?? `/products/${item.id}`,
     stockStatus: item.stockStatus,
     queryChips: options?.queryChips,
+    brand: item.brand ?? null, // Added for brand display
   };
 }
 

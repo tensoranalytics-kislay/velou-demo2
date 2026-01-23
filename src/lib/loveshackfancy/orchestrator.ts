@@ -30,7 +30,7 @@ import { categorizeQuery, type QueryCategorization } from './query-categorizer';
 import { generateFollowUpQuestions, regenerateNextQuestion } from './followup-generator';
 import { enhanceQuery, createEnhancedVectorQuery } from './query-enhancer';
 import { shouldContinueAnyway } from './continue-detector';
-import { updateState, setLastRankedProducts } from '../chat/ConversationStateService';
+import { updateState, updateMemory, setLastRankedProducts, getState, appendShownProducts, advanceRankCursor } from '../chat/ConversationStateService';
 import { rankWithConstraints } from './ranking/constraint-ranker';
 import { classifyQueryToCategoriesWithConfidence } from './category-classifier';
 import { mergeFollowUpConstraints, isFollowUpRefinement } from './constraint-merger';
@@ -58,6 +58,8 @@ export type LoveshackfancyQueryInput = {
   };
   productContextId?: string;
   conversationState?: ConversationStateData;
+  lastEnhancedQuery?: string; // CRITICAL: Pass the enhanced query from previous result directly (avoids stale database reads)
+  actionId?: string; // Optional action ID for action-based queries (e.g., "show_more")
   merchantData?: {
     brandName?: string;
     voiceInstructions?: string;
@@ -77,6 +79,8 @@ export type LoveshackfancyQueryResult = {
   actionType?: string;
   resolvedConstraints?: SearchConstraints;
   resolvedClassificationConstraints?: FashionConstraints;
+  constraintsPassedToRanking?: Partial<FashionConstraints>; // Constraints passed to ranking function
+  enhancedQuery?: string; // The enhanced query text (for follow-up context building)
 };
 
 /**
@@ -127,6 +131,7 @@ async function loadFashionProducts(
       category: true,
       stockStatus: true,
       attributes: true,
+      brand: true, // Added for brand-based boosting
       // Core indexed columns (for constraint matching)
       color: true,
       fabric: true,
@@ -177,6 +182,7 @@ async function loadFashionProducts(
     category: product.category,
     stockStatus: product.stockStatus,
     attributes: (product.attributes ?? {}) as any,
+    brand: product.brand ?? null, // Added for brand-based boosting
     // Core indexed columns (for constraint matching)
     color: product.color ?? null,
     fabric: product.fabric ?? null,
@@ -228,6 +234,7 @@ function buildProductCard(
     imageUrl: product.imageUrl,
     productUrl: product.productUrl,
     stockStatus: product.stockStatus,
+    brand: product.brand ?? null, // Added for brand display
   };
 }
 
@@ -547,16 +554,177 @@ Answer the user's question about this product:`;
     }
   }
 
-  // Step 2: Check for pending follow-ups (after product context handling)
+  // Step 2: Handle "show more" action - return next batch from cached ranked products
+  // This must happen before follow-up handling to avoid re-running the query
+  // Load the latest conversation state from database to get current cursor and shown products
+  let conversationState: ConversationStateData;
+  if (input.merchantId && input.sessionId) {
+    try {
+      conversationState = await getState(input.merchantId, input.sessionId);
+    } catch (error) {
+      logger.warn('handleLoveshackfancyQuery: failed to load conversation state, using input state', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      conversationState = input.conversationState || {
+        shownProductIds: [],
+        lastQueryFingerprint: null,
+        lastRankedProductIds: [],
+        lastRankCursor: 0,
+        pendingActions: [],
+        memory: {},
+      };
+    }
+  } else {
+    conversationState = input.conversationState || {
+      shownProductIds: [],
+      lastQueryFingerprint: null,
+      lastRankedProductIds: [],
+      lastRankCursor: 0,
+      pendingActions: [],
+      memory: {},
+    };
+  }
+
+  // Check if this is a "show more" request
+  // Handle both explicit "show more" messages and action-based requests
+  const messageLower = input.message.toLowerCase().trim();
+  const isShowMore = messageLower === 'show more' || 
+                     messageLower === 'more' || 
+                     messageLower === 'next' ||
+                     messageLower.includes('show more') ||
+                     messageLower.includes('more options') ||
+                     messageLower.includes('more products') ||
+                     // Also check if this is triggered by a "show more" action button
+                     (input.actionId && input.actionId.includes('show_more'));
+
+  if (isShowMore && conversationState.lastRankedProductIds && conversationState.lastRankedProductIds.length > 0) {
+    logger.info('handleLoveshackfancyQuery: handling show_more action', {
+      sessionId: input.sessionId,
+      lastRankedProductIdsCount: conversationState.lastRankedProductIds.length,
+      lastRankCursor: conversationState.lastRankCursor,
+      shownProductIdsCount: conversationState.shownProductIds.length,
+    });
+
+    // Get next batch of products, excluding already shown ones
+    const candidateIds = conversationState.lastRankedProductIds.slice(conversationState.lastRankCursor);
+    const shownProductIdsSet = new Set(conversationState.shownProductIds || []);
+    const nextBatchIds = candidateIds.filter(id => !shownProductIdsSet.has(id)).slice(0, 4);
+
+    if (nextBatchIds.length === 0) {
+      logger.info('handleLoveshackfancyQuery: no more products to show', {
+        sessionId: input.sessionId,
+        totalRanked: conversationState.lastRankedProductIds.length,
+        shownCount: conversationState.shownProductIds.length,
+        cursorPosition: conversationState.lastRankCursor,
+      });
+      
+      onProgress?.('complete', STAGE_PROGRESS.complete);
+      return {
+        replyText: "You've seen all available options! Would you like to refine your search?",
+        productCards: [],
+        noExactMatch: false,
+        route: 'SHOW_MORE',
+      };
+    }
+
+    // Load products
+    onProgress?.('loading_product', STAGE_PROGRESS.loading_product);
+    const products = await loadFashionProducts(nextBatchIds, input.merchantId);
+
+    if (products.length === 0) {
+      logger.warn('handleLoveshackfancyQuery: failed to load products for show_more', {
+        productIds: nextBatchIds,
+      });
+      // Fall through to normal flow
+    } else {
+      // Build product cards
+      const productCards: ProductCard[] = products.map(product => {
+        const attrs = product.attributes || {};
+        const keyAttributes: string[] = [];
+        
+        const style = extractAttr(attrs, 'Style') || extractAttr(attrs, 'style');
+        const length = extractAttr(attrs, 'Length') || extractAttr(attrs, 'length');
+        const occasion = extractAttr(attrs, 'Occasion') || extractAttr(attrs, 'occasion');
+        const pattern = extractAttr(attrs, 'Pattern') || extractAttr(attrs, 'pattern');
+        const material = extractAttr(attrs, 'Material') || extractAttr(attrs, 'material');
+        const color = extractAttr(attrs, 'Color') || extractAttr(attrs, 'color');
+        
+        if (style) keyAttributes.push(style);
+        if (length) keyAttributes.push(length);
+        if (occasion) keyAttributes.push(occasion);
+        if (pattern) keyAttributes.push(pattern);
+        if (material) keyAttributes.push(material);
+        if (color) keyAttributes.push(color);
+
+        return {
+          id: product.id,
+          title: product.title,
+          priceCents: product.priceCents,
+          salePriceCents: product.salePriceCents || null,
+          currency: product.currency,
+          keyAttributes: keyAttributes.slice(0, 5),
+          reason: `Chosen because it matches your search criteria.`,
+          imageUrl: product.imageUrl,
+          productUrl: product.productUrl,
+          stockStatus: product.stockStatus,
+        };
+      });
+
+      // Update state: mark products as shown and advance cursor
+      if (input.merchantId && input.sessionId) {
+        await appendShownProducts(input.merchantId, input.sessionId, nextBatchIds);
+        await advanceRankCursor(input.merchantId, input.sessionId, nextBatchIds.length);
+      }
+
+      // Reload state to get updated cursor for hasMore check
+      let updatedState = conversationState;
+      if (input.merchantId && input.sessionId) {
+        try {
+          updatedState = await getState(input.merchantId, input.sessionId);
+        } catch (error) {
+          logger.warn('handleLoveshackfancyQuery: failed to reload state for hasMore check', {
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+
+      // Check if there are more products available
+      const remainingAfterCursor = conversationState.lastRankedProductIds
+        .slice(updatedState.lastRankCursor)
+        .filter(id => !shownProductIdsSet.has(id));
+      const hasMore = remainingAfterCursor.length > 0;
+
+      // Generate actions
+      const actions: Array<{ id: string; type: string; label: string; payload?: any }> = [];
+      if (hasMore) {
+        actions.push({
+          id: `show_more_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          type: 'show_more',
+          label: 'Show more',
+        });
+      }
+
+      logger.info('handleLoveshackfancyQuery: show_more completed', {
+        sessionId: input.sessionId,
+        productsReturned: productCards.length,
+        hasMore,
+        newCursor: updatedState.lastRankCursor,
+        remainingProducts: remainingAfterCursor.length,
+      });
+
+      onProgress?.('complete', STAGE_PROGRESS.complete);
+      return {
+        replyText: `Here are ${productCards.length} more option${productCards.length > 1 ? 's' : ''} for you!`,
+        productCards,
+        noExactMatch: false,
+        route: 'SHOW_MORE',
+        actions: actions.length > 0 ? actions : undefined,
+      };
+    }
+  }
+
+  // Step 3: Check for pending follow-ups (after product context and show more handling)
   // This ensures responses to follow-up questions are handled correctly even if they look "irrelevant"
-  const conversationState = input.conversationState || {
-    shownProductIds: [],
-    lastQueryFingerprint: null,
-    lastRankedProductIds: [],
-    lastRankCursor: 0,
-    pendingActions: [],
-    memory: {},
-  };
 
   const pendingFollowups = conversationState.memory?.pendingFollowups;
 
@@ -672,20 +840,7 @@ Answer the user's question about this product:`;
   let enhancedQueryText: string = input.message;
   let lastUserQuery: string | null = null;
   let previousEnhancedQuery: string | null = null; // The cumulative enhanced query from previous merges
-
-  // CRITICAL: Use the last enhanced query (if available) as the base for merging
-  // This allows cumulative context building: each follow-up merges with the previous enhanced query
-  // Example: 
-  // 1. "dresses in light colours" → enhanced: "light coloured dresses" (stored)
-  // 2. "only in light colours" → merges with "light coloured dresses" → enhanced: "light coloured dresses" (stored)
-  // 3. "find floral ones" → merges with "light coloured dresses" → enhanced: "light coloured floral dresses"
-  if (input.conversationState?.memory?.lastEnhancedQuery) {
-    previousEnhancedQuery = input.conversationState.memory.lastEnhancedQuery;
-    logger.debug('using_previous_enhanced_query_for_merging', {
-      previousEnhancedQuery: previousEnhancedQuery.substring(0, 100),
-      currentMessage: input.message.substring(0, 100),
-    });
-  }
+  // NOTE: We'll read this RIGHT BEFORE we use it (not here) to ensure we get the latest value
 
   // Extract last user query from history (exclude current message) - used as fallback if no enhanced query
   // Get the last user message that is NOT the current message
@@ -703,6 +858,46 @@ Answer the user's question about this product:`;
         lastUserQuery = lastUserMsg.content;
       }
       // If they match and there's only one, lastUserQuery stays null (no previous query)
+    }
+  }
+
+  // CRITICAL: Priority order for getting the enhanced query:
+  // 1. Direct input (from previous result) - MOST RELIABLE (no database read needed)
+  // 2. From conversationState.memory (passed-in state)
+  // 3. From database (fallback if above are not available)
+  // This ensures we use the enhanced query from the previous step, not stale database data
+  if (input.lastEnhancedQuery) {
+    previousEnhancedQuery = input.lastEnhancedQuery;
+    logger.debug('using_previous_enhanced_query_from_direct_input', {
+      previousEnhancedQuery: previousEnhancedQuery.substring(0, 100),
+      currentMessage: input.message.substring(0, 100),
+      source: 'direct_input',
+    });
+  } else if (input.conversationState?.memory?.lastEnhancedQuery) {
+    previousEnhancedQuery = input.conversationState.memory.lastEnhancedQuery;
+    logger.debug('using_previous_enhanced_query_from_passed_state', {
+      previousEnhancedQuery: previousEnhancedQuery.substring(0, 100),
+      currentMessage: input.message.substring(0, 100),
+      source: 'conversationState',
+    });
+  } else if (input.merchantId && input.sessionId) {
+    // Fallback: read from database (may be stale, but better than nothing)
+    try {
+      const latestState = await getState(input.merchantId, input.sessionId);
+      if (latestState.memory?.lastEnhancedQuery) {
+        previousEnhancedQuery = latestState.memory.lastEnhancedQuery;
+        logger.debug('using_previous_enhanced_query_from_database', {
+          previousEnhancedQuery: previousEnhancedQuery.substring(0, 100),
+          currentMessage: input.message.substring(0, 100),
+          source: 'database',
+          warning: 'may_be_stale',
+        });
+      }
+    } catch (err) {
+      logger.warn('failed_to_read_enhanced_query_from_database', {
+        error: err instanceof Error ? err.message : String(err),
+        sessionId: input.sessionId,
+      });
     }
   }
 
@@ -1238,12 +1433,26 @@ Answer the user's question about this product:`;
     // ============================================================================
     // STEP 2.7: Filter allowed categories by gender BEFORE classification
     // ============================================================================
+    // Detect if product type is explicitly mentioned (for gender-agnostic category matching)
+    const queryLower = input.message.toLowerCase();
+    const productTypeKeywords = [
+      'top', 'tops', 'dress', 'dresses', 'jeans', 'pants', 'shirt', 'shirts', 'blouse', 'blouses',
+      'skirt', 'skirts', 'shorts', 'swimsuit', 'swimwear', 'bikini', 'loungewear', 'pajama', 'robe',
+      'sweater', 'sweaters', 'cardigan', 'cardigans', 'jacket', 'jackets', 'coat', 'activewear',
+      'jewelry', 'accessories', 'bag', 'bags', 'tote', 'wallet', 'belt', 'scarf',
+      'perfume', 'perfumes', 'fragrance', 'scents',
+      'bedding', 'bed sheets', 'towels', 'candle', 'candles', 'decor', 'decoration', 'tabletop',
+      'kitchenware', 'dishware', 'bottoms', 'hoodie', 'hoodies', 'pullover', 'pullovers'
+    ];
+    const hasExplicitProductType = productTypeKeywords.some(keyword => queryLower.includes(keyword));
+    
     const { buildAllowedCategoriesForClassifier } = await import('./classifier');
-    const { categoriesForPrompt } = buildAllowedCategoriesForClassifier(resolvedGender);
+    const { categoriesForPrompt } = buildAllowedCategoriesForClassifier(resolvedGender, hasExplicitProductType);
     
     logger.info('categories_filtered_before_classification', {
       query: input.message.substring(0, 100),
       resolvedGender,
+      hasExplicitProductType,
       totalCategories: categoriesForPrompt.length,
       sampleCategories: categoriesForPrompt.slice(0, 10),
     });
@@ -1866,10 +2075,65 @@ Answer the user's question about this product:`;
       mergedConstraints || undefined, // Use mergedConstraints if available, otherwise undefined
       input.history // Conversation history
     );
+    
+    // Build minimal constraints from classification for early return
+    // classification should be set before retrieval, but check if it exists
+    if (!classification) {
+      // Fallback: try to get classification if it wasn't set
+      try {
+        const classificationWithMetadata = await classifyQueryWithMetadata(input.message, mergedConstraints || null, enhancedQueryText);
+        classification = classificationWithMetadata.classification;
+      } catch (e) {
+        logger.warn('handleLoveshackfancyQuery: failed to get classification for early return', {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
+    const earlyReturnConstraints = classification?.constraints || {};
+    // Use extractConstraintValues from constraint-utils (already imported)
+    // Convert null to undefined for SearchConstraints type
+    const resolvedConstraints: SearchConstraints = {
+      colors: extractConstraintValues(earlyReturnConstraints.colors) || undefined,
+      sizes: extractConstraintValues(earlyReturnConstraints.sizes) || undefined,
+      materials: extractConstraintValues(earlyReturnConstraints.materials) || undefined,
+      occasions: extractConstraintValues(earlyReturnConstraints.occasions) || undefined,
+      seasons: extractConstraintValues(earlyReturnConstraints.seasons) || undefined,
+      lengths: extractConstraintValues(earlyReturnConstraints.lengths) || undefined,
+      priceMinCents: earlyReturnConstraints.priceMinCents === null ? undefined : earlyReturnConstraints.priceMinCents,
+      priceMaxCents: earlyReturnConstraints.priceMaxCents === null ? undefined : earlyReturnConstraints.priceMaxCents,
+      ageGroups: extractConstraintValues(earlyReturnConstraints.ageGroups) || undefined,
+      styleTags: (() => {
+        const styleValues = extractConstraintValues(earlyReturnConstraints.styles) || [];
+        const patternValues = extractConstraintValues(earlyReturnConstraints.patterns) || [];
+        const combined = [...styleValues, ...patternValues];
+        return combined.length > 0 ? combined : undefined;
+      })(),
+      sleeves: extractConstraintValues(earlyReturnConstraints.sleeveLengths) || undefined,
+      necklines: extractConstraintValues(earlyReturnConstraints.necklines) || undefined,
+      formalityLevel: extractConstraintValues(earlyReturnConstraints.formalityLevel) || undefined,
+    };
+    
     return {
       replyText: regretfulReply.replyText,
       productCards: [],
       noExactMatch: true,
+      resolvedConstraints,
+      resolvedClassificationConstraints: earlyReturnConstraints,
+      constraintsPassedToRanking: {
+        colors: earlyReturnConstraints.colors,
+        patterns: earlyReturnConstraints.patterns,
+        occasions: earlyReturnConstraints.occasions,
+        priceMinCents: earlyReturnConstraints.priceMinCents,
+        priceMaxCents: earlyReturnConstraints.priceMaxCents,
+        seasons: earlyReturnConstraints.seasons,
+        styles: earlyReturnConstraints.styles,
+        materials: earlyReturnConstraints.materials,
+        fits: earlyReturnConstraints.fits,
+        lengths: earlyReturnConstraints.lengths,
+        sleeveLengths: earlyReturnConstraints.sleeveLengths,
+        necklines: earlyReturnConstraints.necklines,
+        ageGroups: earlyReturnConstraints.ageGroups,
+      },
     };
   }
 
@@ -1916,11 +2180,54 @@ Answer the user's question about this product:`;
       mergedConstraints || undefined, // Use mergedConstraints if available, otherwise undefined
       input.history // Conversation history
     );
+    
+    // Build minimal constraints from classification for early return
+    const earlyReturnConstraints = classification?.constraints || {};
+    // Use extractConstraintValues from constraint-utils (already imported)
+    // Convert null to undefined for SearchConstraints type
+    const resolvedConstraints: SearchConstraints = {
+      colors: extractConstraintValues(earlyReturnConstraints.colors) || undefined,
+      sizes: extractConstraintValues(earlyReturnConstraints.sizes) || undefined,
+      materials: extractConstraintValues(earlyReturnConstraints.materials) || undefined,
+      occasions: extractConstraintValues(earlyReturnConstraints.occasions) || undefined,
+      seasons: extractConstraintValues(earlyReturnConstraints.seasons) || undefined,
+      lengths: extractConstraintValues(earlyReturnConstraints.lengths) || undefined,
+      priceMinCents: earlyReturnConstraints.priceMinCents === null ? undefined : earlyReturnConstraints.priceMinCents,
+      priceMaxCents: earlyReturnConstraints.priceMaxCents === null ? undefined : earlyReturnConstraints.priceMaxCents,
+      ageGroups: extractConstraintValues(earlyReturnConstraints.ageGroups) || undefined,
+      styleTags: (() => {
+        const styleValues = extractConstraintValues(earlyReturnConstraints.styles) || [];
+        const patternValues = extractConstraintValues(earlyReturnConstraints.patterns) || [];
+        const combined = [...styleValues, ...patternValues];
+        return combined.length > 0 ? combined : undefined;
+      })(),
+      sleeves: extractConstraintValues(earlyReturnConstraints.sleeveLengths) || undefined,
+      necklines: extractConstraintValues(earlyReturnConstraints.necklines) || undefined,
+      formalityLevel: extractConstraintValues(earlyReturnConstraints.formalityLevel) || undefined,
+    };
+    
     onProgress?.('complete', STAGE_PROGRESS.complete);
     return {
       replyText: regretfulReply.replyText,
       productCards: [],
       noExactMatch: true,
+      resolvedConstraints,
+      resolvedClassificationConstraints: earlyReturnConstraints,
+      constraintsPassedToRanking: {
+        colors: earlyReturnConstraints.colors,
+        patterns: earlyReturnConstraints.patterns,
+        occasions: earlyReturnConstraints.occasions,
+        priceMinCents: earlyReturnConstraints.priceMinCents,
+        priceMaxCents: earlyReturnConstraints.priceMaxCents,
+        seasons: earlyReturnConstraints.seasons,
+        styles: earlyReturnConstraints.styles,
+        materials: earlyReturnConstraints.materials,
+        fits: earlyReturnConstraints.fits,
+        lengths: earlyReturnConstraints.lengths,
+        sleeveLengths: earlyReturnConstraints.sleeveLengths,
+        necklines: earlyReturnConstraints.necklines,
+        ageGroups: earlyReturnConstraints.ageGroups,
+      },
     };
   }
 
@@ -2331,12 +2638,33 @@ Answer the user's question about this product:`;
     // Constraints were already refined BEFORE retrieval, so use them directly
     const finalConstraintsForRanking = constraintsForRanking;
     
+    // CRITICAL: Log all constraints being passed to ranking to verify none are missing
+    const constraintsForRankingKeys = Object.keys(finalConstraintsForRanking).filter(
+      k => finalConstraintsForRanking[k as keyof typeof finalConstraintsForRanking] !== null && 
+           finalConstraintsForRanking[k as keyof typeof finalConstraintsForRanking] !== undefined
+    );
+    const constraintsForRankingSummary: Record<string, any> = {};
+    constraintsForRankingKeys.forEach(key => {
+      const value = finalConstraintsForRanking[key as keyof typeof finalConstraintsForRanking];
+      if (value !== null && value !== undefined) {
+        const values = extractConstraintValues(value as any) || (Array.isArray(value) ? value : []);
+        const intent = extractConstraintIntent(value as any);
+        constraintsForRankingSummary[key] = {
+          values: values.length > 0 ? values : 'empty',
+          intent: intent || 'none',
+          hasValues: values.length > 0,
+        };
+      }
+    });
+    
     const rankingStartTime = Date.now();
     logger.info('handleLoveshackfancyQuery: starting_ranking', {
       query: input.message.substring(0, 100),
       productCount: productsWithVectorScores.length,
-      constraintCount: Object.keys(finalConstraintsForRanking).filter(k => finalConstraintsForRanking[k as keyof typeof finalConstraintsForRanking] !== null && finalConstraintsForRanking[k as keyof typeof finalConstraintsForRanking] !== undefined).length,
-      note: 'Using constraints from classification',
+      constraintCount: constraintsForRankingKeys.length,
+      constraintKeys: constraintsForRankingKeys,
+      constraintsSummary: constraintsForRankingSummary,
+      note: 'All constraints passed to ranking (including SQL-filtered constraints for scoring)',
     });
     
     const rankedProducts = await rankWithConstraints(
@@ -2730,12 +3058,52 @@ Answer the user's question about this product:`;
       input.history // Conversation history
     );
 
+    // Build resolved constraints from constraintsForRanking for return
+    const finalConstraints = constraintsForRanking || {};
+    const resolvedConstraints: SearchConstraints = {
+      colors: extractConstraintValues(finalConstraints.colors) || undefined,
+      sizes: extractConstraintValues(finalConstraints.sizes) || undefined,
+      materials: extractConstraintValues(finalConstraints.materials) || undefined,
+      occasions: extractConstraintValues(finalConstraints.occasions) || undefined,
+      seasons: extractConstraintValues(finalConstraints.seasons) || undefined,
+      lengths: extractConstraintValues(finalConstraints.lengths) || undefined,
+      priceMinCents: finalConstraints.priceMinCents === null ? undefined : finalConstraints.priceMinCents,
+      priceMaxCents: finalConstraints.priceMaxCents === null ? undefined : finalConstraints.priceMaxCents,
+      ageGroups: extractConstraintValues(finalConstraints.ageGroups) || undefined,
+      styleTags: (() => {
+        const styleValues = extractConstraintValues(finalConstraints.styles) || [];
+        const patternValues = extractConstraintValues(finalConstraints.patterns) || [];
+        const combined = [...styleValues, ...patternValues];
+        return combined.length > 0 ? combined : undefined;
+      })(),
+      sleeves: extractConstraintValues(finalConstraints.sleeveLengths) || undefined,
+      necklines: extractConstraintValues(finalConstraints.necklines) || undefined,
+      formalityLevel: extractConstraintValues(finalConstraints.formalityLevel) || undefined,
+    };
+    
     onProgress?.('complete', STAGE_PROGRESS.complete);
     return {
       replyText: regretfulReply.replyText,
       productCards: [], // No product cards for low confidence
       noExactMatch: true,
       route: 'NO_MATCH',
+      resolvedConstraints,
+      resolvedClassificationConstraints: finalConstraints,
+      constraintsPassedToRanking: {
+        colors: finalConstraints.colors,
+        patterns: finalConstraints.patterns,
+        occasions: finalConstraints.occasions,
+        priceMinCents: finalConstraints.priceMinCents,
+        priceMaxCents: finalConstraints.priceMaxCents,
+        seasons: finalConstraints.seasons,
+        styles: finalConstraints.styles,
+        materials: finalConstraints.materials,
+        fits: finalConstraints.fits,
+        lengths: finalConstraints.lengths,
+        sleeveLengths: finalConstraints.sleeveLengths,
+        necklines: finalConstraints.necklines,
+        ageGroups: finalConstraints.ageGroups,
+      },
     };
   }
 
@@ -3035,7 +3403,7 @@ Answer the user's question about this product:`;
   
   // Map FashionConstraints to SearchConstraints (only include fields that exist in SearchConstraints)
   // Map scents to sensoryProfile: combine scents into a string description
-  const scentValues = extractConstraintValues(finalConstraints.scents) || (Array.isArray(finalConstraints.scents) ? finalConstraints.scents : []);
+  const scentValues = extractValuesForSearch(finalConstraints.scents) || (Array.isArray(finalConstraints.scents) ? finalConstraints.scents : []);
   const sensoryProfileFromScents = scentValues.length > 0
     ? scentValues.join(', ') + ' scent'
     : undefined;
@@ -3169,6 +3537,8 @@ Answer the user's question about this product:`;
         materials: constraintsForRanking.materials,
         fits: constraintsForRanking.fits,
         lengths: constraintsForRanking.lengths,
+        sleeveLengths: constraintsForRanking.sleeveLengths,
+        necklines: constraintsForRanking.necklines,
         ageGroups: constraintsForRanking.ageGroups,
       },
     },
@@ -3192,28 +3562,18 @@ Answer the user's question about this product:`;
     finalReplyTextAfter = undefined;
   }
 
-  const result: LoveshackfancyQueryResult = {
-    replyText: replyResult.replyText,
-    // Always include replyTextAfter when we have product cards to show
-    replyTextAfter: finalReplyTextAfter,
-    productCards,
-    noExactMatch: validatedProducts.length === 0,
-    actions: actions.length > 0 ? actions : undefined,
-    route: routerResult.route,
-    actionType: routerResult.action?.type || undefined,
-    resolvedConstraints,
-    resolvedClassificationConstraints,
-  };
-
   // Store the enhanced query in conversation memory for cumulative context building
   // This allows the next follow-up to merge with this enhanced query (not just the raw user message)
   // For new searches, store the current message as the enhanced query
   // For follow-ups, store the merged enhanced query
   const queryToStore = isFollowUp && enhancedQueryText ? enhancedQueryText : input.message;
+  
+  // CRITICAL: Await the state update to ensure it's persisted before returning
+  // This ensures the next follow-up query can read the enhanced query from the database
+  // Use updateMemory which properly merges with existing memory instead of replacing it
   if (input.merchantId) {
-    updateState(input.merchantId, input.sessionId, {
-      memory: {
-        ...conversationState.memory,
+    try {
+      const memoryUpdate = {
         lastEnhancedQuery: queryToStore,
         lastCategories: topCategories && topCategories.length > 0 ? topCategories : undefined,
         // NEW: Store classification constraints for age group switch detection
@@ -3226,14 +3586,60 @@ Answer the user's question about this product:`;
           priceMinCents: classification.constraints.priceMinCents ?? undefined,
           priceMaxCents: classification.constraints.priceMaxCents ?? undefined,
         },
-      },
-    }).catch(err => {
+      };
+      
+      logger.debug('storing_enhanced_query', {
+        sessionId: input.sessionId,
+        enhancedQuery: queryToStore.substring(0, 100),
+        isFollowUp,
+        memoryUpdate: JSON.stringify(memoryUpdate).substring(0, 200),
+      });
+      
+      const updatedMemory = await updateMemory(input.merchantId, input.sessionId, memoryUpdate);
+      
+      logger.debug('enhanced_query_stored_successfully', {
+        sessionId: input.sessionId,
+        enhancedQuery: queryToStore.substring(0, 100),
+        isFollowUp,
+        storedLastEnhancedQuery: updatedMemory.lastEnhancedQuery?.substring(0, 100),
+        verification: updatedMemory.lastEnhancedQuery === queryToStore ? 'MATCH' : 'MISMATCH',
+      });
+    } catch (err) {
       logger.error('failed_to_store_enhanced_query', {
         error: err instanceof Error ? err.message : String(err),
         sessionId: input.sessionId,
       });
-    });
+    }
   }
+
+  const result: LoveshackfancyQueryResult = {
+    replyText: replyResult.replyText,
+    // Always include replyTextAfter when we have product cards to show
+    replyTextAfter: finalReplyTextAfter,
+    productCards,
+    noExactMatch: validatedProducts.length === 0,
+    actions: actions.length > 0 ? actions : undefined,
+    route: routerResult.route,
+    actionType: routerResult.action?.type || undefined,
+    resolvedConstraints,
+    resolvedClassificationConstraints,
+    constraintsPassedToRanking: {
+      colors: constraintsForRanking.colors,
+      patterns: constraintsForRanking.patterns,
+      occasions: constraintsForRanking.occasions,
+      priceMinCents: constraintsForRanking.priceMinCents,
+      priceMaxCents: constraintsForRanking.priceMaxCents,
+      seasons: constraintsForRanking.seasons,
+      styles: constraintsForRanking.styles,
+      materials: constraintsForRanking.materials,
+      fits: constraintsForRanking.fits,
+      lengths: constraintsForRanking.lengths,
+      sleeveLengths: constraintsForRanking.sleeveLengths,
+      necklines: constraintsForRanking.necklines,
+      ageGroups: constraintsForRanking.ageGroups,
+    },
+    enhancedQuery: queryToStore, // Return the enhanced query so callers can use it for next follow-up
+  };
 
   // Store ranked product IDs for "show more" functionality (only for product discovery queries)
   // This allows the next "show more" click to retrieve the next 4 products from the ranked list

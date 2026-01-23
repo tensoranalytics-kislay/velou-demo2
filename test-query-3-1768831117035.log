@@ -1,0 +1,33 @@
+{
+  "query": "attending a black tie wedding, suggest me a dress",
+  "sessionId": "test-session-3-1768831117035",
+  "timestamp": "2026-01-19T13:58:55.635Z",
+  "duration": 18599,
+  "results": {
+    "productCount": 4,
+    "hasReply": true,
+    "replyPreview": "A black tie wedding calls for a dress that feels timeless and refined, with just a hint of romantic grace. These selections offer elegant silhouettes and luxurious touches that honor the occasion’s exquisite formality.\n\nFrom dreamy maxi lengths to delicate necklines, each piece whispers sophistication and warmth, perfect for an evening wrapped in celebration and light.",
+    "products": [
+      {
+        "id": "200832000",
+        "title": "Petite Black Diamante Ruched Maxi Dress",
+        "priceCents": 3999
+      },
+      {
+        "id": "200486000",
+        "title": "Black Floral Strap Maxi Wrap Dress",
+        "priceCents": 4499
+      },
+      {
+        "id": "202569351",
+        "title": "Champagne Satin Knot Front Maxi Dress",
+        "priceCents": 4499
+      },
+      {
+        "id": "100041220",
+        "title": "Navy Chiffon One Sleeve Maxi Dress",
+        "priceCents": 6999
+      }
+    ]
+  }
+}

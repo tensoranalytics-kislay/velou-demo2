@@ -54,6 +54,7 @@ export type AssistantQueryResult = {
   actions?: ActionProposal[];
   route?: string; // Dialogue route (for analytics)
   actionType?: string; // Action type if ACTION_REQUEST (for analytics)
+  enhancedQuery?: string; // The enhanced query text (for follow-up context building)
 };
 
 /**
@@ -254,6 +255,8 @@ export async function handleAssistantQuery(
     };
     
     // Call the LoveShackFancy orchestrator
+    // CRITICAL: Pass the enhanced query from conversationContext if available (from previous result)
+    // This ensures we use the enhanced query directly, avoiding stale database reads
     const result = await handleLoveshackfancyQuery({
       sessionId: input.sessionId,
       message: messageToProcess,
@@ -268,6 +271,8 @@ export async function handleAssistantQuery(
       productContextId: input.productContextId,
       searchMethods: input.searchMethods,
       conversationState,
+      lastEnhancedQuery: input.conversationContext?.lastEnhancedQuery || undefined, // Pass enhanced query from previous result (convert null to undefined)
+      actionId: input.actionId, // Pass actionId for better "show more" detection
       merchantData,
     });
     
@@ -310,6 +315,7 @@ export async function handleAssistantQuery(
       usedFollowUpContext: !!lastConstraints && (result.route === 'REFINE' || result.route === 'FOLLOWUP_REFINE'),
       route: result.route,
       actionType: result.actionType,
+      enhancedQuery: result.enhancedQuery, // Pass through the enhanced query
     };
   } catch (error) {
     logger.error('assistant_query_failed', {

@@ -40,6 +40,7 @@ export type FashionConstraints = {
   sleeveLengths?: string[] | ConstraintWithIntent | null;
   ageGroups?: string[] | ConstraintWithIntent | null;
   inclusivitySizing?: string[] | ConstraintWithIntent | null; // Plus Size, Petite, Tall, Extended Sizes, Standard Sizing
+  setVsSingle?: string | ConstraintWithIntent | null; // "Set" for pack products, "Single" for individual items
   
   // Enriched fashion facets
   formalityLevel?: string[] | ConstraintWithIntent | null;
@@ -106,31 +107,63 @@ export type ClassificationWithMetadata = {
  * Build allowed categories for classifier based on gender context
  * 
  * @param genderContext - Resolved gender from query/constraints ('male' | 'female' | null)
+ * @param hasExplicitProductType - Whether the query explicitly mentions a product type (e.g., "tops", "dresses", "jeans")
  * @returns Allowed categories and metadata about filtering mode
  */
 export function buildAllowedCategoriesForClassifier(
-  genderContext: 'male' | 'female' | null
+  genderContext: 'male' | 'female' | null,
+  hasExplicitProductType: boolean = false
 ): { categoriesForPrompt: string[]; usedStrictMajorityMode: boolean } {
   const allEntries = Object.entries(CATEGORY_GENDER_MAP);
 
-  // Case 1: Gender is interpretable (directly or indirectly from query/constraints)
-  // Only show categories valid for that gender or unisex
+  // Case 1: Gender is explicit (directly or indirectly from query/constraints)
+  // Include:
+  // - Categories matching the explicit gender (e.g., "Women's Dresses" for female)
+  // - Unisex categories (since they're for both genders)
+  // Exclude:
+  // - Opposite gender categories (e.g., don't include "Men's" categories if gender is female, and vice versa)
   if (genderContext) {
     const allowed = allEntries
-      .filter(([, categoryGender]) => categoryGender === genderContext || categoryGender === 'unisex')
+      .filter(([, categoryGender]) => {
+        // Include matching gender categories
+        if (categoryGender === genderContext) return true;
+        // Include unisex categories (for both genders)
+        if (categoryGender === 'unisex') return true;
+        // Exclude opposite gender categories
+        return false;
+      })
       .map(([category]) => category);
     
-    logger.debug('buildAllowedCategoriesForClassifier: gender_interpretable', {
+    logger.debug('buildAllowedCategoriesForClassifier: gender_explicit', {
       genderContext,
       totalCategories: allEntries.length,
       allowedCategories: allowed.length,
       sampleAllowed: allowed.slice(0, 10),
+      note: `Including ${genderContext} and unisex categories, excluding opposite gender categories`,
     });
     
     return { categoriesForPrompt: allowed, usedStrictMajorityMode: false };
   }
 
   // Case 2: Gender is NOT interpretable (ambiguous query)
+  // If product type is explicitly mentioned, include ALL categories (male, female, unisex)
+  // This allows matching "top" to "Tops" even when gender is ambiguous
+  // Otherwise, only show categories with strict gender majority (≥95%: male or female, NOT unisex)
+  if (hasExplicitProductType) {
+    const allowed = allEntries.map(([category]) => category);
+    
+    logger.debug('buildAllowedCategoriesForClassifier: gender_ambiguous_with_product_type', {
+      genderContext: null,
+      totalCategories: allEntries.length,
+      allowedCategories: allowed.length,
+      sampleAllowed: allowed.slice(0, 10),
+      note: 'Product type explicitly mentioned - including all categories (male, female, unisex) for gender-agnostic matching',
+    });
+    
+    return { categoriesForPrompt: allowed, usedStrictMajorityMode: false };
+  }
+
+  // Case 3: Gender ambiguous AND no explicit product type
   // Only show categories with strict gender majority (≥95%: male or female, NOT unisex)
   // This ensures the classifier only sees clearly gendered categories when gender is unknown
   const allowed = allEntries
@@ -204,8 +237,21 @@ export async function classifyQueryWithMetadata(
     note: 'Gender context computed before building classifier prompt',
   });
   
-  // STEP 2: Build allowed categories based on gender context
-  const { categoriesForPrompt, usedStrictMajorityMode } = buildAllowedCategoriesForClassifier(genderContext);
+  // STEP 2: Detect if product type is explicitly mentioned (for gender-agnostic category matching)
+  const queryLower = queryForClassification.toLowerCase();
+  const productTypeKeywords = [
+    'top', 'tops', 'dress', 'dresses', 'jeans', 'pants', 'shirt', 'shirts', 'blouse', 'blouses',
+    'skirt', 'skirts', 'shorts', 'swimsuit', 'swimwear', 'bikini', 'loungewear', 'pajama', 'robe',
+    'sweater', 'sweaters', 'cardigan', 'cardigans', 'jacket', 'jackets', 'coat', 'activewear',
+    'jewelry', 'accessories', 'bag', 'bags', 'tote', 'wallet', 'belt', 'scarf',
+    'perfume', 'perfumes', 'fragrance', 'scents',
+    'bedding', 'bed sheets', 'towels', 'candle', 'candles', 'decor', 'decoration', 'tabletop',
+    'kitchenware', 'dishware', 'bottoms', 'hoodie', 'hoodies', 'pullover', 'pullovers'
+  ];
+  const hasExplicitProductType = productTypeKeywords.some(keyword => queryLower.includes(keyword));
+  
+  // STEP 3: Build allowed categories based on gender context and product type detection
+  const { categoriesForPrompt, usedStrictMajorityMode } = buildAllowedCategoriesForClassifier(genderContext, hasExplicitProductType);
   
   logger.info('classifyQuery: allowed_categories_computed', {
     query: queryForClassification.substring(0, 100),
@@ -422,6 +468,18 @@ export async function classifyQueryWithMetadata(
     if (parsed.constraints.inclusivitySizing) {
       normalizedConstraints.inclusivitySizing = extractArrayValues(parsed.constraints.inclusivitySizing);
     }
+    if (parsed.constraints.setVsSingle) {
+      // setVsSingle can be a string or ConstraintWithIntent
+      if (typeof parsed.constraints.setVsSingle === 'string') {
+        normalizedConstraints.setVsSingle = parsed.constraints.setVsSingle;
+      } else if (parsed.constraints.setVsSingle && typeof parsed.constraints.setVsSingle === 'object' && 'values' in parsed.constraints.setVsSingle) {
+        // Extract first value from array (should be "Set" or "Single")
+        const values = parsed.constraints.setVsSingle.values;
+        if (values && values.length > 0) {
+          normalizedConstraints.setVsSingle = values[0]; // Take first value
+        }
+      }
+    }
     if (parsed.constraints.lengths) {
       normalizedConstraints.lengths = extractArrayValues(parsed.constraints.lengths);
     }
@@ -543,37 +601,83 @@ export async function classifyQueryWithMetadata(
     if (normalizedConstraints.patterns) constraintsSummary.patterns = normalizedConstraints.patterns;
     if (normalizedConstraints.materials) constraintsSummary.materials = normalizedConstraints.materials;
     if (normalizedConstraints.seasons) constraintsSummary.seasons = normalizedConstraints.seasons;
-    if (normalizedConstraints.fits) constraintsSummary.fits = normalizedConstraints.fits;
+    // Validate fits
+    if (normalizedConstraints.fits) {
+      const fitValues = extractConstraintValues(normalizedConstraints.fits) || (Array.isArray(normalizedConstraints.fits) ? normalizedConstraints.fits : []);
+      const fitIntent = extractConstraintIntent(normalizedConstraints.fits);
+      const validated = validateConstraintValues('fits', fitValues);
+      if (validated && validated.length > 0) {
+        const finalFits = fitIntent ? { values: validated, intent: fitIntent } : validated;
+        constraintsSummary.fits = finalFits;
+        normalizedConstraints.fits = finalFits;
+      } else {
+        constraintsSummary.fits = null;
+        normalizedConstraints.fits = null;
+        logger.warn('classifier_constraint_validation: invalid fits', {
+          query: queryForClassification.substring(0, 100),
+          providedValues: fitValues,
+        });
+      }
+    }
+    
+    // Validate rises
+    if (normalizedConstraints.rises) {
+      const riseValues = extractConstraintValues(normalizedConstraints.rises) || (Array.isArray(normalizedConstraints.rises) ? normalizedConstraints.rises : []);
+      const riseIntent = extractConstraintIntent(normalizedConstraints.rises);
+      const validated = validateConstraintValues('rises', riseValues);
+      if (validated && validated.length > 0) {
+        const finalRises = riseIntent ? { values: validated, intent: riseIntent } : validated;
+        constraintsSummary.rises = finalRises;
+        normalizedConstraints.rises = finalRises;
+      } else {
+        constraintsSummary.rises = null;
+        normalizedConstraints.rises = null;
+        logger.warn('classifier_constraint_validation: invalid rises', {
+          query: queryForClassification.substring(0, 100),
+          providedValues: riseValues,
+        });
+      }
+    }
+    
     if (normalizedConstraints.collections) constraintsSummary.collections = normalizedConstraints.collections;
     if (normalizedConstraints.embellishments) constraintsSummary.embellishments = normalizedConstraints.embellishments;
     
-    // Wrap inferred constraints in ConstraintWithIntent format with 'strong' intent
-    if (normalizedConstraints.necklines && Array.isArray(normalizedConstraints.necklines)) {
-      if (shouldWrapInferredConstraintAsStrong(normalizedConstraints.necklines, queryForClassification, 'necklines')) {
-        constraintsSummary.necklines = {
-          values: normalizedConstraints.necklines,
-          intent: 'strong'
-        };
-        normalizedConstraints.necklines = constraintsSummary.necklines;
+    // Validate necklines
+    if (normalizedConstraints.necklines) {
+      const necklineValues = extractConstraintValues(normalizedConstraints.necklines) || (Array.isArray(normalizedConstraints.necklines) ? normalizedConstraints.necklines : []);
+      const necklineIntent = extractConstraintIntent(normalizedConstraints.necklines);
+      const validated = validateConstraintValues('necklines', necklineValues);
+      if (validated && validated.length > 0) {
+        const finalNecklines = necklineIntent ? { values: validated, intent: necklineIntent } : validated;
+        constraintsSummary.necklines = finalNecklines;
+        normalizedConstraints.necklines = finalNecklines;
       } else {
-        constraintsSummary.necklines = normalizedConstraints.necklines;
+        constraintsSummary.necklines = null;
+        normalizedConstraints.necklines = null;
+        logger.warn('classifier_constraint_validation: invalid necklines', {
+          query: queryForClassification.substring(0, 100),
+          providedValues: necklineValues,
+        });
       }
-    } else if (normalizedConstraints.necklines) {
-      constraintsSummary.necklines = normalizedConstraints.necklines;
     }
     
-    if (normalizedConstraints.sleeveLengths && Array.isArray(normalizedConstraints.sleeveLengths)) {
-      if (shouldWrapInferredConstraintAsStrong(normalizedConstraints.sleeveLengths, queryForClassification, 'sleeveLengths')) {
-        constraintsSummary.sleeveLengths = {
-          values: normalizedConstraints.sleeveLengths,
-          intent: 'strong'
-        };
-        normalizedConstraints.sleeveLengths = constraintsSummary.sleeveLengths;
+    // Validate sleeveLengths
+    if (normalizedConstraints.sleeveLengths) {
+      const sleeveValues = extractConstraintValues(normalizedConstraints.sleeveLengths) || (Array.isArray(normalizedConstraints.sleeveLengths) ? normalizedConstraints.sleeveLengths : []);
+      const sleeveIntent = extractConstraintIntent(normalizedConstraints.sleeveLengths);
+      const validated = validateConstraintValues('sleeveLengths', sleeveValues);
+      if (validated && validated.length > 0) {
+        const finalSleeves = sleeveIntent ? { values: validated, intent: sleeveIntent } : validated;
+        constraintsSummary.sleeveLengths = finalSleeves;
+        normalizedConstraints.sleeveLengths = finalSleeves;
       } else {
-        constraintsSummary.sleeveLengths = normalizedConstraints.sleeveLengths;
+        constraintsSummary.sleeveLengths = null;
+        normalizedConstraints.sleeveLengths = null;
+        logger.warn('classifier_constraint_validation: invalid sleeveLengths', {
+          query: queryForClassification.substring(0, 100),
+          providedValues: sleeveValues,
+        });
       }
-    } else if (normalizedConstraints.sleeveLengths) {
-      constraintsSummary.sleeveLengths = normalizedConstraints.sleeveLengths;
     }
     
     if (normalizedConstraints.ageGroups) {

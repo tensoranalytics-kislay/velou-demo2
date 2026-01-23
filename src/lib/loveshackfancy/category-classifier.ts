@@ -38,15 +38,17 @@ INSTRUCTIONS:
      - Examples: "suggest me something", "help me find something", "something to wear", "something elegant", "gift for someone"
      - **IMPORTANT: Even if you can infer age group (adult, kids) or general category (clothing), if NO specific product type is mentioned, return confidence < 0.5**
    - **Specific queries that should have confidence >= 0.5:**
-     - "wedding dress" (mentions "dress")
-     - "blue top" (mentions "top")
-     - "swimsuits" (mentions "swimsuits")
-     - "bedding" (mentions "bedding")
-     - "perfume" (mentions "perfume")
+     - "wedding dress" (mentions "dress") → ["Women's Dresses"] (confidence >= 0.5)
+     - "blue top" (mentions "top") → ["Tops"] (confidence >= 0.5) - **CRITICAL: "top" or "tops" MUST map to "Tops" category**
+     - "do you have any tops" (mentions "tops") → ["Tops"] (confidence >= 0.5) - **CRITICAL: Even without gender, "tops" maps to "Tops"**
+     - "swimsuits" (mentions "swimsuits") → ["Swimsuits"] (confidence >= 0.5)
+     - "bedding" (mentions "bedding") → ["Bedding"] (confidence >= 0.5)
+     - "perfume" (mentions "perfume") → ["Perfumes"] (confidence >= 0.5)
      - **CRITICAL: "suggest me [product type]" or "everyday wear [product type]" STILL mentions a specific product type - return confidence >= 0.5:**
        - "suggest me everyday wear shoes" → ["Shoes"] (confidence >= 0.5) - "shoes" is explicitly mentioned
        - "suggest me a dress" → ["Women's Dresses"] (confidence >= 0.5) - "dress" is explicitly mentioned
        - "everyday wear shoes" → ["Shoes"] (confidence >= 0.5) - "shoes" is explicitly mentioned
+     - **CRITICAL: When a product type is explicitly mentioned (top, tops, dress, dresses, jeans, etc.), you MUST return at least one category with confidence >= 0.5, even if gender is ambiguous. The system will handle gender filtering later.**
 4. **Return up to 3 categories in order of relevance. Prioritize returning multiple categories when:**
    - The query could reasonably match multiple age-specific categories (e.g., "cardigan for 12 year old" could match both "Girls Tops" and "Tween Sweaters")
    - The query mentions composite product types (e.g., "suit", "matching set")
@@ -209,7 +211,21 @@ export async function classifyQueryToCategories(
 
   // Compute gender context and allowed categories BEFORE building prompt
   const genderContext = computeGenderContext(query, null);
-  const { categoriesForPrompt } = buildAllowedCategoriesForClassifier(genderContext);
+  
+  // Detect if product type is explicitly mentioned (for gender-agnostic category matching)
+  const queryLower = query.toLowerCase();
+  const productTypeKeywords = [
+    'top', 'tops', 'dress', 'dresses', 'jeans', 'pants', 'shirt', 'shirts', 'blouse', 'blouses',
+    'skirt', 'skirts', 'shorts', 'swimsuit', 'swimwear', 'bikini', 'loungewear', 'pajama', 'robe',
+    'sweater', 'sweaters', 'cardigan', 'cardigans', 'jacket', 'jackets', 'coat', 'activewear',
+    'jewelry', 'accessories', 'bag', 'bags', 'tote', 'wallet', 'belt', 'scarf',
+    'perfume', 'perfumes', 'fragrance', 'scents',
+    'bedding', 'bed sheets', 'towels', 'candle', 'candles', 'decor', 'decoration', 'tabletop',
+    'kitchenware', 'dishware', 'bottoms', 'hoodie', 'hoodies', 'pullover', 'pullovers'
+  ];
+  const hasExplicitProductType = productTypeKeywords.some(keyword => queryLower.includes(keyword));
+  
+  const { categoriesForPrompt } = buildAllowedCategoriesForClassifier(genderContext, hasExplicitProductType);
   
   // Load database category dictionaries (categories with 3+ products)
   const categoryDict = loadCategoryDictionaries();

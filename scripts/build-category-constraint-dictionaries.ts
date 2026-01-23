@@ -23,6 +23,7 @@ interface CategoryConstraintDictionary {
     embellishments: string[];
     collections: string[];
     seasonalPalette: string[];
+    inclusivitySizing: string[];
   };
 }
 
@@ -109,6 +110,8 @@ async function buildCategoryConstraintDictionaries(): Promise<CategoryConstraint
         colorUndertone: true,
         // Style/silhouette
         silhouetteCut: true,
+        // Inclusivity sizing
+        inclusivitySizing: true,
         // All other attributes in JSONB
         attributes: true,
       },
@@ -134,6 +137,7 @@ async function buildCategoryConstraintDictionaries(): Promise<CategoryConstraint
       embellishments: new Set<string>(),
       collections: new Set<string>(),
       seasonalPalette: new Set<string>(),
+      inclusivitySizing: new Set<string>(),
     };
 
     for (const product of products) {
@@ -336,6 +340,27 @@ async function buildCategoryConstraintDictionaries(): Promise<CategoryConstraint
         const normalized = normalizeValue(product.seasonalPalette);
         if (normalized) constraintSets.seasonalPalette.add(normalized);
       }
+
+      // Extract inclusivitySizing
+      if (product.inclusivitySizing) {
+        // inclusivitySizing is a string (not array), but may contain comma-separated values
+        if (product.inclusivitySizing.includes(',')) {
+          extractCommaSeparatedValues(product.inclusivitySizing).forEach(v => {
+            const normalized = normalizeValue(v);
+            if (normalized) constraintSets.inclusivitySizing.add(normalized);
+          });
+        } else {
+          const normalized = normalizeValue(product.inclusivitySizing);
+          if (normalized) constraintSets.inclusivitySizing.add(normalized);
+        }
+      }
+      const attrInclusivitySizing = attrs?.inclusivitySizing || attrs?.InclusivitySizing || attrs?.inclusivity_sizing;
+      if (attrInclusivitySizing) {
+        extractArrayOrSingleValue(attrInclusivitySizing).forEach(v => {
+          const normalized = normalizeValue(v);
+          if (normalized) constraintSets.inclusivitySizing.add(normalized);
+        });
+      }
     }
 
     dictionaries[category] = {
@@ -357,6 +382,7 @@ async function buildCategoryConstraintDictionaries(): Promise<CategoryConstraint
       embellishments: Array.from(constraintSets.embellishments).sort(),
       collections: Array.from(constraintSets.collections).sort(),
       seasonalPalette: Array.from(constraintSets.seasonalPalette).sort(),
+      inclusivitySizing: Array.from(constraintSets.inclusivitySizing).sort(),
     };
 
     const c = constraintSets;

@@ -82,9 +82,9 @@ export function buildQueryClassifierPrompt(
   
   // Import category-specific dictionary helpers if categories are provided
   const formatCategoryConstraint: ((type: 'colors' | 'materials' | 'sizes' | 'occasions' | 'seasons' | 'styles' | 
-                                     'patterns' | 'lengths' | 'formalityLevel' | 'fits' | 'rises' | 'necklines' | 
-                                     'sleeveLengths' | 'colorShade' | 'colorUndertone' | 'embellishments' | 
-                                     'collections' | 'seasonalPalette' | 'inclusivitySizing', categories: string[]) => string) | null = 
+                                   'patterns' | 'lengths' | 'formalityLevel' | 'fits' | 'rises' | 'necklines' | 
+                                   'sleeveLengths' | 'colorShade' | 'colorUndertone' | 'embellishments' | 
+                                     'collections' | 'seasonalPalette' | 'setVsSingle' | 'inclusivitySizing', categories: string[]) => string) | null = 
     (classifiedCategories && classifiedCategories.length > 0) ? formatCategoryConstraintForPrompt : null;
   
   // Organize categories into semantic groups
@@ -152,7 +152,7 @@ RULES:
 - Remove constraint attributes from product terms (e.g., "red maxi dress" → productTerms: "maxi dress", NOT "red maxi dress")
 - **CRITICAL**: When you remove constraint attributes from product terms, you MUST still extract them as separate constraints:
   * "red maxi dress" → productTerms: "maxi dress" AND colors: ["Red"] AND lengths: ["Maxi"]
-  * "blue long sleeve top" → productTerms: "top" AND colors: ["Blue"] AND sleeveLengths: ["Long Sleeve"]
+  * "blue long sleeve top" → productTerms: "top" AND colors: ["Blue"] AND sleeveLengths: ["Long"]
   * "mini pink dress" → productTerms: "dress" AND colors: ["Pink"] AND lengths: ["Mini"]
 - Include synonyms and interpretations:
   * "onesie" → "onesie" OR "bodysuit" OR "romper"
@@ -164,7 +164,7 @@ RULES:
 
 EXAMPLES (Women's queries):
 - "find red maxi dresses" → productTerms: "maxi dress" AND colors: ["Red"] AND lengths: ["Maxi"] AND gender: "female"
-- "blue maxi dresses with long sleeves for kids" → productTerms: "maxi dress" AND colors: ["Blue"] AND lengths: ["Maxi"] AND sleeveLengths: ["Long Sleeve"] AND ageGroups: ["Kids"] AND gender: "female"
+- "blue maxi dresses with long sleeves for kids" → productTerms: "maxi dress" AND colors: ["Blue"] AND lengths: ["Maxi"] AND sleeveLengths: ["Long"] AND ageGroups: ["Kids"] AND gender: "female"
 - "show me cardigans" → productTerms: "cardigan" AND gender: null (ambiguous - could be men's or women's)
 - "onesies for babies" → productTerms: "onesie" AND ageGroups: ["Baby"] AND gender: null
 - "swimsuits for beach" → productTerms: "swimsuit" AND occasions: ["Beach"] AND gender: "female"
@@ -190,7 +190,7 @@ EXAMPLES OF MANDATORY EXTRACTION:
 - "blue maxi dresses with long sleeves for kids" → 
   * colors: ["Blue"] (REQUIRED - "blue" is explicitly mentioned)
   * lengths: ["Maxi"] (REQUIRED - "maxi" is explicitly mentioned)
-  * sleeveLengths: ["Long Sleeve"] (REQUIRED - "long sleeves" is explicitly mentioned)
+  * sleeveLengths: ["Long"] (REQUIRED - "long sleeves" is explicitly mentioned)
   * ageGroups: ["Kids"] (REQUIRED - "kids" is explicitly mentioned)
 
 - "red mini dress" → 
@@ -210,19 +210,36 @@ COMMON EXTRACTION PATTERNS:
                         If absent, leave gender: null (system will handle clarification)
 - Color words: "blue", "red", "white", "black", "pink", "yellow", "green", "navy", "gray", "beige", "khaki", "charcoal", etc. → colors: [ColorName]
 - Length words in product context: "maxi", "mini", "midi", "long dress", "short dress", "knee-length" → lengths: [LengthName]
-- Sleeve words: "long sleeves", "short sleeves", "sleeveless", "cap sleeves" → sleeveLengths: [SleeveType]
+- Sleeve words: "long sleeves", "short sleeves", "sleeveless", "cap sleeves", "three-quarter sleeves" → sleeveLengths: [SleeveType]
   **CRITICAL: Normalize sleeve synonyms to standard ontology terms:**
-  * "full sleeves", "full sleeve", "full" → normalize to "Long Sleeve" (full sleeves = long sleeves in fashion)
+  * "full sleeves", "full sleeve", "full" → normalize to "Long" (full sleeves = long sleeves in fashion)
+  * "cap sleeves", "cap sleeve" → normalize to "Cap"
+  * "three-quarter sleeves", "3/4 sleeves", "three quarter sleeves" → normalize to "Three-Quarter"
+- Neckline words: "v-neck", "scoop neck", "round neck", "boat neck", "off-shoulder" → necklines: [NecklineType]
+  **CRITICAL: Normalize neckline synonyms to standard ontology terms:**
+  * "scoop neck", "scoopneck" → normalize to "Scoop"
+  * "round neck", "roundneck" → normalize to "Round"
+  * "v-neck", "v neck" → normalize to "V-Neck"
+  * "boat neck", "boatneck" → normalize to "Boat"
+- Color words: "blue", "red", "white", "black", "pink", "yellow", "green", "navy", "navy blue", "burgundy", "gray", "beige", "khaki", "charcoal", etc. → colors: [ColorName]
+  **CRITICAL: Normalize color synonyms to standard ontology terms:**
+  * "navy blue" (TWO WORDS) → MUST normalize to "Navy Blue" (check dictionary - "Navy Blue" exists, NOT "Navy" or "Blue")
+  * "navy" (ONE WORD) → normalize to "Navy Blue" OR "Navy" (prefer "Navy Blue" if context suggests it, otherwise use "Navy")
+  * "burgundy" → MUST normalize to "Burgundy" (check dictionary - "Burgundy" exists)
+  * "burgundy red" → normalize to "Burgundy" (synonym = direct interpretation)
+  * **CRITICAL**: When user says "navy blue" (two words), you MUST extract colors: { values: ["Navy Blue"], intent: "required" } - NOT "Blue" or "Navy"
+  * **CRITICAL**: When user says "burgundy", you MUST extract colors: { values: ["Burgundy"], intent: "required" }
+  * Always check the dictionary for the EXACT color name - use the exact value from the dictionary, not a variation
 - **Rise words** (for jeans/pants): "low rise", "mid rise", "high rise", "high-waisted" → rises: [RiseType]
   **CRITICAL: Normalize rise synonyms:**
   * "high-waisted", "high waist" → normalize to "High Rise"
   * "mid-rise", "medium rise" → normalize to "Mid Rise"
   * "low-rise", "low waist" → normalize to "Low Rise"
 - **Fit words**: "slim", "skinny", "straight", "relaxed", "fitted", "regular", "loose", "wide leg", "tapered" → fits: [FitType]
-  * "long sleeves", "long sleeve", "long" → "Long Sleeve"
-  * "short sleeves", "short sleeve", "short" → "Short Sleeve"
-  * "three-quarter sleeves", "3/4 sleeves", "three quarter sleeves" → "Three-Quarter Sleeve"
-  * "cap sleeves", "cap sleeve" → "Cap Sleeve"
+  * "long sleeves", "long sleeve", "long" → "Long"
+  * "short sleeves", "short sleeve", "short" → "Short"
+  * "three-quarter sleeves", "3/4 sleeves", "three quarter sleeves" → "Three-Quarter"
+  * "cap sleeves", "cap sleeve" → "Cap"
   * "sleeveless", "no sleeves", "no sleeve" → "Sleeveless"
 - Age words: "kids", "children", "toddler", "baby", "adult", "teen", "12 year old" → ageGroups: [AgeGroup]
 
@@ -247,22 +264,24 @@ Each constraint can have an intent level indicating how strongly the user wants 
   * Example: "not floral" → patterns: { values: ["Floral"], intent: "excluded" }
   * Example: "avoid silk" → materials: { values: ["Silk"], intent: "excluded" }
 
-**CRITICAL: DEFAULT RULES FOR INTENT ASSIGNMENT**
-Use these standardized rules for ALL constraint types (colors, occasions, materials, lengths, sleeveLengths, necklines, patterns, styles, etc.):
+**CRITICAL: DEFAULT RULES FOR INTENT ASSIGNMENT - APPLIES TO ALL CONSTRAINT TYPES**
+Use these standardized rules for ALL constraint types (colors, occasions, materials, lengths, sleeveLengths, necklines, patterns, styles, sizes, fits, formalityLevel, seasons, etc.):
 
-1. **DIRECTLY INTERPRETABLE FROM QUERY → "required" (Hard SQL filter)**
-   - If the user's query text contains words/phrases that can be directly mapped to a constraint value, use intent: "required"
-   - This applies universally to ALL constraint types
-   - Examples:
-     * "red dress" → colors: { values: ["Red"], intent: "required" }
-     * "wedding dress" OR "attending a wedding" → occasions: { values: ["Wedding"], intent: "required" }
-     * "floral maxi dress" → patterns: { values: ["Floral"], intent: "required" } AND lengths: { values: ["Maxi"], intent: "required" }
-     * "cotton shirt" → materials: { values: ["Cotton"], intent: "required" }
-     * "long sleeve top" → sleeveLengths: { values: ["Long Sleeve"], intent: "required" }
-     * "v-neck dress" → necklines: { values: ["V-Neck"], intent: "required" }
-     * "for beach" → occasions: { values: ["Beach"], intent: "required" }
-     * "summer dress" → seasons: { values: ["Summer"], intent: "required" }
-   - NO special rules needed - if the constraint can be directly interpreted, it's "required"
+1. **DIRECTLY INTERPRETABLE FROM QUERY → ALWAYS "required" (Hard SQL filter)**
+   - **ABSOLUTE RULE**: If the user's query text contains words/phrases that can be directly mapped to a constraint value, use intent: "required"
+   - This applies universally to ALL constraint types - NO EXCEPTIONS
+   - Examples (ALL must be "required"):
+     * "red dress" → colors: { values: ["Red"], intent: "required" } ✅
+     * "wedding dress" OR "attending a wedding" → occasions: { values: ["Wedding"], intent: "required" } ✅
+     * "floral maxi dress" → patterns: { values: ["Floral"], intent: "required" } AND lengths: { values: ["Maxi"], intent: "required" } ✅
+     * "cotton shirt" → materials: { values: ["Cotton"], intent: "required" } ✅
+     * "long sleeve top" OR "long sleeve t-shirt" → sleeveLengths: { values: ["Long"], intent: "required" } ✅
+     * "v-neck dress" → necklines: { values: ["V-Neck"], intent: "required" } ✅
+     * "for beach" → occasions: { values: ["Beach"], intent: "required" } ✅
+     * "summer dress" → seasons: { values: ["Summer"], intent: "required" } ✅
+     * "formal dress" → formalityLevel: { values: ["Formal"], intent: "required" } ✅
+   - **ONLY exception**: Use "strong" or "preferred" if the user explicitly uses softening language (e.g., "something floral", "floral or similar", "maybe floral")
+   - **NO other exceptions**: If the constraint can be directly interpreted from query text, it's ALWAYS "required"
 
 2. **VAGUE/SUGGESTIVE → "preferred"**
    - Vague language: "maybe", "could be", "if possible", "something like"
@@ -273,10 +292,11 @@ Use these standardized rules for ALL constraint types (colors, occasions, materi
    - Example: "not floral" → patterns: { values: ["Floral"], intent: "excluded" }
 
 4. **INFERRED/IMPLIED (not directly mentioned) → "strong"**
-   - When constraint is inferred from context but not directly stated in query
-   - Example: "for work" (formalityLevel inferred) → formalityLevel: { values: ["Professional"], intent: "strong" }
+  - When constraint is inferred from context but not directly stated in query
+  - Example: "for work" (formalityLevel inferred, not explicitly mentioned) → formalityLevel: { values: ["Formal"], intent: "strong" } ✅ (inferred from "work" context, mapped to "Formal" dictionary value)
+  - Example: "i am joining office next month, suggest me a dress" → formalityLevel: { values: ["Formal"], intent: "strong" } ✅ (inferred from "office" context, mapped to "Formal" dictionary value, user did NOT say "formal")
 
-**REMEMBER**: The default for any directly interpretable constraint is "required", not "strong". "Strong" is only for inferred/implied constraints.
+**REMEMBER**: The default for any directly interpretable constraint is ALWAYS "required", not "strong". "Strong" is only for inferred/implied constraints that are NOT explicitly mentioned in the query text.
 
 FORMAT:
 - Array constraints: { values: ["Red", "Blue"], intent: "strong" }
@@ -395,12 +415,16 @@ ${formatCategoryConstraint && classifiedCategories && classifiedCategories.lengt
   ? formatCategoryConstraint('rises', classifiedCategories)
   : formatDictionaryForPrompt('rises', 100)}
 
-**NECKLINES** - Neckline types (e.g., "V-Neck", "Round", "Bardot", "High"). Match user mentions (e.g., "v-neck", "off-shoulder") to these values:
+**NECKLINES** - Neckline types (e.g., "V-Neck", "Round", "Scoop", "Bardot", "High"). Match user mentions (e.g., "v-neck", "scoop neck", "round neck", "off-shoulder") to these values:
+**CRITICAL SYNONYM MAPPING FOR NECKLINES:**
+- "scoop neck", "scoopneck" → "Scoop" (REQUIRED intent - direct interpretation)
+- "round neck", "roundneck" → "Round" (REQUIRED intent - direct interpretation)
+- "v-neck", "v neck" → "V-Neck" (REQUIRED intent - direct interpretation)
 ${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
   ? formatCategoryConstraint('necklines', classifiedCategories)
   : formatDictionaryForPrompt('necklines', 100)}
 
-**SLEEVE LENGTHS** - Sleeve types (e.g., "Long Sleeve", "Short Sleeve", "Sleeveless", "Three-Quarter Sleeve"). Match user mentions (e.g., "long sleeves", "sleeveless") to these values:
+**SLEEVE LENGTHS** - Sleeve types (e.g., "Long", "Short", "Sleeveless", "Three-Quarter", "Cap"). Match user mentions (e.g., "long sleeves", "sleeveless", "cap sleeve") to these exact dictionary values:
 ${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
   ? formatCategoryConstraint('sleeveLengths', classifiedCategories)
   : formatDictionaryForPrompt('sleeveLengths', 100)}
@@ -440,21 +464,47 @@ ${formatCategoryConstraint && classifiedCategories && classifiedCategories.lengt
   ? formatCategoryConstraint('inclusivitySizing', classifiedCategories)
   : formatDictionaryForPrompt('inclusivitySizing', 100)}
 
-**CRITICAL: DICTIONARY-BASED CONSTRAINT EXTRACTION**
+**SET VS SINGLE** - Product type indicator. Available values: "Set" (for pack/multi-item products), "Single" (for individual items). Match user mentions:
+${formatCategoryConstraint && classifiedCategories && classifiedCategories.length > 0
+  ? formatCategoryConstraint('setVsSingle', classifiedCategories)
+  : formatDictionaryForPrompt('setVsSingle', 100)}
 
-You MUST extract constraints by matching user queries to the dictionary values shown above. Follow these rules:
+**CRITICAL: DICTIONARY-BASED CONSTRAINT EXTRACTION WITH FLEXIBLE MATCHING**
 
-1. **EXACT MATCHING**: First, check if the user's term exists exactly in the dictionary (case-insensitive match)
-   - "maxi dress" → lengths: ["Maxi"] (if "Maxi" exists in lengths dictionary)
-   - "v-neck" → necklines: ["V-Neck"] (if "V-Neck" exists in necklines dictionary)
-   - "a-line" → styles: ["A-Line"] (if "A-Line" exists in styles dictionary)
+You MUST extract constraints by matching user queries to the dictionary values shown above. Use FLEXIBLE, ACCOMMODATING matching - be generous with variations, typos, and synonyms.
 
-2. **SYNONYM/RELATED TERM MATCHING**: If exact match not found, find the closest semantic match from dictionary
-   - "full sleeves" → sleeveLengths: ["Long Sleeve"] (full sleeves = long sleeves in fashion)
-   - "knee-length" → lengths: ["Midi"] (knee-length = midi length)
-   - "ankle-length" → lengths: ["Maxi"] (ankle-length = maxi length)
+**GENERAL PRINCIPLE**: When in doubt, MATCH. If a user term is reasonably close to a dictionary value (after normalization, fuzzy matching, or semantic similarity), extract it as a constraint with "required" intent. This applies to ALL constraint types (colors, materials, occasions, styles, patterns, lengths, sleeveLengths, necklines, fits, rises, formalityLevel, seasons, sizes, embellishments, collections) and ALL dictionary values. Do NOT require perfect exact matches - be accommodating and flexible.
+
+**MATCHING PRIORITY (APPLY IN ORDER, BE FLEXIBLE AT EACH STEP)**:
+
+1. **FLEXIBLE EXACT MATCHING**: Check if the user's term matches a dictionary value after normalization (case-insensitive, ignore hyphens/spaces/punctuation)
+   - Normalize both user term and dictionary values: lowercase, remove hyphens/spaces/punctuation
+   - "maxi dress" → lengths: ["Maxi"] ✅ (normalized: "maxi" = "maxi")
+   - "v-neck" / "v neck" / "vneck" → necklines: ["V-Neck"] ✅ (normalized: "vneck" = "vneck")
+   - "a-line" / "aline" / "a line" → styles: ["A-Line"] ✅ (normalized: "aline" = "aline")
+   - "empire waist" / "empire" → styles: ["Empire"] ✅ (normalized: "empire" = "empire")
+   - "fit and flare" / "fit n flare" / "fitandflare" → styles: ["Fit and Flare"] ✅ (normalized: "fitandflare" = "fitandflare")
+
+2. **FUZZY/SEMANTIC MATCHING**: If normalized exact match fails, use fuzzy matching (80%+ similarity, contains key words, semantic similarity)
+   - Check if user term contains key words from dictionary value (e.g., "aline" contains "line" → matches "A-Line")
+   - Check if dictionary value contains key words from user term (e.g., "A-Line" contains "line" → matches "aline")
+   - Check for common abbreviations and variations (e.g., "3/4" → "Three-Quarter", "empire waste" → "Empire" [typo])
+   - "full sleeves" → sleeveLengths: ["Long"] ✅ (semantic: full sleeves = long sleeves)
+   - "knee-length" / "knee length" → lengths: ["Midi"] ✅ (semantic: knee-length = midi)
+   - "ankle-length" / "ankle length" → lengths: ["Maxi"] ✅ (semantic: ankle-length = maxi)
+   - "scoop neck" / "scoopneck" → necklines: ["Scoop"] ✅ (semantic match)
+   - "round neck" / "roundneck" → necklines: ["Round"] ✅ (semantic match)
+
+**CRITICAL**: Be ACCOMMODATING - if a user term is "close enough" to a dictionary value (after normalization and fuzzy matching), extract it. Err on the side of matching rather than missing constraints. This applies to ALL constraint types and ALL dictionary values.
 
 3. **CONTEXTUAL INFERENCE**: For queries like "dresses for curvy women", infer constraints from context and map to dictionary:
+   - **SET VS SINGLE EXTRACTION** - Extract pack/set mentions as setVsSingle constraint (HARD SQL filter):
+     * Match user terms like "pack", "bundle", "set", "multi", "pair", "3-pack", "4-pack", "5-pack", "6-pack", "multi-pack", "value pack", "starter pack" → setVsSingle: { values: ["Set"], intent: "required" }
+     * If user mentions pack-related terms explicitly, extract "Set". Otherwise, do NOT extract this constraint (system defaults to "Single").
+     * Examples:
+       - "I want a 3-pack of t-shirts" → setVsSingle: { values: ["Set"], intent: "required" }
+       - "show me t-shirt bundles" → setVsSingle: { values: ["Set"], intent: "required" }
+       - "I need a dress" → setVsSingle: null (not extracted, defaults to "Single")
    - **BODY TYPE EXTRACTION** - Extract body type mentions as inclusivitySizing constraint (HARD SQL filter - OR filter):
      * Match user terms like "curvy", "curvy women", "curvy mom", "fat", "overweight", "plus size", "larger size", "bigger size" → match to "Plus Size" in inclusivitySizing dictionary → inclusivitySizing: { values: ["Plus Size"], intent: "required" }
      * Match user terms like "petite", "small frame" → match to "Petite" in inclusivitySizing dictionary → inclusivitySizing: { values: ["Petite"], intent: "required" }
@@ -482,30 +532,69 @@ You MUST extract constraints by matching user queries to the dictionary values s
 - **PREFERRED intent** ("maybe", "could be", "something like", "if possible") → **Relaxed**: Use exact match + all semantically similar values from dictionary
 - **EXCLUDED intent** ("not", "avoid", "no", "without", "don't want") → **Exclude**: Filter out products matching these dictionary values
 
-**CRITICAL INTENT ASSIGNMENT RULE:**
-- **EXPLICITLY MENTIONED constraints** → Use "required" intent when the user EXPLICITLY mentions a constraint value in their query
-  - Examples: "floral dress", "blue shirt", "maxi dress", "cotton top", "wedding dress" (if "wedding" is explicitly mentioned) → REQUIRED ✅
-  - Explicit keywords: "only wants", "must be", "only", "just", "exactly", "specifically" → REQUIRED ✅
-  - Only use "strong" or "preferred" for explicitly mentioned constraints if the user explicitly uses softening language (e.g., "something floral", "floral or similar", "maybe floral")
+**CRITICAL INTENT ASSIGNMENT RULE - APPLIES TO ALL CONSTRAINT TYPES:**
+- **EXPLICITLY MENTIONED/INTERPRETABLE FROM QUERY → ALWAYS "required" WITH INTENT FORMAT**
+  - **ABSOLUTE RULE**: If ANY constraint value can be directly interpreted from the user's query text (including synonyms), it MUST be:
+    1. Marked as "required" intent
+    2. Returned in INTENT FORMAT: { values: [...], intent: "required" } (NOT as a plain array)
+  - This applies to ALL constraint types: colors, patterns, materials, occasions, lengths, sleeveLengths, necklines, styles, sizes, fits, formalityLevel, seasons, etc.
+  - **CRITICAL**: Synonyms are DIRECT interpretations → MUST use intent format with "required" intent
+  - Examples of explicit mentions that MUST be "required" WITH INTENT FORMAT:
+    * "floral dress" → patterns: { values: ["Floral"], intent: "required" } ✅ (NOT patterns: ["Floral"])
+    * "blue shirt" → colors: { values: ["Blue"], intent: "required" } ✅ (NOT colors: ["Blue"])
+    * "maxi dress" → lengths: { values: ["Maxi"], intent: "required" } ✅ (NOT lengths: ["Maxi"])
+    * "cotton top" → materials: { values: ["Cotton"], intent: "required" } ✅ (NOT materials: ["Cotton"])
+    * "long sleeve t-shirt" → sleeveLengths: { values: ["Long"], intent: "required" } ✅ (NOT sleeveLengths: ["Long"])
+    * "full sleeve top" → sleeveLengths: { values: ["Long"], intent: "required" } ✅ (synonym = direct interpretation: "full sleeve" = "Long")
+    * "cap sleeve dress" → sleeveLengths: { values: ["Cap"], intent: "required" } ✅ (synonym = direct interpretation: "cap sleeve" = "Cap")
+    * "v-neck dress" → necklines: { values: ["V-Neck"], intent: "required" } ✅ (NOT necklines: ["V-Neck"])
+    * "scoop neck blouse" → necklines: { values: ["Scoop"], intent: "required" } ✅ (synonym = direct interpretation, NOT necklines: ["Scoop"])
+    * "round neck top" → necklines: { values: ["Round"], intent: "required" } ✅ (synonym = direct interpretation)
+    * "empire waist dresses" → styles: { values: ["Empire"], intent: "required" } ✅ (synonym = direct interpretation: "empire waist" → "Empire")
+    * "fit and flare style dresses" → styles: { values: ["Fit and Flare"], intent: "required" } ✅ (synonym = direct interpretation, NOT styles: ["Fit and Flare"])
+    * "a-line dress" → styles: { values: ["A-Line"], intent: "required" } ✅ (NOT styles: ["A-Line"])
+    * "wedding dress" OR "attending a wedding" → occasions: { values: ["Wedding"], intent: "required" } ✅ (NOT occasions: ["Wedding"])
+    * "for beach" → occasions: { values: ["Beach"], intent: "required" } ✅ (NOT occasions: ["Beach"])
+    * "summer dress" → seasons: { values: ["Summer"], intent: "required" } ✅ (NOT seasons: ["Summer"])
+    * "formal dress" → formalityLevel: { values: ["Formal"], intent: "required" } ✅ (NOT formalityLevel: ["Formal"])
+  - **ONLY exception**: Use "strong" or "preferred" if the user explicitly uses softening language (e.g., "something floral", "floral or similar", "maybe floral", "could be blue")
+  - **NO other exceptions**: If the constraint is directly interpretable from query text (including synonyms), it's ALWAYS "required" WITH INTENT FORMAT
 
-- **INFERRED constraints** → Use "strong" or "preferred" intent when constraints are INFERRED from context, NOT explicitly mentioned
-  - **CRITICAL**: Inferred constraints (e.g., colors/styles/lengths inferred from "black tie wedding") should NOT be marked as "required" unless you are 95%+ confident the user absolutely needs them
+- **INFERRED constraints (NOT explicitly mentioned) → Use "strong" or "preferred" intent**
+  - **CRITICAL**: Inferred constraints (e.g., colors/styles/lengths inferred from "black tie wedding" context) should NOT be marked as "required" unless you are 95%+ confident the user absolutely needs them
   - **Rule of thumb**: If the user didn't explicitly say it, use "strong" (preferable) or "preferred" (acceptable alternatives), NOT "required" (hard filter)
+  - **CRITICAL**: You MUST extract inferred constraints when context strongly suggests them, even if not explicitly mentioned
+  - **ABSOLUTE RULE FOR COLORS**: Colors that are INFERRED (not explicitly mentioned in query text) MUST ALWAYS be "strong" intent, NEVER "required"
+    - If the user did NOT say the color word(s) in their query, the color is INFERRED → use "strong" intent
+    - Only colors that appear as actual words in the user's query can be "required"
+    - **VERIFICATION**: Before marking a color as "required", verify: "Did the user explicitly say this color word?" If NO → use "strong"
   - **Examples of inferred constraints:**
-    - "black tie wedding" → colors: Black, Ivory, Gold (INFERRED from "black tie" context) → intent: "strong" ❌ NOT "required"
-    - "black tie wedding" → styles: Elegant, Formal (INFERRED from "black tie" context) → intent: "strong" ❌ NOT "required"
-    - "black tie wedding" → sleeves: Long Sleeve (INFERRED from formal context) → intent: "strong" ❌ NOT "required"
-    - "beach vacation" → occasions: Beach (EXPLICITLY mentioned) → intent: "required" ✅
-    - "beach vacation" → colors: Light, Bright (INFERRED from "beach" context) → intent: "strong" ❌ NOT "required"
+    - "black tie wedding" → colors: Black, Ivory, Gold (INFERRED from "black tie" context, NOT explicitly mentioned) → intent: "strong" ❌ NOT "required" (user did NOT say "black", "ivory", or "gold")
+    - "beach vacation" → colors: White, Yellow, Coral (INFERRED from "beach" context, NOT explicitly mentioned) → intent: "strong" ❌ NOT "required" (user did NOT say these colors)
+    - "dress for winter" → colors: Burgundy, Navy, Plum (INFERRED from "winter" context, NOT explicitly mentioned) → intent: "strong" ❌ NOT "required" (user did NOT say these colors)
+    - "black tie wedding" → styles: Elegant, Formal (INFERRED from "black tie" context, NOT explicitly mentioned) → intent: "strong" ❌ NOT "required"
+    - "black tie wedding" → sleeveLengths: Long (INFERRED from formal context, NOT explicitly mentioned) → intent: "strong" ❌ NOT "required"
+    - "dress for winter" → seasons: Winter (EXPLICITLY mentioned "winter") → intent: "required" ✅
+    - "dress for winter" → sleeveLengths: Long (INFERRED from "winter" context - winter typically needs long sleeves for warmth, NOT explicitly mentioned) → intent: "strong" ❌ NOT "required" - **YOU MUST EXTRACT THIS**
+    - "dress for winter" → materials: Wool, Cashmere (INFERRED from "winter" context - winter typically needs warm materials, NOT explicitly mentioned) → intent: "strong" ❌ NOT "required" - **YOU MUST EXTRACT THIS**
+    - "something cozy and warm for cold weather" → materials: Wool, Cashmere (INFERRED from "cozy/warm" context - cozy/warm typically means wool/cashmere, NOT explicitly mentioned) → intent: "strong" ❌ NOT "required" - **YOU MUST EXTRACT THIS**
+    - "something cozy and warm for cold weather" → sleeveLengths: Long (INFERRED from "cold weather" context - cold weather typically needs long sleeves, NOT explicitly mentioned) → intent: "strong" ❌ NOT "required" - **YOU MUST EXTRACT THIS**
+    - "beach vacation" → occasions: Beach (EXPLICITLY mentioned "beach") → intent: "required" ✅
+    - "beach vacation" → colors: Light, Bright (INFERRED from "beach" context, NOT explicitly mentioned) → intent: "strong" ❌ NOT "required" (user did NOT say "light" or "bright")
   - **Exception**: Only use "required" for inferred constraints if you are 95%+ confident (e.g., "black tie" ALWAYS requires formal dress code, but even then, colors/styles are still preferences, not requirements)
+  - **NO EXCEPTION FOR COLORS**: Colors are NEVER "required" if they are inferred - they are ALWAYS "strong" when inferred
 
 - **Examples:**
   - "floral dress" → patterns: { values: ["Floral"], intent: "required" } ✅ (explicit mention)
   - "something for the beach, floral" → patterns: { values: ["Floral"], intent: "required" } ✅ (explicit mention)
+  - "red dress" → colors: { values: ["Red"], intent: "required" } ✅ (explicit mention - user said "red")
+  - "blue maxi dress" → colors: { values: ["Blue"], intent: "required" } ✅ (explicit mention - user said "blue")
   - "attending a black tie wedding, suggest me a dress" → occasions: { values: ["Wedding"], intent: "required" } ✅ (explicitly mentioned "wedding")
-  - "attending a black tie wedding, suggest me a dress" → colors: { values: ["Black", "Ivory", "Gold"], intent: "strong" } ✅ (inferred from "black tie" context, NOT "required")
+  - "attending a black tie wedding, suggest me a dress" → colors: { values: ["Black", "Ivory", "Gold"], intent: "strong" } ✅ (inferred from "black tie" context, user did NOT say "black", "ivory", or "gold" - MUST be "strong", NEVER "required")
+  - "beach vacation outfit" → colors: { values: ["White", "Yellow", "Coral"], intent: "strong" } ✅ (inferred from "beach" context, user did NOT say these colors - MUST be "strong", NEVER "required")
+  - "dress for winter" → colors: { values: ["Burgundy", "Navy", "Plum"], intent: "strong" } ✅ (inferred from "winter" context, user did NOT say these colors - MUST be "strong", NEVER "required")
   - "attending a black tie wedding, suggest me a dress" → styles: { values: ["Elegant", "Formal"], intent: "strong" } ✅ (inferred from "black tie" context, NOT "required")
-  - "attending a black tie wedding, suggest me a dress" → sleeveLengths: { values: ["Long Sleeve"], intent: "strong" } ✅ (inferred from formal context, NOT "required")
+  - "attending a black tie wedding, suggest me a dress" → sleeveLengths: { values: ["Long"], intent: "strong" } ✅ (inferred from formal context, NOT "required")
   - "floral or similar" → patterns: { values: ["Floral", "Polka Dot"], intent: "strong" } ✅ (softening language)
   - "something with pattern" → patterns: { values: ["Floral", "Polka Dot", ...], intent: "preferred" } ✅ (vague)
 
@@ -520,11 +609,20 @@ Patterns:
 - "not floral" (EXCLUDED) → patterns: { values: ["Floral"], intent: "excluded" }
 
 Colors:
-- "red dress" (REQUIRED) → colors: { values: ["Red"], intent: "required" } ✅ (explicit mention)
-- "only red" (REQUIRED) → colors: { values: ["Red"], intent: "required" } ✅ (explicit mention + "only")
+- "red dress" (REQUIRED) → colors: { values: ["Red"], intent: "required" } ✅ (explicit mention - user said "red")
+- "only red" (REQUIRED) → colors: { values: ["Red"], intent: "required" } ✅ (explicit mention + "only" - user said "red")
+- "blue maxi dress" (REQUIRED) → colors: { values: ["Blue"], intent: "required" } ✅ (explicit mention - user said "blue")
+- "white cardigan" (REQUIRED) → colors: { values: ["White"], intent: "required" } ✅ (explicit mention - user said "white")
 - "red or similar" (STRONG) → colors: { values: ["Red", "Burgundy"], intent: "strong" } (softening: "or similar")
 - "maybe something red" (PREFERRED) → colors: { values: ["Red", "Burgundy", "Coral", "Pink"], intent: "preferred" } (softening: "maybe")
 - "not red" (EXCLUDED) → colors: { values: ["Red"], intent: "excluded" }
+- **INFERRED COLORS (MUST BE "strong", NEVER "required")**:
+  - "black tie wedding" → colors: { values: ["Black", "Ivory", "Gold"], intent: "strong" } ✅ (inferred from "black tie" context, user did NOT say "black", "ivory", or "gold")
+  - "beach vacation" → colors: { values: ["White", "Yellow", "Coral"], intent: "strong" } ✅ (inferred from "beach" context, user did NOT say these colors)
+  - "dress for winter" → colors: { values: ["Burgundy", "Navy", "Plum"], intent: "strong" } ✅ (inferred from "winter" context, user did NOT say these colors)
+  - "wheatish skin" → colors: { values: ["Burgundy", "Emerald", "Navy"], intent: "strong" } ✅ (inferred from skin tone context, user did NOT say these colors)
+  - "sunny day" → colors: { values: ["White", "Yellow", "Sky Blue"], intent: "strong" } ✅ (inferred from weather context, user did NOT say these colors)
+  - "indian wedding" → colors: { values: ["Red", "Gold", "Maroon"], intent: "strong" } ✅ (inferred from cultural context, user did NOT say these colors)
 
 Materials:
 - "cotton shirt" (REQUIRED) → materials: { values: ["Cotton"], intent: "required" } ✅ (explicit mention)
@@ -540,14 +638,52 @@ Occasions:
 - "something for vacation" (PREFERRED) → occasions: { values: ["Beach", "Vacation", "Resort"], intent: "preferred" } (exact + all similar)
 - "not formal" (EXCLUDED) → occasions: { values: ["Formal"], intent: "excluded" }
 
+**CRITICAL: CONTEXT-BASED OCCASION EXTRACTION - OFFICE/WORK CONTEXTS**
+You MUST extract occasions from context, not just explicit mentions. When users mention office/work contexts, ALWAYS extract "Work" occasion:
+- "i am joining office next month, suggest me a dress" → occasions: { values: ["Work"], intent: "required" } ✅ ("joining office" = Work context)
+- "starting a new job, need something to wear" → occasions: { values: ["Work"], intent: "required" } ✅ ("new job" = Work context)
+- "dress for office" → occasions: { values: ["Work"], intent: "required" } ✅ ("office" = Work context)
+- "for work" → occasions: { values: ["Work"], intent: "required" } ✅ ("work" = Work context)
+- "office attire" → occasions: { values: ["Work"], intent: "required" } ✅ ("office attire" = Work context)
+- "professional outfit" → occasions: { values: ["Work"], intent: "strong" } ✅ (inferred from "professional")
+- "business casual" → occasions: { values: ["Work"], intent: "strong" } ✅ (inferred from "business")
+
+**CRITICAL: FORMALITY LEVEL INFERENCE FOR OFFICE/WORK CONTEXTS**
+You MUST infer formalityLevel from office/work contexts, even when not explicitly mentioned. Office/work contexts imply professional formal attire. **IMPORTANT**: Map to actual dictionary values - use "Formal" for office/work contexts (NOT "Professional" or "Semi-Formal" which doesn't match office formality):
+- "i am joining office next month, suggest me a dress" → formalityLevel: { values: ["Formal"], intent: "strong" } ✅ (inferred from "office" context, mapped to "Formal" - office wear is formal professional attire)
+- "starting a new job, need something to wear" → formalityLevel: { values: ["Formal"], intent: "strong" } ✅ (inferred from "new job" context, mapped to "Formal")
+- "dress for office" → formalityLevel: { values: ["Formal"], intent: "strong" } ✅ (inferred from "office" context, mapped to "Formal")
+- "for work" → formalityLevel: { values: ["Formal"], intent: "strong" } ✅ (inferred from "work" context, mapped to "Formal")
+- "office attire" → formalityLevel: { values: ["Formal"], intent: "strong" } ✅ (inferred from "office attire" context, mapped to "Formal")
+- "professional outfit" → formalityLevel: { values: ["Formal"], intent: "strong" } ✅ (inferred from "professional" context, mapped to "Formal")
+- "business casual" → formalityLevel: { values: ["Casual"], intent: "strong" } ✅ (inferred from "business casual" context, mapped to "Casual" - explicit exception)
+- "formal office" or "black tie" → formalityLevel: { values: ["Formal"], intent: "strong" } ✅ (inferred from "formal" context, mapped to "Formal")
+- **ABSOLUTE RULE**: Office/work contexts ALWAYS imply formal professional attire - extract formalityLevel: "Formal" with "strong" intent when office/work is mentioned, even if the user doesn't explicitly say "professional" or "formal"
+- **CRITICAL**: Only use dictionary values: "Casual", "Semi-Formal", "Formal" - do NOT use "Professional" or other non-dictionary values
+
+**CRITICAL: OCCASION CONTEXT MAPPING**
+Map common phrases to occasion values:
+- "office", "joining office", "starting work", "new job", "workplace", "business" → occasions: ["Work"]
+- "wedding", "attending wedding", "bride", "bridal" → occasions: ["Wedding"]
+- "beach", "vacation", "resort", "tropical" → occasions: ["Beach", "Vacation"]
+- "party", "night out", "date night" → occasions: ["Party", "Date Night"]
+- "gym", "workout", "athletic", "exercise" → occasions: ["Gym", "Athletic"]
+- "casual", "everyday", "daytime" → occasions: ["Casual", "Daytime"]
+- "formal", "black tie", "gala" → occasions: ["Formal"]
+
 **CRITICAL: INFERRED CONSTRAINTS FROM OCCASIONS/CONTEXT:**
 - "attending a black tie wedding, suggest me a dress" → 
   - occasions: { values: ["Wedding"], intent: "required" } ✅ (explicitly mentioned "wedding")
+  - formalityLevel: { values: ["Formal"], intent: "strong" } ✅ (inferred from "black tie" context, will be SQL filtered)
   - colors: { values: ["Black", "Ivory", "Gold"], intent: "strong" } ❌ NOT "required" (inferred from "black tie" context)
   - styles: { values: ["Elegant", "Formal"], intent: "strong" } ❌ NOT "required" (inferred from "black tie" context)
-  - sleeveLengths: { values: ["Long Sleeve"], intent: "strong" } ❌ NOT "required" (inferred from formal context)
+  - sleeveLengths: { values: ["Long"], intent: "strong" } ❌ NOT "required" (inferred from formal context)
   - embellishments: { values: ["Lace", "Sequins"], intent: "strong" } ❌ NOT "required" (inferred from formal context)
   - necklines: { values: ["V-Neck", "Round"], intent: "strong" } ❌ NOT "required" (inferred from formal context)
+- "i am joining office next month, suggest me a dress" → 
+  - occasions: { values: ["Work"], intent: "required" } ✅ (explicitly mentioned "office" = Work context)
+  - formalityLevel: { values: ["Formal"], intent: "strong" } ✅ (inferred from "office" context, will be SQL filtered)
+  - colors: { values: ["White", "Beige", "Navy Blue", "Black", "Gray"], intent: "strong" } ❌ NOT "required" (inferred from office context)
 - "beach vacation" → 
   - occasions: { values: ["Beach", "Vacation"], intent: "required" } ✅ (explicitly mentioned)
   - colors: { values: ["Light", "Bright"], intent: "strong" } ❌ NOT "required" (inferred from "beach" context)
@@ -563,10 +699,122 @@ Lengths:
 - "maxi or similar" (STRONG) → lengths: { values: ["Maxi", "Midi"], intent: "strong" } (exact + 1-2 similar)
 - "long dresses" (PREFERRED) → lengths: { values: ["Maxi", "Midi"], intent: "preferred" } (exact + all similar)
 
+SleeveLengths:
+- "long sleeve t-shirt" (REQUIRED) → sleeveLengths: { values: ["Long"], intent: "required" } ✅ (explicitly mentioned "long sleeve" → maps to "Long" in dictionary)
+- "full sleeve top" (REQUIRED) → sleeveLengths: { values: ["Long"], intent: "required" } ✅ (synonym = direct interpretation: "full sleeve" → "Long")
+- "cap sleeve dress" (REQUIRED) → sleeveLengths: { values: ["Cap"], intent: "required" } ✅ (synonym = direct interpretation: "cap sleeve" → "Cap")
+- "short sleeve dress" (REQUIRED) → sleeveLengths: { values: ["Short"], intent: "required" } ✅ (explicitly mentioned "short sleeve" → maps to "Short" in dictionary)
+- "sleeveless top" (REQUIRED) → sleeveLengths: { values: ["Sleeveless"], intent: "required" } ✅ (explicitly mentioned "sleeveless" → maps to "Sleeveless" in dictionary)
+- "dress for winter" (INFERRED) → sleeveLengths: { values: ["Long"], intent: "strong" } ❌ (inferred from "winter" context, NOT explicitly mentioned)
+- "dress for modest occasion" (INFERRED) → sleeveLengths: { values: ["Long"], intent: "strong" } ❌ (inferred from "modest" context, NOT explicitly mentioned)
+- "long sleeve or similar" (STRONG) → sleeveLengths: { values: ["Long", "Three-Quarter"], intent: "strong" } (softening: "or similar")
+- "maybe something with sleeves" (PREFERRED) → sleeveLengths: { values: ["Long", "Short", "Three-Quarter"], intent: "preferred" } (vague: "maybe something with")
+
+Lengths:
+- "maxi dress" (REQUIRED) → lengths: { values: ["Maxi"], intent: "required" } ✅ (explicitly mentioned "maxi")
+- "ankle-length dress" (REQUIRED) → lengths: { values: ["Maxi"], intent: "required" } ✅ (synonym = direct interpretation)
+- "knee-length skirt" (REQUIRED) → lengths: { values: ["Midi"], intent: "required" } ✅ (synonym = direct interpretation)
+- "mini dress" (REQUIRED) → lengths: { values: ["Mini"], intent: "required" } ✅ (explicitly mentioned "mini")
+- "dress for formal event" (INFERRED) → lengths: { values: ["Maxi", "Midi"], intent: "strong" } ❌ (inferred from "formal" context, NOT explicitly mentioned)
+- "dress for modest occasion" (INFERRED) → lengths: { values: ["Maxi", "Midi"], intent: "strong" } ❌ (inferred from "modest" context, NOT explicitly mentioned)
+- "maxi or similar" (STRONG) → lengths: { values: ["Maxi", "Midi"], intent: "strong" } (softening: "or similar")
+- "long dresses" (PREFERRED) → lengths: { values: ["Maxi", "Midi"], intent: "preferred" } (vague: "long" could mean multiple lengths)
+
+Colors:
+- "blue dress" (REQUIRED) → colors: { values: ["Blue"], intent: "required" } ✅ (explicitly mentioned "blue")
+- "navy dress" (REQUIRED) → colors: { values: ["Navy Blue"], intent: "required" } ✅ (synonym = direct interpretation: "navy" → "Navy Blue")
+- "navy blue dress" (REQUIRED) → colors: { values: ["Navy Blue"], intent: "required" } ✅ (TWO WORDS "navy blue" → MUST use "Navy Blue", NOT "Blue" or "Navy")
+- "navy blue maxi dresses" (REQUIRED) → colors: { values: ["Navy Blue"], intent: "required" } ✅ (TWO WORDS "navy blue" → MUST use "Navy Blue", NOT "Blue")
+- "burgundy top" (REQUIRED) → colors: { values: ["Burgundy"], intent: "required" } ✅ (explicitly mentioned "burgundy" → MUST use "Burgundy")
+- "burgundy dresses please" (REQUIRED) → colors: { values: ["Burgundy"], intent: "required" } ✅ (explicitly mentioned "burgundy" → MUST use "Burgundy")
+- "red shirt" (REQUIRED) → colors: { values: ["Red"], intent: "required" } ✅ (explicitly mentioned "red")
+- "dress for beach" (INFERRED) → colors: { values: ["White", "Yellow", "Coral"], intent: "strong" } ❌ (inferred from "beach" context, NOT explicitly mentioned)
+- "dress for winter" (INFERRED) → colors: { values: ["Navy", "Burgundy", "Black"], intent: "strong" } ❌ (inferred from "winter" context, NOT explicitly mentioned)
+- "blue or similar" (STRONG) → colors: { values: ["Blue", "Navy Blue"], intent: "strong" } (softening: "or similar")
+- "maybe something red" (PREFERRED) → colors: { values: ["Red", "Burgundy", "Coral", "Pink"], intent: "preferred" } (softening: "maybe")
+
+Materials:
+- "cotton shirt" (REQUIRED) → materials: { values: ["Cotton"], intent: "required" } ✅ (explicitly mentioned "cotton")
+- "cotton blend top" (REQUIRED) → materials: { values: ["Cotton"], intent: "required" } ✅ (synonym = direct interpretation)
+- "silk dress" (REQUIRED) → materials: { values: ["Silk"], intent: "required" } ✅ (explicitly mentioned "silk")
+- "dress for beach" (INFERRED) → materials: { values: ["Cotton", "Linen"], intent: "strong" } ❌ (inferred from "beach" context, NOT explicitly mentioned)
+- "dress for winter" (INFERRED) → materials: { values: ["Wool", "Cashmere"], intent: "strong" } ❌ (inferred from "winter" context, NOT explicitly mentioned)
+- "cotton or similar" (STRONG) → materials: { values: ["Cotton", "Linen"], intent: "strong" } (softening: "or similar")
+- "something breathable" (PREFERRED) → materials: { values: ["Cotton", "Linen", "Modal"], intent: "preferred" } (vague: indirect mention)
+
+Necklines:
+- "v-neck dress" (REQUIRED) → necklines: { values: ["V-Neck"], intent: "required" } ✅ (explicitly mentioned "v-neck")
+- "I need a scoop neck blouse" (REQUIRED) → necklines: { values: ["Scoop"], intent: "required" } ✅ (synonym = direct interpretation: "scoop neck" → "Scoop", NOT necklines: ["Scoop"])
+- "scoop neck blouse" (REQUIRED) → necklines: { values: ["Scoop"], intent: "required" } ✅ (synonym = direct interpretation: "scoop neck" → "Scoop")
+- "show me round neck tops" (REQUIRED) → necklines: { values: ["Round"], intent: "required" } ✅ (synonym = direct interpretation: "round neck" → "Round")
+- "round neck top" (REQUIRED) → necklines: { values: ["Round"], intent: "required" } ✅ (synonym = direct interpretation: "round neck" → "Round")
+- "boat neck top" (REQUIRED) → necklines: { values: ["Boat"], intent: "required" } ✅ (synonym = direct interpretation)
+- "off-shoulder top" (REQUIRED) → necklines: { values: ["Off-Shoulder"], intent: "required" } ✅ (explicitly mentioned "off-shoulder")
+- "dress for modest occasion" (INFERRED) → necklines: { values: ["High Neck", "Round"], intent: "strong" } ❌ (inferred from "modest" context, NOT explicitly mentioned)
+- "dress for formal event" (INFERRED) → necklines: { values: ["V-Neck", "Round"], intent: "strong" } ❌ (inferred from "formal" context, NOT explicitly mentioned)
+- "v-neck or similar" (STRONG) → necklines: { values: ["V-Neck", "Round"], intent: "strong" } (softening: "or similar")
+
+Styles:
+- "a-line dress" (REQUIRED) → styles: { values: ["A-Line"], intent: "required" } ✅ (explicitly mentioned "a-line")
+- "empire waist dresses" (REQUIRED) → styles: { values: ["Empire"], intent: "required" } ✅ (synonym = direct interpretation: "empire waist" → "Empire")
+- "fit and flare style dresses" (REQUIRED) → styles: { values: ["Fit and Flare"], intent: "required" } ✅ (synonym = direct interpretation, NOT styles: ["Fit and Flare"])
+- "wrap dress" (REQUIRED) → styles: { values: ["Wrap"], intent: "required" } ✅ (explicitly mentioned "wrap")
+- "dress for beach" (INFERRED) → styles: { values: ["Bohemian", "Casual"], intent: "strong" } ❌ (inferred from "beach" context, NOT explicitly mentioned)
+- "dress for wedding" (INFERRED) → styles: { values: ["Romantic", "Elegant"], intent: "strong" } ❌ (inferred from "wedding" context, NOT explicitly mentioned)
+- "a-line or similar" (STRONG) → styles: { values: ["A-Line", "Fit and Flare"], intent: "strong" } (softening: "or similar")
+
+Fits:
+- "slim fit jeans" (REQUIRED) → fits: { values: ["Slim Fit"], intent: "required" } ✅ (explicitly mentioned "slim fit")
+- "skinny jeans" (REQUIRED) → fits: { values: ["Skinny"], intent: "required" } ✅ (synonym = direct interpretation)
+- "relaxed fit pants" (REQUIRED) → fits: { values: ["Relaxed Fit"], intent: "required" } ✅ (explicitly mentioned "relaxed fit")
+- "comfortable pants" (INFERRED) → fits: { values: ["Relaxed Fit", "Loose Fit"], intent: "strong" } ❌ (inferred from "comfortable" context, NOT explicitly mentioned)
+- "slim fit or similar" (STRONG) → fits: { values: ["Slim Fit", "Fitted"], intent: "strong" } (softening: "or similar")
+
+Rises:
+- "high-rise jeans" (REQUIRED) → rises: { values: ["High Rise"], intent: "required" } ✅ (explicitly mentioned "high-rise")
+- "high-waisted pants" (REQUIRED) → rises: { values: ["High Rise"], intent: "required" } ✅ (synonym = direct interpretation)
+- "mid-rise jeans" (REQUIRED) → rises: { values: ["Mid Rise"], intent: "required" } ✅ (explicitly mentioned "mid-rise")
+- "comfortable jeans" (INFERRED) → rises: { values: ["Mid Rise", "High Rise"], intent: "strong" } ❌ (inferred from "comfortable" context, NOT explicitly mentioned)
+- "high-rise or similar" (STRONG) → rises: { values: ["High Rise", "Mid Rise"], intent: "strong" } (softening: "or similar")
+
 FormalityLevel:
-- "only formal" (REQUIRED) → formalityLevel: { values: ["Formal"], intent: "required" } (exact match only)
-- "formal or similar" (STRONG) → formalityLevel: { values: ["Formal", "Semi-Formal"], intent: "strong" } (exact + 1-2 similar)
-- "something formal" (PREFERRED) → formalityLevel: { values: ["Formal", "Semi-Formal"], intent: "preferred" } (exact + all similar)
+- "formal dress" (REQUIRED) → formalityLevel: { values: ["Formal"], intent: "required" } ✅ (explicitly mentioned "formal")
+- "casual outfit" (REQUIRED) → formalityLevel: { values: ["Casual"], intent: "required" } ✅ (synonym = direct interpretation)
+- "semi-formal dress" (REQUIRED) → formalityLevel: { values: ["Semi-Formal"], intent: "required" } ✅ (explicitly mentioned "semi-formal")
+- "dress for office" (INFERRED) → formalityLevel: { values: ["Professional", "Semi-Formal"], intent: "strong" } ❌ (inferred from "office" context, NOT explicitly mentioned)
+- "dress for wedding" (INFERRED) → formalityLevel: { values: ["Formal", "Semi-Formal"], intent: "strong" } ❌ (inferred from "wedding" context, NOT explicitly mentioned)
+- "formal or similar" (STRONG) → formalityLevel: { values: ["Formal", "Semi-Formal"], intent: "strong" } (softening: "or similar")
+
+Seasons:
+- "summer dress" (REQUIRED) → seasons: { values: ["Summer"], intent: "required" } ✅ (explicitly mentioned "summer")
+- "winter coat" (REQUIRED) → seasons: { values: ["Winter"], intent: "required" } ✅ (synonym = direct interpretation)
+- "spring collection" (REQUIRED) → seasons: { values: ["Spring"], intent: "required" } ✅ (explicitly mentioned "spring")
+- "dress for beach" (INFERRED) → seasons: { values: ["Summer"], intent: "strong" } ❌ (inferred from "beach" context, NOT explicitly mentioned)
+- "dress for cold weather" (INFERRED) → seasons: { values: ["Winter", "Fall"], intent: "strong" } ❌ (inferred from "cold weather" context, NOT explicitly mentioned)
+- "summer or similar" (STRONG) → seasons: { values: ["Summer", "Spring"], intent: "strong" } (softening: "or similar")
+
+Embellishments:
+- "lace dress" (REQUIRED) → embellishments: { values: ["Lace"], intent: "required" } ✅ (explicitly mentioned "lace")
+- "sequined top" (REQUIRED) → embellishments: { values: ["Sequins"], intent: "required" } ✅ (explicitly mentioned "sequined")
+- "dress for wedding" (INFERRED) → embellishments: { values: ["Lace", "Embroidery", "Beading"], intent: "strong" } ❌ (inferred from "wedding" context, NOT explicitly mentioned)
+- "lace or similar" (STRONG) → embellishments: { values: ["Lace", "Embroidery"], intent: "strong" } (softening: "or similar")
+
+Collections:
+- "spring collection" (REQUIRED) → collections: { values: ["Spring Collection"], intent: "required" } ✅ (explicitly mentioned "spring collection")
+- "wedding collection" (REQUIRED) → collections: { values: ["Wedding Collection"], intent: "required" } ✅ (explicitly mentioned "wedding collection")
+- "dress for spring" (INFERRED) → collections: { values: ["Spring Collection"], intent: "strong" } ❌ (inferred from "spring" context, but "spring" as season is "required")
+- "spring collection or similar" (STRONG) → collections: { values: ["Spring Collection", "Summer Collection"], intent: "strong" } (softening: "or similar")
+
+**CRITICAL: CONTEXT-BASED INFERENCE EXAMPLES (Strong/Preferred Intent):**
+- "dress for winter" → materials: { values: ["Wool", "Cashmere"], intent: "strong" } ❌ (inferred from "winter" context, NOT explicitly mentioned)
+- "dress for winter" → colors: { values: ["Navy", "Burgundy", "Black"], intent: "strong" } ❌ (inferred from "winter" context, NOT explicitly mentioned)
+- "dress for winter" → seasons: { values: ["Winter"], intent: "required" } ✅ (explicitly mentioned "winter")
+- "dress for modest occasion" → necklines: { values: ["High Neck", "Round"], intent: "strong" } ❌ (inferred from "modest" context, NOT explicitly mentioned)
+- "dress for modest occasion" → sleeveLengths: { values: ["Long"], intent: "strong" } ❌ (inferred from "modest" context, NOT explicitly mentioned)
+- "dress for modest occasion" → lengths: { values: ["Maxi", "Midi"], intent: "strong" } ❌ (inferred from "modest" context, NOT explicitly mentioned)
+- "dress for beach" → colors: { values: ["White", "Yellow", "Coral"], intent: "strong" } ❌ (inferred from "beach" context, NOT explicitly mentioned)
+- "dress for beach" → materials: { values: ["Cotton", "Linen"], intent: "strong" } ❌ (inferred from "beach" context, NOT explicitly mentioned)
+- "dress for beach" → occasions: { values: ["Beach"], intent: "required" } ✅ (explicitly mentioned "beach")
 
 **CRITICAL MATCHING RULES:**
 1. **Exact Match First**: Always check if the user's term exists exactly in the dictionary (case-insensitive)
@@ -589,13 +837,47 @@ Seasons: ${LOVESHACKFANCY_ONTOLOGY.seasons.join(', ')}
 Fits: ${LOVESHACKFANCY_ONTOLOGY.fits.join(', ')}
 Embellishments: ${LOVESHACKFANCY_ONTOLOGY.embellishments.join(', ')}
 
-**CRITICAL: SYNONYM NORMALIZATION**
-You MUST normalize user queries to standard ontology terms. Common synonyms:
-- **Sleeve synonyms**: "full sleeves" / "full sleeve" / "full" → "Long Sleeve" (full = long in fashion terminology)
-- **Length synonyms**: "knee-length" → "Midi", "ankle-length" → "Maxi", "above knee" → "Mini"
-- **Color synonyms**: Use dictionary matching (e.g., "navy" → "Navy Blue" if in dictionary)
-- **Material synonyms**: "cotton blend" → "Cotton" if "Cotton" is in dictionary, "silk blend" → "Silk" if "Silk" is in dictionary
-Always map user terms to the closest matching ontology value. If multiple synonyms exist, prefer the most common/standard term.
+**CRITICAL: FLEXIBLE MATCHING AND SYNONYM NORMALIZATION = DIRECT INTERPRETATION (REQUIRED INTENT)**
+
+**ABSOLUTE RULE**: When a user uses ANY variation (synonym, typo, case variation, hyphen variation, spacing variation) that maps to a dictionary value, it is a DIRECT interpretation and MUST be marked as "required" intent, NOT "strong" or "preferred".
+
+**FLEXIBLE MATCHING PRINCIPLES (APPLIES TO ALL CONSTRAINTS AND ALL DICTIONARY VALUES)**:
+
+1. **CASE-INSENSITIVE MATCHING**: Dictionary matching is ALWAYS case-insensitive. "aline" = "A-Line", "aline" = "Aline", "ALINE" = "A-Line", "empire" = "Empire", "V-NECK" = "V-Neck", etc.
+
+2. **HYPHEN/SPACING VARIATIONS**: Ignore hyphens, spaces, and punctuation when matching. "a-line" = "A-Line", "a line" = "A-Line", "aline" = "A-Line", "v-neck" = "V-Neck", "v neck" = "V-Neck", "vneck" = "V-Neck", "three-quarter" = "Three-Quarter", "three quarter" = "Three-Quarter", "threequarter" = "Three-Quarter", etc.
+
+3. **TYPO TOLERANCE**: Be accommodating with common typos and misspellings. If a user term is "close enough" to a dictionary value (e.g., 80%+ character similarity, same root words), map it. Examples: "empire waist" → "Empire", "empire waste" → "Empire" (typo), "fit and flare" → "Fit and Flare", "fit n flare" → "Fit and Flare" (abbreviation), etc.
+
+4. **SYNONYM RECOGNITION**: Recognize common fashion synonyms and alternative terminology. This includes:
+   - Style synonyms: "empire waist" → "Empire", "a-line" / "aline" / "a line" → "A-Line", "fit and flare" / "fit n flare" → "Fit and Flare"
+   - Sleeve synonyms: "full sleeve" / "full sleeves" → "Long", "cap sleeve" / "cap sleeves" → "Cap", "three-quarter" / "3/4" / "three quarter" → "Three-Quarter"
+   - Length synonyms: "knee-length" / "knee length" → "Midi", "ankle-length" / "ankle length" → "Maxi", "above knee" → "Mini"
+   - Color synonyms: "navy" → "Navy Blue", "burgundy" → "Burgundy", etc. (match to closest dictionary value)
+   - Material synonyms: "cotton blend" → "Cotton", "silk blend" → "Silk", etc.
+   - Neckline synonyms: "round neck" → "Round", "boat neck" → "Boat", "scoop neck" → "Scoop", "v-neck" / "v neck" / "vneck" → "V-Neck"
+   - Fit synonyms: "slim fit" → "Slim Fit", "relaxed fit" → "Relaxed Fit", "skinny" → "Skinny"
+   - Rise synonyms: "high-waisted" / "high waist" → "High Rise", "mid-rise" / "medium rise" → "Mid Rise"
+   - Formality synonyms: "casual" → "Casual", "formal" → "Formal", "semi-formal" / "semi formal" → "Semi-Formal"
+   - Season synonyms: "winter" → "Winter", "summer" → "Summer", "spring" → "Spring", "fall" / "autumn" → "Fall"
+
+5. **FUZZY MATCHING LOGIC**: When exact match fails, use semantic similarity:
+   - Check if user term contains key words from dictionary value (e.g., "aline" contains "line" → matches "A-Line")
+   - Check if dictionary value contains key words from user term (e.g., "A-Line" contains "line" → matches "aline")
+   - Check for common abbreviations and variations (e.g., "3/4" → "Three-Quarter", "v-neck" → "V-Neck")
+   - If user term is 80%+ similar to a dictionary value (after normalization), consider it a match
+
+6. **NORMALIZATION STEPS**: Before matching, normalize both user term and dictionary values:
+   - Convert to lowercase
+   - Remove hyphens, spaces, punctuation
+   - Remove common suffixes/prefixes if needed
+   - Compare normalized forms
+
+7. **APPLIES UNIVERSALLY**: These flexible matching rules apply to ALL constraint types (colors, materials, occasions, styles, patterns, lengths, sleeveLengths, necklines, fits, rises, formalityLevel, seasons, sizes, embellishments, collections, etc.) and ALL dictionary values.
+
+**CRITICAL**: If you can reasonably map a user term to a dictionary value using ANY of the above methods (case-insensitive, hyphen variation, typo tolerance, synonym recognition, fuzzy matching), extract it as a DIRECT interpretation with "required" intent. Be ACCOMMODATING and FLEXIBLE - err on the side of matching rather than missing constraints.
+
+Always map user terms to the closest matching dictionary value. If multiple matches exist, prefer the most common/standard term from the dictionary.
 
 QUERY TYPES:
 1. direct_product_search: User mentions specific product types WITHOUT occasion context (e.g., "mini dress", "maxi dress", "blouse", "top", "bedding", "decor items", "tabletop", "towels")
@@ -623,6 +905,17 @@ CONSTRAINT EXTRACTION RULES:
 - Extract pattern/material constraints (e.g., "floral" → patterns: ["Floral"], "cotton" → materials: ["Cotton"])
 - Extract color constraints (e.g., "white" → colors: ["White"])
 - **CRITICAL: COMPREHENSIVE CONTEXT-AWARE CONSTRAINT EXTRACTION** - You MUST extract ALL possible constraints from context, not just explicit mentions. Think like a stylist who understands cultural sensitivity, appropriateness, and what works for different contexts. Extract constraints that would help find the most appropriate products.
+
+  **CRITICAL: OCCASION EXTRACTION FROM CONTEXT**
+  You MUST extract occasions from context clues, not just explicit mentions. Examples:
+  - "i am joining office next month, suggest me a dress" → occasions: { values: ["Work"], intent: "required" } ✅
+  - "starting a new job, need something professional" → occasions: { values: ["Work"], intent: "required" } ✅
+  - "dress for my first day at work" → occasions: { values: ["Work"], intent: "required" } ✅
+  - "attending a wedding" → occasions: { values: ["Wedding"], intent: "required" } ✅
+  - "beach vacation outfit" → occasions: { values: ["Beach", "Vacation"], intent: "required" } ✅
+  - "gym clothes" → occasions: { values: ["Gym", "Athletic"], intent: "required" } ✅
+  
+  When you see context words like "office", "work", "job", "workplace", "business", "professional", "joining office", "starting work", "new job" → ALWAYS extract occasions: { values: ["Work"], intent: "required" }
 
   **EXTRACTION PRINCIPLES - Think Like a Stylist:**
   
@@ -679,7 +972,22 @@ CONSTRAINT EXTRACTION RULES:
       * "red, maroon, or brown" → colors: ["Red", "Maroon", "Brown"]
       * "cherry also works" (in follow-up) → colors: ["Cherry"] (will be merged with previous colors)
       * "red or similar coloured" → colors: ["Red"] (don't expand)
-- **MANDATORY COLOR INFERENCE** - You MUST ALWAYS extract colors from context, even when not explicitly mentioned. Every query has contextual clues (location, occasion, season, time, culture, weather, etc.) that suggest appropriate colors. Color extraction is REQUIRED - use your understanding of color psychology, cultural meanings, and appropriateness to infer colors for EVERY query. If context is vague, infer versatile/appropriate colors. Never return colors as null unless explicitly excluded by the user:
+- **MANDATORY COLOR INFERENCE** - You MUST ALWAYS extract colors from context, even when not explicitly mentioned. Every query has contextual clues (location, occasion, season, time, culture, weather, etc.) that suggest appropriate colors. Color extraction is REQUIRED - use your understanding of color psychology, cultural meanings, and appropriateness to infer colors for EVERY query. If context is vague, infer versatile/appropriate colors. Never return colors as null unless explicitly excluded by the user.
+
+  **CRITICAL COLOR INTENT RULE - ABSOLUTE REQUIREMENT**:
+  - **EXPLICITLY MENTIONED COLORS** (user directly says the color word): MUST be "required" intent
+    - Examples: "red dress" → colors: { values: ["Red"], intent: "required" } ✅
+    - Examples: "blue maxi dress" → colors: { values: ["Blue"], intent: "required" } ✅
+    - Examples: "white cardigan" → colors: { values: ["White"], intent: "required" } ✅
+  - **INFERRED COLORS** (colors extracted from context but NOT explicitly mentioned): MUST be "strong" intent, NEVER "required"
+    - Examples: "black tie wedding" → colors: { values: ["Black", "Ivory", "Gold"], intent: "strong" } ✅ (inferred from "black tie" context, NOT explicitly mentioned)
+    - Examples: "beach vacation" → colors: { values: ["White", "Yellow", "Coral"], intent: "strong" } ✅ (inferred from "beach" context, NOT explicitly mentioned)
+    - Examples: "dress for winter" → colors: { values: ["Burgundy", "Navy", "Plum"], intent: "strong" } ✅ (inferred from "winter" context, NOT explicitly mentioned)
+    - Examples: "wheatish skin" → colors: { values: ["Burgundy", "Emerald", "Navy"], intent: "strong" } ✅ (inferred from skin tone context, NOT explicitly mentioned)
+  - **ABSOLUTE RULE**: If the user did NOT explicitly say the color word(s) in their query, the color is INFERRED and MUST use "strong" intent, NOT "required"
+  - **ABSOLUTE RULE**: Only colors that appear as actual words in the user's query text can be "required"
+  - **ABSOLUTE RULE**: Colors inferred from context (location, occasion, season, skin tone, culture, weather, etc.) are ALWAYS "strong", NEVER "required"
+  - **VERIFICATION CHECK**: Before marking a color as "required", ask yourself: "Did the user explicitly say this color word in their query?" If NO → use "strong" intent
   - **Skin tone/complexion context**:
     - "wheatish", "wheatish skin", "wheatish complexion" → infer warm earth tones and jewel tones: ["Burgundy", "Emerald", "Navy", "Coral", "Peach", "Olive", "Sage", "Rust", "Terracotta", "Gold"]
     - "fair skin", "fair complexion", "pale skin" → infer pastels and soft colors: ["Blush", "Lavender", "Mint", "Peach", "Baby Blue", "Lemon", "Pink", "Sky Blue", "Ivory", "Cream"]
@@ -779,13 +1087,13 @@ CONSTRAINT EXTRACTION RULES:
     - Explicit mentions override inferred necklines
 - **CRITICAL: INTELLIGENT SLEEVE LENGTHS INFERENCE** - You MUST infer sleeve lengths from context even when not explicitly mentioned:
   - **Modesty requirements**:
-    - "modest", "conservative", "muslim wedding", "islamic wedding" → prefer sleeveLengths: ["Long Sleeve", "Three-Quarter Sleeve"], avoid sleeveLengths: ["Sleeveless", "Cap Sleeve"]
-    - "revealing", "sleeveless" → prefer sleeveLengths: ["Sleeveless", "Cap Sleeve"]
+    - "modest", "conservative", "muslim wedding", "islamic wedding" → prefer sleeveLengths: ["Long", "Three-Quarter"], avoid sleeveLengths: ["Sleeveless", "Cap"]
+    - "revealing", "sleeveless" → prefer sleeveLengths: ["Sleeveless", "Cap"]
   - **Occasion formality**:
-    - "formal", "formal event", "black tie" → prefer sleeveLengths: ["Long Sleeve", "Three-Quarter Sleeve"], casual → can be any
+    - "formal", "formal event", "black tie" → prefer sleeveLengths: ["Long", "Three-Quarter"], casual → can be any
   - **Weather/season**:
-    - "cold", "winter", "fall" → prefer sleeveLengths: ["Long Sleeve", "Three-Quarter Sleeve"]
-    - "hot", "summer", "beach" → prefer sleeveLengths: ["Sleeveless", "Short Sleeve", "Cap Sleeve"]
+    - "cold", "winter", "fall" → prefer sleeveLengths: ["Long", "Three-Quarter"]
+    - "hot", "summer", "beach" → prefer sleeveLengths: ["Sleeveless", "Short", "Cap"]
   - **IMPORTANT**: Infer sleeve lengths based on modesty, occasion formality, and weather/season. Map inferred sleeve lengths to the closest ontology terms. Explicit mentions override inferred sleeve lengths.
 - **INTELLIGENT PATTERNS INFERENCE** - Infer patterns from context when it makes sense. "Beach/vacation" might suggest Floral/Tropical patterns. "Wedding" might suggest Floral/Romantic. "Summer" might suggest Floral/Bright patterns. Think about what patterns would be appropriate for the context and extract from dictionary.
 - **CRITICAL: INTELLIGENT EMBELLISHMENTS INFERENCE** - You MUST infer embellishments from context even when not explicitly mentioned:
@@ -953,25 +1261,28 @@ PRICE EXTRACTION:
 - Always extract price in CENTS (multiply dollars by 100)
 
 OUTPUT JSON:
+**CRITICAL FORMAT RULE**: For ALL directly interpretable constraints (including synonyms), you MUST use INTENT FORMAT, NOT plain arrays.
+
+**INTENT FORMAT (REQUIRED for directly interpretable constraints)**:
 {
   "type": "direct_product_search" | "occasion_based" | "style_exploration" | "fit_and_size" | "gift_or_vague" | "unrelated",
   "constraints": {
-    "styles": string[] | null,
-    "lengths": string[] | null,
-    "occasions": string[] | null,
-    "seasons": string[] | null,
-    "materials": string[] | null,
-    "patterns": string[] | null,
-    "colors": string[] | null,
-    "sizes": string[] | null,
-    "fits": string[] | null,
-    "collections": string[] | null,
+    "styles": { "values": ["A-Line"], "intent": "required" } | null,  // ✅ Use intent format for direct interpretation
+    "necklines": { "values": ["V-Neck"], "intent": "required" } | null,  // ✅ Use intent format for direct interpretation
+    "sleeveLengths": { "values": ["Long"], "intent": "required" } | null,  // ✅ Use intent format for direct interpretation
+    "lengths": { "values": ["Maxi"], "intent": "required" } | null,  // ✅ Use intent format for direct interpretation
+    "occasions": { "values": ["Wedding"], "intent": "required" } | null,  // ✅ Use intent format for direct interpretation
+    "seasons": { "values": ["Summer"], "intent": "required" } | null,  // ✅ Use intent format for direct interpretation
+    "materials": { "values": ["Cotton"], "intent": "required" } | null,  // ✅ Use intent format for direct interpretation
+    "patterns": { "values": ["Floral"], "intent": "required" } | null,  // ✅ Use intent format for direct interpretation
+    "colors": { "values": ["Blue"], "intent": "required" } | null,  // ✅ Use intent format for direct interpretation
+    "sizes": { "values": ["4"], "intent": "required" } | null,  // ✅ Use intent format for direct interpretation
+    "fits": { "values": ["Slim Fit"], "intent": "required" } | null,  // ✅ Use intent format for direct interpretation
+    "collections": { "values": ["Spring Collection"], "intent": "required" } | null,  // ✅ Use intent format for direct interpretation
     "priceMinCents": number | null,
     "priceMaxCents": number | null,
-    "embellishments": string[] | null,
-    "necklines": string[] | null,
-    "sleeveLengths": string[] | null,
-    "ageGroups": string[] | null,
+    "embellishments": { "values": ["Lace"], "intent": "required" } | null,  // ✅ Use intent format for direct interpretation
+    "ageGroups": { "values": ["Adult"], "intent": "required" } | null,  // ✅ Use intent format for direct interpretation
     "scents": string[] | null,
     "rooms": string[] | null,
     "useCases": string[] | null,
@@ -981,7 +1292,20 @@ OUTPUT JSON:
     "compatibility": string[] | null
   },
   "confidence": number (0.0-1.0)
-}`;
+}
+
+**EXAMPLES OF CORRECT INTENT FORMAT**:
+- "empire waist dresses" → styles: { "values": ["Empire"], "intent": "required" } ✅ (synonym = direct interpretation: "empire waist" → "Empire")
+- "scoop neck blouse" → necklines: { "values": ["Scoop"], "intent": "required" } ✅ (NOT necklines: ["Scoop"])
+- "fit and flare style dresses" → styles: { "values": ["Fit and Flare"], "intent": "required" } ✅ (NOT styles: ["Fit and Flare"])
+- "cap sleeve dress" → sleeveLengths: { "values": ["Cap"], "intent": "required" } ✅ (synonym = direct interpretation: "cap sleeve" → "Cap")
+- "full sleeve top" → sleeveLengths: { "values": ["Long"], "intent": "required" } ✅ (synonym = direct interpretation: "full sleeve" → "Long")
+
+**ABSOLUTE RULE**: 
+- ❌ NEVER return constraints as plain arrays: styles: ["A-Line"] 
+- ✅ ALWAYS return constraints in intent format: styles: { "values": ["A-Line"], "intent": "required" }
+- This applies to ALL constraint types, ALL the time, no exceptions
+`;
 }
 
 // Export constant for backward compatibility (calls function with all categories)
@@ -1006,398 +1330,267 @@ export const LOVESHACKFANCY_QUERY_CLASSIFIER_SCHEMA = {
         type: 'object',
         additionalProperties: false,
         properties: {
-          // Array constraints with intent (new format) - supports both old array format and new intent format
+          // CRITICAL: ALL constraints MUST use intent format (no array format allowed)
           colors: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } }, // Old format
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           sizes: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           occasions: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           styles: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           patterns: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           seasons: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           materials: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           fits: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           collections: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           embellishments: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           necklines: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           sleeveLengths: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           ageGroups: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           inclusivitySizing: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
-                properties: {
-                  values: { type: 'array', items: { type: 'string' } },
-                  intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
-                  similarValues: { type: ['array', 'null'], items: { type: 'string' } }
-                },
-                required: ['values', 'intent']
-              }
-            ],
+            type: ['object', 'null'],
+            properties: {
+              values: { type: 'array', items: { type: 'string' } },
+              intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
+              similarValues: { type: ['array', 'null'], items: { type: 'string' } }
+            },
+            required: ['values', 'intent'],
             description: 'Inclusivity sizing for body types. Match user body type mentions (e.g., "curvy", "curvy women", "curvy mom", "fat", "plus size", "overweight", "petite", "tall", "extended sizes") to values in the inclusivitySizing dictionary (e.g., "Plus Size", "Petite", "Tall", "Extended Sizes", "Standard Sizing"). Use semantic matching to map user terms to dictionary values. This is a HARD SQL filter (OR filter - products matching ANY value in the array).'
           },
+          setVsSingle: {
+            type: ['object', 'null'],
+            properties: {
+              values: { type: 'array', items: { type: 'string', enum: ['Set', 'Single'] } },
+              intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] }
+            },
+            required: ['values', 'intent'],
+            description: 'Product type: "Set" for pack/multi-item products (e.g., "3-pack", "bundle", "set"), "Single" for individual items. DEFAULT: Extract "Set" ONLY when user explicitly mentions pack-related terms (e.g., "pack", "bundle", "set", "multi", "pair", "3-pack", "4-pack"). If not mentioned, do NOT extract this constraint (system will default to "Single"). This is a HARD SQL filter.'
+          },
           lengths: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           formalityLevel: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           occasionContext: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           problemSolutions: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           functionFeatures: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           colorShade: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           colorUndertone: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           seasonalPalette: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           modestyCues: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           careRequirements: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           travelFeatures: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
           ecoMaterials: { 
-            oneOf: [
-              { type: ['array', 'null'], items: { type: 'string' } },
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   values: { type: 'array', items: { type: 'string' } },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] },
                   similarValues: { type: ['array', 'null'], items: { type: 'string' } }
                 },
                 required: ['values', 'intent']
-              }
-            ]
           },
-          // Price constraints with intent
+          // Price constraints with intent (REQUIRED format)
           priceMinCents: { 
-            oneOf: [
-              { type: ['integer', 'null'] }, // Old format
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   value: { type: 'integer' },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] }
                 },
                 required: ['value', 'intent']
-              }
-            ]
           },
           priceMaxCents: { 
-            oneOf: [
-              { type: ['integer', 'null'] }, // Old format
-              { 
-                type: 'object',
+            type: ['object', 'null'],
                 properties: {
                   value: { type: 'integer' },
                   intent: { type: 'string', enum: ['required', 'strong', 'preferred', 'excluded'] }
                 },
                 required: ['value', 'intent']
-              }
-            ]
           },
           // String constraints with intent
           rainWind: { 

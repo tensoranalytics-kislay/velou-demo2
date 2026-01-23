@@ -191,12 +191,41 @@ export async function rankWithConstraints(
     return { product, enrichedColumns };
   });
   
+  // Detect if we have multiple constraint types (OR logic)
+  // When OR logic is active, products match if they satisfy ANY constraint
+  // We should skip hard filtering for "required" constraints that were already filtered at SQL level
+  const constraintTypes = Object.keys(constraints).filter(
+    k => constraints[k as keyof typeof constraints] !== null && 
+         constraints[k as keyof typeof constraints] !== undefined
+  );
+  const hasMultipleConstraintTypes = constraintTypes.length > 1;
+  
+  // Helper function to check if a "required" constraint should filter out a product
+  // With OR logic, skip hard filtering for "required" constraints (products match if ANY constraint matches)
+  // With AND logic, filter out products that don't match "required" constraints
+  const shouldFilterOutForRequired = (intent: string | null | undefined, matchScore: number, wasSQLFiltered: boolean = false): boolean => {
+    if (intent !== 'required') return false; // Only applies to "required" intent
+    if (hasMultipleConstraintTypes) {
+      // OR logic: Don't filter out - products match if ANY constraint matches
+      // SQL filter already ensures products match at least one constraint
+      return false;
+    }
+    // AND logic: Filter out if doesn't match
+    return matchScore === 0;
+  };
+  
   // Filter out products that match excluded constraints OR don't match required constraints
+  // CRITICAL: With OR logic, skip hard filtering for "required" constraints that were already filtered at SQL level
+  // Products that pass SQL OR filter should be allowed through (they match at least one constraint)
   const filteredProductsWithEnriched = productsWithEnriched.filter(({ product, enrichedColumns }) => {
     const attrs = product.attributes;
     
     // Check each constraint type for excluded and required intent
     // Colors
+    // CRITICAL: If colors have "required" intent, they were already filtered at SQL level
+    // Skip hard filtering here to avoid double-filtering with stricter matching
+    // SQL uses LIKE which is flexible (e.g., "Light Pink" matches "Pink"), so products
+    // that pass SQL should already match. Only filter excluded colors.
     if (constraints.colors) {
       const intent = extractConstraintIntent(constraints.colors);
       const colorValues = extractConstraintValues(constraints.colors) || [];
@@ -205,8 +234,10 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded color
         }
-        if (intent === 'required' && matchScore === 0) {
-          return false; // Filter out - product doesn't match required color
+        // SKIP hard filtering for "required" intent when OR logic is active
+        // With OR logic, products matching other constraints should show up even if colors don't match
+        if (shouldFilterOutForRequired(intent, matchScore, true)) {
+          return false; // AND logic: filter out if doesn't match
         }
       }
     }
@@ -220,7 +251,7 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded material
         }
-        if (intent === 'required' && matchScore === 0) {
+        if (shouldFilterOutForRequired(intent, matchScore)) {
           return false; // Filter out - product doesn't match required material
         }
       }
@@ -235,13 +266,15 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded pattern
         }
-        if (intent === 'required' && matchScore === 0) {
+        if (shouldFilterOutForRequired(intent, matchScore)) {
           return false; // Filter out - product doesn't match required pattern
         }
       }
     }
     
     // Occasions
+    // CRITICAL: If occasions have "required" or "strong" intent, they were already filtered at SQL level
+    // With OR logic, skip hard filtering here to allow products matching other constraints
     if (constraints.occasions) {
       const intent = extractConstraintIntent(constraints.occasions);
       const occasionValues = extractConstraintValues(constraints.occasions) || [];
@@ -256,8 +289,13 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded occasion
         }
-        if (intent === 'required' && matchScore === 0) {
-          return false; // Filter out - product doesn't match required occasion
+        // With OR logic, skip hard filtering for "required"/"strong" intent - already filtered at SQL level
+        // Products matching other constraints (e.g., formalityLevel) should show up even if occasions don't match
+        if (intent === 'strong' && hasMultipleConstraintTypes) {
+          // OR logic: "strong" intent was SQL filtered, don't filter out here
+          // Products matching other constraints should show up
+        } else if (shouldFilterOutForRequired(intent, matchScore, true)) {
+          return false; // AND logic: filter out if doesn't match
         }
       }
     }
@@ -271,7 +309,7 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded size
         }
-        if (intent === 'required' && matchScore === 0) {
+        if (shouldFilterOutForRequired(intent, matchScore)) {
           return false; // Filter out - product doesn't match required size
         }
       }
@@ -286,7 +324,7 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded season
         }
-        if (intent === 'required' && matchScore === 0) {
+        if (shouldFilterOutForRequired(intent, matchScore)) {
           return false; // Filter out - product doesn't match required season
         }
       }
@@ -301,7 +339,7 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded fit
         }
-        if (intent === 'required' && matchScore === 0) {
+        if (shouldFilterOutForRequired(intent, matchScore)) {
           return false; // Filter out - product doesn't match required fit
         }
       }
@@ -316,7 +354,7 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded rise
         }
-        if (intent === 'required' && matchScore === 0) {
+        if (shouldFilterOutForRequired(intent, matchScore)) {
           return false; // Filter out - product doesn't match required rise
         }
       }
@@ -335,17 +373,19 @@ export async function rankWithConstraints(
           if (intent === 'excluded' && matchScore > 0) {
             return false; // Filter out - product matches excluded length
           }
-          if (intent === 'required' && matchScore === 0) {
+          if (shouldFilterOutForRequired(intent, matchScore)) {
             return false; // Filter out - product doesn't match required length
           }
-        } else if (intent === 'required') {
-          // If required and product has no length attribute, filter out
+        } else if (shouldFilterOutForRequired(intent, 0)) {
+          // If required and product has no length attribute, filter out (only with AND logic)
           return false;
         }
       }
     }
     
     // Styles (use matchStyle pattern)
+    // CRITICAL: If styles have "required" intent, they were already filtered at SQL level
+    // Skip hard filtering here to avoid double-filtering with stricter matching
     if (constraints.styles) {
       const intent = extractConstraintIntent(constraints.styles);
       const styleValues = extractConstraintValues(constraints.styles) || [];
@@ -356,13 +396,14 @@ export async function rankWithConstraints(
           category: product.category, 
           subcategory: product.subcategory || undefined,
           attributes: product.attributes 
-        });
+        }, enrichedColumns);
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded style
         }
-        if (intent === 'required' && matchScore === 0) {
-          return false; // Filter out - product doesn't match required style
-        }
+        // SKIP hard filtering for "required" intent - already filtered at SQL level
+        // if (intent === 'required' && matchScore === 0) {
+        //   return false; // Filter out - product doesn't match required style
+        // }
       }
     }
     
@@ -375,7 +416,7 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded collection
         }
-        if (intent === 'required' && matchScore === 0) {
+        if (shouldFilterOutForRequired(intent, matchScore)) {
           return false; // Filter out - product doesn't match required collection
         }
       }
@@ -394,11 +435,11 @@ export async function rankWithConstraints(
           if (intent === 'excluded' && matchScore > 0) {
             return false; // Filter out - product matches excluded neckline
           }
-          if (intent === 'required' && matchScore === 0) {
+          if (shouldFilterOutForRequired(intent, matchScore)) {
             return false; // Filter out - product doesn't match required neckline
           }
-        } else if (intent === 'required') {
-          // If required and product has no neckline attribute, filter out
+        } else if (shouldFilterOutForRequired(intent, 0)) {
+          // If required and product has no neckline attribute, filter out (only with AND logic)
           return false;
         }
       }
@@ -417,17 +458,19 @@ export async function rankWithConstraints(
           if (intent === 'excluded' && matchScore > 0) {
             return false; // Filter out - product matches excluded sleeve length
           }
-          if (intent === 'required' && matchScore === 0) {
+          if (shouldFilterOutForRequired(intent, matchScore)) {
             return false; // Filter out - product doesn't match required sleeve length
           }
-        } else if (intent === 'required') {
-          // If required and product has no sleeve length attribute, filter out
+        } else if (shouldFilterOutForRequired(intent, 0)) {
+          // If required and product has no sleeve length attribute, filter out (only with AND logic)
           return false;
         }
       }
     }
     
     // FormalityLevel
+    // CRITICAL: If formalityLevel has "required" or "strong" intent, it was already filtered at SQL level
+    // With OR logic, skip hard filtering here to allow products matching other constraints
     if (constraints.formalityLevel) {
       const intent = extractConstraintIntent(constraints.formalityLevel);
       const formalityLevelValues = extractConstraintValues(constraints.formalityLevel) || [];
@@ -441,11 +484,17 @@ export async function rankWithConstraints(
           if (intent === 'excluded' && matchScore > 0) {
             return false; // Filter out - product matches excluded formality level
           }
-          if (intent === 'required' && matchScore === 0) {
-            return false; // Filter out - product doesn't match required formality level
+          // With OR logic, skip hard filtering for "required"/"strong" intent - already filtered at SQL level
+          // Products matching other constraints (e.g., occasions) should show up even if formalityLevel doesn't match
+          if (intent === 'strong' && hasMultipleConstraintTypes) {
+            // OR logic: "strong" intent was SQL filtered, don't filter out here
+            // Products matching other constraints should show up
+          } else if (shouldFilterOutForRequired(intent, matchScore, true)) {
+            return false; // AND logic: filter out if doesn't match
           }
-        } else if (intent === 'required') {
-          // If required and product has no formality level attribute, filter out
+        } else if (shouldFilterOutForRequired(intent, 0, true)) {
+          // If required (AND logic) and product has no formality level attribute, filter out
+          // With OR logic, allow products without formalityLevel if they match other constraints
           return false;
         }
       }
@@ -460,6 +509,8 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded age group
         }
+        // AgeGroups are always required (hard filter) - don't use OR logic
+        // AgeGroups must match (no OR behavior for age groups)
         if (intent === 'required' && matchScore === 0) {
           return false; // Filter out - product doesn't match required age group
         }
@@ -479,11 +530,11 @@ export async function rankWithConstraints(
           if (intent === 'excluded' && matchScore > 0) {
             return false; // Filter out - product matches excluded color shade
           }
-          if (intent === 'required' && matchScore === 0) {
+          if (shouldFilterOutForRequired(intent, matchScore)) {
             return false; // Filter out - product doesn't match required color shade
           }
-        } else if (intent === 'required') {
-          // If required and product has no color shade attribute, filter out
+        } else if (shouldFilterOutForRequired(intent, 0)) {
+          // If required and product has no color shade attribute, filter out (only with AND logic)
           return false;
         }
       }
@@ -502,11 +553,11 @@ export async function rankWithConstraints(
           if (intent === 'excluded' && matchScore > 0) {
             return false; // Filter out - product matches excluded color undertone
           }
-          if (intent === 'required' && matchScore === 0) {
+          if (shouldFilterOutForRequired(intent, matchScore)) {
             return false; // Filter out - product doesn't match required color undertone
           }
-        } else if (intent === 'required') {
-          // If required and product has no color undertone attribute, filter out
+        } else if (shouldFilterOutForRequired(intent, 0)) {
+          // If required and product has no color undertone attribute, filter out (only with AND logic)
           return false;
         }
       }
@@ -527,7 +578,7 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded multicolor
         }
-        if (intent === 'required' && matchScore === 0) {
+        if (shouldFilterOutForRequired(intent, matchScore)) {
           return false; // Filter out - product doesn't match required multicolor
         }
       }
@@ -546,11 +597,11 @@ export async function rankWithConstraints(
           if (intent === 'excluded' && matchScore > 0) {
             return false; // Filter out - product matches excluded seasonal palette
           }
-          if (intent === 'required' && matchScore === 0) {
+          if (shouldFilterOutForRequired(intent, matchScore)) {
             return false; // Filter out - product doesn't match required seasonal palette
           }
-        } else if (intent === 'required') {
-          // If required and product has no seasonal palette attribute, filter out
+        } else if (shouldFilterOutForRequired(intent, 0)) {
+          // If required and product has no seasonal palette attribute, filter out (only with AND logic)
           return false;
         }
       }
@@ -565,7 +616,7 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded embellishments
         }
-        if (intent === 'required' && matchScore === 0) {
+        if (shouldFilterOutForRequired(intent, matchScore)) {
           return false; // Filter out - product doesn't match required embellishments
         }
       }
@@ -586,7 +637,7 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded temperature intent
         }
-        if (intent === 'required' && matchScore === 0) {
+        if (shouldFilterOutForRequired(intent, matchScore)) {
           return false; // Filter out - product doesn't match required temperature intent
         }
       }
@@ -607,7 +658,7 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded humidity friendly
         }
-        if (intent === 'required' && matchScore === 0) {
+        if (shouldFilterOutForRequired(intent, matchScore)) {
           return false; // Filter out - product doesn't match required humidity friendly
         }
       }
@@ -626,7 +677,7 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded occasion context
         }
-        if (intent === 'required' && matchScore === 0) {
+        if (shouldFilterOutForRequired(intent, matchScore)) {
           return false; // Filter out - product doesn't match required occasion context
         }
       }
@@ -645,7 +696,7 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded problem solutions
         }
-        if (intent === 'required' && matchScore === 0) {
+        if (shouldFilterOutForRequired(intent, matchScore)) {
           return false; // Filter out - product doesn't match required problem solutions
         }
       }
@@ -664,7 +715,7 @@ export async function rankWithConstraints(
         if (intent === 'excluded' && matchScore > 0) {
           return false; // Filter out - product matches excluded function features
         }
-        if (intent === 'required' && matchScore === 0) {
+        if (shouldFilterOutForRequired(intent, matchScore)) {
           return false; // Filter out - product doesn't match required function features
         }
       }
@@ -730,6 +781,7 @@ export async function rankWithConstraints(
         seasonalPalette: product.seasonalPalette ?? null,
         enrichedColor: product.enrichedColor ?? null,
         ageGroup: product.ageGroup ?? null,
+        brand: (product as any).brand ?? null, // Added for brand-based boosting
       };
       
       // Calculate constraint score (synchronous, but wrapped in Promise for parallel processing)
@@ -766,7 +818,7 @@ export async function rankWithConstraints(
   });
   
   // Sort by final score (descending), with tie-breaking by constraint score quality
-  // This ensures that products with better constraint matches rank higher
+  // Removed brand-based tie-breaking to allow natural ranking (target: ~30% LSF)
   productsWithScores.sort((a, b) => {
     if (Math.abs(a.finalScore - b.finalScore) < 0.001) {
       // Tie-break by constraint score quality (higher constraint score = better match)
@@ -1035,13 +1087,16 @@ async function performRankingWithFilters(
     // Check each constraint type for excluded and required intent
     // (Include all constraint checks here - same as main function)
     // Colors
+    // CRITICAL: If colors have "required" intent, they were already filtered at SQL level
+    // Skip hard filtering here to avoid double-filtering with stricter matching
     if (constraints.colors) {
       const intent = extractConstraintIntent(constraints.colors);
       const colorValues = extractConstraintValues(constraints.colors) || [];
       if (colorValues.length > 0) {
         const matchScore = matchColor(attrs, colorValues, enrichedColumns);
         if (intent === 'excluded' && matchScore > 0) return false;
-        if (intent === 'required' && matchScore === 0) return false;
+        // SKIP hard filtering for "required" intent - already filtered at SQL level
+        // if (intent === 'required' && matchScore === 0) return false;
       }
     }
     
@@ -1161,6 +1216,8 @@ async function performRankingWithFilters(
     }
     
     // Styles
+    // CRITICAL: If styles have "required" intent, they were already filtered at SQL level
+    // Skip hard filtering here to avoid double-filtering with stricter matching
     if (constraints.styles) {
       const intent = extractConstraintIntent(constraints.styles);
       const styleValues = extractConstraintValues(constraints.styles) || [];
@@ -1171,9 +1228,10 @@ async function performRankingWithFilters(
           category: product.category, 
           subcategory: product.subcategory || undefined,
           attributes: product.attributes 
-        });
+        }, enrichedColumns);
         if (intent === 'excluded' && matchScore > 0) return false;
-        if (intent === 'required' && matchScore === 0) return false;
+        // SKIP hard filtering for "required" intent - already filtered at SQL level
+        // if (intent === 'required' && matchScore === 0) return false;
       }
     }
     

@@ -96,6 +96,7 @@ export type ConversationContext = {
   } | null;
   lastShownProductIds?: string[];
   lastUserQuery?: string | null;
+  lastEnhancedQuery?: string | null; // CRITICAL: The enhanced query from previous result (for cumulative context building)
   datasetContext?: DatasetContext | null;
 };
 

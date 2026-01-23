@@ -1,0 +1,20 @@
+
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module '/Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/test-synonym-vs-inferred.ts' imported from /Users/k1zzle/Desktop/velou-shopping-assistant demo lsf/
+    at finalizeResolution (node:internal/modules/esm/resolve:283:11)
+    at moduleResolve (node:internal/modules/esm/resolve:952:10)
+    at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+    at nextResolve (node:internal/modules/esm/hooks:864:28)
+    at resolveBase (file:///Users/k1zzle/Desktop/velou-shopping-assistant%20demo%20lsf/node_modules/tsx/dist/esm/index.mjs?1769013345618:2:3744)
+    at async resolveDirectory (file:///Users/k1zzle/Desktop/velou-shopping-assistant%20demo%20lsf/node_modules/tsx/dist/esm/index.mjs?1769013345618:2:4237)
+    at async resolve (file:///Users/k1zzle/Desktop/velou-shopping-assistant%20demo%20lsf/node_modules/tsx/dist/esm/index.mjs?1769013345618:2:5355)
+    at async nextResolve (node:internal/modules/esm/hooks:864:22)
+    at async Hooks.resolve (node:internal/modules/esm/hooks:306:24)
+    at async handleMessage (node:internal/modules/esm/worker:196:18) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///Users/k1zzle/Desktop/velou-shopping-assistant%20demo%20lsf/test-synonym-vs-inferred.ts'
+}
+
+Node.js v20.19.0

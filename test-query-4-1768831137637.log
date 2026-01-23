@@ -1,0 +1,33 @@
+{
+  "query": "I have dr.martens high top chelsea shoes, suggest me a dress that goes well with it",
+  "sessionId": "test-session-4-1768831137637",
+  "timestamp": "2026-01-19T13:59:17.024Z",
+  "duration": 19387,
+  "results": {
+    "productCount": 4,
+    "hasReply": true,
+    "replyPreview": "Your Dr. Martens high top Chelsea shoes inspire a dress that balances edge with elegance, pairing well with rich tones and sleek silhouettes. A dress that feels both confident and effortlessly chic will complement the bold spirit of those boots beautifully.\n\nThese options offer dark hues and flattering fits perfect for evening or special occasions, enhancing your shoes’ statement with subtle sparkle and tailored shapes. Each dress brings a unique charm that pairs the strength of your boots with ",
+    "products": [
+      {
+        "id": "200540000",
+        "title": "Black Diamante Bodycon Midi Dress",
+        "priceCents": 8999
+      },
+      {
+        "id": "202358054",
+        "title": "Navy Diamante Trim Maxi Dress",
+        "priceCents": 7999
+      },
+      {
+        "id": "203833000",
+        "title": "Curve Black Diamante Bow Midi Dress",
+        "priceCents": 4999
+      },
+      {
+        "id": "203872054",
+        "title": "Navy Bardot Diamante Bow Midi Dress",
+        "priceCents": 5499
+      }
+    ]
+  }
+}

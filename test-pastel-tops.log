@@ -1,0 +1,410 @@
+================================================================================
+Testing: "do you have any tops in pastel shades"
+================================================================================
+
+[2026-01-19T19:54:25.067Z] [Velou:INFO] {
+  message: 'handleLoveshackfancyQuery: starting',
+  query: 'do you have any tops in pastel shades',
+  sessionId: 'test-session-pastel-tops',
+  isFollowUp: false,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[2026-01-19T19:54:25.069Z] [Velou:DEBUG] {
+  message: 'do you have any tops in pastel shades',
+  sessionId: 'test-session-pastel-tops',
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  productContextId: undefined
+}
+[ORCHESTRATOR] START - input.conversationState: {
+  hasConversationState: false,
+  hasMemory: false,
+  hasPendingFollowups: false,
+  memoryKeys: []
+}
+[ORCHESTRATOR] Checking for pendingFollowups: {
+  hasInputConversationState: false,
+  hasMemory: true,
+  hasPendingFollowups: false,
+  pendingFollowupsData: null,
+  message: 'do you have any tops in pastel shades',
+  fullMemory: '{}'
+}
+[2026-01-19T19:54:25.070Z] [Velou:DEBUG] {
+  message: 'not_checking_followup',
+  currentMessage: 'do you have any tops in pastel shades',
+  hasQueryToMergeWith: false,
+  hasPreviousConstraints: false,
+  isShortMessage: true,
+  matchesFollowUpPattern: true,
+  messageLength: 8
+}
+[2026-01-19T19:54:25.093Z] [Velou:INFO] {
+  message: 'gender_and_agegroup_extracted_early',
+  query: 'do you have any tops in pastel shades',
+  resolvedGender: null,
+  resolvedAgeGroup: 'Adult',
+  genderSource: 'none',
+  ageGroupSource: 'default'
+}
+[2026-01-19T19:54:25.093Z] [Velou:DEBUG] {
+  message: 'query_categorizer: starting',
+  query: 'do you have any tops in pastel shades',
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[2026-01-19T19:54:26.106Z] [Velou:DEBUG] {
+  message: 'query_categorizer: complete',
+  query: 'do you have any tops in pastel shades',
+  category: 'direct_search',
+  confidence: 0.95,
+  duration: 1013
+}
+[2026-01-19T19:54:26.107Z] [Velou:INFO] {
+  message: 'query_categorization_result',
+  query: 'do you have any tops in pastel shades',
+  category: 'direct_search',
+  confidence: 0.95,
+  note: 'Query categorizer classification result'
+}
+[2026-01-19T19:54:26.107Z] [Velou:INFO] {
+  message: 'sequential_classification_category_first_then_constraints',
+  query: 'do you have any tops in pastel shades',
+  categorizationCategory: 'direct_search',
+  isFollowUp: false,
+  hasCategorySignals: true
+}
+[2026-01-19T19:54:26.111Z] [Velou:DEBUG] {
+  message: 'buildAllowedCategoriesForClassifier: gender_ambiguous_strict_majority',
+  genderContext: null,
+  totalCategories: 121,
+  strictMajorityCategories: 69,
+  sampleAllowed: [
+    'Pajama Set',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Sleepwear & Loungewear',
+    'long sleeve',
+    'mom jeans',
+    'joggers',
+    'underwear',
+    'Mens-tees'
+  ],
+  note: 'Using only strict gender majority categories (≥95% male or female) for ambiguous queries'
+}
+[2026-01-19T19:54:26.112Z] [Velou:INFO] {
+  message: 'categories_filtered_before_classification',
+  query: 'do you have any tops in pastel shades',
+  resolvedGender: null,
+  totalCategories: 69,
+  sampleCategories: [
+    'Pajama Set',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Sleepwear & Loungewear',
+    'long sleeve',
+    'mom jeans',
+    'joggers',
+    'underwear',
+    'Mens-tees'
+  ]
+}
+[ORCHESTRATOR] Calling category classification (sequential - step 1) {
+  query: 'do you have any tops in pastel shades',
+  originalMessage: 'do you have any tops in pastel shades',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  categorizationCategory: 'direct_search'
+}
+[2026-01-19T19:54:26.112Z] [Velou:INFO] {
+  message: 'category_classification_calling_function_sequential',
+  query: 'do you have any tops in pastel shades',
+  originalMessage: 'do you have any tops in pastel shades',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  categorizationCategory: 'direct_search'
+}
+[2026-01-19T19:54:26.112Z] [Velou:INFO] {
+  message: 'category_classifier: using_pre_filtered_categories',
+  query: 'do you have any tops in pastel shades',
+  preFilteredCategoryCount: 69,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  note: 'Using pre-filtered categories from orchestrator (gender already extracted)'
+}
+[2026-01-19T19:54:26.112Z] [Velou:INFO] {
+  message: 'category_classifier: starting classification with confidence',
+  query: 'do you have any tops in pastel shades',
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b',
+  allowedCategoryCount: 69,
+  usingPreFiltered: true
+}
+[2026-01-19T19:54:26.992Z] [Velou:INFO] {
+  message: 'category_classifier: classification with confidence complete',
+  query: 'do you have any tops in pastel shades',
+  categories: [],
+  categoryCount: 0,
+  confidence: 0.4,
+  elapsedMs: 880,
+  merchantId: 'default-merchant-db0515e3-9e87-42d5-8a55-bc7559ffab0b'
+}
+[ORCHESTRATOR] Category classification result (with confidence) {
+  query: 'do you have any tops in pastel shades',
+  originalMessage: 'do you have any tops in pastel shades',
+  isFollowUp: false,
+  categories: [],
+  count: 0,
+  confidence: 0.4,
+  categorizationCategory: 'direct_search'
+}
+[2026-01-19T19:54:26.992Z] [Velou:INFO] {
+  message: 'category_classification_complete_with_confidence_sequential',
+  query: 'do you have any tops in pastel shades',
+  originalMessage: 'do you have any tops in pastel shades',
+  isFollowUp: false,
+  usingEnhancedQuery: false,
+  categorizationCategory: 'direct_search',
+  categories: [],
+  categoryCount: 0,
+  confidence: 0.4
+}
+[2026-01-19T19:54:26.992Z] [Velou:INFO] {
+  message: 'constraint_classification_calling_sequential_after_categories',
+  query: 'do you have any tops in pastel shades',
+  classifiedCategories: [],
+  categoryCount: 0,
+  willUseCategorySpecificDictionaries: false
+}
+[2026-01-19T19:54:26.993Z] [Velou:INFO] {
+  message: 'classifyQuery: starting',
+  query: 'do you have any tops in pastel shades',
+  hasLastConstraints: false,
+  hasEnhancedQuery: true
+}
+[2026-01-19T19:54:26.993Z] [Velou:INFO] {
+  message: 'classifyQuery: gender_context_computed',
+  query: 'do you have any tops in pastel shades',
+  genderContext: null,
+  lastConstraintsGender: undefined,
+  note: 'Gender context computed before building classifier prompt'
+}
+[2026-01-19T19:54:26.993Z] [Velou:DEBUG] {
+  message: 'buildAllowedCategoriesForClassifier: gender_ambiguous_strict_majority',
+  genderContext: null,
+  totalCategories: 121,
+  strictMajorityCategories: 69,
+  sampleAllowed: [
+    'Pajama Set',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Sleepwear & Loungewear',
+    'long sleeve',
+    'mom jeans',
+    'joggers',
+    'underwear',
+    'Mens-tees'
+  ],
+  note: 'Using only strict gender majority categories (≥95% male or female) for ambiguous queries'
+}
+[2026-01-19T19:54:26.993Z] [Velou:INFO] {
+  message: 'classifyQuery: allowed_categories_computed',
+  query: 'do you have any tops in pastel shades',
+  genderContext: null,
+  usedStrictMajorityMode: true,
+  allowedCategoryCount: 69,
+  sampleCategories: [
+    'Pajama Set',
+    'Womens-pants',
+    'Womens-jeans',
+    'Loungewear',
+    'Sleepwear & Loungewear',
+    'long sleeve',
+    'mom jeans',
+    'joggers',
+    'underwear',
+    'Mens-tees',
+    'straight leg jeans',
+    'top',
+    'cropped jeans',
+    'Maxi Dress',
+    'Girls Dresses'
+  ],
+  note: 'Category list filtered based on gender context before building classifier prompt'
+}
+[2026-01-19T19:54:33.472Z] [Velou:INFO] {
+  message: 'classifyQuery: llm_raw_response',
+  query: 'do you have any tops in pastel shades',
+  rawTextLength: 559,
+  parsedType: 'direct_product_search',
+  parsedConstraints: {
+    colors: { values: [Array], intent: 'required' },
+    sleeveLengths: null,
+    lengths: null,
+    styles: null,
+    patterns: null,
+    sizes: null,
+    fits: null,
+    occasions: null,
+    materials: null,
+    collections: null,
+    priceMinCents: null,
+    priceMaxCents: null,
+    embellishments: null,
+    necklines: null,
+    ageGroups: null,
+    scents: null,
+    rooms: null,
+    useCases: null,
+    benefits: null,
+    claims: null,
+    sensoryProfile: null,
+    compatibility: null
+  },
+  parsedColors: {
+    values: [
+      'Blush',     'Lavender',
+      'Mint',      'Peach',
+      'Baby Blue', 'Lemon',
+      'Pink',      'Sky Blue'
+    ],
+    intent: 'required'
+  },
+  parsedLengths: null,
+  parsedSleeveLengths: null,
+  parsedAgeGroups: null,
+  note: 'Raw LLM response for constraint extraction debugging'
+}
+[2026-01-19T19:54:33.473Z] [Velou:INFO] {
+  message: 'classifyQuery: constraint_extraction_results',
+  query: 'do you have any tops in pastel shades',
+  extractedColors: {
+    values: [
+      'Blush',     'Lavender',
+      'Mint',      'Peach',
+      'Baby Blue', 'Lemon',
+      'Pink',      'Sky Blue'
+    ],
+    intent: 'required'
+  },
+  extractedLengths: null,
+  extractedSleeveLengths: null,
+  extractedAgeGroups: null,
+  colorsFormat: 'object',
+  lengthsFormat: 'null',
+  sleeveLengthsFormat: 'null',
+  ageGroupsFormat: 'null',
+  note: 'Extracted constraints after normalization - verify all explicit constraints were extracted'
+}
+[2026-01-19T19:54:33.474Z] [Velou:INFO] {
+  message: 'classifier_constraints_extracted',
+  query: 'do you have any tops in pastel shades',
+  type: 'direct_product_search',
+  productTerms: 'top',
+  confidence: 0.95,
+  constraintsCount: 3,
+  colors: {
+    values: [
+      'Blush',     'Lavender',
+      'Mint',      'Peach',
+      'Baby Blue', 'Lemon',
+      'Pink',      'Sky Blue'
+    ],
+    intent: 'required'
+  },
+  lengths: undefined,
+  sleeveLengths: undefined,
+  ageGroups: undefined,
+  missingConstraints: undefined,
+  allConstraints: {
+    colors: { values: [Array], intent: 'required' },
+    priceMinCents: null,
+    priceMaxCents: null
+  },
+  hasLastConstraints: false,
+  lastConstraintsKeys: []
+}
+[2026-01-19T19:54:33.474Z] [Velou:DEBUG] {
+  message: 'fashion_query_classified',
+  query: 'do you have any tops in pastel shades',
+  type: 'direct_product_search',
+  productTerms: 'top',
+  constraintsCount: 4
+}
+[2026-01-19T19:54:33.474Z] [Velou:INFO] {
+  message: 'classifyQuery: complete',
+  query: 'do you have any tops in pastel shades',
+  type: 'direct_product_search',
+  totalDurationMs: 6481,
+  totalDurationSeconds: '6.48',
+  llmDurationMs: 6478,
+  llmDurationSeconds: '6.48',
+  constraintsCount: 4,
+  genderContext: null,
+  usedStrictMajorityMode: true
+}
+[2026-01-19T19:54:33.474Z] [Velou:INFO] {
+  message: 'classification_metadata_extracted',
+  query: 'do you have any tops in pastel shades',
+  usedStrictMajorityMode: true,
+  genderContext: null,
+  classificationConfidence: 0.95,
+  classifiedGender: undefined
+}
+[2026-01-19T19:54:33.474Z] [Velou:DEBUG] {
+  message: 'clarification_triggers_evaluation',
+  query: 'do you have any tops in pastel shades',
+  topCategoriesCount: 0,
+  classificationType: 'direct_product_search',
+  hasProductTerms: true,
+  productTerms: 'top',
+  classificationConfidence: 0.95,
+  needsClarification: true
+}
+[2026-01-19T19:54:33.474Z] [Velou:INFO] {
+  message: 'clarification_triggered',
+  query: 'do you have any tops in pastel shades',
+  reasons: [ 'no_categories' ],
+  topCategoriesCount: 0,
+  classificationType: 'direct_product_search',
+  hasProductTerms: true,
+  classificationConfidence: 0.95,
+  note: 'Constraints are unclear - requesting clarification before retrieval'
+}
+[FOLLOWUP-GEN] Starting generateFollowUpQuestions for query: do you have any tops in pastel shades
+[FOLLOWUP-GEN] FINAL contextSummary: Ooh, pastel shades! I love that soft, dreamy palette you're drawn to. You want something light and airy that feels like a gentle whisper of color in your wardrobe.
+[FOLLOWUP-GEN] Original from LLM: Ooh, pastel shades! I love that soft, dreamy palette you're drawn to. You want something light and airy that feels like a gentle whisper of color in your wardrobe.
+[FOLLOWUP-GEN] Was modified? false
+[2026-01-19T19:54:34.719Z] [Velou:INFO] {
+  message: 'clarification_followup_questions_received',
+  query: 'do you have any tops in pastel shades',
+  contextSummary: "Ooh, pastel shades! I love that soft, dreamy palette you're drawn to. You want something light and airy that feels like a gentle whisper of color in y",
+  questionCount: 1,
+  reasons: [ 'no_categories' ]
+}
+[2026-01-19T19:54:34.720Z] [Velou:INFO] {
+  message: 'clarification_reply_constructed',
+  query: 'do you have any tops in pastel shades',
+  contextSummaryLength: 163,
+  questionsCount: 1,
+  replyTextPreview: "Ooh, pastel shades! I love that soft, dreamy palette you're drawn to. You want something light and airy that feels like a gentle whisper of color in your wardrobe.\n" +
+    '\n' +
+    'Are you looking for tops, dresses, ',
+  reasons: [ 'no_categories' ]
+}
+✅ Query completed successfully
+
+⏱️  Total time: 9.65s
+
+📊 Results Summary:
+  Products returned: 0
+  Has reply: true
+  No exact match: true
+
+❌ No products returned
+💬 Reply Preview:
+Ooh, pastel shades! I love that soft, dreamy palette you're drawn to. You want something light and airy that feels like a gentle whisper of color in your wardrobe.
+
+Are you looking for tops, dresses, or something else in pastel shades?
+
